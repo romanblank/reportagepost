@@ -80,7 +80,6 @@ export async function catalogForCity(filters: CatalogFilters): Promise<CatalogCa
       ) {
         return null;
       }
-      const lastPublishedAt = p.photos[0]?.publishedAt ?? null;
       return {
         username: p.username,
         firstName: p.user.firstName,
@@ -95,15 +94,10 @@ export async function catalogForCity(filters: CatalogFilters): Promise<CatalogCa
             }
           : null,
         photoKeys: p.photos.slice(0, 6).map((ph) => ph.storageKey),
-        score: completenessScore({
-          bio: p.bio,
-          siteUrl: p.siteUrl,
-          whatsapp: p.whatsapp,
-          telegram: p.telegram,
-          packagesCount: p.packages.length,
-          photosCount: p.photos.length,
-          lastPublishedAt,
-        }),
+        // v2: денормализованный рейтинг (взвешенные лайки со сгоранием + полнота),
+        // пересчитывается recomputeRatings; live-фолбэк полноты для только что
+        // одобренных — в самом ratingScore при approve
+        score: p.ratingScore,
       } satisfies CatalogCard;
     })
     .filter((c): c is CatalogCard => c !== null);

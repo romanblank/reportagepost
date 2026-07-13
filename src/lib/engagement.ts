@@ -17,17 +17,19 @@ export async function togglePhotoLike(userId: string, photoId: string): Promise<
     where: { userId_photoId: { userId, photoId } },
   });
 
+  const weightMilli = await actorWeight(userId);
   if (existing) {
     await db.$transaction([
       db.like.delete({ where: { id: existing.id } }),
       db.activityEvent.create({
-        data: { actorUserId: userId, type: 'PHOTO_UNLIKE', targetType: 'PHOTO', targetId: photoId },
+        // вес анлайка = текущий вес актора (компенсирует его же лайк; дрейф
+        // при смене статуса актора допустим — документировано для рейтинга v2)
+        data: { actorUserId: userId, type: 'PHOTO_UNLIKE', targetType: 'PHOTO', targetId: photoId, weightMilli },
       }),
     ]);
     return { liked: false };
   }
 
-  const weightMilli = await actorWeight(userId);
   await db.$transaction([
     db.like.create({ data: { userId, photoId } }),
     db.activityEvent.create({

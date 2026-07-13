@@ -70,6 +70,12 @@ export async function approveProfile(profileId: string): Promise<{ published: nu
       });
     }
     return { published: profile.photos.length };
+  }).then(async (result) => {
+    // Стартовый рейтинг сразу после одобрения (иначе новичок с 0 в самом низу
+    // до первого батч-пересчёта)
+    const { recomputeRatings } = await import('@/lib/rating');
+    await recomputeRatings();
+    return result;
   });
 }
 
