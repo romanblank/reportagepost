@@ -35,6 +35,15 @@ export const ru = {
     contactsTitle: 'Контакты',
     cityLabel: 'Город',
   },
+  photoFeed: {
+    title: 'Фотографии',
+    tabWeek: 'Лучшие за неделю',
+    tabYear: 'Лучшие за год',
+    tabEditors: 'Выбор редакции',
+    tabFresh: 'Свежие',
+    empty: 'Здесь пока пусто.',
+    freshFallback: 'Пока голосов мало — показываем свежие работы.',
+  },
   messages: {
     title: 'Сообщения',
     empty: 'Пока нет диалогов.',

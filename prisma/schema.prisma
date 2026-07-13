@@ -194,6 +194,7 @@ model Photo {
   status      ModerationStatus @default(PENDING)
   rejectReason String?
   aiVerdict   Json? // вердикт AI-премодерации (подсказка модератору, НЕ решение)
+  editorsChoiceAt DateTime? // красный флажок MyWed: ручная отметка редакции
   uploadedAt  DateTime         @default(now())
   publishedAt DateTime?
 
