@@ -20,7 +20,7 @@ payload = json.loads(os.environ["PAYLOAD"])
 entries = {e["key"]: e.get("textValue", "") for e in payload["entries"]}
 lines = []
 lines.append(f"AUTH_SECRET={entries['AUTH_SECRET']}")
-lines.append(f"DATABASE_URL=postgresql://rp:{entries['PG_PASSWORD']}@c-c9qj9lhngr1ic1sg9bd4.rw.mdb.yandexcloud.net:6432/reportagepost?sslmode=require")
+lines.append(f"DATABASE_URL=postgresql://rp:{entries['PG_PASSWORD']}@c-c9qj9lhngr1ic1sg9bd4.rw.mdb.yandexcloud.net:6432/reportagepost?sslmode=verify-full&sslrootcert=/app/yc-ca.pem")
 lines.append(f"S3_ACCESS_KEY_ID={entries['S3_ACCESS_KEY_ID']}")
 lines.append(f"S3_SECRET_ACCESS_KEY={entries['S3_SECRET_ACCESS_KEY']}")
 lines.append("S3_ENDPOINT=https://storage.yandexcloud.net")
