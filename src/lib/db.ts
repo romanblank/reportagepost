@@ -1,7 +1,9 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
-// Singleton: в dev Next.js пересоздаёт модули при HMR — держим клиент в globalThis.
+// Ленивая инициализация (урок CI 2026-07-13): next build импортирует роуты при
+// «collect page data» — падать можно только при первом ЗАПРОСЕ, не при импорте
+// (в docker-образе DATABASE_URL нет, он приходит в рантайме из Lockbox).
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 function createClient(): PrismaClient {
@@ -10,6 +12,13 @@ function createClient(): PrismaClient {
   return new PrismaClient({ adapter: new PrismaPg({ connectionString: url }) });
 }
 
-export const db = globalForPrisma.prisma ?? createClient();
+function getClient(): PrismaClient {
+  if (!globalForPrisma.prisma) globalForPrisma.prisma = createClient();
+  return globalForPrisma.prisma;
+}
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db;
+export const db = new Proxy({} as PrismaClient, {
+  get(_target, prop, receiver) {
+    return Reflect.get(getClient(), prop, receiver);
+  },
+});
