@@ -11,6 +11,6 @@ docs-vault
 !README.md
 .DS_Store
 *.log
-scripts
+scripts/prepare-deploy.sh
 .claude
 .vscode
