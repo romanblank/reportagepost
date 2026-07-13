@@ -41,7 +41,7 @@ export async function generateMetadata(props: { params: Promise<Params> }): Prom
 
 export default async function CatalogPage(props: {
   params: Promise<Params>;
-  searchParams: Promise<{ category?: string }>;
+  searchParams: Promise<{ category?: string; date?: string }>;
 }) {
   const params = await props.params;
   const searchParams = await props.searchParams;
@@ -51,8 +51,11 @@ export default async function CatalogPage(props: {
   const categorySlug = CATEGORIES.some((c) => c.slug === searchParams.category)
     ? searchParams.category
     : undefined;
+  const availableOn = /^\d{4}-\d{2}-\d{2}$/.test(searchParams.date ?? '')
+    ? new Date(`${searchParams.date}T00:00:00Z`)
+    : undefined;
 
-  const cards = await catalogForCity({ citySlug: city.slug, categorySlug });
+  const cards = await catalogForCity({ citySlug: city.slug, categorySlug, availableOn });
   const cityName = cityNameRu(city.slug);
   const basePath = `/ru/${params.country}/${params.city}`;
 
@@ -62,6 +65,16 @@ export default async function CatalogPage(props: {
         {ru.catalog.title(cityName)}
       </h1>
       <p className="mt-1 text-sm opacity-60">{ru.catalog.photographersCount(cards.length)}</p>
+
+      <form method="get" className="mt-3 flex items-center gap-2 text-sm">
+        {categorySlug && <input type="hidden" name="category" value={categorySlug} />}
+        <label className="flex items-center gap-2">
+          {ru.catalog.availableOn}
+          <input type="date" name="date" defaultValue={searchParams.date ?? ''}
+            className="rounded-lg border px-2 py-1" />
+        </label>
+        <button type="submit" className="rounded-lg border px-3 py-1">{ru.catalog.applyDate}</button>
+      </form>
 
       <nav className="mt-4 flex flex-wrap gap-2 text-sm">
         <Link

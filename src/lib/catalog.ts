@@ -8,6 +8,8 @@ export interface CatalogFilters {
   citySlug: string;
   categorySlug?: string;
   maxPricePerHourMinor?: number;
+  /** «Свободен на дату» (UTC-полночь): исключает занятых в этот день. */
+  availableOn?: Date;
 }
 
 export interface CatalogCard {
@@ -54,6 +56,9 @@ export async function catalogForCity(filters: CatalogFilters): Promise<CatalogCa
       city: { slug: filters.citySlug },
       ...(filters.categorySlug
         ? { categories: { some: { category: { slug: filters.categorySlug } } } }
+        : {}),
+      ...(filters.availableOn
+        ? { busyDates: { none: { date: filters.availableOn } } }
         : {}),
     },
     include: {

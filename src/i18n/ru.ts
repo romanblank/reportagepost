@@ -20,6 +20,8 @@ export const ru = {
     allCategories: 'Все категории',
     perHourFrom: (price: string) => `от ${price}/час`,
     packageLabel: (hours: number, price: string) => `${hours} ч — ${price}`,
+    availableOn: 'Свободен на дату',
+    applyDate: 'Показать',
     photographersCount: (n: number) => {
       const mod10 = n % 10;
       const mod100 = n % 100;

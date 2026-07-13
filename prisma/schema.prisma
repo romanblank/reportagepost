@@ -154,6 +154,7 @@ model PhotographerProfile {
   packages   PricePackage[]
   photos     Photo[]
   stories    Story[]
+  busyDates  BusyDate[]
 
   @@index([cityId, status, ratingScore(sort: Desc)])
 }
@@ -165,6 +166,18 @@ model ProfileCategory {
   category   Category            @relation(fields: [categoryId], references: [id])
 
   @@id([profileId, categoryId])
+}
+
+// Календарь занятости: фотограф отмечает занятые даты; каталог фильтрует
+// «свободен на дату» (козырь против MyWed). Дата — UTC-полночь (@db.Date).
+model BusyDate {
+  id        String   @id @default(cuid())
+  profileId String
+  date      DateTime @db.Date
+  profile   PhotographerProfile @relation(fields: [profileId], references: [id])
+
+  @@unique([profileId, date])
+  @@index([date])
 }
 
 model PricePackage {
