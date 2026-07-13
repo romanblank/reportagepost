@@ -1,7 +1,8 @@
-// Сид справочников: география РФ (+ категории добавятся после утверждения
-// состава оператором). Идемпотентен: upsert по уникальным ключам.
+// Сид справочников: география РФ + категории (6 базовых, утверждены 2026-07-13).
+// Идемпотентен: upsert по уникальным ключам.
 import 'dotenv/config';
 import { RU_CITIES, RU_COUNTRY } from '../src/lib/geo-data';
+import { CATEGORIES } from '../src/lib/category-data';
 
 async function main() {
   const { db } = await import('../src/lib/db');
@@ -30,9 +31,23 @@ async function main() {
     });
   }
 
+  for (const cat of CATEGORIES) {
+    await db.category.upsert({
+      where: { slug: cat.slug },
+      update: { sortOrder: cat.sortOrder, active: true },
+      create: {
+        slug: cat.slug,
+        nameKey: `category.${cat.slug}`,
+        sortOrder: cat.sortOrder,
+        active: true,
+      },
+    });
+  }
+
   const total = await db.city.count({ where: { countryId: country.id } });
   const active = await db.city.count({ where: { countryId: country.id, active: true } });
-  console.log(`Сид гео: страна RU, городов ${total}, активных ${active}`);
+  const cats = await db.category.count({ where: { active: true } });
+  console.log(`Сид: страна RU, городов ${total} (активных ${active}), категорий ${cats}`);
   await db.$disconnect();
 }
 
