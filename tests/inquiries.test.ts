@@ -20,6 +20,24 @@ describe.skipIf(!hasDb)('inquiries: создание и доставка (БД)'
     const { db } = await import('@/lib/db');
     const { createInquiry } = await import('@/lib/inquiries');
 
+    // Самодостаточность (урок CI 2026-07-13): создаём своего APPROVED-фотографа,
+    // не полагаясь на состояние БД
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const city = await db.city.findFirstOrThrow({ where: { slug: 'moscow' } });
+    const category = await db.category.findFirstOrThrow({ where: { slug: 'concerts-festivals' } });
+    const photographer = await db.user.create({
+      data: {
+        role: 'PHOTOGRAPHER', status: 'ACTIVE',
+        firstName: 'Инк', lastName: 'Тестов', email: `inq-${stamp}@test.local`,
+      },
+    });
+    const profile = await db.photographerProfile.create({
+      data: {
+        userId: photographer.id, username: `inq-${stamp}`, cityId: city.id,
+        status: 'APPROVED', categories: { create: [{ categoryId: category.id }] },
+      },
+    });
+
     const { inquiryId, notified } = await createInquiry({
       contactName: 'Тест Заказчиков',
       contactEmail: 'client@test.local',
@@ -44,6 +62,9 @@ describe.skipIf(!hasDb)('inquiries: создание и доставка (БД)'
     // уборка тестовых данных
     await db.notification.deleteMany({ where: { type: 'notification.inquiry.new' } });
     await db.inquiry.delete({ where: { id: inquiryId } });
+    await db.profileCategory.deleteMany({ where: { profileId: profile.id } });
+    await db.photographerProfile.delete({ where: { id: profile.id } });
+    await db.user.delete({ where: { id: photographer.id } });
   });
 
   it('чужая категория — уведомлений нет, заявка есть', async () => {
