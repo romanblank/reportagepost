@@ -20,13 +20,15 @@
 - Секреты — только в .env (вне git) и в vault/credentials.md (вне репо). Никогда в код, логи, коммиты.
 
 ## Архитектура и запуск локально
-- Next.js 15 (App Router, src/), TypeScript strict, Tailwind CSS 4, ESLint. Тесты: Vitest (юниты/смоук), Playwright (e2e, добавится в S2).
-- `npm run dev` — локально; `npm run build` — прод-сборка; `npm test` — тесты.
+- Next.js 16 (App Router, src/, сборка ТОЛЬКО webpack), TypeScript strict, Tailwind CSS 4, Prisma 7 + PostgreSQL, ESLint. Тесты: Vitest (юниты/смоук), Playwright (e2e, добавится в S2).
+- Запуск: `docker compose up -d` (PG на 5434; 5433 занят другой платформой оператора) → `npx prisma generate` → `npm run dev`. Миграции: `npx prisma migrate dev`.
+- Prisma 7: URL БД в `prisma.config.ts` (не в schema), рантайм через `@prisma/adapter-pg` (`src/lib/db.ts`).
+- `npm run build` — прод-сборка; `npm test` — тесты.
 - Деплой: Docker-образ на VM Yandex Cloud за nginx (цепочка появится в S0-инфраструктуре).
 
 ## Verification Loop
 После ЛЮБОГО изменения кода: `npm test` + `npm run build`. Эталон фиксируется здесь и обновляется при легитимном росте. Новые падения недопустимы. UI-изменения — проверять визуально.
-- **Эталон тестов**: 1 passed (smoke).
+- **Эталон тестов**: 2 passed (smoke + db.schema). db.schema требует локальный PG (env-зависимость, правило c): без DATABASE_URL — skip, это не падение.
 
 ## Правило падающих тестов (a/b/c)
 (a) тест устарел относительно новой правильной логики → обновить тест;

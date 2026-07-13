@@ -1,0 +1,15 @@
+# Локальная разработка: PostgreSQL. Прод — Managed PostgreSQL (Yandex Cloud).
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: reportagepost-db
+    environment:
+      POSTGRES_USER: rp
+      POSTGRES_PASSWORD: rp_local_dev # только локально; прод-пароль в .env вне git
+      POSTGRES_DB: reportagepost
+    ports:
+      - "5434:5432" # 5433 занят duel-postgres (другая платформа оператора)
+    volumes:
+      - rp_pgdata:/var/lib/postgresql/data
+volumes:
+  rp_pgdata:

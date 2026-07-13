@@ -1,0 +1,372 @@
+// Reportage Post — схема ядра (S1).
+// Инварианты (CLAUDE.md): деньги — минорные единицы + валюта; время — UTC;
+// телефоны — E.164; гео — дерево страна→регион→город; активность — события.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  // URL — в prisma.config.ts (Prisma 7); рантайм — через adapter-pg в src/lib/db.ts
+}
+
+// ─── Пользователи и роли ────────────────────────────────────────────────────
+
+enum UserRole {
+  PHOTOGRAPHER
+  CLIENT
+  ADMIN
+}
+
+enum UserStatus {
+  PENDING // зарегистрирован, портфолио на модерации
+  ACTIVE
+  BANNED
+}
+
+model User {
+  id           String     @id @default(cuid())
+  role         UserRole
+  status       UserStatus @default(PENDING)
+  // Настоящие имя и фамилия (правило площадки, как у MyWed)
+  firstName    String
+  lastName     String
+  email        String?    @unique
+  phone        String?    @unique // E.164: +79991234567
+  phoneVerifiedAt DateTime?
+  passwordHash String?
+  tgUserId     String?    @unique // Telegram-бот уведомлений (S2)
+  locale       String     @default("ru")
+  inviteCodeId String? // закрытость до S4: кто пригласил
+  createdAt    DateTime   @default(now())
+  lastSeenAt   DateTime?
+
+  profile       PhotographerProfile?
+  inviteCode    InviteCode?          @relation(fields: [inviteCodeId], references: [id])
+  events        ActivityEvent[]      @relation("actor")
+  likes         Like[]
+  follows       Follow[]             @relation("follower")
+  followedBy    Follow[]             @relation("followee")
+  inquiries     Inquiry[]
+  sentMessages  Message[]            @relation("sender")
+  recvMessages  Message[]            @relation("recipient")
+  notifications Notification[]
+}
+
+// Закрытость до публичного запуска (S4): регистрация только по инвайтам
+model InviteCode {
+  id        String    @id @default(cuid())
+  code      String    @unique
+  note      String? // кому выдан (амбассадор, ближний круг)
+  maxUses   Int       @default(1)
+  usedCount Int       @default(0)
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+  users     User[]
+}
+
+// ─── География: дерево страна → регион → город ─────────────────────────────
+
+model Country {
+  id      String   @id @default(cuid())
+  code    String   @unique // ISO 3166-1 alpha-2: RU
+  slug    String   @unique // russia — для URL
+  nameKey String // i18n-ключ: geo.country.russia
+  active  Boolean  @default(false) // включаем страны по мере экспансии
+  regions Region[]
+  cities  City[]
+}
+
+model Region {
+  id        String  @id @default(cuid())
+  countryId String
+  slug      String
+  nameKey   String
+  country   Country @relation(fields: [countryId], references: [id])
+  cities    City[]
+
+  @@unique([countryId, slug])
+}
+
+model City {
+  id        String  @id @default(cuid())
+  countryId String
+  regionId  String?
+  slug      String // moscow — для URL /ru/russia/moscow-…
+  nameKey   String
+  active    Boolean @default(false) // посев: Мск+СПб; SEO-страницы — все города
+  lat       Float?
+  lon       Float?
+
+  country   Country              @relation(fields: [countryId], references: [id])
+  region    Region?              @relation(fields: [regionId], references: [id])
+  profiles  PhotographerProfile[]
+  inquiries Inquiry[]
+
+  @@unique([countryId, slug])
+  @@index([active])
+}
+
+// ─── Категории репортажной съёмки ───────────────────────────────────────────
+
+model Category {
+  id        String  @id @default(cuid())
+  slug      String  @unique // business-events, corporate, concerts, sports, private-events, press
+  nameKey   String // i18n-ключ
+  sortOrder Int     @default(0)
+  active    Boolean @default(true)
+
+  profiles ProfileCategory[]
+  photos   Photo[]
+  stories  Story[]
+  inquiries Inquiry[]
+}
+
+// ─── Профиль фотографа ──────────────────────────────────────────────────────
+
+enum ModerationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model PhotographerProfile {
+  id          String           @id @default(cuid())
+  userId      String           @unique
+  username    String           @unique // @slug профиля
+  cityId      String
+  bio         String?
+  siteUrl     String?
+  whatsapp    String? // E.164
+  telegram    String? // @username
+  languages   String[]         @default(["ru"]) // языки общения, ISO 639-1
+  status      ModerationStatus @default(PENDING)
+  rejectReason String?
+  // Денормализованный рейтинг для сортировки каталога (пересчёт фоном).
+  // v1: полнота профиля + свежесть; v2 (S2): взвешенные лайки со сгоранием.
+  ratingScore Int              @default(0)
+  createdAt   DateTime         @default(now())
+
+  user       User              @relation(fields: [userId], references: [id])
+  city       City              @relation(fields: [cityId], references: [id])
+  categories ProfileCategory[]
+  packages   PricePackage[]
+  photos     Photo[]
+  stories    Story[]
+
+  @@index([cityId, status, ratingScore(sort: Desc)])
+}
+
+model ProfileCategory {
+  profileId  String
+  categoryId String
+  profile    PhotographerProfile @relation(fields: [profileId], references: [id])
+  category   Category            @relation(fields: [categoryId], references: [id])
+
+  @@id([profileId, categoryId])
+}
+
+model PricePackage {
+  id         String @id @default(cuid())
+  profileId  String
+  hours      Int // длительность пакета
+  priceMinor Int // копейки/центы — НИКОГДА не float
+  currency   String @default("RUB") // ISO 4217
+  sortOrder  Int    @default(0)
+
+  profile PhotographerProfile @relation(fields: [profileId], references: [id])
+
+  @@index([profileId])
+}
+
+// ─── Контент: фото и серии ──────────────────────────────────────────────────
+
+model Photo {
+  id          String           @id @default(cuid())
+  profileId   String
+  categoryId  String
+  storyId     String?
+  storageKey  String           @unique // ключ в Object Storage; CDN-URL строится из него
+  width       Int
+  height      Int
+  blurhash    String? // плейсхолдер при загрузке
+  status      ModerationStatus @default(PENDING)
+  rejectReason String?
+  aiVerdict   Json? // вердикт AI-премодерации (подсказка модератору, НЕ решение)
+  uploadedAt  DateTime         @default(now())
+  publishedAt DateTime?
+
+  profile  PhotographerProfile @relation(fields: [profileId], references: [id])
+  category Category            @relation(fields: [categoryId], references: [id])
+  story    Story?              @relation(fields: [storyId], references: [id])
+  likes    Like[]
+
+  @@index([profileId, status])
+  @@index([status, publishedAt(sort: Desc)])
+}
+
+// Серия (история) — репортаж с одного события
+model Story {
+  id          String           @id @default(cuid())
+  profileId   String
+  categoryId  String
+  title       String
+  description String?
+  coverPhotoId String?
+  status      ModerationStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+  publishedAt DateTime?
+
+  profile  PhotographerProfile @relation(fields: [profileId], references: [id])
+  category Category            @relation(fields: [categoryId], references: [id])
+  photos   Photo[]
+  likes    Like[]
+
+  @@index([profileId, status])
+}
+
+// ─── Событийная модель активности (фундамент рейтингов v2, рек-ленты, виджетов)
+
+enum ActivityType {
+  PHOTO_LIKE
+  PHOTO_UNLIKE
+  PHOTO_VIEW
+  STORY_LIKE
+  STORY_UNLIKE
+  STORY_VIEW
+  PROFILE_VIEW
+  FOLLOW
+  UNFOLLOW
+  PHOTO_PUBLISH
+  STORY_PUBLISH
+}
+
+enum TargetType {
+  PHOTO
+  STORY
+  PROFILE
+}
+
+// Append-only журнал. Никогда не обновляется и не удаляется —
+// рейтинги, лента и виджеты считаются поверх него.
+model ActivityEvent {
+  id          BigInt       @id @default(autoincrement())
+  actorUserId String?
+  type        ActivityType
+  targetType  TargetType
+  targetId    String
+  // Вес события на момент записи ×1000 (взвешенные лайки: вес = f(рейтинг актора))
+  weightMilli Int          @default(1000)
+  createdAt   DateTime     @default(now())
+
+  actor User? @relation("actor", fields: [actorUserId], references: [id])
+
+  @@index([targetType, targetId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@index([type, createdAt])
+}
+
+// Материализованные лайки (текущее состояние; история — в ActivityEvent)
+model Like {
+  id      String  @id @default(cuid())
+  userId  String
+  photoId String?
+  storyId String?
+  createdAt DateTime @default(now())
+
+  user  User   @relation(fields: [userId], references: [id])
+  photo Photo? @relation(fields: [photoId], references: [id])
+  story Story? @relation(fields: [storyId], references: [id])
+
+  @@unique([userId, photoId])
+  @@unique([userId, storyId])
+}
+
+model Follow {
+  followerId String
+  followeeId String
+  createdAt  DateTime @default(now())
+
+  follower User @relation("follower", fields: [followerId], references: [id])
+  followee User @relation("followee", fields: [followeeId], references: [id])
+
+  @@id([followerId, followeeId])
+}
+
+// ─── Заявки заказчиков ──────────────────────────────────────────────────────
+
+enum InquiryStatus {
+  OPEN
+  CLOSED
+}
+
+model Inquiry {
+  id           String        @id @default(cuid())
+  clientUserId String? // может быть гость — тогда контакты ниже
+  contactName  String
+  contactPhone String? // E.164
+  contactEmail String?
+  cityId       String
+  categoryId   String?
+  eventDate    DateTime? // дата события (UTC, date-часть)
+  budgetMinor  Int?
+  currency     String        @default("RUB")
+  description  String
+  status       InquiryStatus @default(OPEN)
+  createdAt    DateTime      @default(now())
+
+  client   User?     @relation(fields: [clientUserId], references: [id])
+  city     City      @relation(fields: [cityId], references: [id])
+  category Category? @relation(fields: [categoryId], references: [id])
+
+  @@index([cityId, status, createdAt(sort: Desc)])
+}
+
+// ─── Личка и уведомления ────────────────────────────────────────────────────
+
+model Message {
+  id          String    @id @default(cuid())
+  senderId    String
+  recipientId String
+  body        String
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  sender    User @relation("sender", fields: [senderId], references: [id])
+  recipient User @relation("recipient", fields: [recipientId], references: [id])
+
+  @@index([recipientId, readAt])
+  @@index([senderId, recipientId, createdAt])
+}
+
+// Мультиканальные уведомления (ADR mobile-strategy): канал — свойство доставки,
+// не тип уведомления. EMAIL сейчас, TELEGRAM в S2, WEBSOCKET в S2.
+enum NotificationChannel {
+  EMAIL
+  TELEGRAM
+  WEBSOCKET
+}
+
+enum NotificationState {
+  QUEUED
+  SENT
+  FAILED
+}
+
+model Notification {
+  id        String              @id @default(cuid())
+  userId    String
+  channel   NotificationChannel
+  type      String // i18n-ключ шаблона: notification.inquiry.new
+  payload   Json
+  state     NotificationState   @default(QUEUED)
+  error     String?
+  createdAt DateTime            @default(now())
+  sentAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([state, createdAt])
+  @@index([userId, createdAt(sort: Desc)])
+}
