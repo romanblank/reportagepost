@@ -18,6 +18,24 @@ export function OnboardingForm({ cities, categories }: { cities: Option[]; categ
   const [packages, setPackages] = useState([{ hours: 2, priceRub: 10000 }]);
   const [chosenCats, setChosenCats] = useState<string[]>([]);
   const [uploaded, setUploaded] = useState(0);
+  const [username, setUsername] = useState('');
+
+  // Слаг адреса страницы: строчная латиница/цифры/дефис — устраняет ловушку
+  // «ввёл имя с пробелом → непонятная ошибка» (фидбэк оператора 2026-07-14)
+  function slugify(v: string): string {
+    return v.toLowerCase().replace(/[\s_]+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-').slice(0, 30);
+  }
+
+  const FIELD_NAMES: Record<string, string> = {
+    username: ru.onboarding.fieldUsername,
+    citySlug: ru.onboarding.fieldCity,
+    categorySlugs: ru.onboarding.fieldCategories,
+    packages: ru.onboarding.fieldPackages,
+    siteUrl: ru.onboarding.fieldSiteUrl,
+    whatsapp: ru.onboarding.fieldWhatsapp,
+    telegram: ru.onboarding.fieldTelegram,
+    bio: ru.onboarding.fieldBio,
+  };
 
   async function submitProfile(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -28,7 +46,7 @@ export function OnboardingForm({ cities, categories }: { cities: Option[]; categ
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        username: f.get('username'),
+        username,
         citySlug: f.get('citySlug'),
         categorySlugs: chosenCats,
         bio: String(f.get('bio') ?? '').trim() || undefined,
@@ -46,6 +64,13 @@ export function OnboardingForm({ cities, categories }: { cities: Option[]; categ
     const body = res ? await res.json().catch(() => null) : null;
     if (body?.error === 'username_taken') setError(ru.onboarding.errUsernameTaken);
     else if (body?.error === 'profile_exists') setStep('photos');
+    else if (body?.error === 'validation' && body?.details) {
+      // Показываем КОНКРЕТНЫЕ поля с ошибкой, а не общую фразу (фидбэк оператора)
+      const fields = Object.keys(body.details as Record<string, unknown>)
+        .map((k) => FIELD_NAMES[k] ?? k)
+        .join(', ');
+      setError(ru.onboarding.errValidation(fields));
+    } else if (body?.error === 'city_not_found') setError(ru.onboarding.fieldCity);
     else setError(ru.inquiry.errorGeneric);
   }
 
@@ -106,7 +131,16 @@ export function OnboardingForm({ cities, categories }: { cities: Option[]; categ
     <form onSubmit={submitProfile} className="flex flex-col gap-3">
       <label className="text-sm">
         {ru.onboarding.username}
-        <input name="username" required pattern="[a-z0-9][a-z0-9-]{2,29}" className="mt-1 w-full rounded-lg border px-3 py-2" />
+        <input
+          name="username"
+          required
+          value={username}
+          onChange={(e) => setUsername(slugify(e.target.value))}
+          placeholder="roman-blank"
+          className="mt-1 w-full rounded-lg border px-3 py-2"
+        />
+        <span className="mt-1 block text-xs opacity-50">{ru.onboarding.usernameHint}</span>
+        <span className="mt-0.5 block text-xs opacity-40">{ru.onboarding.usernamePreview(username)}</span>
       </label>
       <label className="text-sm">
         {ru.onboarding.city}
