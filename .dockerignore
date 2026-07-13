@@ -1,0 +1,16 @@
+node_modules
+.next
+.git
+.gitignore
+.env*
+!.env.example
+coverage
+tests
+docs-vault
+*.md
+!README.md
+.DS_Store
+*.log
+scripts
+.claude
+.vscode
