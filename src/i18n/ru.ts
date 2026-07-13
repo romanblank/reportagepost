@@ -33,6 +33,16 @@ export const ru = {
     contactsTitle: 'Контакты',
     cityLabel: 'Город',
   },
+  admin: {
+    moderationTitle: 'Модерация заявок',
+    empty: 'Очередь пуста.',
+    photosCount: (n: number) => `Фото: ${n}`,
+    approve: 'Одобрить',
+    reject: 'Отклонить',
+    rejectReason: 'Причина отказа (обязательно, увидит фотограф)',
+    done: 'Решение сохранено',
+    error: 'Не получилось, обновите страницу',
+  },
   cabinet: {
     title: 'Кабинет',
     statusLabel: 'Статус профиля',
