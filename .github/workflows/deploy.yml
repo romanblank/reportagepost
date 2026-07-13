@@ -1,0 +1,102 @@
+name: CI/CD
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: rp
+          POSTGRES_PASSWORD: rp_ci
+          POSTGRES_DB: reportagepost
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U rp" --health-interval 5s
+          --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://rp:rp_ci@localhost:5432/reportagepost
+      AUTH_SECRET: ci-secret-32-chars-minimum-000000000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      # Миграции ПЕРЕД тестами (паттерн Verifi)
+      - run: npx prisma migrate deploy && npx prisma generate
+      - run: npm run db:seed
+      - run: npm test
+      - run: npm run build
+
+  build-push:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions: { contents: read, packages: write }
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: meta
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.image }}
+
+  deploy:
+    needs: build-push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Copy deploy files to VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: rp
+          key: ${{ secrets.PROD_SSH_KEY }}
+          source: "deploy/*"
+          target: /opt/reportagepost/
+          strip_components: 1
+      - name: Deploy
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          IMAGE: ${{ needs.build-push.outputs.image }}
+          GHCR_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: rp
+          key: ${{ secrets.PROD_SSH_KEY }}
+          envs: IMAGE,GHCR_TOKEN,GHCR_USER
+          script_stop: true
+          script: |
+            cd /opt/reportagepost
+            chmod +x setup-server.sh fetch-secrets.sh
+            ./setup-server.sh
+            ./fetch-secrets.sh
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+            # .previous-deploy для отката (паттерн Verifi)
+            [ -f .deploy.env ] && cp .deploy.env .previous-deploy || true
+            echo "IMAGE=$IMAGE" > .deploy.env
+            docker pull "$IMAGE"
+            IMAGE="$IMAGE" docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
+            # health-check с ожиданием (миграции на старте)
+            for i in $(seq 1 20); do
+              sleep 6
+              if curl -sf http://127.0.0.1:3000/health >/dev/null; then echo "HEALTH OK"; exit 0; fi
+            done
+            echo "HEALTH FAILED — откат: .previous-deploy"; cat .previous-deploy || true; exit 1
