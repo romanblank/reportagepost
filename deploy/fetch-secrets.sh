@@ -25,6 +25,11 @@ lines.append(f"S3_ACCESS_KEY_ID={entries['S3_ACCESS_KEY_ID']}")
 lines.append(f"S3_SECRET_ACCESS_KEY={entries['S3_SECRET_ACCESS_KEY']}")
 lines.append("S3_ENDPOINT=https://storage.yandexcloud.net")
 lines.append("S3_BUCKET=reportagepost-media")
+if "SMSC_LOGIN" in entries:
+    lines.append(f"SMSC_LOGIN={entries['SMSC_LOGIN']}")
+    lines.append(f"SMSC_PASSWORD={entries.get('SMSC_PASSWORD','')}")
+if "SMSC_SENDER" in entries:
+    lines.append(f"SMSC_SENDER={entries['SMSC_SENDER']}")
 with open(sys.argv[1], "w") as f:
     f.write("\n".join(lines) + "\n")
 print(f"wrote {sys.argv[1]} ({len(lines)} vars)")

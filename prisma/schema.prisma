@@ -52,9 +52,26 @@ model User {
   followedBy    Follow[]             @relation("followee")
   inquiries     Inquiry[]
   favorites     FavoritePhotographer[]
+  phoneVerifications PhoneVerification[]
   sentMessages  Message[]            @relation("sender")
   recvMessages  Message[]            @relation("recipient")
   notifications Notification[]
+}
+
+// Верификация телефона по SMS-коду (E.164). Код хранится как argon2-хеш
+// (не в открытом виде), с TTL и лимитом попыток.
+model PhoneVerification {
+  id         String   @id @default(cuid())
+  userId     String
+  phone      String // E.164
+  codeHash   String
+  attempts   Int      @default(0)
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
 }
 
 // Rate-limit счётчики (аудит P1 #3): фиксированное окно, ключ+начало окна.
