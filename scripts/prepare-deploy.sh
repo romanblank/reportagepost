@@ -30,8 +30,11 @@ fi
 # 4. Тесты и билд
 echo "→ npm test"
 npm test --silent || say "Тесты падают"
-echo "→ npm run build"
-npm run build >/dev/null 2>&1 || say "Билд падает"
+# Билд БЕЗ DATABASE_URL — как реальный Docker-билд в CI (урок 2026-07-14:
+# страница со static/ISR, лезущая в БД, падает на пререндере; локальный .env
+# это маскировал). Ловим класс ошибки здесь, а не в пайплайне.
+echo "→ npm run build (без DATABASE_URL, как в Docker)"
+env -u DATABASE_URL npm run build >/dev/null 2>&1 || say "Билд падает (проверь static-страницы, лезущие в БД → force-dynamic)"
 
 if [ "$FAIL" -eq 1 ]; then
   echo ""; echo "⛔ prepare-deploy: НЕ ПРОШЁЛ. Чинить до коммита/деплоя."; exit 1
