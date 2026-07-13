@@ -13,16 +13,21 @@ jobs:
           username: rp
           key: ${{ secrets.PROD_SSH_KEY }}
           script: |
-            set -x
+            # hairpin NAT: свой публичный IP изнутри недоступен — ходим на localhost
+            B="http://127.0.0.1:3000"
             INV=$(docker exec reportagepost npx tsx scripts/create-invite.ts diag 1 | grep -o 'создан: [^ ]*' | cut -d' ' -f2)
             EMAIL="diag-$RANDOM@test.local"
-            curl -si -c /tmp/cj -X POST https://reportagepost.com/api/auth/register \
+            echo "--- register:"
+            curl -si -c /tmp/cj -X POST "$B/api/auth/register" \
               -H 'Content-Type: application/json' \
-              -d "{\"role\":\"PHOTOGRAPHER\",\"firstName\":\"Диаг\",\"lastName\":\"Ностика\",\"email\":\"$EMAIL\",\"password\":\"diag-password-42\",\"inviteCode\":\"$INV\"}" | grep -E 'HTTP|set-cookie'
+              -d "{\"role\":\"PHOTOGRAPHER\",\"firstName\":\"Диаг\",\"lastName\":\"Ностика\",\"email\":\"$EMAIL\",\"password\":\"diag-password-42\",\"inviteCode\":\"$INV\"}" | grep -iE '^HTTP|set-cookie' || true
             echo "--- cabinet with cookie:"
-            curl -s -o /dev/null -w '%{http_code} redirect=%{redirect_url}\n' -b /tmp/cj https://reportagepost.com/ru/cabinet
+            curl -s -o /dev/null -w '%{http_code}\n' -b /tmp/cj "$B/ru/cabinet"
             echo "--- login:"
-            curl -si -c /tmp/cj2 -X POST https://reportagepost.com/api/auth/login \
+            curl -si -c /tmp/cj2 -X POST "$B/api/auth/login" \
               -H 'Content-Type: application/json' \
-              -d "{\"email\":\"$EMAIL\",\"password\":\"diag-password-42\"}" | grep -E 'HTTP|set-cookie'
-            curl -s -o /dev/null -w 'cabinet after login: %{http_code} redirect=%{redirect_url}\n' -b /tmp/cj2 https://reportagepost.com/ru/cabinet
+              -d "{\"email\":\"$EMAIL\",\"password\":\"diag-password-42\"}" | grep -iE '^HTTP|set-cookie' || true
+            echo "--- cabinet after login:"
+            curl -s -o /dev/null -w '%{http_code}\n' -b /tmp/cj2 "$B/ru/cabinet"
+            echo "--- cookie jar flags:"
+            cat /tmp/cj2 | tail -2
