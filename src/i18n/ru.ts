@@ -9,6 +9,8 @@ export const ru = {
   landing: {
     closedTitle: 'Reportage Post',
     closedText: 'Платформа готовится к запуску. Доступ — по приглашениям.',
+    registerCta: 'У меня есть приглашение',
+    loginCta: 'Войти',
   },
   catalog: {
     title: (city: string) => `Репортажные фотографы — ${city}`,
