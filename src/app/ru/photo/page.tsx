@@ -1,13 +1,18 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { bestOfWeek, bestOfYear, editorsChoice, freshPhotos, type FeedPhoto } from '@/lib/feeds';
+import { redirect } from 'next/navigation';
+import { bestOfWeek, bestOfYear, editorsChoice, followingFeed, freshPhotos, recommendedFeed, type FeedPhoto } from '@/lib/feeds';
+import { getSession } from '@/lib/auth';
 import { webVariantUrl } from '@/lib/photos';
 import { ru } from '@/i18n/ru';
 
 export const metadata: Metadata = { title: ru.photoFeed.title };
-export const revalidate = 300;
+// Персональные табы требуют сессии — рендерим динамически
+export const dynamic = 'force-dynamic';
 
 const TABS = [
+  { key: 'forYou', label: ru.photoFeed.tabForYou },
+  { key: 'following', label: ru.photoFeed.tabFollowing },
   { key: 'week', label: ru.photoFeed.tabWeek },
   { key: 'year', label: ru.photoFeed.tabYear },
   { key: 'editors', label: ru.photoFeed.tabEditors },
@@ -19,19 +24,30 @@ export default async function PhotoFeedPage(props: {
   searchParams: Promise<{ tab?: string }>;
 }) {
   const { tab } = await props.searchParams;
-  const active: TabKey = TABS.some((t) => t.key === tab) ? (tab as TabKey) : 'week';
+  const session = await getSession();
+  const active: TabKey = TABS.some((t) => t.key === tab) ? (tab as TabKey) : session ? 'forYou' : 'week';
 
   let photos: FeedPhoto[];
-  let fallbackNote = false;
-  if (active === 'week') photos = await bestOfWeek();
+  let note: string | null = null;
+
+  if (active === 'forYou') {
+    if (!session) return unauthenticated();
+    const rec = await recommendedFeed(session.userId);
+    photos = rec.photos;
+    if (!rec.personalized && photos.length > 0) note = ru.photoFeed.forYouFallback;
+  } else if (active === 'following') {
+    if (!session) return unauthenticated();
+    photos = await followingFeed(session.userId);
+    if (photos.length === 0) note = ru.photoFeed.followingEmpty;
+  } else if (active === 'week') photos = await bestOfWeek();
   else if (active === 'year') photos = await bestOfYear();
   else if (active === 'editors') photos = await editorsChoice();
   else photos = await freshPhotos();
 
-  // Честный фолбэк малых данных: пустая алгоритмическая лента → свежие
+  // Честный фолбэк малых данных для алгоритмических лент
   if (photos.length === 0 && (active === 'week' || active === 'year')) {
     photos = await freshPhotos();
-    fallbackNote = photos.length > 0;
+    if (photos.length > 0) note = ru.photoFeed.freshFallback;
   }
 
   return (
@@ -48,7 +64,7 @@ export default async function PhotoFeedPage(props: {
           </Link>
         ))}
       </nav>
-      {fallbackNote && <p className="mt-3 text-sm opacity-60">{ru.photoFeed.freshFallback}</p>}
+      {note && <p className="mt-3 text-sm opacity-60">{note}</p>}
       {photos.length === 0 ? (
         <p className="mt-10 text-center opacity-60">{ru.photoFeed.empty}</p>
       ) : (
@@ -65,4 +81,8 @@ export default async function PhotoFeedPage(props: {
       )}
     </main>
   );
+}
+
+function unauthenticated(): never {
+  redirect('/ru/login');
 }
