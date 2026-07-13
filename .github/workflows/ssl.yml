@@ -1,0 +1,19 @@
+name: SSL certbot
+on:
+  workflow_dispatch: {}
+
+jobs:
+  certbot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Issue/renew certificate
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: rp
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: |
+            sudo certbot --nginx -d reportagepost.com -d www.reportagepost.com \
+              --non-interactive --agree-tos -m roman4blank@gmail.com --redirect
+            sudo nginx -t && sudo systemctl reload nginx
+            curl -sfI https://reportagepost.com/health | head -1
