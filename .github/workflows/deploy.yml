@@ -94,6 +94,9 @@ jobs:
             # .previous-deploy для отката (паттерн Verifi)
             [ -f .deploy.env ] && cp .deploy.env .previous-deploy || true
             echo "IMAGE=$IMAGE" > .deploy.env
+            # Диск 30GB: чистим неиспользуемые образы ДО pull (инцидент 2026-07-13:
+            # no space left; откат при нужде перекачает образ из ghcr)
+            docker image prune -af >/dev/null 2>&1 || true
             docker pull "$IMAGE"
             IMAGE="$IMAGE" docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
             # health-check с ожиданием (миграции на старте)
