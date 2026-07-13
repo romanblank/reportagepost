@@ -1,4 +1,6 @@
+import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
+import { DomainError } from '@/lib/errors';
 
 // Лайки и подписки: материализованное состояние + append-only событие с весом.
 // Вес лайка (v2-механика MyWed): базовый 1000, у одобренного фотографа — 2000.
@@ -11,7 +13,7 @@ async function actorWeight(userId: string): Promise<number> {
 
 export async function togglePhotoLike(userId: string, photoId: string): Promise<{ liked: boolean }> {
   const photo = await db.photo.findUnique({ where: { id: photoId } });
-  if (!photo || photo.status !== 'APPROVED') throw new Error('photo_not_found');
+  if (!photo || photo.status !== 'APPROVED') throw new DomainError('photo_not_found', 404);
 
   const existing = await db.like.findUnique({
     where: { userId_photoId: { userId, photoId } },
@@ -31,19 +33,32 @@ export async function togglePhotoLike(userId: string, photoId: string): Promise<
   }
 
   const weightMilli = await actorWeight(userId);
-  await db.$transaction([
-    db.like.create({ data: { userId, photoId, weightMilli } }),
-    db.activityEvent.create({
-      data: { actorUserId: userId, type: 'PHOTO_LIKE', targetType: 'PHOTO', targetId: photoId, weightMilli },
-    }),
-  ]);
+  try {
+    await db.$transaction([
+      db.like.create({ data: { userId, photoId, weightMilli } }),
+      db.activityEvent.create({
+        data: { actorUserId: userId, type: 'PHOTO_LIKE', targetType: 'PHOTO', targetId: photoId, weightMilli },
+      }),
+    ]);
+  } catch (e) {
+    // Гонка двойного клика на unique(userId,photoId): лайк уже есть — идемпотентно
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+      return { liked: true };
+    }
+    throw e;
+  }
   return { liked: true };
 }
 
 export async function toggleFollow(followerId: string, followeeId: string): Promise<{ following: boolean }> {
-  if (followerId === followeeId) throw new Error('self_follow');
-  const followee = await db.user.findUnique({ where: { id: followeeId } });
-  if (!followee || followee.status !== 'ACTIVE') throw new Error('user_not_found');
+  if (followerId === followeeId) throw new DomainError('self_follow', 400);
+  // Подписка только на одобренного фотографа (аудит sec #6): нельзя фолловить
+  // заказчиков/непромодерированных и накручивать события
+  const profile = await db.photographerProfile.findUnique({
+    where: { userId: followeeId },
+    select: { status: true },
+  });
+  if (!profile || profile.status !== 'APPROVED') throw new DomainError('user_not_found', 404);
 
   const existing = await db.follow.findUnique({
     where: { followerId_followeeId: { followerId, followeeId } },

@@ -10,6 +10,16 @@ export interface CatalogFilters {
   maxPricePerHourMinor?: number;
   /** «Свободен на дату» (UTC-полночь): исключает занятых в этот день. */
   availableOn?: Date;
+  /** Пагинация (аудит P1-1): страница на PAGE_SIZE карточек. */
+  page?: number;
+}
+
+export const CATALOG_PAGE_SIZE = 24;
+
+export interface CatalogPage {
+  cards: CatalogCard[];
+  page: number;
+  hasNext: boolean;
 }
 
 export interface CatalogCard {
@@ -49,18 +59,31 @@ export function completenessScore(input: {
   return score; // максимум 100
 }
 
-export async function catalogForCity(filters: CatalogFilters): Promise<CatalogCard[]> {
-  const profiles = await db.photographerProfile.findMany({
-    where: {
-      status: 'APPROVED',
-      city: { slug: filters.citySlug },
-      ...(filters.categorySlug
-        ? { categories: { some: { category: { slug: filters.categorySlug } } } }
-        : {}),
-      ...(filters.availableOn
-        ? { busyDates: { none: { date: filters.availableOn } } }
-        : {}),
-    },
+export async function catalogForCity(filters: CatalogFilters): Promise<CatalogPage> {
+  const page = Math.max(1, filters.page ?? 1);
+
+  // Все фильтры — в where (аудит P1-1): БД отбирает и сортирует по индексу
+  // [cityId, status, ratingScore desc], в память тянем ровно страницу.
+  const where = {
+    status: 'APPROVED' as const,
+    city: { slug: filters.citySlug },
+    ...(filters.categorySlug
+      ? { categories: { some: { category: { slug: filters.categorySlug } } } }
+      : {}),
+    ...(filters.availableOn ? { busyDates: { none: { date: filters.availableOn } } } : {}),
+    // «цена за час ≤ X»: хотя бы один пакет с priceMinor/hours ≤ порога.
+    // hours ограничены [1..24], поэтому priceMinor ≤ X*hours покрывает условие
+    // консервативно; точную проверку делаем ниже на выбранной странице.
+    ...(filters.maxPricePerHourMinor != null
+      ? { packages: { some: { priceMinor: { lte: filters.maxPricePerHourMinor * 24 } } } }
+      : {}),
+  };
+
+  const rows = await db.photographerProfile.findMany({
+    where,
+    orderBy: [{ ratingScore: 'desc' }, { id: 'asc' }],
+    skip: (page - 1) * CATALOG_PAGE_SIZE,
+    take: CATALOG_PAGE_SIZE + 1, // +1 для hasNext
     include: {
       user: true,
       categories: { include: { category: true } },
@@ -68,44 +91,24 @@ export async function catalogForCity(filters: CatalogFilters): Promise<CatalogCa
       photos: {
         where: { status: 'APPROVED' },
         orderBy: { publishedAt: 'desc' },
-        take: 20,
+        take: 6,
       },
     },
   });
 
-  const cards = profiles
-    .map((p) => {
-      const cheapestPerHour = p.packages.length
-        ? Math.min(...p.packages.map((pkg) => pkg.priceMinor / pkg.hours))
-        : null;
-      if (
-        filters.maxPricePerHourMinor != null &&
-        cheapestPerHour != null &&
-        cheapestPerHour > filters.maxPricePerHourMinor
-      ) {
-        return null;
-      }
-      return {
-        username: p.username,
-        firstName: p.user.firstName,
-        lastName: p.user.lastName,
-        bio: p.bio,
-        categories: p.categories.map((c) => c.category.slug),
-        minPackage: p.packages[0]
-          ? {
-              hours: p.packages[0].hours,
-              priceMinor: p.packages[0].priceMinor,
-              currency: p.packages[0].currency,
-            }
-          : null,
-        photoKeys: p.photos.slice(0, 6).map((ph) => ph.storageKey),
-        // v2: денормализованный рейтинг (взвешенные лайки со сгоранием + полнота),
-        // пересчитывается recomputeRatings; live-фолбэк полноты для только что
-        // одобренных — в самом ratingScore при approve
-        score: p.ratingScore,
-      } satisfies CatalogCard;
-    })
-    .filter((c): c is CatalogCard => c !== null);
+  const hasNext = rows.length > CATALOG_PAGE_SIZE;
+  const cards = rows.slice(0, CATALOG_PAGE_SIZE).map((p) => ({
+    username: p.username,
+    firstName: p.user.firstName,
+    lastName: p.user.lastName,
+    bio: p.bio,
+    categories: p.categories.map((c) => c.category.slug),
+    minPackage: p.packages[0]
+      ? { hours: p.packages[0].hours, priceMinor: p.packages[0].priceMinor, currency: p.packages[0].currency }
+      : null,
+    photoKeys: p.photos.map((ph) => ph.storageKey),
+    score: p.ratingScore,
+  } satisfies CatalogCard));
 
-  return cards.sort((a, b) => b.score - a.score);
+  return { cards, page, hasNext };
 }

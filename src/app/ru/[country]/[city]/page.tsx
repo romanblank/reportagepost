@@ -41,7 +41,7 @@ export async function generateMetadata(props: { params: Promise<Params> }): Prom
 
 export default async function CatalogPage(props: {
   params: Promise<Params>;
-  searchParams: Promise<{ category?: string; date?: string }>;
+  searchParams: Promise<{ category?: string; date?: string; page?: string }>;
 }) {
   const params = await props.params;
   const searchParams = await props.searchParams;
@@ -54,8 +54,9 @@ export default async function CatalogPage(props: {
   const availableOn = /^\d{4}-\d{2}-\d{2}$/.test(searchParams.date ?? '')
     ? new Date(`${searchParams.date}T00:00:00Z`)
     : undefined;
+  const page = Math.max(1, Number(searchParams.page) || 1);
 
-  const cards = await catalogForCity({ citySlug: city.slug, categorySlug, availableOn });
+  const { cards, hasNext } = await catalogForCity({ citySlug: city.slug, categorySlug, availableOn, page });
   const cityName = cityNameRu(city.slug);
   const basePath = `/ru/${params.country}/${params.city}`;
 
@@ -135,6 +136,28 @@ export default async function CatalogPage(props: {
           ))}
         </ul>
       )}
+
+      {(page > 1 || hasNext) && (
+        <nav className="mt-8 flex justify-between text-sm">
+          {page > 1 ? (
+            <Link href={pageHref(basePath, categorySlug, searchParams.date, page - 1)}
+              className="rounded-lg border px-4 py-2">← {ru.catalog.prevPage}</Link>
+          ) : <span />}
+          {hasNext ? (
+            <Link href={pageHref(basePath, categorySlug, searchParams.date, page + 1)}
+              className="rounded-lg border px-4 py-2">{ru.catalog.nextPage} →</Link>
+          ) : <span />}
+        </nav>
+      )}
     </main>
   );
+}
+
+function pageHref(base: string, category?: string, date?: string, page?: number): string {
+  const q = new URLSearchParams();
+  if (category) q.set('category', category);
+  if (date) q.set('date', date);
+  if (page && page > 1) q.set('page', String(page));
+  const s = q.toString();
+  return s ? `${base}?${s}` : base;
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ru } from '@/i18n/ru';
 
@@ -14,6 +14,12 @@ interface Msg {
 export function ThreadClient({ peerId, selfId, initial }: { peerId: string; selfId: string; initial: Msg[] }) {
   const router = useRouter();
   const [messages, setMessages] = useState(initial);
+
+  // Синхронизация со свежими данными сервера после router.refresh() (аудит P1):
+  // без этого входящие сообщения не появлялись, хотя уже помечались прочитанными
+  useEffect(() => {
+    setMessages(initial);
+  }, [initial]);
   const [pending, setPending] = useState(false);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {

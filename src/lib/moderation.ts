@@ -71,10 +71,10 @@ export async function approveProfile(profileId: string): Promise<{ published: nu
     }
     return { published: profile.photos.length };
   }).then(async (result) => {
-    // Стартовый рейтинг сразу после одобрения (иначе новичок с 0 в самом низу
-    // до первого батч-пересчёта)
-    const { recomputeRatings } = await import('@/lib/rating');
-    await recomputeRatings();
+    // Стартовый рейтинг ТОЛЬКО одобряемого профиля (аудит P1-2: точечно, не
+    // полный пересчёт всех в HTTP-запросе модератора)
+    const { recomputeOne } = await import('@/lib/rating');
+    await recomputeOne(profileId);
     return result;
   });
 }

@@ -9,6 +9,7 @@ import {
   sessionCookieOptions,
 } from '@/lib/auth';
 import { PUBLIC_LAUNCH } from '@/lib/constants';
+import { clientIp, rateLimit } from '@/lib/rate-limit';
 
 // Валидация на границе (правило: данным извне не верить)
 const RegisterSchema = z.object({
@@ -30,6 +31,12 @@ export async function POST(req: Request) {
     );
   }
   const data = parsed.data;
+
+  try {
+    await rateLimit(`register:ip:${clientIp(req)}`, 10, 3600);
+  } catch {
+    return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
+  }
 
   // Инвайт-гейт: до публичного запуска регистрация только по коду
   let inviteCodeId: string | null = null;

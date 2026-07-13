@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { completenessScore } from '@/lib/catalog';
 
@@ -21,11 +22,15 @@ export async function engagementMilli(profileId: string, now = new Date()): Prom
   });
   if (photos.length === 0) return 0;
 
+  // Окно 5×полураспад (~300 дней): вклад старше <1% (аудит P1-3) — не грузим
+  // весь append-only журнал за всё время.
+  const since = new Date(now.getTime() - 5 * HALF_LIFE_DAYS * 86_400_000);
   const events = await db.activityEvent.findMany({
     where: {
       targetType: 'PHOTO',
       targetId: { in: photos.map((p) => p.id) },
       type: { in: ['PHOTO_LIKE', 'PHOTO_UNLIKE'] },
+      createdAt: { gte: since },
     },
     select: { type: true, weightMilli: true, createdAt: true },
   });
@@ -38,41 +43,56 @@ export async function engagementMilli(profileId: string, now = new Date()): Prom
   return Math.max(0, Math.round(sum));
 }
 
+type ProfileForRating = Prisma.PhotographerProfileGetPayload<{
+  include: { packages: true; photos: true };
+}>;
+
+async function scoreOne(p: ProfileForRating, now: Date): Promise<number> {
+  const engagement = await engagementMilli(p.id, now);
+  const approvedPhotos = p.photos.filter((ph) => ph.status === 'APPROVED');
+  const lastPublishedAt = approvedPhotos
+    .map((ph) => ph.publishedAt)
+    .filter((d): d is Date => d !== null)
+    .sort((a, b) => b.getTime() - a.getTime())[0] ?? null;
+  const completeness = completenessScore({
+    bio: p.bio,
+    siteUrl: p.siteUrl,
+    whatsapp: p.whatsapp,
+    telegram: p.telegram,
+    packagesCount: p.packages.length,
+    photosCount: approvedPhotos.length,
+    lastPublishedAt,
+    now,
+  });
+  return engagement + completeness * 1000;
+}
+
+/** Точечный пересчёт одного профиля (аудит P1-2: O(1) на approve вместо O(N)). */
+export async function recomputeOne(profileId: string, now = new Date()): Promise<void> {
+  const p = await db.photographerProfile.findUnique({
+    where: { id: profileId },
+    include: { packages: true, photos: true },
+  });
+  if (!p) return;
+  await db.photographerProfile.update({
+    where: { id: p.id },
+    data: { ratingScore: await scoreOne(p, now) },
+  });
+}
+
 /**
- * Полный пересчёт рейтингов одобренных профилей.
- * ratingScore = engagement (милли) + completeness×1000 (равный масштаб:
- * полный профиль ≈ 100 свежим лайкам клиентов).
+ * Полный пересчёт рейтингов (плановый джоб, НЕ в HTTP-запросе).
+ * ratingScore = engagement (милли) + completeness×1000.
  */
 export async function recomputeRatings(now = new Date()): Promise<number> {
   const profiles = await db.photographerProfile.findMany({
     where: { status: 'APPROVED' },
-    include: {
-      user: true,
-      packages: true,
-      photos: {
-        where: { status: 'APPROVED' },
-        orderBy: { publishedAt: 'desc' },
-        take: 20,
-        select: { publishedAt: true },
-      },
-    },
+    include: { packages: true, photos: true },
   });
-
   for (const p of profiles) {
-    const engagement = await engagementMilli(p.id, now);
-    const completeness = completenessScore({
-      bio: p.bio,
-      siteUrl: p.siteUrl,
-      whatsapp: p.whatsapp,
-      telegram: p.telegram,
-      packagesCount: p.packages.length,
-      photosCount: p.photos.length,
-      lastPublishedAt: p.photos[0]?.publishedAt ?? null,
-      now,
-    });
     await db.photographerProfile.update({
       where: { id: p.id },
-      data: { ratingScore: engagement + completeness * 1000 },
+      data: { ratingScore: await scoreOne(p, now) },
     });
   }
   return profiles.length;

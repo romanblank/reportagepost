@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getSession } from '@/lib/auth';
 import { InquiryError, createInquiry, inquiriesForPhotographer } from '@/lib/inquiries';
+import { clientIp, rateLimit } from '@/lib/rate-limit';
 
 const InquirySchema = z.object({
   contactName: z.string().trim().min(2).max(100),
@@ -27,6 +28,13 @@ export async function POST(req: Request) {
   }
 
   const session = await getSession();
+  // Публичный POST рассылает уведомления фотографам города — жёсткий лимит
+  // против спам-рассыла через нашу инфраструктуру (аудит P1 #3): 3/час на IP
+  try {
+    await rateLimit(`inquiry:ip:${clientIp(req)}`, 3, 3600);
+  } catch {
+    return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
+  }
   try {
     const result = await createInquiry({
       clientUserId: session?.userId,

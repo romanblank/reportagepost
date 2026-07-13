@@ -56,6 +56,16 @@ model User {
   notifications Notification[]
 }
 
+// Rate-limit счётчики (аудит P1 #3): фиксированное окно, ключ+начало окна.
+model RateLimit {
+  key         String
+  windowStart DateTime
+  count       Int      @default(0)
+
+  @@id([key, windowStart])
+  @@index([windowStart])
+}
+
 // Закрытость до публичного запуска (S4): регистрация только по инвайтам
 model InviteCode {
   id        String    @id @default(cuid())
