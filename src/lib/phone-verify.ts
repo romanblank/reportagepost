@@ -46,7 +46,7 @@ export async function confirmPhoneVerification(userId: string, code: string): Pr
   });
   if (!record) throw new DomainError('no_pending_code', 400);
   if (record.expiresAt < new Date()) {
-    await db.phoneVerification.delete({ where: { id: record.id } });
+    await db.phoneVerification.deleteMany({ where: { id: record.id } }); // идемпотентно при гонке
     throw new DomainError('code_expired', 400);
   }
 
@@ -57,7 +57,7 @@ export async function confirmPhoneVerification(userId: string, code: string): Pr
     data: { attempts: { increment: 1 } },
   });
   if (spend.count === 0) {
-    await db.phoneVerification.delete({ where: { id: record.id } });
+    await db.phoneVerification.deleteMany({ where: { id: record.id } }); // идемпотентно: параллельные не упадут в P2025→500
     throw new DomainError('too_many_attempts', 429);
   }
 
