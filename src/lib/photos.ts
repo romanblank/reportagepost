@@ -2,11 +2,10 @@ import { randomUUID } from 'node:crypto';
 import sharp from 'sharp';
 import { storage } from '@/lib/storage';
 
-// Требование к портфолио (модель MyWed): длинная сторона ≥ 2400 px.
-export const MIN_LONG_SIDE = 2400;
-// Онбординг: 15–20 фото одной категории.
-export const ONBOARDING_PHOTOS_MIN = 15;
-export const ONBOARDING_PHOTOS_MAX = 20;
+// Требование к портфолио (модель MyWed) — константы в photos-constants.ts
+// (клиентские компоненты не могут импортировать этот файл из-за sharp).
+export { MIN_LONG_SIDE, ONBOARDING_PHOTOS_MIN, ONBOARDING_PHOTOS_MAX } from '@/lib/photos-constants';
+import { MIN_LONG_SIDE } from '@/lib/photos-constants';
 
 export interface ProcessedPhoto {
   storageKey: string; // ключ оригинала; варианты лежат рядом
