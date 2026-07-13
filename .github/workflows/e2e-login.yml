@@ -1,0 +1,32 @@
+name: E2E login probe
+on:
+  workflow_dispatch: {}
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - run: npm init -y >/dev/null && npm i playwright@latest >/dev/null && npx playwright install chromium --with-deps >/dev/null
+      - name: Login flow in real browser
+        run: |
+          cat > probe.mjs <<'EOF'
+          import { chromium } from 'playwright';
+          const b = await chromium.launch();
+          const page = await b.newPage();
+          const errors = [];
+          page.on('pageerror', (e) => errors.push('PAGEERROR: ' + e.message));
+          page.on('console', (m) => { if (m.type() === 'error') errors.push('CONSOLE: ' + m.text()); });
+          page.on('requestfailed', (r) => errors.push('REQFAIL: ' + r.url() + ' ' + (r.failure()?.errorText ?? '')));
+          await page.goto('https://reportagepost.com/ru/login', { waitUntil: 'networkidle' });
+          await page.fill('input[name=email]', 'probe@test.local');
+          await page.fill('input[name=password]', 'probe-password-42');
+          await Promise.all([
+            page.waitForTimeout(4000),
+            page.click('button[type=submit]'),
+          ]);
+          console.log('URL after submit:', page.url());
+          console.log('Body snippet:', (await page.textContent('main'))?.slice(0, 200));
+          console.log('Errors:', errors.length ? errors.join('\n') : 'none');
+          await b.close();
+          EOF
+          node probe.mjs
