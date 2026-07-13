@@ -6,8 +6,11 @@ import { categoryNameRu } from '@/lib/category-data';
 import { webVariantUrl } from '@/lib/photos';
 import { formatRubMinor } from '@/lib/money';
 import { ru } from '@/i18n/ru';
+import { getSession } from '@/lib/auth';
+import { FollowButton, LikeButton, MessageButton } from '@/components/EngagementButtons';
 
-export const revalidate = 600;
+// dynamic: страница показывает состояние лайков/подписки текущего пользователя
+export const dynamic = 'force-dynamic';
 
 async function findProfile(username: string) {
   return db.photographerProfile.findFirst({
@@ -37,6 +40,29 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
   const profile = await findProfile(username);
   if (!profile) notFound();
 
+  const session = await getSession();
+  const [likes, myLikes, following] = await Promise.all([
+    db.like.groupBy({
+      by: ['photoId'],
+      where: { photoId: { in: profile.photos.map((p) => p.id) } },
+      _count: true,
+    }),
+    session
+      ? db.like.findMany({
+          where: { userId: session.userId, photoId: { in: profile.photos.map((p) => p.id) } },
+          select: { photoId: true },
+        })
+      : Promise.resolve([]),
+    session
+      ? db.follow.findUnique({
+          where: { followerId_followeeId: { followerId: session.userId, followeeId: profile.userId } },
+        })
+      : Promise.resolve(null),
+  ]);
+  const likeCount = new Map(likes.map((l) => [l.photoId, l._count]));
+  const likedSet = new Set(myLikes.map((l) => l.photoId));
+  const isSelf = session?.userId === profile.userId;
+
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
       <header>
@@ -48,6 +74,12 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
           {profile.categories.map((c) => categoryNameRu(c.category.slug)).join(' · ')}
         </p>
         {profile.bio && <p className="mt-3 max-w-2xl">{profile.bio}</p>}
+        {!isSelf && (
+          <div className="mt-4 flex gap-2">
+            <FollowButton userId={profile.userId} initialFollowing={Boolean(following)} authed={Boolean(session)} />
+            <MessageButton userId={profile.userId} />
+          </div>
+        )}
       </header>
 
       {profile.packages.length > 0 && (
@@ -67,16 +99,25 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
         <h2 className="text-lg font-medium">{ru.profile.portfolioTitle}</h2>
         <div className="mt-3 columns-2 gap-2 md:columns-3">
           {profile.photos.map((photo) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              key={photo.id}
-              src={webVariantUrl(photo.storageKey)}
-              alt=""
-              loading="lazy"
-              width={photo.width}
-              height={photo.height}
-              className="mb-2 w-full rounded-lg"
-            />
+            <figure key={photo.id} className="mb-2 break-inside-avoid">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={webVariantUrl(photo.storageKey)}
+                alt=""
+                loading="lazy"
+                width={photo.width}
+                height={photo.height}
+                className="w-full rounded-lg"
+              />
+              <figcaption className="mt-1">
+                <LikeButton
+                  photoId={photo.id}
+                  initialLiked={likedSet.has(photo.id)}
+                  initialCount={likeCount.get(photo.id) ?? 0}
+                  authed={Boolean(session)}
+                />
+              </figcaption>
+            </figure>
           ))}
         </div>
       </section>

@@ -35,6 +35,11 @@ export const ru = {
     contactsTitle: 'Контакты',
     cityLabel: 'Город',
   },
+  engage: {
+    follow: 'Подписаться',
+    following: 'Вы подписаны',
+    write: 'Написать',
+  },
   photoFeed: {
     title: 'Фотографии',
     tabWeek: 'Лучшие за неделю',
