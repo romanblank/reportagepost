@@ -35,6 +35,14 @@ export const ru = {
     contactsTitle: 'Контакты',
     cityLabel: 'Город',
   },
+  messages: {
+    title: 'Сообщения',
+    empty: 'Пока нет диалогов.',
+    unread: (n: number) => `${n} новых`,
+    placeholder: 'Напишите сообщение…',
+    send: 'Отправить',
+    writeTo: (name: string) => `Диалог с ${name}`,
+  },
   admin: {
     moderationTitle: 'Модерация заявок',
     empty: 'Очередь пуста.',
