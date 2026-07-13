@@ -28,7 +28,7 @@
 
 ## Verification Loop
 После ЛЮБОГО изменения кода: `npm test` + `npm run build`. Эталон фиксируется здесь и обновляется при легитимном росте. Новые падения недопустимы. UI-изменения — проверять визуально.
-- **Эталон тестов**: 14 passed (smoke, db.schema, geo-data×3, category-data×2, auth×3, photos×4). db.schema требует локальный PG (env-зависимость, правило c): без DATABASE_URL — skip, это не падение.
+- **Эталон тестов**: 16 passed (smoke, db.schema, geo-data×3, category-data×2, auth×3, photos×4, moderation×2). db.schema требует локальный PG (env-зависимость, правило c): без DATABASE_URL — skip, это не падение.
 
 ## Правило падающих тестов (a/b/c)
 (a) тест устарел относительно новой правильной логики → обновить тест;
