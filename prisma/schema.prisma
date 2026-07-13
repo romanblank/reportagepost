@@ -51,6 +51,7 @@ model User {
   follows       Follow[]             @relation("follower")
   followedBy    Follow[]             @relation("followee")
   inquiries     Inquiry[]
+  favorites     FavoritePhotographer[]
   sentMessages  Message[]            @relation("sender")
   recvMessages  Message[]            @relation("recipient")
   notifications Notification[]
@@ -169,6 +170,7 @@ model PhotographerProfile {
   stories    Story[]
   busyDates  BusyDate[]
   travelPlans TravelPlan[]
+  favoritedBy FavoritePhotographer[]
 
   @@index([cityId, status, ratingScore(sort: Desc)])
 }
@@ -337,6 +339,19 @@ model Follow {
   followee User @relation("followee", fields: [followeeId], references: [id])
 
   @@id([followerId, followeeId])
+}
+
+// Избранные фотографы заказчика (кабинет B2B: сохранить, чтобы вернуться)
+model FavoritePhotographer {
+  userId    String
+  profileId String
+  createdAt DateTime @default(now())
+
+  user    User                @relation(fields: [userId], references: [id])
+  profile PhotographerProfile @relation(fields: [profileId], references: [id])
+
+  @@id([userId, profileId])
+  @@index([userId])
 }
 
 // ─── Заявки заказчиков ──────────────────────────────────────────────────────

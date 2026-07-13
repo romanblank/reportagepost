@@ -72,3 +72,29 @@ export function MessageButton({ userId }: { userId: string }) {
     </button>
   );
 }
+
+export function FavoriteButton({ userId, initialFavorited, authed }: {
+  userId: string;
+  initialFavorited: boolean;
+  authed: boolean;
+}) {
+  const router = useRouter();
+  const [fav, setFav] = useState(initialFavorited);
+
+  async function toggle() {
+    if (!authed) {
+      router.push('/ru/login');
+      return;
+    }
+    setFav(!fav);
+    const res = await fetch(`/api/photographers/${userId}/favorite`, { method: 'POST' }).catch(() => null);
+    if (!res?.ok) setFav(fav);
+  }
+
+  return (
+    <button onClick={toggle} aria-pressed={fav}
+      className={`rounded-full border px-4 py-1 text-sm ${fav ? 'bg-foreground text-background' : ''}`}>
+      {fav ? `★ ${ru.engage.favorited}` : `☆ ${ru.engage.favorite}`}
+    </button>
+  );
+}

@@ -52,6 +52,8 @@ export const ru = {
     follow: 'Подписаться',
     following: 'Вы подписаны',
     write: 'Написать',
+    favorite: 'В избранное',
+    favorited: 'В избранном',
   },
   photoFeed: {
     title: 'Фотографии',
@@ -79,6 +81,16 @@ export const ru = {
     rejectReason: 'Причина отказа (обязательно, увидит фотограф)',
     done: 'Решение сохранено',
     error: 'Не получилось, обновите страницу',
+  },
+  clientCabinet: {
+    title: 'Кабинет заказчика',
+    favoritesTitle: 'Избранные фотографы',
+    favoritesEmpty: 'Вы ещё не добавили фотографов в избранное.',
+    myInquiriesTitle: 'Мои заявки',
+    myInquiriesEmpty: 'Вы ещё не оставляли заявок.',
+    newInquiry: 'Новая заявка',
+    inquiryStatusOpen: 'Открыта',
+    inquiryStatusClosed: 'Закрыта',
   },
   cabinet: {
     title: 'Кабинет',

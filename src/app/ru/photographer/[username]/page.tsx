@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { formatRubMinor } from '@/lib/money';
 import { ru } from '@/i18n/ru';
 import { getSession } from '@/lib/auth';
-import { FollowButton, LikeButton, MessageButton } from '@/components/EngagementButtons';
+import { FavoriteButton, FollowButton, LikeButton, MessageButton } from '@/components/EngagementButtons';
 
 // dynamic: страница показывает состояние лайков/подписки текущего пользователя
 export const dynamic = 'force-dynamic';
@@ -47,6 +47,13 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
   if (!profile) notFound();
 
   const session = await getSession();
+  const favorited = session
+    ? Boolean(
+        await db.favoritePhotographer.findUnique({
+          where: { userId_profileId: { userId: session.userId, profileId: profile.id } },
+        }),
+      )
+    : false;
   const [likes, myLikes, following] = await Promise.all([
     db.like.groupBy({
       by: ['photoId'],
@@ -81,8 +88,9 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
         </p>
         {profile.bio && <p className="mt-3 max-w-2xl">{profile.bio}</p>}
         {!isSelf && (
-          <div className="mt-4 flex gap-2">
+          <div className="mt-4 flex flex-wrap gap-2">
             <FollowButton userId={profile.userId} initialFollowing={Boolean(following)} authed={Boolean(session)} />
+            <FavoriteButton userId={profile.userId} initialFavorited={favorited} authed={Boolean(session)} />
             <MessageButton userId={profile.userId} />
           </div>
         )}
