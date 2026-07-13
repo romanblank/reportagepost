@@ -11,5 +11,6 @@ ADD https://storage.yandexcloud.net/cloud-certs/CA.pem /app/yc-ca.pem
 RUN npx prisma generate && npm run build
 ENV NODE_ENV=production
 EXPOSE 3000
-# Миграции встроены в старт (урок Verifi: schema drift → 500)
-CMD ["sh", "-c", "npx prisma migrate deploy && npm run start"]
+# Старт: миграции + идемпотентный сид справочников (города/категории — иначе
+# анкета падает city_not_found, урок 2026-07-14) + сервер
+CMD ["sh", "-c", "npx prisma migrate deploy && npm run db:seed && npm run start"]
