@@ -1,0 +1,28 @@
+name: Prod diag
+on:
+  workflow_dispatch: {}
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Auth flow check on prod
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: rp
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: |
+            set -x
+            INV=$(docker exec reportagepost npx tsx scripts/create-invite.ts diag 1 | grep -o 'создан: [^ ]*' | cut -d' ' -f2)
+            EMAIL="diag-$RANDOM@test.local"
+            curl -si -c /tmp/cj -X POST https://reportagepost.com/api/auth/register \
+              -H 'Content-Type: application/json' \
+              -d "{\"role\":\"PHOTOGRAPHER\",\"firstName\":\"Диаг\",\"lastName\":\"Ностика\",\"email\":\"$EMAIL\",\"password\":\"diag-password-42\",\"inviteCode\":\"$INV\"}" | grep -E 'HTTP|set-cookie'
+            echo "--- cabinet with cookie:"
+            curl -s -o /dev/null -w '%{http_code} redirect=%{redirect_url}\n' -b /tmp/cj https://reportagepost.com/ru/cabinet
+            echo "--- login:"
+            curl -si -c /tmp/cj2 -X POST https://reportagepost.com/api/auth/login \
+              -H 'Content-Type: application/json' \
+              -d "{\"email\":\"$EMAIL\",\"password\":\"diag-password-42\"}" | grep -E 'HTTP|set-cookie'
+            curl -s -o /dev/null -w 'cabinet after login: %{http_code} redirect=%{redirect_url}\n' -b /tmp/cj2 https://reportagepost.com/ru/cabinet
