@@ -24,6 +24,9 @@ export const ru = {
     applyDate: 'Показать',
     prevPage: 'Назад',
     nextPage: 'Дальше',
+    visitingTitle: 'Приезжают в город',
+    travelFrom: (city: string) => `Выезд из: ${city}`,
+    travelDates: (from: string, to: string) => `${from} — ${to}`,
     photographersCount: (n: number) => {
       const mod10 = n % 10;
       const mod100 = n % 100;

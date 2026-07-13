@@ -115,6 +115,7 @@ model City {
   region    Region?              @relation(fields: [regionId], references: [id])
   profiles  PhotographerProfile[]
   inquiries Inquiry[]
+  travelPlans TravelPlan[]
 
   @@unique([countryId, slug])
   @@index([active])
@@ -167,6 +168,7 @@ model PhotographerProfile {
   photos     Photo[]
   stories    Story[]
   busyDates  BusyDate[]
+  travelPlans TravelPlan[]
 
   @@index([cityId, status, ratingScore(sort: Desc)])
 }
@@ -178,6 +180,21 @@ model ProfileCategory {
   category   Category            @relation(fields: [categoryId], references: [id])
 
   @@id([profileId, categoryId])
+}
+
+// Выездные графики (механика MyWed «фотограф едет в X»): фотограф из города A
+// объявляет период работы в городе B — и показывается в каталоге B с пометкой.
+model TravelPlan {
+  id         String   @id @default(cuid())
+  profileId  String
+  cityId     String // город назначения
+  fromDate   DateTime @db.Date
+  toDate     DateTime @db.Date
+  profile    PhotographerProfile @relation(fields: [profileId], references: [id])
+  city       City                @relation(fields: [cityId], references: [id])
+
+  @@index([cityId, fromDate, toDate])
+  @@index([profileId])
 }
 
 // Календарь занятости: фотограф отмечает занятые даты; каталог фильтрует

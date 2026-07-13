@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { db } from '@/lib/db';
 import { catalogForCity } from '@/lib/catalog';
+import { visitingCity } from '@/lib/travel';
 import { cityNameRu } from '@/lib/geo-data';
 import { CATEGORIES, categoryNameRu } from '@/lib/category-data';
 import { thumbVariantUrl } from '@/lib/photos';
@@ -57,6 +58,8 @@ export default async function CatalogPage(props: {
   const page = Math.max(1, Number(searchParams.page) || 1);
 
   const { cards, hasNext } = await catalogForCity({ citySlug: city.slug, categorySlug, availableOn, page });
+  // Приезжие фотографы — только на первой странице, под фильтром
+  const visiting = page === 1 ? await visitingCity(city.slug, availableOn) : [];
   const cityName = cityNameRu(city.slug);
   const basePath = `/ru/${params.country}/${params.city}`;
 
@@ -95,9 +98,40 @@ export default async function CatalogPage(props: {
         ))}
       </nav>
 
-      {cards.length === 0 ? (
+      {visiting.length > 0 && (
+        <section className="mt-6">
+          <h2 className="text-lg font-medium">{ru.catalog.visitingTitle}</h2>
+          <ul className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {visiting.map((plan) => (
+              <li key={plan.id} className="rounded-xl border border-dashed p-4">
+                <Link href={`/ru/photographer/${plan.profile.username}`} className="block">
+                  <span className="font-medium">
+                    {plan.profile.user.firstName} {plan.profile.user.lastName}
+                  </span>
+                  <p className="mt-1 text-xs opacity-60">
+                    {ru.catalog.travelFrom(cityNameRu(plan.profile.city.slug))} ·{' '}
+                    {ru.catalog.travelDates(
+                      plan.fromDate.toISOString().slice(0, 10),
+                      plan.toDate.toISOString().slice(0, 10),
+                    )}
+                  </p>
+                  <div className="mt-2 grid grid-cols-3 gap-1 overflow-hidden rounded-lg">
+                    {plan.profile.photos.slice(0, 3).map((ph) => (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img key={ph.id} src={thumbVariantUrl(ph.storageKey)} alt="" loading="lazy"
+                        className="aspect-square w-full object-cover" />
+                    ))}
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {cards.length === 0 && visiting.length === 0 ? (
         <p className="mt-12 text-center opacity-60">{ru.catalog.empty}</p>
-      ) : (
+      ) : cards.length === 0 ? null : (
         <ul className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {cards.map((card) => (
             <li key={card.username} className="rounded-xl border p-4">
