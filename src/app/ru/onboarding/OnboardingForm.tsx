@@ -144,10 +144,12 @@ export function OnboardingForm({ cities, categories }: { cities: Option[]; categ
         {packages.map((p, i) => (
           <div key={i} className="mt-1 flex gap-2">
             <label className="flex items-center gap-1">{ru.onboarding.hours}
-              <input type="number" min={1} max={24} value={p.hours} required className="w-16 rounded-lg border px-2 py-1"
+              <input type="number" min={1} max={24} step={1} value={p.hours || ''} required className="w-16 rounded-lg border px-2 py-1"
                 onChange={(e) => setPackages((prev) => prev.map((x, j) => j === i ? { ...x, hours: Number(e.target.value) } : x))} /></label>
             <label className="flex items-center gap-1">{ru.onboarding.priceRub}
-              <input type="number" min={1} step={500} value={p.priceRub} required className="w-28 rounded-lg border px-2 py-1"
+              {/* step=1: HTML отсчитывает шаг от min — step=500 ломал круглые суммы (баг 2026-07-13).
+                  value={x || ''} — иначе контролируемый 0 нельзя стереть */}
+              <input type="number" min={1} step={1} value={p.priceRub || ''} required className="w-28 rounded-lg border px-2 py-1"
                 onChange={(e) => setPackages((prev) => prev.map((x, j) => j === i ? { ...x, priceRub: Number(e.target.value) } : x))} /></label>
           </div>
         ))}
