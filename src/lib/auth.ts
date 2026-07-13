@@ -2,6 +2,7 @@ import { hash, verify } from '@node-rs/argon2';
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import type { UserRole } from '@prisma/client';
+import { db } from '@/lib/db';
 
 // ─── Пароли (argon2id — стандарт 2026) ─────────────────────────────────────
 
@@ -21,6 +22,7 @@ const SESSION_TTL_DAYS = 30;
 export interface SessionPayload {
   userId: string;
   role: UserRole;
+  tokenVersion: number;
 }
 
 function secretKey(): Uint8Array {
@@ -32,29 +34,50 @@ function secretKey(): Uint8Array {
 }
 
 export async function createSessionToken(payload: SessionPayload): Promise<string> {
-  return new SignJWT({ userId: payload.userId, role: payload.role })
+  return new SignJWT({ userId: payload.userId, role: payload.role, tokenVersion: payload.tokenVersion })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(`${SESSION_TTL_DAYS}d`)
     .sign(secretKey());
 }
 
+/** Проверка ТОЛЬКО подписи/структуры (без БД) — для edge/дешёвых сценариев. */
 export async function verifySessionToken(token: string): Promise<SessionPayload | null> {
   try {
     const { payload } = await jwtVerify(token, secretKey());
-    if (typeof payload.userId !== 'string' || typeof payload.role !== 'string') return null;
-    return { userId: payload.userId, role: payload.role as UserRole };
+    if (
+      typeof payload.userId !== 'string' ||
+      typeof payload.role !== 'string' ||
+      typeof payload.tokenVersion !== 'number'
+    ) {
+      return null;
+    }
+    return { userId: payload.userId, role: payload.role as UserRole, tokenVersion: payload.tokenVersion };
   } catch {
     return null; // истёкший/битый токен = нет сессии, не ошибка
   }
 }
 
-/** Текущая сессия из cookie (Server Components / Route Handlers). */
+/**
+ * Текущая сессия из cookie с проверкой актуальности по БД (Server Components /
+ * Route Handlers): отклоняет BANNED и токены со старым tokenVersion (отзыв при
+ * бане/смене пароля/логауте-везде). Стоит одного запроса — приемлемо для SSR/API.
+ */
 export async function getSession(): Promise<SessionPayload | null> {
   const jar = await cookies();
   const token = jar.get(SESSION_COOKIE)?.value;
   if (!token) return null;
-  return verifySessionToken(token);
+  const claims = await verifySessionToken(token);
+  if (!claims) return null;
+
+  const user = await db.user.findUnique({
+    where: { id: claims.userId },
+    select: { status: true, role: true, tokenVersion: true },
+  });
+  if (!user || user.status === 'BANNED' || user.tokenVersion !== claims.tokenVersion) return null;
+
+  // роль берём из БД (актуальнее токена, если менялась)
+  return { userId: claims.userId, role: user.role, tokenVersion: user.tokenVersion };
 }
 
 export function sessionCookieOptions() {

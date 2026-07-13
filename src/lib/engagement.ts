@@ -17,21 +17,22 @@ export async function togglePhotoLike(userId: string, photoId: string): Promise<
     where: { userId_photoId: { userId, photoId } },
   });
 
-  const weightMilli = await actorWeight(userId);
   if (existing) {
+    // Анлайк списывает ВЕС ИСХОДНОГО ЛАЙКА (denormalized на Like), не текущий
+    // вес актора — иначе смена статуса между лайком и анлайком оставляла бы
+    // необратимый фантомный вклад в append-only журнале (P0-3 аудита 2026-07-14).
     await db.$transaction([
       db.like.delete({ where: { id: existing.id } }),
       db.activityEvent.create({
-        // вес анлайка = текущий вес актора (компенсирует его же лайк; дрейф
-        // при смене статуса актора допустим — документировано для рейтинга v2)
-        data: { actorUserId: userId, type: 'PHOTO_UNLIKE', targetType: 'PHOTO', targetId: photoId, weightMilli },
+        data: { actorUserId: userId, type: 'PHOTO_UNLIKE', targetType: 'PHOTO', targetId: photoId, weightMilli: existing.weightMilli },
       }),
     ]);
     return { liked: false };
   }
 
+  const weightMilli = await actorWeight(userId);
   await db.$transaction([
-    db.like.create({ data: { userId, photoId } }),
+    db.like.create({ data: { userId, photoId, weightMilli } }),
     db.activityEvent.create({
       data: { actorUserId: userId, type: 'PHOTO_LIKE', targetType: 'PHOTO', targetId: photoId, weightMilli },
     }),

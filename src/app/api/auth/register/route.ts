@@ -61,7 +61,7 @@ export async function POST(req: Request) {
     },
   });
 
-  const token = await createSessionToken({ userId: user.id, role: user.role });
+  const token = await createSessionToken({ userId: user.id, role: user.role, tokenVersion: user.tokenVersion });
   const res = NextResponse.json(
     { userId: user.id, role: user.role, status: user.status },
     { status: 201 },

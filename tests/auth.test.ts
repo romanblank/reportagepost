@@ -22,9 +22,9 @@ describe('auth: пароли', () => {
 
 describe('auth: сессии', () => {
   it('JWT: подписывается и верифицируется, мусор отклоняется', async () => {
-    const token = await createSessionToken({ userId: 'u1', role: 'PHOTOGRAPHER' });
+    const token = await createSessionToken({ userId: 'u1', role: 'PHOTOGRAPHER', tokenVersion: 0 });
     const session = await verifySessionToken(token);
-    expect(session).toEqual({ userId: 'u1', role: 'PHOTOGRAPHER' });
+    expect(session).toEqual({ userId: 'u1', role: 'PHOTOGRAPHER', tokenVersion: 0 });
     expect(await verifySessionToken('garbage.token.here')).toBeNull();
   });
 });
