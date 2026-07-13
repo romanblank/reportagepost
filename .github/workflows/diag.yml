@@ -29,15 +29,8 @@ jobs:
               -d "{\"email\":\"$EMAIL\",\"password\":\"diag-password-42\"}" | grep -iE '^HTTP|set-cookie' || true
             echo "--- cabinet after login:"
             curl -s -o /dev/null -w '%{http_code}\n' -b /tmp/cj2 "$B/ru/cabinet"
-            echo "--- login page JS chunks:"
-            curl -s "$B/ru/login" -o /tmp/login.html
-            grep -oE '/_next/static/[^"]+\.js' /tmp/login.html | sort -u > /tmp/chunks.txt
-            wc -l < /tmp/chunks.txt
-            while read -r c; do
-              code=$(curl -s -o /dev/null -w '%{http_code}' "$B$c")
-              echo "$code $c"
-            done < /tmp/chunks.txt | sort | uniq -c | head -10
-            echo "--- через nginx (как браузер):"
-            head -3 /tmp/chunks.txt | while read -r c; do
-              curl -s -o /dev/null -w '%{http_code} nginx '"$c"'\n' -H 'Host: reportagepost.com' "http://127.0.0.1$c"
-            done
+            echo "--- СОЗДАНИЕ АНКЕТЫ (сессия фотографа из шага register выше):"
+            PROF=$(curl -s -w '\nHTTP:%{http_code}' -b /tmp/cj -X POST "$B/api/profile" \
+              -H 'Content-Type: application/json' \
+              -d '{"username":"diag'"$RANDOM"'","citySlug":"moscow","categorySlugs":["concerts-festivals"],"bio":"Тест анкеты фотографа для диагностики","packages":[{"hours":3,"priceMinor":1500000,"currency":"RUB"}]}')
+            echo "profile response: $PROF"
