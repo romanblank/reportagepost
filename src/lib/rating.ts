@@ -9,6 +9,12 @@ import { completenessScore } from '@/lib/catalog';
 
 export const HALF_LIFE_DAYS = 60;
 
+// Вес лайка в момент действия (единый источник — аудит P2: было продублировано
+// в engagement.ts и stories.ts). Одобренный фотограф весит вдвое.
+export function likeWeightFor(actorProfileStatus: string | null | undefined): number {
+  return actorProfileStatus === 'APPROVED' ? 2000 : 1000;
+}
+
 export function decayFactor(ageMs: number): number {
   const ageDays = ageMs / 86_400_000;
   return Math.pow(0.5, ageDays / HALF_LIFE_DAYS);

@@ -11,8 +11,10 @@ import { formatRubMinor } from '@/lib/money';
 import { ru } from '@/i18n/ru';
 
 // SEO-страница каталога города (SSR). До S4 — под noindex (заголовок глобальный).
-// Кэш: ISR 10 минут — тысячи городских страниц не бьют в БД на каждый запрос.
-export const revalidate = 600;
+// ВНИМАНИЕ (аудит волны №2): страница читает searchParams (фильтры/пагинация) →
+// Next рендерит её динамически, revalidate тут НЕ применяется. Кэш городских
+// страниц вернём в S6 масштабирования (статический сегмент + клиентский фильтр).
+export const dynamic = 'force-dynamic';
 
 interface Params {
   country: string;

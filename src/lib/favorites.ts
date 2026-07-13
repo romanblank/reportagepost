@@ -11,7 +11,8 @@ export async function toggleFavorite(userId: string, profileId: string): Promise
     where: { userId_profileId: { userId, profileId } },
   });
   if (existing) {
-    await db.favoritePhotographer.delete({ where: { userId_profileId: { userId, profileId } } });
+    // deleteMany идемпотентно при гонке двойного клика (P2 волны №2)
+    await db.favoritePhotographer.deleteMany({ where: { userId, profileId } });
     return { favorited: false };
   }
   try {
@@ -30,7 +31,7 @@ export async function favoritesFor(userId: string) {
     include: {
       profile: {
         include: {
-          user: true,
+          user: { select: { firstName: true, lastName: true } },
           city: true,
           photos: { where: { status: 'APPROVED' }, orderBy: { publishedAt: 'desc' }, take: 3 },
         },

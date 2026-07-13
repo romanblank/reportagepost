@@ -55,10 +55,11 @@ export async function visitingCity(citySlug: string, onDate?: Date) {
   const plans = await db.travelPlan.findMany({
     where: { cityId: city.id, ...dateFilter, profile: { status: 'APPROVED' } },
     orderBy: { fromDate: 'asc' },
+    take: 24, // аудит P2: лимит приезжих на странице
     include: {
       profile: {
         include: {
-          user: true,
+          user: { select: { firstName: true, lastName: true } },
           city: true, // домашний город (для пометки «выезд из …»)
           photos: { where: { status: 'APPROVED' }, orderBy: { publishedAt: 'desc' }, take: 6 },
         },

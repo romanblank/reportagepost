@@ -1,14 +1,15 @@
 import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { DomainError } from '@/lib/errors';
+import { likeWeightFor } from '@/lib/rating';
 
 // Лайки и подписки: материализованное состояние + append-only событие с весом.
 // Вес лайка (v2-механика MyWed): базовый 1000, у одобренного фотографа — 2000.
 // Формула уточнится при рейтинге v2; вес пишется В МОМЕНТ события.
 
 async function actorWeight(userId: string): Promise<number> {
-  const profile = await db.photographerProfile.findUnique({ where: { userId } });
-  return profile?.status === 'APPROVED' ? 2000 : 1000;
+  const profile = await db.photographerProfile.findUnique({ where: { userId }, select: { status: true } });
+  return likeWeightFor(profile?.status);
 }
 
 export async function togglePhotoLike(userId: string, photoId: string): Promise<{ liked: boolean }> {
@@ -21,14 +22,14 @@ export async function togglePhotoLike(userId: string, photoId: string): Promise<
 
   if (existing) {
     // Анлайк списывает ВЕС ИСХОДНОГО ЛАЙКА (denormalized на Like), не текущий
-    // вес актора — иначе смена статуса между лайком и анлайком оставляла бы
-    // необратимый фантомный вклад в append-only журнале (P0-3 аудита 2026-07-14).
-    await db.$transaction([
-      db.like.delete({ where: { id: existing.id } }),
-      db.activityEvent.create({
+    // вес актора (P0-3 волны №1). deleteMany по ключу — идемпотентно при гонке
+    // двойного анлайка (P2 волны №2: delete по id давал P2025→500).
+    const removed = await db.like.deleteMany({ where: { userId, photoId } });
+    if (removed.count > 0) {
+      await db.activityEvent.create({
         data: { actorUserId: userId, type: 'PHOTO_UNLIKE', targetType: 'PHOTO', targetId: photoId, weightMilli: existing.weightMilli },
-      }),
-    ]);
+      });
+    }
     return { liked: false };
   }
 
@@ -65,12 +66,12 @@ export async function toggleFollow(followerId: string, followeeId: string): Prom
   });
 
   if (existing) {
-    await db.$transaction([
-      db.follow.delete({ where: { followerId_followeeId: { followerId, followeeId } } }),
-      db.activityEvent.create({
+    const removed = await db.follow.deleteMany({ where: { followerId, followeeId } });
+    if (removed.count > 0) {
+      await db.activityEvent.create({
         data: { actorUserId: followerId, type: 'UNFOLLOW', targetType: 'PROFILE', targetId: followeeId },
-      }),
-    ]);
+      });
+    }
     return { following: false };
   }
 

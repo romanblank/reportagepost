@@ -28,6 +28,8 @@ export function PUT(req: Request) {
     if (!session) return jsonError('unauthorized', 401);
     const parsed = ConfirmSchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) return jsonError('validation', 400);
+    // Rate-limit на подтверждение (аудит P1-1): дополнительный потолок к атомарному счётчику
+    await rateLimit(`sms:confirm:${session.userId}`, 15, 3600);
     await confirmPhoneVerification(session.userId, parsed.data.code);
     return NextResponse.json({ verified: true });
   });

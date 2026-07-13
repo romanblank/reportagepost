@@ -47,4 +47,26 @@ describe.skipIf(!hasDb)('phone-verify: код с TTL и лимитом попы�
 
     await db.user.delete({ where: { id: user.id } });
   });
+
+  it('P1-1: параллельные попытки не обходят лимит (атомарность)', async () => {
+    const { db } = await import('@/lib/db');
+    const { startPhoneVerification, confirmPhoneVerification } = await import('@/lib/phone-verify');
+
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const user = await db.user.create({ data: { role: 'PHOTOGRAPHER', status: 'ACTIVE', firstName: 'Б', lastName: 'Ф', email: `bf-${stamp}@test.local` } });
+    const phone = `+7999${String(Math.floor(Math.random() * 1e7)).padStart(7, '0')}`;
+    await startPhoneVerification(user.id, phone);
+
+    // 20 параллельных неверных попыток — должно пройти не больше MAX_ATTEMPTS(5),
+    // после чего запись удаляется и все последующие получают too_many_attempts
+    const results = await Promise.allSettled(
+      Array.from({ length: 20 }, () => confirmPhoneVerification(user.id, '999999')),
+    );
+    const rejected = results.filter((r) => r.status === 'rejected');
+    expect(rejected).toHaveLength(20); // все неверны
+    // запись израсходована и удалена (лимит сработал, а не обойдён)
+    expect(await db.phoneVerification.count({ where: { userId: user.id } })).toBe(0);
+
+    await db.user.delete({ where: { id: user.id } });
+  });
 });

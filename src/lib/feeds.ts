@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { DomainError } from '@/lib/errors';
 
 // Ленты (модель MyWed): «лучшее недели/года» — алгоритмические (взвешенные
 // лайки за окно, по журналу событий), «выбор редакции» — ручная отметка.
@@ -39,7 +40,7 @@ async function bestOfWindow(sinceDays: number, limit: number): Promise<FeedPhoto
 
   const photos = await db.photo.findMany({
     where: { id: { in: top.map(([id]) => id) }, status: 'APPROVED' },
-    include: { profile: { include: { user: true } } },
+    include: { profile: { include: { user: { select: { firstName: true, lastName: true } } } } },
   });
   const byId = new Map(photos.map((p) => [p.id, p]));
 
@@ -70,7 +71,7 @@ export async function freshPhotos(limit = 60): Promise<FeedPhoto[]> {
     where: { status: 'APPROVED' },
     orderBy: { publishedAt: 'desc' },
     take: limit,
-    include: { profile: { include: { user: true } } },
+    include: { profile: { include: { user: { select: { firstName: true, lastName: true } } } } },
   });
   return photos.map((p) => ({
     photoId: p.id,
@@ -89,7 +90,7 @@ export async function editorsChoice(limit = 100): Promise<FeedPhoto[]> {
     where: { status: 'APPROVED', editorsChoiceAt: { not: null } },
     orderBy: { editorsChoiceAt: 'desc' },
     take: limit,
-    include: { profile: { include: { user: true } } },
+    include: { profile: { include: { user: { select: { firstName: true, lastName: true } } } } },
   });
   return photos.map((p) => ({
     photoId: p.id,
@@ -118,7 +119,7 @@ export async function followingFeed(userId: string, limit = 60): Promise<FeedPho
     },
     orderBy: { publishedAt: 'desc' },
     take: limit,
-    include: { profile: { include: { user: true } } },
+    include: { profile: { include: { user: { select: { firstName: true, lastName: true } } } } },
   });
   return photos.map((p) => ({
     photoId: p.id,
@@ -148,10 +149,19 @@ export async function recommendedFeed(userId: string, limit = 60): Promise<{ pho
 
   if (catIds.length > 0) {
     const since = new Date(Date.now() - 30 * 86_400_000);
+    // Сначала id фото нужных категорий (аудит P1-3: не агрегируем весь журнал
+    // платформы — только события по интересующим фото)
+    const catPhotos = await db.photo.findMany({
+      where: { status: 'APPROVED', categoryId: { in: catIds } },
+      select: { id: true },
+      take: 5000,
+    });
+    if (catPhotos.length === 0) return fallbackFeed(limit);
     const events = await db.activityEvent.groupBy({
       by: ['targetId', 'type'],
       where: {
         targetType: 'PHOTO',
+        targetId: { in: catPhotos.map((p) => p.id) },
         type: { in: ['PHOTO_LIKE', 'PHOTO_UNLIKE'] },
         createdAt: { gte: since },
       },
@@ -162,9 +172,10 @@ export async function recommendedFeed(userId: string, limit = 60): Promise<{ pho
       const sign = e.type === 'PHOTO_LIKE' ? 1 : -1;
       scores.set(e.targetId, (scores.get(e.targetId) ?? 0) + sign * (e._sum.weightMilli ?? 0));
     }
+    const topIds = [...scores.entries()].filter(([, s]) => s > 0).sort((a, b) => b[1] - a[1]).slice(0, limit).map(([id]) => id);
     const candidates = await db.photo.findMany({
-      where: { status: 'APPROVED', categoryId: { in: catIds }, id: { in: [...scores.keys()] } },
-      include: { profile: { include: { user: true } } },
+      where: { status: 'APPROVED', id: { in: topIds } },
+      include: { profile: { include: { user: { select: { firstName: true, lastName: true } } } } },
     });
     if (candidates.length > 0) {
       const photos = candidates
@@ -179,7 +190,10 @@ export async function recommendedFeed(userId: string, limit = 60): Promise<{ pho
     }
   }
 
-  // фолбэк
+  return fallbackFeed(limit);
+}
+
+async function fallbackFeed(limit: number): Promise<{ photos: FeedPhoto[]; personalized: boolean }> {
   const best = await bestOfWeek(limit);
   if (best.length > 0) return { photos: best, personalized: false };
   return { photos: await freshPhotos(limit), personalized: false };
@@ -188,7 +202,7 @@ export async function recommendedFeed(userId: string, limit = 60): Promise<{ pho
 /** Ручная отметка редакции (инструмент оператора). */
 export async function toggleEditorsChoice(photoId: string): Promise<{ chosen: boolean }> {
   const photo = await db.photo.findUnique({ where: { id: photoId } });
-  if (!photo || photo.status !== 'APPROVED') throw new Error('photo_not_found');
+  if (!photo || photo.status !== 'APPROVED') throw new DomainError('photo_not_found', 404);
   const chosen = !photo.editorsChoiceAt;
   await db.photo.update({
     where: { id: photoId },

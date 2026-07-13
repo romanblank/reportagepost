@@ -1,12 +1,15 @@
 import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { DomainError } from '@/lib/errors';
+import { likeWeightFor } from '@/lib/rating';
 
 // Серии/истории (модель MyWed): репортаж с одного события — подборка одобренных
 // фото фотографа. Публикация серии проходит модерацию отдельно.
 
 export const STORY_MIN_PHOTOS = 5;
 export const STORY_MAX_PHOTOS = 60;
+// Кап незакрытых заявок на модерацию (аудит P3: анти-спам очереди редакции)
+export const MAX_PENDING_STORIES = 5;
 
 export async function createStory(
   userId: string,
@@ -18,6 +21,8 @@ export async function createStory(
   if (input.photoIds.length < STORY_MIN_PHOTOS || input.photoIds.length > STORY_MAX_PHOTOS) {
     throw new DomainError('photo_count', 400);
   }
+  const pending = await db.story.count({ where: { profileId: profile.id, status: 'PENDING' } });
+  if (pending >= MAX_PENDING_STORIES) throw new DomainError('too_many_pending', 429);
   const category = await db.category.findUnique({ where: { slug: input.categorySlug } });
   if (!category?.active) throw new DomainError('category_not_found', 400);
 
@@ -48,17 +53,17 @@ export async function toggleStoryLike(userId: string, storyId: string): Promise<
 
   const existing = await db.like.findUnique({ where: { userId_storyId: { userId, storyId } } });
   if (existing) {
-    await db.$transaction([
-      db.like.delete({ where: { id: existing.id } }),
-      db.activityEvent.create({
+    const removed = await db.like.deleteMany({ where: { userId, storyId } });
+    if (removed.count > 0) {
+      await db.activityEvent.create({
         data: { actorUserId: userId, type: 'STORY_UNLIKE', targetType: 'STORY', targetId: storyId, weightMilli: existing.weightMilli },
-      }),
-    ]);
+      });
+    }
     return { liked: false };
   }
 
   const profile = await db.photographerProfile.findUnique({ where: { userId }, select: { status: true } });
-  const weightMilli = profile?.status === 'APPROVED' ? 2000 : 1000;
+  const weightMilli = likeWeightFor(profile?.status);
   try {
     await db.$transaction([
       db.like.create({ data: { userId, storyId, weightMilli } }),

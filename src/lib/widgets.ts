@@ -25,7 +25,7 @@ export async function recentPhotographers(limit = 6) {
     orderBy: { createdAt: 'desc' },
     take: limit,
     include: {
-      user: true,
+      user: { select: { firstName: true, lastName: true } },
       city: true,
       photos: { where: { status: 'APPROVED' }, orderBy: { publishedAt: 'desc' }, take: 1 },
     },

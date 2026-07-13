@@ -1,8 +1,10 @@
 import { randomInt } from 'node:crypto';
+import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { hashPassword, verifyPassword } from '@/lib/auth';
 import { smsProvider } from '@/lib/sms';
 import { DomainError } from '@/lib/errors';
+import { rateLimit } from '@/lib/rate-limit';
 
 const CODE_TTL_MIN = 10;
 const MAX_ATTEMPTS = 5;
@@ -11,6 +13,10 @@ const E164 = /^\+[1-9]\d{7,14}$/;
 /** Отправляет код на телефон. Код — argon2-хеш в БД, TTL 10 мин. */
 export async function startPhoneVerification(userId: string, phone: string): Promise<void> {
   if (!E164.test(phone)) throw new DomainError('bad_phone', 400);
+
+  // Антибомбинг чужого номера (аудит P1-2): лимит по НОМЕРУ-цели, независимо
+  // от аккаунта-отправителя — 5 SMS/сутки на номер
+  await rateLimit(`sms:phone:${phone}`, 5, 86_400);
 
   // Телефон уникален по User.phone — не даём привязать чужой уже верифицированный
   const taken = await db.user.findFirst({
@@ -43,19 +49,31 @@ export async function confirmPhoneVerification(userId: string, code: string): Pr
     await db.phoneVerification.delete({ where: { id: record.id } });
     throw new DomainError('code_expired', 400);
   }
-  if (record.attempts >= MAX_ATTEMPTS) {
+
+  // Атомарный расход попытки (аудит P1-1): updateMany с условием attempts<MAX
+  // защищает от TOCTOU при пачке параллельных PUT — иначе счётчик обходится.
+  const spend = await db.phoneVerification.updateMany({
+    where: { id: record.id, attempts: { lt: MAX_ATTEMPTS } },
+    data: { attempts: { increment: 1 } },
+  });
+  if (spend.count === 0) {
     await db.phoneVerification.delete({ where: { id: record.id } });
     throw new DomainError('too_many_attempts', 429);
   }
 
   const ok = await verifyPassword(record.codeHash, code);
-  if (!ok) {
-    await db.phoneVerification.update({ where: { id: record.id }, data: { attempts: { increment: 1 } } });
-    throw new DomainError('code_invalid', 400);
-  }
+  if (!ok) throw new DomainError('code_invalid', 400);
 
-  await db.$transaction([
-    db.user.update({ where: { id: userId }, data: { phone: record.phone, phoneVerifiedAt: new Date() } }),
-    db.phoneVerification.deleteMany({ where: { userId } }),
-  ]);
+  try {
+    await db.$transaction([
+      db.user.update({ where: { id: userId }, data: { phone: record.phone, phoneVerifiedAt: new Date() } }),
+      db.phoneVerification.deleteMany({ where: { userId } }),
+    ]);
+  } catch (e) {
+    // Номер заняли за время TTL (User.phone @unique) — чистый 409, не 500
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+      throw new DomainError('phone_taken', 409);
+    }
+    throw e;
+  }
 }

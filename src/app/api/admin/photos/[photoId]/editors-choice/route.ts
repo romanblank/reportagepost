@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
 import { toggleEditorsChoice } from '@/lib/feeds';
+import { handleRoute, jsonError } from '@/lib/errors';
 
-export async function POST(_req: Request, { params }: { params: Promise<{ photoId: string }> }) {
-  if (!(await requireAdmin())) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
-  const { photoId } = await params;
-  try {
+export function POST(_req: Request, { params }: { params: Promise<{ photoId: string }> }) {
+  return handleRoute(async () => {
+    if (!(await requireAdmin())) return jsonError('forbidden', 403);
+    const { photoId } = await params;
     return NextResponse.json(await toggleEditorsChoice(photoId));
-  } catch {
-    return NextResponse.json({ error: 'photo_not_found' }, { status: 404 });
-  }
+  });
 }
