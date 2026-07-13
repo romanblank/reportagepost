@@ -53,8 +53,8 @@ describe.skipIf(!hasDb)('inquiries: создание и доставка (БД)'
     const { inquiryId, notified } = await createInquiry({
       contactName: 'Спорт Заказчик',
       contactEmail: 'sport@test.local',
-      citySlug: 'moscow',
-      categorySlug: 'sports', // нет одобренных фотографов этой категории
+      citySlug: 'chita', // тихий город: другие тесты не создают там фотографов
+      categorySlug: 'sports',
       description: 'Sports match photo coverage needed, test inquiry record.',
     });
     expect(notified).toBe(0);

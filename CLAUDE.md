@@ -28,7 +28,7 @@
 
 ## Verification Loop
 После ЛЮБОГО изменения кода: `npm test` + `npm run build`. Эталон фиксируется здесь и обновляется при легитимном росте. Новые падения недопустимы. UI-изменения — проверять визуально.
-- **Эталон тестов**: 18 passed (smoke, db.schema, geo-data×3, category-data×2, auth×3, photos×4, moderation×2, catalog×2).
+- **Эталон тестов**: 21 passed (smoke, db.schema, geo-data×3, category-data×2, auth×3, photos×4, moderation×2, catalog×2, inquiries×3).
 - Урок live-проверок HTML: React/SSR вставляет `<!-- -->` между JSX-интерполяциями — grep по составному тексту ложно падает; проверять по href/атрибутам. db.schema требует локальный PG (env-зависимость, правило c): без DATABASE_URL — skip, это не падение.
 
 ## Правило падающих тестов (a/b/c)

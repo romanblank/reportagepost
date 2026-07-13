@@ -8,5 +8,8 @@ export default defineConfig({
   test: {
     include: ['tests/**/*.test.ts', 'src/**/*.test.ts'],
     environment: 'node',
+    // Интеграционные тесты делят одну локальную БД — параллельные файлы
+    // конфликтуют (флак 2026-07-13: уведомления одного теста ломали cleanup другого)
+    fileParallelism: false,
   },
 });

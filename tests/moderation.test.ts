@@ -36,6 +36,7 @@ describe.skipIf(!hasDb)('moderation: одобрение и отклонение 
   }
 
   async function cleanup(db: Awaited<ReturnType<typeof makePendingProfile>>['db'], userId: string, profileId: string) {
+    await db.notification.deleteMany({ where: { userId } }); // защита от чужих уведомлений
     await db.activityEvent.deleteMany({ where: { actorUserId: userId } });
     await db.photo.deleteMany({ where: { profileId } });
     await db.profileCategory.deleteMany({ where: { profileId } });
