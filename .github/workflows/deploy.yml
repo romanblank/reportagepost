@@ -69,7 +69,7 @@ jobs:
           username: rp
           key: ${{ secrets.PROD_SSH_KEY }}
           source: "deploy/*"
-          target: /opt/reportagepost/
+          target: /home/rp/deploy-staging
           strip_components: 1
       - name: Deploy
         uses: appleboy/ssh-action@v1.0.3
@@ -84,6 +84,8 @@ jobs:
           envs: IMAGE,GHCR_TOKEN,GHCR_USER
           script_stop: true
           script: |
+            sudo mkdir -p /opt/reportagepost && sudo chown rp:rp /opt/reportagepost
+            cp /home/rp/deploy-staging/* /opt/reportagepost/
             cd /opt/reportagepost
             chmod +x setup-server.sh fetch-secrets.sh
             ./setup-server.sh
