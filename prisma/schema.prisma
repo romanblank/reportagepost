@@ -241,6 +241,7 @@ model Story {
   description String?
   coverPhotoId String?
   status      ModerationStatus @default(PENDING)
+  rejectReason String?
   createdAt   DateTime         @default(now())
   publishedAt DateTime?
 

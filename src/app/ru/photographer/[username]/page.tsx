@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { cityNameRu } from '@/lib/geo-data';
 import { categoryNameRu } from '@/lib/category-data';
 import { webVariantUrl } from '@/lib/photos';
+import Link from 'next/link';
 import { formatRubMinor } from '@/lib/money';
 import { ru } from '@/i18n/ru';
 import { getSession } from '@/lib/auth';
@@ -21,6 +22,11 @@ async function findProfile(username: string) {
       categories: { include: { category: true } },
       packages: { orderBy: { sortOrder: 'asc' } },
       photos: { where: { status: 'APPROVED' }, orderBy: { publishedAt: 'desc' } },
+      stories: {
+        where: { status: 'APPROVED' },
+        orderBy: { publishedAt: 'desc' },
+        include: { photos: { where: { status: 'APPROVED' }, take: 1 } },
+      },
     },
   });
 }
@@ -89,6 +95,26 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
             {profile.packages.map((pkg) => (
               <li key={pkg.id} className="rounded-lg border px-4 py-2 text-sm">
                 {ru.catalog.packageLabel(pkg.hours, formatRubMinor(pkg.priceMinor))}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {profile.stories.length > 0 && (
+        <section className="mt-8">
+          <h2 className="text-lg font-medium">{ru.profile.storiesTitle}</h2>
+          <ul className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {profile.stories.map((story) => (
+              <li key={story.id} className="rounded-xl border p-3">
+                <Link href={`/ru/story/${story.id}`} className="block">
+                  {story.photos[0] && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={webVariantUrl(story.photos[0].storageKey)} alt="" loading="lazy"
+                      className="aspect-video w-full rounded-lg object-cover" />
+                  )}
+                  <span className="mt-2 block font-medium">{story.title}</span>
+                </Link>
               </li>
             ))}
           </ul>

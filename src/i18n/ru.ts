@@ -36,8 +36,14 @@ export const ru = {
     notFound: 'Фотограф не найден',
     pricesTitle: 'Стоимость',
     portfolioTitle: 'Портфолио',
+    storiesTitle: 'Серии',
     contactsTitle: 'Контакты',
     cityLabel: 'Город',
+  },
+  story: {
+    notFound: 'Серия не найдена',
+    byLabel: 'Автор',
+    photosCount: (n: number) => `${n} кадров`,
   },
   engage: {
     follow: 'Подписаться',
