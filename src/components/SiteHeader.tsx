@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { getSession } from '@/lib/auth';
-import { db } from '@/lib/db';
 import { ru } from '@/i18n/ru';
 import { LogoutButton } from './LogoutButton';
 
@@ -9,19 +8,10 @@ import { LogoutButton } from './LogoutButton';
 export async function SiteHeader() {
   const session = await getSession();
 
-  // Каталог ведём в город фотографа/дефолт Москва — чтобы ссылка была не пустой
-  let catalogHref = '/ru/russia/moscow';
+  // Каталог → обзор городов; кабинет зависит от роли
+  const catalogHref = '/ru/russia';
   let cabinetHref = '/ru/cabinet';
-  if (session) {
-    if (session.role === 'CLIENT') cabinetHref = '/ru/cabinet/client';
-    if (session.role === 'PHOTOGRAPHER') {
-      const profile = await db.photographerProfile.findUnique({
-        where: { userId: session.userId },
-        select: { city: { select: { slug: true } } },
-      });
-      if (profile) catalogHref = `/ru/russia/${profile.city.slug}`;
-    }
-  }
+  if (session?.role === 'CLIENT') cabinetHref = '/ru/cabinet/client';
 
   const linkCls = 'text-sm text-muted transition-colors hover:text-ink';
   return (
