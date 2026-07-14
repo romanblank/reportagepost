@@ -226,6 +226,7 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
       </div>
       <fieldset>
         <legend className="field-label">{ru.onboarding.categories}</legend>
+        <span className="field-hint mt-0 mb-2 block">{ru.onboarding.categoriesHint}</span>
         <div className="flex flex-wrap gap-2">
           {categories.map((c) => (
             <label key={c.slug} className={`chip ${chosenCats.includes(c.slug) ? 'chip-active' : ''}`}>
@@ -240,17 +241,22 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
       <div>
         <label className="field-label">{ru.onboarding.bio}</label>
         <textarea name="bio" rows={3} className="input" />
+        <span className="field-hint">{ru.onboarding.bioHint}</span>
       </div>
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div><label className="field-label">{ru.onboarding.siteUrl}</label>
-          <input name="siteUrl" type="url" className="input" /></div>
-        <div><label className="field-label">{ru.onboarding.whatsapp}</label>
-          <input name="whatsapp" type="tel" inputMode="tel" autoComplete="tel" placeholder="+7 900 000-00-00" className="input" /></div>
-        <div><label className="field-label">{ru.onboarding.telegram}</label>
-          <input name="telegram" placeholder="@username" className="input" /></div>
+      <div>
+        <span className="field-hint mt-0 mb-2 block">{ru.onboarding.contactsHint}</span>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div><label className="field-label">{ru.onboarding.siteUrl}</label>
+            <input name="siteUrl" type="url" className="input" /></div>
+          <div><label className="field-label">{ru.onboarding.whatsapp}</label>
+            <input name="whatsapp" type="tel" inputMode="tel" autoComplete="tel" placeholder="+7 900 000-00-00" className="input" /></div>
+          <div><label className="field-label">{ru.onboarding.telegram}</label>
+            <input name="telegram" placeholder="@username" className="input" /></div>
+        </div>
       </div>
       <fieldset>
         <legend className="field-label">{ru.onboarding.packagesTitle}</legend>
+        <span className="field-hint mt-0 mb-2 block">{ru.onboarding.packagesHint}</span>
         <div className="flex flex-col gap-2">
           {packages.map((p, i) => (
             <div key={i} className="flex items-end gap-3">
