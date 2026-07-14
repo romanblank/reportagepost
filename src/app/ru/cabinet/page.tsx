@@ -10,6 +10,8 @@ import { formatRubMinor } from '@/lib/money';
 import { ru } from '@/i18n/ru';
 import { LogoutButton } from '@/components/LogoutButton';
 import { TelegramLinkButton } from '@/components/TelegramLinkButton';
+import { profileCompleteness } from '@/lib/profile-completeness';
+import { ONBOARDING_PHOTOS_MIN } from '@/lib/photos-constants';
 
 export const metadata: Metadata = { title: ru.cabinet.title };
 export const dynamic = 'force-dynamic'; // всегда свежие заявки/статус
@@ -28,8 +30,24 @@ export default async function CabinetPage() {
 
   const profile =
     session.role === 'PHOTOGRAPHER'
-      ? await db.photographerProfile.findUnique({ where: { userId: session.userId } })
+      ? await db.photographerProfile.findUnique({
+          where: { userId: session.userId },
+          include: { _count: { select: { photos: true } } },
+        })
       : null;
+
+  const completeness = profile
+    ? profileCompleteness({
+        hasAvatar: Boolean(profile.avatarKey),
+        bio: profile.bio,
+        experienceYears: profile.experienceYears,
+        equipment: profile.equipment,
+        teamInfo: profile.teamInfo,
+        hasContact: Boolean(profile.whatsapp || profile.telegram || profile.siteUrl),
+        photosCount: profile._count.photos,
+        minPhotos: ONBOARDING_PHOTOS_MIN,
+      })
+    : null;
 
   const inquiries =
     profile?.status === 'APPROVED' ? await inquiriesForPhotographer(session.userId) : null;
@@ -82,6 +100,30 @@ export default async function CabinetPage() {
                 {ru.cabinet.fillProfile}
               </Link>
             </div>
+          )}
+        </section>
+      )}
+
+      {completeness && (
+        <section className="mt-4 card p-4">
+          {completeness.pct >= 100 ? (
+            <p className="font-medium">{ru.cabinet.completenessDone}</p>
+          ) : (
+            <>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-medium">{ru.cabinet.completenessTitle(completeness.pct)}</p>
+                <Link href="/ru/cabinet/profile/edit" className="text-sm underline">{ru.editProfile.title}</Link>
+              </div>
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface-2">
+                <div className="h-full rounded-full bg-accent" style={{ width: `${completeness.pct}%` }} />
+              </div>
+              <p className="mt-3 text-sm muted">{ru.cabinet.completenessHint}</p>
+              <ul className="mt-1 flex flex-wrap gap-2">
+                {completeness.missing.map((k) => (
+                  <li key={k} className="rounded-full bg-surface-2 px-3 py-1 text-xs">{ru.cabinet.completenessItem[k]}</li>
+                ))}
+              </ul>
+            </>
           )}
         </section>
       )}
