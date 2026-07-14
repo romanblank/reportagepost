@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import {
@@ -8,6 +9,7 @@ import {
   storePhotoVariants,
 } from '@/lib/photos';
 import { findNearDuplicate } from '@/lib/photo-dedup';
+import { premoderate } from '@/lib/premoderation';
 
 export const maxDuration = 60; // обработка sharp на больших файлах
 
@@ -57,6 +59,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error }, { status: 409 });
     }
 
+    // AI-премодерация: ПОДСКАЗКА модератору (aiVerdict), не решение. Без ключа
+    // модели — null (тихо), статус всё равно PENDING → ручная модерация.
+    const verdict = await premoderate(buffer);
+
     // Стадия 2: запись вариантов + строка Photo
     const stored = await storePhotoVariants(buffer);
     const photo = await db.photo.create({
@@ -67,6 +73,9 @@ export async function POST(req: Request) {
         width: analyzed.width,
         height: analyzed.height,
         phash: analyzed.phash,
+        // Prisma Json-поле требует индекс-сигнатуру — типизированный вердикт
+        // сериализуем через каст (структура плоская, JSON-совместимая).
+        aiVerdict: verdict ? (verdict as unknown as Prisma.InputJsonObject) : undefined,
         // status: PENDING по умолчанию — публикация только после модерации
       },
     });
