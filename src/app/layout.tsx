@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ru } from "@/i18n/ru";
@@ -23,6 +23,20 @@ export const metadata: Metadata = {
   // Инвариант закрытости до S4: meta-noindex как третий эшелон (robots.txt +
   // X-Robots-Tag + это). Снимается только с PUBLIC_LAUNCH (аудит P1).
   robots: PUBLIC_LAUNCH ? undefined : { index: false, follow: false },
+  // PWA: iOS standalone («на главный экран») + иконки
+  appleWebApp: { capable: true, title: ru.nav.brand, statusBarStyle: 'default' },
+  icons: {
+    icon: '/icons/icon-192.png',
+    apple: '/icons/apple-touch-icon.png',
+  },
+};
+
+// Тема-зависимый цвет тулбара + viewport (Next 16: отдельный экспорт)
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#faf9f6' },
+    { media: '(prefers-color-scheme: dark)', color: '#0c0c0e' },
+  ],
 };
 
 export default async function RootLayout({
