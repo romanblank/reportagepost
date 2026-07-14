@@ -169,6 +169,12 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
           {cityNameRu(profile.city.slug)} · {profile.categories.map((c) => categoryNameRu(c.category.slug)).join(' · ')}
         </p>
         {onlineText && <p className="mt-0.5 text-xs muted">{onlineText}</p>}
+        {reviews.aggregate.count > 0 && (
+          <p className="mt-1 text-sm">
+            <span className="text-accent">★</span> <b className="font-semibold">{reviews.aggregate.avg.toFixed(1)}</b>{' '}
+            <span className="muted">{ru.reviews.count(reviews.aggregate.count)}</span>
+          </p>
+        )}
         {profile.bio && <p className="mt-3 max-w-2xl text-[15px] leading-relaxed">{profile.bio}</p>}
         {(profile.experienceYears != null || profile.languages.length > 0 || profile.equipment || profile.teamInfo) && (
           <dl className="mt-4 grid max-w-2xl grid-cols-1 gap-x-8 gap-y-1.5 text-sm sm:grid-cols-2">

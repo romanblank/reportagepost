@@ -31,6 +31,8 @@ export interface CatalogCard {
   categories: string[];
   minPackage: { hours: number; priceMinor: number; currency: string } | null;
   photoKeys: string[]; // до 6 превью
+  ratingAvg: number; // средняя оценка отзывов (0 если нет)
+  ratingCount: number;
   score: number;
 }
 
@@ -98,7 +100,20 @@ export async function catalogForCity(filters: CatalogFilters): Promise<CatalogPa
   });
 
   const hasNext = rows.length > CATALOG_PAGE_SIZE;
-  const cards = rows.slice(0, CATALOG_PAGE_SIZE).map((p) => ({
+  const shown = rows.slice(0, CATALOG_PAGE_SIZE);
+
+  // Агрегат отзывов для показанных профилей (соц-доказательство в выдаче, MyWed)
+  const revAgg = shown.length
+    ? await db.review.groupBy({
+        by: ['profileId'],
+        where: { profileId: { in: shown.map((p) => p.id) }, status: 'VISIBLE' },
+        _avg: { rating: true },
+        _count: true,
+      })
+    : [];
+  const revMap = new Map(revAgg.map((r) => [r.profileId, { avg: r._avg.rating ?? 0, count: r._count }]));
+
+  const cards = shown.map((p) => ({
     username: p.username,
     avatarKey: p.avatarKey,
     firstName: p.user.firstName,
@@ -109,6 +124,8 @@ export async function catalogForCity(filters: CatalogFilters): Promise<CatalogPa
       ? { hours: p.packages[0].hours, priceMinor: p.packages[0].priceMinor, currency: p.packages[0].currency }
       : null,
     photoKeys: p.photos.map((ph) => ph.storageKey),
+    ratingAvg: revMap.get(p.id)?.avg ?? 0,
+    ratingCount: revMap.get(p.id)?.count ?? 0,
     score: p.ratingScore,
   } satisfies CatalogCard));
 

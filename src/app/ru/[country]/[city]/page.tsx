@@ -187,6 +187,12 @@ export default async function CatalogPage(props: {
                       </span>
                     )}
                   </div>
+                  {card.ratingCount > 0 && (
+                    <p className="mt-1 text-sm">
+                      <span className="text-accent">★</span> {card.ratingAvg.toFixed(1)}{' '}
+                      <span className="text-xs muted">({card.ratingCount})</span>
+                    </p>
+                  )}
                   {card.bio && <p className="mt-1 line-clamp-2 text-sm muted">{card.bio}</p>}
                   <p className="mt-2 text-xs muted opacity-70">
                     {card.categories.map((slug) => categoryNameRu(slug)).join(' · ')}
