@@ -15,7 +15,7 @@ export default async function SearchPage(props: { searchParams: Promise<{ q?: st
   const results = query.length >= 2 ? await searchPhotographers(query) : [];
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10">
+    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:py-10">
       <h1 className="text-3xl font-semibold">{ru.search.title}</h1>
       <form method="get" className="mt-6 flex gap-2">
         <input name="q" defaultValue={query} placeholder={ru.search.placeholder}

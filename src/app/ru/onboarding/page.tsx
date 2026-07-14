@@ -28,7 +28,7 @@ export default async function OnboardingPage() {
     .map((c) => ({ slug: c.slug, nameRu: c.nameRu }));
 
   return (
-    <main className="mx-auto w-full max-w-xl flex-1 px-4 py-10">
+    <main className="mx-auto w-full max-w-xl flex-1 px-4 py-6 sm:py-10">
       <h1 className="text-3xl font-semibold">{ru.onboarding.title}</h1>
       <p className="mt-2 text-sm muted">{ru.onboarding.lead}</p>
       <div className="card mt-6 p-6 sm:p-8">
