@@ -1,4 +1,4 @@
-name: E2E login probe
+name: E2E pages probe
 on:
   workflow_dispatch: {}
 
@@ -7,26 +7,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: npm init -y >/dev/null && npm i playwright@latest >/dev/null && npx playwright install chromium --with-deps >/dev/null
-      - name: Login flow in real browser
+      - name: Render-check key pages
         run: |
           cat > probe.mjs <<'EOF'
           import { chromium } from 'playwright';
+          const pages = ['/', '/ru/russia', '/ru/russia/moscow', '/ru/photo', '/ru/community', '/ru/search?q=тест', '/ru/login', '/ru/register'];
           const b = await chromium.launch();
-          const page = await b.newPage();
-          const errors = [];
-          page.on('pageerror', (e) => errors.push('PAGEERROR: ' + e.message));
-          page.on('console', (m) => { if (m.type() === 'error') errors.push('CONSOLE: ' + m.text()); });
-          page.on('requestfailed', (r) => errors.push('REQFAIL: ' + r.url() + ' ' + (r.failure()?.errorText ?? '')));
-          await page.goto('https://reportagepost.com/ru/login', { waitUntil: 'networkidle' });
-          await page.fill('input[name=email]', 'probe@test.local');
-          await page.fill('input[name=password]', 'probe-password-42');
-          await Promise.all([
-            page.waitForTimeout(4000),
-            page.click('button[type=submit]'),
-          ]);
-          console.log('URL after submit:', page.url());
-          console.log('Body snippet:', (await page.textContent('main'))?.slice(0, 200));
-          console.log('Errors:', errors.length ? errors.join('\n') : 'none');
+          let failed = 0;
+          for (const path of pages) {
+            const page = await b.newPage();
+            const errors = [];
+            page.on('pageerror', (e) => errors.push('PAGEERROR: ' + e.message));
+            page.on('console', (m) => { if (m.type() === 'error') errors.push('CONSOLE: ' + m.text()); });
+            let status = 0;
+            const resp = await page.goto('https://reportagepost.com' + path, { waitUntil: 'networkidle' }).catch((e) => { errors.push('NAV: ' + e.message); return null; });
+            status = resp?.status() ?? 0;
+            const bodyLen = (await page.textContent('body').catch(() => ''))?.length ?? 0;
+            const ok = status === 200 && bodyLen > 100 && errors.length === 0;
+            if (!ok) failed++;
+            console.log(`${ok ? 'OK ' : 'FAIL'} [${status}] ${path} (body ${bodyLen})${errors.length ? ' :: ' + errors.join(' | ') : ''}`);
+            await page.close();
+          }
           await b.close();
+          console.log(failed === 0 ? 'ALL PAGES OK' : `${failed} PAGES FAILED`);
+          process.exit(failed === 0 ? 0 : 1);
           EOF
           node probe.mjs
