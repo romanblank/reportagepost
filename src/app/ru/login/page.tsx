@@ -27,6 +27,7 @@ export default function LoginPage() {
     }
     if (res?.status === 401) setError(ru.auth.errorInvalid);
     else if (res?.status === 403) setError(ru.auth.errorBanned);
+    else if (res?.status === 429) setError(ru.auth.errorRate);
     else setError(ru.auth.errorGeneric);
   }
 

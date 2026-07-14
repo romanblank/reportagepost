@@ -6,6 +6,17 @@ export const ru = {
     description:
       'Каталог и сообщество репортажных фотографов: портфолио, рейтинги, заявки на съёмку событий.',
   },
+  nav: {
+    brand: 'Reportage Post',
+    catalog: 'Каталог',
+    feed: 'Лента',
+    community: 'Сообщество',
+    messages: 'Сообщения',
+    cabinet: 'Кабинет',
+    login: 'Войти',
+    register: 'Регистрация',
+    logout: 'Выйти',
+  },
   landing: {
     closedTitle: 'Reportage Post',
     closedText: 'Платформа готовится к запуску. Доступ — по приглашениям.',
@@ -84,6 +95,8 @@ export const ru = {
     placeholder: 'Напишите сообщение…',
     send: 'Отправить',
     writeTo: (name: string) => `Диалог с ${name}`,
+    errorSend: 'Сообщение не отправилось. Попробуйте ещё раз.',
+    errorRate: 'Слишком часто. Подождите минуту.',
   },
   admin: {
     moderationTitle: 'Модерация заявок',
@@ -127,7 +140,7 @@ export const ru = {
     username: 'Адрес страницы',
     usernameHint: 'Латиница, цифры и дефис — без пробелов. Пример: roman-blank',
     usernamePreview: (u: string) => `reportagepost.com/ru/photographer/${u || '…'}`,
-    errValidation: (fields: string) => `Проверьте поля: ${fields}`,
+    needCategory: 'Выберите хотя бы одну категорию.',
     fieldUsername: 'адрес страницы',
     fieldCity: 'город',
     fieldCategories: 'категории',
@@ -155,6 +168,7 @@ export const ru = {
     finish: 'Отправить на модерацию',
     doneTitle: 'Заявка на модерации',
     doneText: 'Мы посмотрим портфолио и ответим. Статус — в кабинете.',
+    toCabinet: 'В кабинет',
     errUsernameTaken: 'Это имя профиля занято',
     errProfileExists: 'Анкета уже создана',
     errPhoto: (msg: string) => `Фото отклонено: ${msg}`,
@@ -176,6 +190,8 @@ export const ru = {
     errorInvalid: 'Неверный email или пароль',
     errorBanned: 'Аккаунт заблокирован',
     errorGeneric: 'Не получилось войти. Попробуйте ещё раз.',
+    errorRegister: 'Не получилось зарегистрироваться. Попробуйте ещё раз.',
+    errorRate: 'Слишком много попыток. Подождите минуту.',
   },
   inquiry: {
     title: 'Заявка на съёмку',

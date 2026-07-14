@@ -1,7 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { ru } from '@/i18n/ru';
+import { describeApiError } from '@/lib/form-errors';
+import { normalizePhone, normalizeUrl } from '@/lib/phone-format';
 import { ONBOARDING_PHOTOS_MAX, ONBOARDING_PHOTOS_MIN, MIN_LONG_SIDE } from '@/lib/photos-constants';
 
 interface Option {
@@ -23,8 +26,18 @@ export function OnboardingForm({ cities, categories }: { cities: Option[]; categ
   // Слаг адреса страницы: строчная латиница/цифры/дефис — устраняет ловушку
   // «ввёл имя с пробелом → непонятная ошибка» (фидбэк оператора 2026-07-14)
   function slugify(v: string): string {
-    return v.toLowerCase().replace(/[\s_]+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-').slice(0, 30);
+    return v.toLowerCase().replace(/[\s_]+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-').replace(/^-+/, '').slice(0, 30);
   }
+
+  const PHOTO_ERRORS: Record<string, string> = {
+    too_small: 'слишком маленькое разрешение (нужна длинная сторона от 2400px)',
+    not_image: 'это не изображение',
+    file_too_large: 'файл больше 40 МБ',
+    photo_limit: 'достигнут лимит фото',
+    category_not_in_profile: 'категория не выбрана в анкете',
+    no_profile: 'сначала сохраните анкету',
+    validation: 'проверьте файл',
+  };
 
   const FIELD_NAMES: Record<string, string> = {
     username: ru.onboarding.fieldUsername,
@@ -50,8 +63,8 @@ export function OnboardingForm({ cities, categories }: { cities: Option[]; categ
         citySlug: f.get('citySlug'),
         categorySlugs: chosenCats,
         bio: String(f.get('bio') ?? '').trim() || undefined,
-        siteUrl: String(f.get('siteUrl') ?? '').trim() || undefined,
-        whatsapp: String(f.get('whatsapp') ?? '').trim() || undefined,
+        siteUrl: (() => { const v = String(f.get('siteUrl') ?? '').trim(); return v ? normalizeUrl(v) : undefined; })(),
+        whatsapp: (() => { const v = String(f.get('whatsapp') ?? '').trim(); return v ? normalizePhone(v) : undefined; })(),
         telegram: String(f.get('telegram') ?? '').trim() || undefined,
         packages: packages.map((p) => ({ hours: p.hours, priceMinor: p.priceRub * 100, currency: 'RUB' })),
       }),
@@ -61,17 +74,15 @@ export function OnboardingForm({ cities, categories }: { cities: Option[]; categ
       setStep('photos');
       return;
     }
-    const body = res ? await res.json().catch(() => null) : null;
-    if (body?.error === 'username_taken') setError(ru.onboarding.errUsernameTaken);
-    else if (body?.error === 'profile_exists') setStep('photos');
-    else if (body?.error === 'validation' && body?.details) {
-      // Показываем КОНКРЕТНЫЕ поля с ошибкой, а не общую фразу (фидбэк оператора)
-      const fields = Object.keys(body.details as Record<string, unknown>)
-        .map((k) => FIELD_NAMES[k] ?? k)
-        .join(', ');
-      setError(ru.onboarding.errValidation(fields));
-    } else if (body?.error === 'city_not_found') setError(ru.onboarding.fieldCity);
-    else setError(ru.inquiry.errorGeneric);
+    if (res?.status === 409) {
+      const body = await res.json().catch(() => null);
+      if (body?.error === 'profile_exists') { setStep('photos'); return; }
+    }
+    setError(await describeApiError(res, {
+      codeLabels: { username_taken: ru.onboarding.errUsernameTaken, city_not_found: 'Выберите город из списка' },
+      fieldLabels: FIELD_NAMES,
+      fallback: ru.inquiry.errorGeneric,
+    }));
   }
 
   async function uploadPhotos(files: FileList | null) {
@@ -89,8 +100,10 @@ export function OnboardingForm({ cities, categories }: { cities: Option[]; categ
         setUploaded(body.uploaded);
       } else {
         const body = res ? await res.json().catch(() => null) : null;
-        setError(ru.onboarding.errPhoto(body?.message ?? body?.error ?? '…'));
-        if (body?.error === 'photo_limit') break;
+        const code = body?.error as string | undefined;
+        const msg = PHOTO_ERRORS[code ?? ''] ?? body?.message ?? 'не удалось загрузить';
+        setError(ru.onboarding.errPhoto(msg));
+        if (code === 'photo_limit') break;
       }
     }
   }
@@ -100,6 +113,9 @@ export function OnboardingForm({ cities, categories }: { cities: Option[]; categ
       <div className="rounded-lg border border-green-600 p-4">
         <p className="font-medium">{ru.onboarding.doneTitle}</p>
         <p className="mt-1 text-sm opacity-70">{ru.onboarding.doneText}</p>
+        <Link href="/ru/cabinet" className="mt-3 inline-block rounded-lg bg-foreground px-4 py-2 text-sm text-background">
+          {ru.onboarding.toCabinet}
+        </Link>
       </div>
     );
   }
@@ -169,7 +185,7 @@ export function OnboardingForm({ cities, categories }: { cities: Option[]; categ
         <label className="text-sm">{ru.onboarding.siteUrl}
           <input name="siteUrl" type="url" className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
         <label className="text-sm">{ru.onboarding.whatsapp}
-          <input name="whatsapp" pattern="\+[1-9][0-9]{7,14}" className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
+          <input name="whatsapp" type="tel" inputMode="tel" autoComplete="tel" placeholder="+7 900 000-00-00" className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
         <label className="text-sm">{ru.onboarding.telegram}
           <input name="telegram" className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
       </div>
@@ -195,6 +211,7 @@ export function OnboardingForm({ cities, categories }: { cities: Option[]; categ
         )}
       </fieldset>
       {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+      {chosenCats.length === 0 && <p className="text-sm opacity-60">{ru.onboarding.needCategory}</p>}
       <button type="submit" disabled={pending || chosenCats.length === 0}
         className="rounded-lg bg-foreground px-4 py-2 text-background disabled:opacity-50">
         {ru.onboarding.submitProfile}

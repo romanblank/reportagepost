@@ -21,6 +21,8 @@ const STATUS_LABEL = {
 export default async function CabinetPage() {
   const session = await getSession();
   if (!session) redirect('/ru/login');
+  // Клиент → его кабинет (аудит P0: раньше попадал в пустой кабинет фотографа)
+  if (session.role === 'CLIENT') redirect('/ru/cabinet/client');
 
   const profile =
     session.role === 'PHOTOGRAPHER'

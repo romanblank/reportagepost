@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 
 // Хранилище за абстракцией (инвариант CLAUDE.md): сейчас локальный диск (dev),
 // S3-адаптер (Yandex Object Storage) добавится реализацией этого же интерфейса.
@@ -40,5 +41,51 @@ class LocalDiskStorage implements ObjectStorage {
   }
 }
 
-// STORAGE_DRIVER=s3 добавится в S0-инфраструктуре (ключи от оператора)
-export const storage: ObjectStorage = new LocalDiskStorage();
+// Yandex Object Storage (S3-совместимый). На проде фото ДОЛЖНЫ жить здесь, а не
+// на диске контейнера — иначе исчезают при редеплое (аудит P0 2026-07-14).
+class S3Storage implements ObjectStorage {
+  private client: S3Client;
+  private bucket: string;
+
+  constructor(endpoint: string, bucket: string, accessKeyId: string, secretAccessKey: string) {
+    this.bucket = bucket;
+    this.client = new S3Client({
+      endpoint,
+      region: 'ru-central1',
+      credentials: { accessKeyId, secretAccessKey },
+      forcePathStyle: false,
+    });
+  }
+
+  async put(key: string, data: Buffer, contentType: string): Promise<void> {
+    safePath(key); // валидация ключа (traversal-guard)
+    await this.client.send(
+      new PutObjectCommand({ Bucket: this.bucket, Key: key, Body: data, ContentType: contentType }),
+    );
+  }
+
+  async get(key: string): Promise<Buffer | null> {
+    safePath(key);
+    try {
+      const res = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
+      const bytes = await res.Body?.transformToByteArray();
+      return bytes ? Buffer.from(bytes) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  publicUrl(key: string): string {
+    return `/files/${key}`; // раздаём через свой роут (бакет приватный)
+  }
+}
+
+function createStorage(): ObjectStorage {
+  const { S3_ENDPOINT, S3_BUCKET, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY } = process.env;
+  if (S3_ENDPOINT && S3_BUCKET && S3_ACCESS_KEY_ID && S3_SECRET_ACCESS_KEY) {
+    return new S3Storage(S3_ENDPOINT, S3_BUCKET, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY);
+  }
+  return new LocalDiskStorage(); // dev-фолбэк без S3-ключей
+}
+
+export const storage: ObjectStorage = createStorage();

@@ -14,6 +14,7 @@ interface Msg {
 export function ThreadClient({ peerId, selfId, initial }: { peerId: string; selfId: string; initial: Msg[] }) {
   const router = useRouter();
   const [messages, setMessages] = useState(initial);
+  const [error, setError] = useState<string | null>(null);
 
   // Синхронизация со свежими данными сервера после router.refresh() (аудит P1):
   // без этого входящие сообщения не появлялись, хотя уже помечались прочитанными
@@ -28,6 +29,7 @@ export function ThreadClient({ peerId, selfId, initial }: { peerId: string; self
     const body = String(new FormData(form).get('body') ?? '').trim();
     if (!body) return;
     setPending(true);
+    setError(null);
     const res = await fetch('/api/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -41,7 +43,10 @@ export function ThreadClient({ peerId, selfId, initial }: { peerId: string; self
         { id: `tmp-${Date.now()}`, senderId: selfId, body, createdAt: new Date().toISOString() },
       ]);
       router.refresh();
+      return;
     }
+    // Раньше при не-201 не происходило НИЧЕГО (аудит P0: молчаливый провал)
+    setError(res?.status === 429 ? ru.messages.errorRate : ru.messages.errorSend);
   }
 
   return (
@@ -58,6 +63,7 @@ export function ThreadClient({ peerId, selfId, initial }: { peerId: string; self
           </li>
         ))}
       </ul>
+      {error && <p role="alert" className="mt-2 text-sm text-red-600">{error}</p>}
       <form onSubmit={onSubmit} className="mt-4 flex gap-2">
         <input name="body" required maxLength={4000} placeholder={ru.messages.placeholder}
           className="flex-1 rounded-lg border px-3 py-2" autoComplete="off" />

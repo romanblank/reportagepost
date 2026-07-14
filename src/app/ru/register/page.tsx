@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ru } from '@/i18n/ru';
+import { describeApiError } from '@/lib/form-errors';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -32,10 +33,15 @@ export default function RegisterPage() {
       router.push('/ru/cabinet');
       return;
     }
-    const body = res ? await res.json().catch(() => null) : null;
-    if (body?.error === 'invite_required' || body?.error === 'invite_invalid') setError(ru.auth.errorInvite);
-    else if (body?.error === 'email_taken') setError(ru.auth.errorEmailTaken);
-    else setError(ru.auth.errorGeneric);
+    setError(await describeApiError(res, {
+      codeLabels: {
+        invite_required: ru.auth.errorInvite,
+        invite_invalid: ru.auth.errorInvite,
+        email_taken: ru.auth.errorEmailTaken,
+      },
+      fieldLabels: { firstName: 'имя', lastName: 'фамилия', email: 'email', password: 'пароль', inviteCode: 'код приглашения' },
+      fallback: ru.auth.errorRegister,
+    }));
   }
 
   return (

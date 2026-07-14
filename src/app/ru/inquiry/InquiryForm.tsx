@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { ru } from '@/i18n/ru';
+import { describeApiError } from '@/lib/form-errors';
+import { normalizePhone } from '@/lib/phone-format';
 
 interface Option {
   slug: string;
@@ -20,17 +22,18 @@ export function InquiryForm({ cities, categories }: { cities: Option[]; categori
     const form = new FormData(e.currentTarget);
     const budgetRub = String(form.get('budget') ?? '').trim();
 
+    const phoneRaw = String(form.get('contactPhone') ?? '').trim();
     const res = await fetch('/api/inquiries', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contactName: form.get('contactName'),
-        contactPhone: String(form.get('contactPhone') ?? '').trim() || undefined,
+        contactPhone: phoneRaw ? normalizePhone(phoneRaw) : undefined,
         contactEmail: String(form.get('contactEmail') ?? '').trim() || undefined,
         citySlug: form.get('citySlug'),
         categorySlug: String(form.get('categorySlug') ?? '') || undefined,
         eventDate: String(form.get('eventDate') ?? '') || undefined,
-        budgetMinor: budgetRub ? Number(budgetRub) * 100 : undefined,
+        budgetMinor: budgetRub ? Math.round(Number(budgetRub) * 100) : undefined,
         description: form.get('description'),
         website: '', // honeypot
       }),
@@ -41,8 +44,11 @@ export function InquiryForm({ cities, categories }: { cities: Option[]; categori
       setSent(await res.json());
       return;
     }
-    const body = res ? await res.json().catch(() => null) : null;
-    setError(body?.error === 'no_contact' ? ru.inquiry.errorNoContact : ru.inquiry.errorGeneric);
+    setError(await describeApiError(res, {
+      codeLabels: { no_contact: ru.inquiry.errorNoContact },
+      fieldLabels: { description: 'описание', contactName: 'имя', contactPhone: 'телефон', contactEmail: 'email' },
+      fallback: ru.inquiry.errorGeneric,
+    }));
   }
 
   if (sent) {
@@ -62,7 +68,7 @@ export function InquiryForm({ cities, categories }: { cities: Option[]; categori
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="text-sm">
           {ru.inquiry.contactPhone}
-          <input name="contactPhone" type="tel" pattern="\+[1-9][0-9]{7,14}" className="mt-1 w-full rounded-lg border px-3 py-2" />
+          <input name="contactPhone" type="tel" inputMode="tel" autoComplete="tel" placeholder="+7 900 000-00-00" className="mt-1 w-full rounded-lg border px-3 py-2" />
         </label>
         <label className="text-sm">
           {ru.inquiry.contactEmail}
@@ -96,7 +102,7 @@ export function InquiryForm({ cities, categories }: { cities: Option[]; categori
         </label>
         <label className="text-sm">
           {ru.inquiry.budget}
-          <input name="budget" type="number" min={0} step={1000} className="mt-1 w-full rounded-lg border px-3 py-2" />
+          <input name="budget" type="number" min={0} step={1} inputMode="numeric" className="mt-1 w-full rounded-lg border px-3 py-2" />
         </label>
       </div>
       <label className="text-sm">
