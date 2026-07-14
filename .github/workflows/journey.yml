@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       BASE: https://reportagepost.com
-      INVITE: nJ3BePMX0Bo
+      INVITE: r60eWiv72XE
       RUN: ${{ github.run_id }}
     steps:
       - run: npm init -y >/dev/null && npm i playwright@latest >/dev/null && npx playwright install chromium --with-deps >/dev/null
