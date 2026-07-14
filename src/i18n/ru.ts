@@ -57,6 +57,7 @@ export const ru = {
     pricesTitle: 'Стоимость',
     portfolioTitle: 'Портфолио',
     storiesTitle: 'Серии',
+    editorsChoice: 'Выбор редакции',
     contactsTitle: 'Контакты',
     cityLabel: 'Город',
   },

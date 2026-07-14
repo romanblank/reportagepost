@@ -9,9 +9,23 @@ import { formatRubMinor } from '@/lib/money';
 import { ru } from '@/i18n/ru';
 import { getSession } from '@/lib/auth';
 import { FavoriteButton, FollowButton, LikeButton, MessageButton } from '@/components/EngagementButtons';
+import { LightboxGallery } from '@/components/Lightbox';
 
 // dynamic: страница показывает состояние лайков/подписки текущего пользователя
 export const dynamic = 'force-dynamic';
+
+// «был онлайн …» из lastSeenAt (UTC). Грубые пороги, локаль ru.
+function relativeOnline(lastSeen: Date | null): string | null {
+  if (!lastSeen) return null;
+  const mins = Math.floor((Date.now() - lastSeen.getTime()) / 60000);
+  if (mins < 10) return 'сейчас онлайн';
+  if (mins < 60) return `был ${mins} мин назад`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `был ${hours} ч назад`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `был ${days} дн назад`;
+  return 'давно не заходил';
+}
 
 async function findProfile(username: string) {
   return db.photographerProfile.findFirst({
@@ -54,7 +68,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
         }),
       )
     : false;
-  const [likes, myLikes, following] = await Promise.all([
+  const [likes, myLikes, following, followers, rankAbove] = await Promise.all([
     db.like.groupBy({
       by: ['photoId'],
       where: { photoId: { in: profile.photos.map((p) => p.id) } },
@@ -71,10 +85,18 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
           where: { followerId_followeeId: { followerId: session.userId, followeeId: profile.userId } },
         })
       : Promise.resolve(null),
+    db.follow.count({ where: { followeeId: profile.userId } }),
+    // Место в городе: сколько одобренных профилей города с рейтингом выше
+    db.photographerProfile.count({
+      where: { status: 'APPROVED', cityId: profile.cityId, ratingScore: { gt: profile.ratingScore } },
+    }),
   ]);
   const likeCount = new Map(likes.map((l) => [l.photoId, l._count]));
   const likedSet = new Set(myLikes.map((l) => l.photoId));
   const isSelf = session?.userId === profile.userId;
+  const cityRank = rankAbove + 1;
+  const lastSeen = profile.user.lastSeenAt;
+  const onlineText = relativeOnline(lastSeen);
 
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10">
@@ -85,6 +107,12 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
         <p className="mt-2 text-sm muted">
           {cityNameRu(profile.city.slug)} · {profile.categories.map((c) => categoryNameRu(c.category.slug)).join(' · ')}
         </p>
+        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
+          <span><b className="font-semibold">{cityRank}</b> <span className="muted">место в городе</span></span>
+          <span><b className="font-semibold">{followers}</b> <span className="muted">подписчиков</span></span>
+          <span><b className="font-semibold">{profile.photos.length}</b> <span className="muted">фото</span></span>
+          {onlineText && <span className="muted">{onlineText}</span>}
+        </div>
         {profile.bio && <p className="mt-4 max-w-2xl leading-relaxed">{profile.bio}</p>}
         {!isSelf && (
           <div className="mt-5 flex flex-wrap gap-2">
@@ -130,29 +158,39 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
 
       <section className="mt-10">
         <h2 className="text-xs font-semibold uppercase tracking-widest muted">{ru.profile.portfolioTitle}</h2>
-        <div className="mt-3 columns-2 gap-2 md:columns-3">
-          {profile.photos.map((photo) => (
-            <figure key={photo.id} className="mb-2 break-inside-avoid">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={webVariantUrl(photo.storageKey)}
-                alt=""
-                loading="lazy"
-                width={photo.width}
-                height={photo.height}
-                className="w-full rounded-lg"
-              />
-              <figcaption className="mt-1">
-                <LikeButton
-                  photoId={photo.id}
-                  initialLiked={likedSet.has(photo.id)}
-                  initialCount={likeCount.get(photo.id) ?? 0}
-                  authed={Boolean(session)}
-                />
-              </figcaption>
-            </figure>
-          ))}
-        </div>
+        <LightboxGallery images={profile.photos.map((p) => ({ src: webVariantUrl(p.storageKey), width: p.width, height: p.height }))}>
+          {(open) => (
+            <div className="mt-3 columns-2 gap-2 md:columns-3">
+              {profile.photos.map((photo, i) => (
+                <figure key={photo.id} className="group relative mb-2 break-inside-avoid">
+                  {photo.editorsChoiceAt && (
+                    <span className="absolute left-2 top-2 z-10 rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-ink">
+                      {ru.profile.editorsChoice}
+                    </span>
+                  )}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={webVariantUrl(photo.storageKey)}
+                    alt=""
+                    loading="lazy"
+                    width={photo.width}
+                    height={photo.height}
+                    onClick={() => open(i)}
+                    className="w-full cursor-zoom-in rounded-lg transition group-hover:brightness-95"
+                  />
+                  <figcaption className="mt-1">
+                    <LikeButton
+                      photoId={photo.id}
+                      initialLiked={likedSet.has(photo.id)}
+                      initialCount={likeCount.get(photo.id) ?? 0}
+                      authed={Boolean(session)}
+                    />
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
+          )}
+        </LightboxGallery>
       </section>
     </main>
   );

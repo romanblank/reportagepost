@@ -6,6 +6,7 @@ import { getSession } from '@/lib/auth';
 import { webVariantUrl } from '@/lib/photos';
 import { StoryLikeButton } from './StoryLikeButton';
 import { ru } from '@/i18n/ru';
+import { LightboxGallery } from '@/components/Lightbox';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,13 +58,18 @@ export default async function StoryPage(props: { params: Promise<{ storyId: stri
         />
       </div>
 
-      <div className="mt-6 flex flex-col gap-3">
-        {story.photos.map((photo) => (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img key={photo.id} src={webVariantUrl(photo.storageKey)} alt="" loading="lazy"
-            width={photo.width} height={photo.height} className="w-full rounded-lg" />
-        ))}
-      </div>
+      <LightboxGallery images={story.photos.map((p) => ({ src: webVariantUrl(p.storageKey), width: p.width, height: p.height }))}>
+        {(open) => (
+          <div className="mt-6 flex flex-col gap-3">
+            {story.photos.map((photo, i) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img key={photo.id} src={webVariantUrl(photo.storageKey)} alt="" loading="lazy"
+                width={photo.width} height={photo.height} onClick={() => open(i)}
+                className="w-full cursor-zoom-in rounded-lg" />
+            ))}
+          </div>
+        )}
+      </LightboxGallery>
     </main>
   );
 }
