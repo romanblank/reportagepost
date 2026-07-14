@@ -4,6 +4,8 @@ import "./globals.css";
 import { ru } from "@/i18n/ru";
 import { DEFAULT_LOCALE, PUBLIC_LAUNCH } from "@/lib/constants";
 import { SiteHeader } from "@/components/SiteHeader";
+import { getSession } from "@/lib/auth";
+import { MobileTabBar } from "@/components/MobileTabBar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,19 +25,23 @@ export const metadata: Metadata = {
   robots: PUBLIC_LAUNCH ? undefined : { index: false, follow: false },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await getSession();
+  const cabinetHref = session?.role === 'CLIENT' ? '/ru/cabinet/client' : '/ru/cabinet';
   return (
     <html
       lang={DEFAULT_LOCALE}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      {/* pb-16 на мобиле — под нижнюю таб-навигацию */}
+      <body className="min-h-full flex flex-col pb-16 sm:pb-0">
         <SiteHeader />
         {children}
+        <MobileTabBar authed={Boolean(session)} cabinetHref={cabinetHref} />
       </body>
     </html>
   );

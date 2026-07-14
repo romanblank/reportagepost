@@ -176,9 +176,11 @@ export const ru = {
   onboarding: {
     title: 'Анкета фотографа',
     lead: 'Заполните профиль и загрузите 15–20 лучших фото одной категории — заявка уйдёт на модерацию.',
-    username: 'Адрес страницы',
+    username: 'Адрес вашей страницы',
     usernameHint: 'Латиница, цифры и дефис — без пробелов. Пример: roman-blank',
-    usernamePreview: (u: string) => `reportagepost.com/ru/photographer/${u || '…'}`,
+    usernameAutoHint: 'Мы создали адрес из вашего имени. Можно оставить или изменить.',
+    usernameEdit: 'Изменить',
+    usernamePreview: (u: string) => `reportagepost.com/…/${u || '…'}`,
     needCategory: 'Выберите хотя бы одну категорию.',
     fieldUsername: 'адрес страницы',
     fieldCity: 'город',

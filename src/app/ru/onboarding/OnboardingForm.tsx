@@ -14,14 +14,15 @@ interface Option {
 
 type Step = 'profile' | 'photos' | 'done';
 
-export function OnboardingForm({ cities, categories }: { cities: Option[]; categories: Option[] }) {
+export function OnboardingForm({ cities, categories, suggestedUsername = '' }: { cities: Option[]; categories: Option[]; suggestedUsername?: string }) {
   const [step, setStep] = useState<Step>('profile');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [packages, setPackages] = useState([{ hours: 2, priceRub: 10000 }]);
   const [chosenCats, setChosenCats] = useState<string[]>([]);
   const [uploaded, setUploaded] = useState(0);
-  const [username, setUsername] = useState('');
+  const [username, setUsername] = useState(suggestedUsername);
+  const [editingUsername, setEditingUsername] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
   const [thumbs, setThumbs] = useState<string[]>([]);
   const thumbsRef = useRef<string[]>([]);
@@ -198,16 +199,24 @@ export function OnboardingForm({ cities, categories }: { cities: Option[]; categ
     <form onSubmit={submitProfile} className="flex flex-col gap-5">
       <div>
         <label className="field-label">{ru.onboarding.username}</label>
-        <input
-          name="username"
-          required
-          value={username}
-          onChange={(e) => setUsername(slugify(e.target.value))}
-          placeholder="roman-blank"
-          className="input"
-        />
-        <span className="field-hint">{ru.onboarding.usernameHint}</span>
-        <span className="field-hint opacity-70">{ru.onboarding.usernamePreview(username)}</span>
+        {!editingUsername ? (
+          <div className="flex items-center justify-between gap-2 rounded-xl border border-line bg-surface-2 px-3.5 py-2.5 text-sm">
+            <span className="truncate muted">{ru.onboarding.usernamePreview(username)}</span>
+            <button type="button" onClick={() => setEditingUsername(true)}
+              className="shrink-0 font-medium text-accent">{ru.onboarding.usernameEdit}</button>
+          </div>
+        ) : (
+          <input
+            name="username"
+            required
+            autoFocus
+            value={username}
+            onChange={(e) => setUsername(slugify(e.target.value))}
+            placeholder="roman-blank"
+            className="input"
+          />
+        )}
+        <span className="field-hint">{ru.onboarding.usernameAutoHint}</span>
       </div>
       <div>
         <label className="field-label">{ru.onboarding.city}</label>
