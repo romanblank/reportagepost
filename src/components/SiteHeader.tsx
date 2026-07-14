@@ -55,6 +55,14 @@ export async function SiteHeader() {
           )}
         </div>
       </nav>
+      {/* Мобильная навигация: скроллируемая строка ссылок (десктоп-меню скрыто) */}
+      <div className="flex gap-4 overflow-x-auto border-t border-line/70 px-4 py-2 text-sm sm:hidden">
+        <Link href={catalogHref} className={linkCls}>{ru.nav.catalog}</Link>
+        <Link href="/ru/photo" className={linkCls}>{ru.nav.feed}</Link>
+        <Link href="/ru/community" className={linkCls}>{ru.nav.community}</Link>
+        <Link href="/ru/search" className={linkCls}>Поиск</Link>
+        {session && <Link href="/ru/messages" className={linkCls}>{ru.nav.messages}</Link>}
+      </div>
     </header>
   );
 }

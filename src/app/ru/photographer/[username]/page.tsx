@@ -116,9 +116,25 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
         {profile.bio && <p className="mt-4 max-w-2xl leading-relaxed">{profile.bio}</p>}
         {!isSelf && (
           <div className="mt-5 flex flex-wrap gap-2">
+            <MessageButton userId={profile.userId} />
             <FollowButton userId={profile.userId} initialFollowing={Boolean(following)} authed={Boolean(session)} />
             <FavoriteButton userId={profile.userId} initialFavorited={favorited} authed={Boolean(session)} />
-            <MessageButton userId={profile.userId} />
+          </div>
+        )}
+        {(profile.whatsapp || profile.telegram || profile.siteUrl) && (
+          <div className="mt-3 flex flex-wrap gap-2 text-sm">
+            {profile.whatsapp && (
+              <a href={`https://wa.me/${profile.whatsapp.replace(/[^\d]/g, '')}`} target="_blank" rel="noreferrer"
+                className="rounded-full border border-line px-3 py-1.5 transition hover:bg-surface-2">WhatsApp</a>
+            )}
+            {profile.telegram && (
+              <a href={`https://t.me/${profile.telegram.replace(/^@/, '')}`} target="_blank" rel="noreferrer"
+                className="rounded-full border border-line px-3 py-1.5 transition hover:bg-surface-2">Telegram</a>
+            )}
+            {profile.siteUrl && (
+              <a href={profile.siteUrl} target="_blank" rel="noreferrer"
+                className="rounded-full border border-line px-3 py-1.5 transition hover:bg-surface-2">Сайт</a>
+            )}
           </div>
         )}
       </header>

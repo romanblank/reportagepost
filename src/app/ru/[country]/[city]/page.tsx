@@ -44,7 +44,7 @@ export async function generateMetadata(props: { params: Promise<Params> }): Prom
 
 export default async function CatalogPage(props: {
   params: Promise<Params>;
-  searchParams: Promise<{ category?: string; date?: string; page?: string }>;
+  searchParams: Promise<{ category?: string; date?: string; page?: string; maxPrice?: string }>;
 }) {
   const params = await props.params;
   const searchParams = await props.searchParams;
@@ -57,9 +57,13 @@ export default async function CatalogPage(props: {
   const availableOn = /^\d{4}-\d{2}-\d{2}$/.test(searchParams.date ?? '')
     ? new Date(`${searchParams.date}T00:00:00Z`)
     : undefined;
+  const maxPriceRub = Number(searchParams.maxPrice) > 0 ? Number(searchParams.maxPrice) : undefined;
   const page = Math.max(1, Number(searchParams.page) || 1);
 
-  const { cards, hasNext } = await catalogForCity({ citySlug: city.slug, categorySlug, availableOn, page });
+  const { cards, hasNext } = await catalogForCity({
+    citySlug: city.slug, categorySlug, availableOn, page,
+    maxPricePerHourMinor: maxPriceRub ? maxPriceRub * 100 : undefined,
+  });
   // Приезжие фотографы — только на первой странице, под фильтром
   const visiting = page === 1 ? await visitingCity(city.slug, availableOn) : [];
   const cityName = cityNameRu(city.slug);
@@ -82,11 +86,18 @@ export default async function CatalogPage(props: {
         ))}
       </nav>
 
-      <form method="get" className="mt-4 flex flex-wrap items-center gap-2">
+      <form method="get" className="mt-4 flex flex-wrap items-end gap-3">
         {categorySlug && <input type="hidden" name="category" value={categorySlug} />}
-        <span className="text-sm muted">{ru.catalog.availableOn}</span>
-        <input type="date" name="date" defaultValue={searchParams.date ?? ''} className="input w-auto" />
-        <button type="submit" className="btn btn-outline px-4 py-2">{ru.catalog.applyDate}</button>
+        <label className="text-sm">
+          <span className="field-hint mt-0">{ru.catalog.availableOn}</span>
+          <input type="date" name="date" defaultValue={searchParams.date ?? ''} className="input mt-1 w-auto" />
+        </label>
+        <label className="text-sm">
+          <span className="field-hint mt-0">{ru.catalog.maxPrice}</span>
+          <input type="number" name="maxPrice" min={0} step={1} inputMode="numeric"
+            defaultValue={searchParams.maxPrice ?? ''} placeholder="₽/час" className="input mt-1 w-32" />
+        </label>
+        <button type="submit" className="btn btn-outline px-4 py-2.5">{ru.catalog.applyDate}</button>
       </form>
 
       {visiting.length > 0 && (
