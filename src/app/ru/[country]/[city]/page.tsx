@@ -66,46 +66,35 @@ export default async function CatalogPage(props: {
   const basePath = `/ru/${params.country}/${params.city}`;
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
-      <h1 className="text-2xl font-semibold tracking-tight">
-        {ru.catalog.title(cityName)}
-      </h1>
-      <p className="mt-1 text-sm opacity-60">{ru.catalog.photographersCount(cards.length)}</p>
+    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10">
+      <h1 className="text-3xl font-semibold sm:text-4xl">{ru.catalog.title(cityName)}</h1>
+      <p className="mt-2 text-sm muted">{ru.catalog.photographersCount(cards.length)}</p>
 
-      <form method="get" className="mt-3 flex items-center gap-2 text-sm">
-        {categorySlug && <input type="hidden" name="category" value={categorySlug} />}
-        <label className="flex items-center gap-2">
-          {ru.catalog.availableOn}
-          <input type="date" name="date" defaultValue={searchParams.date ?? ''}
-            className="rounded-lg border px-2 py-1" />
-        </label>
-        <button type="submit" className="rounded-lg border px-3 py-1">{ru.catalog.applyDate}</button>
-      </form>
-
-      <nav className="mt-4 flex flex-wrap gap-2 text-sm">
-        <Link
-          href={basePath}
-          className={`rounded-full border px-3 py-1 ${!categorySlug ? 'bg-foreground text-background' : ''}`}
-        >
+      <nav className="mt-6 flex flex-wrap gap-2">
+        <Link href={basePath} className={`chip ${!categorySlug ? 'chip-active' : ''}`}>
           {ru.catalog.allCategories}
         </Link>
         {CATEGORIES.map((c) => (
-          <Link
-            key={c.slug}
-            href={`${basePath}?category=${c.slug}`}
-            className={`rounded-full border px-3 py-1 ${categorySlug === c.slug ? 'bg-foreground text-background' : ''}`}
-          >
+          <Link key={c.slug} href={`${basePath}?category=${c.slug}`}
+            className={`chip ${categorySlug === c.slug ? 'chip-active' : ''}`}>
             {c.nameRu}
           </Link>
         ))}
       </nav>
 
+      <form method="get" className="mt-4 flex flex-wrap items-center gap-2">
+        {categorySlug && <input type="hidden" name="category" value={categorySlug} />}
+        <span className="text-sm muted">{ru.catalog.availableOn}</span>
+        <input type="date" name="date" defaultValue={searchParams.date ?? ''} className="input w-auto" />
+        <button type="submit" className="btn btn-outline px-4 py-2">{ru.catalog.applyDate}</button>
+      </form>
+
       {visiting.length > 0 && (
         <section className="mt-6">
           <h2 className="text-lg font-medium">{ru.catalog.visitingTitle}</h2>
-          <ul className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {visiting.map((plan) => (
-              <li key={plan.id} className="rounded-xl border border-dashed p-4">
+              <li key={plan.id} className="card border-dashed p-4">
                 <Link href={`/ru/photographer/${plan.profile.username}`} className="block">
                   <span className="font-medium">
                     {plan.profile.user.firstName} {plan.profile.user.lastName}
@@ -132,41 +121,35 @@ export default async function CatalogPage(props: {
       )}
 
       {cards.length === 0 && visiting.length === 0 ? (
-        <p className="mt-12 text-center opacity-60">{ru.catalog.empty}</p>
+        <p className="mt-16 text-center muted">{ru.catalog.empty}</p>
       ) : cards.length === 0 ? null : (
-        <ul className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {cards.map((card) => (
-            <li key={card.username} className="rounded-xl border p-4">
+            <li key={card.username} className="card card-hover overflow-hidden">
               <Link href={`/ru/photographer/${card.username}`} className="block">
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="font-medium">
-                    {card.firstName} {card.lastName}
-                  </span>
-                  {card.minPackage && (
-                    <span className="text-sm opacity-70">
-                      {ru.catalog.packageLabel(
-                        card.minPackage.hours,
-                        formatRubMinor(card.minPackage.priceMinor),
-                      )}
-                    </span>
-                  )}
+                {card.photoKeys.length > 0 && (
+                  <div className="grid grid-cols-3 gap-px bg-line">
+                    {card.photoKeys.slice(0, 3).map((key) => (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img key={key} src={thumbVariantUrl(key)} alt="" loading="lazy"
+                        className="aspect-square w-full object-cover" />
+                    ))}
+                  </div>
+                )}
+                <div className="p-4">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="font-medium">{card.firstName} {card.lastName}</span>
+                    {card.minPackage && (
+                      <span className="text-sm muted">
+                        {ru.catalog.packageLabel(card.minPackage.hours, formatRubMinor(card.minPackage.priceMinor))}
+                      </span>
+                    )}
+                  </div>
+                  {card.bio && <p className="mt-1 line-clamp-2 text-sm muted">{card.bio}</p>}
+                  <p className="mt-2 text-xs muted opacity-70">
+                    {card.categories.map((slug) => categoryNameRu(slug)).join(' · ')}
+                  </p>
                 </div>
-                <p className="mt-1 line-clamp-2 min-h-10 text-sm opacity-60">{card.bio}</p>
-                <div className="mt-3 grid grid-cols-3 gap-1 overflow-hidden rounded-lg">
-                  {card.photoKeys.slice(0, 6).map((key) => (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      key={key}
-                      src={thumbVariantUrl(key)}
-                      alt=""
-                      loading="lazy"
-                      className="aspect-square w-full object-cover"
-                    />
-                  ))}
-                </div>
-                <p className="mt-2 text-xs opacity-50">
-                  {card.categories.map((slug) => categoryNameRu(slug)).join(' · ')}
-                </p>
               </Link>
             </li>
           ))}
@@ -177,11 +160,11 @@ export default async function CatalogPage(props: {
         <nav className="mt-8 flex justify-between text-sm">
           {page > 1 ? (
             <Link href={pageHref(basePath, categorySlug, searchParams.date, page - 1)}
-              className="rounded-lg border px-4 py-2">← {ru.catalog.prevPage}</Link>
+              className="btn btn-outline">← {ru.catalog.prevPage}</Link>
           ) : <span />}
           {hasNext ? (
             <Link href={pageHref(basePath, categorySlug, searchParams.date, page + 1)}
-              className="rounded-lg border px-4 py-2">{ru.catalog.nextPage} →</Link>
+              className="btn btn-outline">{ru.catalog.nextPage} →</Link>
           ) : <span />}
         </nav>
       )}

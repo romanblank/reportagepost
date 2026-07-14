@@ -52,21 +52,21 @@ export default async function PhotoFeedPage(props: {
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
-      <h1 className="text-2xl font-semibold tracking-tight">{ru.photoFeed.title}</h1>
+      <h1 className="text-3xl font-semibold">{ru.photoFeed.title}</h1>
       <nav className="mt-4 flex flex-wrap gap-2 text-sm">
         {TABS.map((t) => (
           <Link
             key={t.key}
             href={`/ru/photo?tab=${t.key}`}
-            className={`rounded-full border px-3 py-1 ${active === t.key ? 'bg-foreground text-background' : ''}`}
+            className={`chip ${active === t.key ? 'chip-active' : ''}`}
           >
             {t.label}
           </Link>
         ))}
       </nav>
-      {note && <p className="mt-3 text-sm opacity-60">{note}</p>}
+      {note && <p className="mt-3 text-sm muted">{note}</p>}
       {photos.length === 0 ? (
-        <p className="mt-10 text-center opacity-60">{ru.photoFeed.empty}</p>
+        <p className="mt-16 text-center muted">{ru.photoFeed.empty}</p>
       ) : (
         <div className="mt-6 columns-2 gap-2 md:columns-3 lg:columns-4">
           {photos.map((p) => (
@@ -74,7 +74,7 @@ export default async function PhotoFeedPage(props: {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={webVariantUrl(p.storageKey)} alt="" loading="lazy"
                 width={p.width} height={p.height} className="w-full rounded-lg" />
-              <span className="text-xs opacity-60">{p.firstName} {p.lastName}</span>
+              <span className="text-xs muted">{p.firstName} {p.lastName}</span>
             </Link>
           ))}
         </div>

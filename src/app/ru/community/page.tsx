@@ -27,13 +27,13 @@ export default async function CommunityPage() {
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
-      <h1 className="text-2xl font-semibold tracking-tight">{ru.dashboard.title}</h1>
+      <h1 className="text-3xl font-semibold">{ru.dashboard.title}</h1>
 
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {tiles.map((t) => (
-          <div key={t.label} className="rounded-xl border p-4">
+          <div key={t.label} className="card p-4">
             <div className="text-2xl font-semibold">{t.value}</div>
-            <div className="text-sm opacity-60">{t.label}</div>
+            <div className="text-sm muted">{t.label}</div>
           </div>
         ))}
       </div>
@@ -43,7 +43,7 @@ export default async function CommunityPage() {
           <h2 className="text-lg font-medium">{ru.dashboard.recentTitle}</h2>
           <ul className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {recent.map((p) => (
-              <li key={p.id} className="rounded-xl border p-3">
+              <li key={p.id} className="card p-3">
                 <Link href={`/ru/photographer/${p.username}`} className="block">
                   {p.photos[0] && (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -51,7 +51,7 @@ export default async function CommunityPage() {
                       className="aspect-video w-full rounded-lg object-cover" />
                   )}
                   <span className="mt-2 block font-medium">{p.user.firstName} {p.user.lastName}</span>
-                  <span className="text-xs opacity-60">{cityNameRu(p.city.slug)}</span>
+                  <span className="text-xs muted">{cityNameRu(p.city.slug)}</span>
                 </Link>
               </li>
             ))}

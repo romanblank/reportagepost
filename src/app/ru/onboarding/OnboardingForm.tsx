@@ -119,10 +119,10 @@ export function OnboardingForm({ cities, categories }: { cities: Option[]; categ
 
   if (step === 'done') {
     return (
-      <div className="rounded-lg border border-green-600 p-4">
-        <p className="font-medium">{ru.onboarding.doneTitle}</p>
-        <p className="mt-1 text-sm opacity-70">{ru.onboarding.doneText}</p>
-        <Link href="/ru/cabinet" className="mt-3 inline-block rounded-lg bg-foreground px-4 py-2 text-sm text-background">
+      <div className="card p-6">
+        <div className="inline-flex items-center gap-2 rounded-full bg-accent/10 px-3 py-1 text-sm text-accent">✓ {ru.onboarding.doneTitle}</div>
+        <p className="mt-3 text-sm muted">{ru.onboarding.doneText}</p>
+        <Link href="/ru/cabinet" className="btn btn-accent mt-3">
           {ru.onboarding.toCabinet}
         </Link>
       </div>
@@ -149,7 +149,7 @@ export function OnboardingForm({ cities, categories }: { cities: Option[]; categ
           <div className="mt-2">
             <p className="text-sm">{ru.onboarding.uploadingN(uploadProgress.done, uploadProgress.total)}</p>
             <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
-              <div className="h-full bg-foreground transition-all" style={{ width: `${pct}%` }} />
+              <div className="h-full bg-accent transition-all" style={{ width: `${pct}%` }} />
             </div>
           </div>
         )}
@@ -167,17 +167,17 @@ export function OnboardingForm({ cities, categories }: { cities: Option[]; categ
           </div>
         )}
 
-        <label className={`mt-3 inline-block rounded-lg border px-4 py-2 text-sm ${pending ? 'opacity-50' : 'cursor-pointer'}`}>
+        <label className={`btn btn-outline mt-3 ${pending ? 'opacity-50' : 'cursor-pointer'}`}>
           {pending ? ru.onboarding.uploadingBtn : ru.onboarding.uploadBtn}
           <input type="file" accept="image/*" multiple className="hidden" disabled={pending}
             onChange={(e) => uploadPhotos(e.target.files)} />
         </label>
-        {error && <p role="alert" className="mt-2 text-sm text-red-600">{error}</p>}
+        {error && <p role="alert" className="mt-2 text-sm text-accent">{error}</p>}
 
         <button
           onClick={() => setStep('done')}
           disabled={uploaded < ONBOARDING_PHOTOS_MIN || pending}
-          className="mt-4 block rounded-lg bg-foreground px-4 py-2 text-background disabled:opacity-40"
+          className="btn btn-accent mt-4"
         >
           {ru.onboarding.finish}
         </button>
@@ -189,32 +189,32 @@ export function OnboardingForm({ cities, categories }: { cities: Option[]; categ
   }
 
   return (
-    <form onSubmit={submitProfile} className="flex flex-col gap-3">
-      <label className="text-sm">
-        {ru.onboarding.username}
+    <form onSubmit={submitProfile} className="flex flex-col gap-5">
+      <div>
+        <label className="field-label">{ru.onboarding.username}</label>
         <input
           name="username"
           required
           value={username}
           onChange={(e) => setUsername(slugify(e.target.value))}
           placeholder="roman-blank"
-          className="mt-1 w-full rounded-lg border px-3 py-2"
+          className="input"
         />
-        <span className="mt-1 block text-xs opacity-50">{ru.onboarding.usernameHint}</span>
-        <span className="mt-0.5 block text-xs opacity-40">{ru.onboarding.usernamePreview(username)}</span>
-      </label>
-      <label className="text-sm">
-        {ru.onboarding.city}
-        <select name="citySlug" required className="mt-1 w-full rounded-lg border px-3 py-2">
+        <span className="field-hint">{ru.onboarding.usernameHint}</span>
+        <span className="field-hint opacity-70">{ru.onboarding.usernamePreview(username)}</span>
+      </div>
+      <div>
+        <label className="field-label">{ru.onboarding.city}</label>
+        <select name="citySlug" required className="input">
           {cities.map((c) => <option key={c.slug} value={c.slug}>{c.nameRu}</option>)}
         </select>
-      </label>
-      <fieldset className="text-sm">
-        <legend>{ru.onboarding.categories}</legend>
-        <div className="mt-1 flex flex-wrap gap-2">
+      </div>
+      <fieldset>
+        <legend className="field-label">{ru.onboarding.categories}</legend>
+        <div className="flex flex-wrap gap-2">
           {categories.map((c) => (
-            <label key={c.slug} className={`cursor-pointer rounded-full border px-3 py-1 ${chosenCats.includes(c.slug) ? 'bg-foreground text-background' : ''}`}>
-              <input type="checkbox" className="hidden" checked={chosenCats.includes(c.slug)}
+            <label key={c.slug} className={`chip ${chosenCats.includes(c.slug) ? 'chip-active' : ''}`}>
+              <input type="checkbox" className="sr-only" checked={chosenCats.includes(c.slug)}
                 onChange={() => setChosenCats((prev) =>
                   prev.includes(c.slug) ? prev.filter((s) => s !== c.slug) : prev.length < 3 ? [...prev, c.slug] : prev)} />
               {c.nameRu}
@@ -222,43 +222,42 @@ export function OnboardingForm({ cities, categories }: { cities: Option[]; categ
           ))}
         </div>
       </fieldset>
-      <label className="text-sm">
-        {ru.onboarding.bio}
-        <textarea name="bio" rows={3} className="mt-1 w-full rounded-lg border px-3 py-2" />
-      </label>
-      <div className="grid gap-3 sm:grid-cols-3">
-        <label className="text-sm">{ru.onboarding.siteUrl}
-          <input name="siteUrl" type="url" className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
-        <label className="text-sm">{ru.onboarding.whatsapp}
-          <input name="whatsapp" type="tel" inputMode="tel" autoComplete="tel" placeholder="+7 900 000-00-00" className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
-        <label className="text-sm">{ru.onboarding.telegram}
-          <input name="telegram" className="mt-1 w-full rounded-lg border px-3 py-2" /></label>
+      <div>
+        <label className="field-label">{ru.onboarding.bio}</label>
+        <textarea name="bio" rows={3} className="input" />
       </div>
-      <fieldset className="text-sm">
-        <legend>{ru.onboarding.packagesTitle}</legend>
-        {packages.map((p, i) => (
-          <div key={i} className="mt-1 flex gap-2">
-            <label className="flex items-center gap-1">{ru.onboarding.hours}
-              <input type="number" min={1} max={24} step={1} value={p.hours || ''} required className="w-16 rounded-lg border px-2 py-1"
-                onChange={(e) => setPackages((prev) => prev.map((x, j) => j === i ? { ...x, hours: Number(e.target.value) } : x))} /></label>
-            <label className="flex items-center gap-1">{ru.onboarding.priceRub}
-              {/* step=1: HTML отсчитывает шаг от min — step=500 ломал круглые суммы (баг 2026-07-13).
-                  value={x || ''} — иначе контролируемый 0 нельзя стереть */}
-              <input type="number" min={1} step={1} value={p.priceRub || ''} required className="w-28 rounded-lg border px-2 py-1"
-                onChange={(e) => setPackages((prev) => prev.map((x, j) => j === i ? { ...x, priceRub: Number(e.target.value) } : x))} /></label>
-          </div>
-        ))}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div><label className="field-label">{ru.onboarding.siteUrl}</label>
+          <input name="siteUrl" type="url" className="input" /></div>
+        <div><label className="field-label">{ru.onboarding.whatsapp}</label>
+          <input name="whatsapp" type="tel" inputMode="tel" autoComplete="tel" placeholder="+7 900 000-00-00" className="input" /></div>
+        <div><label className="field-label">{ru.onboarding.telegram}</label>
+          <input name="telegram" placeholder="@username" className="input" /></div>
+      </div>
+      <fieldset>
+        <legend className="field-label">{ru.onboarding.packagesTitle}</legend>
+        <div className="flex flex-col gap-2">
+          {packages.map((p, i) => (
+            <div key={i} className="flex items-end gap-3">
+              <div><label className="field-hint">{ru.onboarding.hours}</label>
+                <input type="number" min={1} max={24} step={1} value={p.hours || ''} required className="input w-20"
+                  onChange={(e) => setPackages((prev) => prev.map((x, j) => j === i ? { ...x, hours: Number(e.target.value) } : x))} /></div>
+              <div><label className="field-hint">{ru.onboarding.priceRub}</label>
+                <input type="number" min={1} step={1} value={p.priceRub || ''} required className="input w-32"
+                  onChange={(e) => setPackages((prev) => prev.map((x, j) => j === i ? { ...x, priceRub: Number(e.target.value) } : x))} /></div>
+            </div>
+          ))}
+        </div>
         {packages.length < 6 && (
-          <button type="button" className="mt-2 rounded-lg border px-3 py-1 text-sm"
+          <button type="button" className="btn btn-outline mt-3 px-3 py-1.5"
             onClick={() => setPackages((p) => [...p, { hours: 4, priceRub: 20000 }])}>
             {ru.onboarding.addPackage}
           </button>
         )}
       </fieldset>
-      {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
-      {chosenCats.length === 0 && <p className="text-sm opacity-60">{ru.onboarding.needCategory}</p>}
-      <button type="submit" disabled={pending || chosenCats.length === 0}
-        className="rounded-lg bg-foreground px-4 py-2 text-background disabled:opacity-50">
+      {error && <p role="alert" className="text-sm text-accent">{error}</p>}
+      {chosenCats.length === 0 && <p className="text-sm muted">{ru.onboarding.needCategory}</p>}
+      <button type="submit" disabled={pending || chosenCats.length === 0} className="btn btn-accent">
         {ru.onboarding.submitProfile}
       </button>
     </form>

@@ -53,7 +53,7 @@ export function InquiryForm({ cities, categories }: { cities: Option[]; categori
 
   if (sent) {
     return (
-      <p role="status" className="rounded-lg border border-green-600 p-4">
+      <p role="status" className="card border-accent/40 bg-accent/5 p-4 text-sm">
         {ru.inquiry.sent} {sent.notified > 0 && ru.inquiry.sentNotified(sent.notified)}
       </p>
     );
@@ -63,23 +63,23 @@ export function InquiryForm({ cities, categories }: { cities: Option[]; categori
     <form onSubmit={onSubmit} className="flex flex-col gap-3">
       <label className="text-sm">
         {ru.inquiry.contactName}
-        <input name="contactName" required minLength={2} className="mt-1 w-full rounded-lg border px-3 py-2" />
+        <input name="contactName" required minLength={2} className="input" />
       </label>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="text-sm">
           {ru.inquiry.contactPhone}
-          <input name="contactPhone" type="tel" inputMode="tel" autoComplete="tel" placeholder="+7 900 000-00-00" className="mt-1 w-full rounded-lg border px-3 py-2" />
+          <input name="contactPhone" type="tel" inputMode="tel" autoComplete="tel" placeholder="+7 900 000-00-00" className="input" />
         </label>
         <label className="text-sm">
           {ru.inquiry.contactEmail}
-          <input name="contactEmail" type="email" className="mt-1 w-full rounded-lg border px-3 py-2" />
+          <input name="contactEmail" type="email" className="input" />
         </label>
       </div>
-      <p className="text-xs opacity-60">{ru.inquiry.contactHint}</p>
+      <p className="text-xs muted">{ru.inquiry.contactHint}</p>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="text-sm">
           {ru.inquiry.city}
-          <select name="citySlug" required className="mt-1 w-full rounded-lg border px-3 py-2">
+          <select name="citySlug" required className="input">
             {cities.map((c) => (
               <option key={c.slug} value={c.slug}>{c.nameRu}</option>
             ))}
@@ -87,7 +87,7 @@ export function InquiryForm({ cities, categories }: { cities: Option[]; categori
         </label>
         <label className="text-sm">
           {ru.inquiry.category}
-          <select name="categorySlug" className="mt-1 w-full rounded-lg border px-3 py-2">
+          <select name="categorySlug" className="input">
             <option value="">{ru.inquiry.categoryAny}</option>
             {categories.map((c) => (
               <option key={c.slug} value={c.slug}>{c.nameRu}</option>
@@ -98,19 +98,19 @@ export function InquiryForm({ cities, categories }: { cities: Option[]; categori
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="text-sm">
           {ru.inquiry.eventDate}
-          <input name="eventDate" type="date" className="mt-1 w-full rounded-lg border px-3 py-2" />
+          <input name="eventDate" type="date" className="input" />
         </label>
         <label className="text-sm">
           {ru.inquiry.budget}
-          <input name="budget" type="number" min={0} step={1} inputMode="numeric" className="mt-1 w-full rounded-lg border px-3 py-2" />
+          <input name="budget" type="number" min={0} step={1} inputMode="numeric" className="input" />
         </label>
       </div>
       <label className="text-sm">
         {ru.inquiry.description}
-        <textarea name="description" required minLength={20} rows={4} className="mt-1 w-full rounded-lg border px-3 py-2" />
+        <textarea name="description" required minLength={20} rows={4} className="input" />
       </label>
-      {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
-      <button type="submit" disabled={pending} className="rounded-lg bg-foreground px-4 py-2 text-background disabled:opacity-50">
+      {error && <p role="alert" className="text-sm text-accent">{error}</p>}
+      <button type="submit" disabled={pending} className="btn btn-accent">
         {ru.inquiry.submit}
       </button>
     </form>

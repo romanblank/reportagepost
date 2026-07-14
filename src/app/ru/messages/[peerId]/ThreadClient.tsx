@@ -63,12 +63,12 @@ export function ThreadClient({ peerId, selfId, initial }: { peerId: string; self
           </li>
         ))}
       </ul>
-      {error && <p role="alert" className="mt-2 text-sm text-red-600">{error}</p>}
+      {error && <p role="alert" className="mt-2 text-sm text-accent">{error}</p>}
       <form onSubmit={onSubmit} className="mt-4 flex gap-2">
         <input name="body" required maxLength={4000} placeholder={ru.messages.placeholder}
-          className="flex-1 rounded-lg border px-3 py-2" autoComplete="off" />
+          className="input flex-1" autoComplete="off" />
         <button type="submit" disabled={pending}
-          className="rounded-lg bg-foreground px-4 py-2 text-background disabled:opacity-50">
+          className="btn btn-accent">
           {ru.messages.send}
         </button>
       </form>

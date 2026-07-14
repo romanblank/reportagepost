@@ -24,8 +24,8 @@ export default async function ClientCabinetPage() {
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">{ru.clientCabinet.title}</h1>
-        <Link href="/ru/inquiry" className="rounded-lg bg-foreground px-3 py-1.5 text-sm text-background">
+        <h1 className="text-3xl font-semibold">{ru.clientCabinet.title}</h1>
+        <Link href="/ru/inquiry" className="btn btn-accent px-3 py-1.5">
           {ru.clientCabinet.newInquiry}
         </Link>
       </div>
@@ -33,14 +33,14 @@ export default async function ClientCabinetPage() {
       <section className="mt-6">
         <h2 className="text-lg font-medium">{ru.clientCabinet.favoritesTitle}</h2>
         {favorites.length === 0 ? (
-          <p className="mt-2 text-sm opacity-60">{ru.clientCabinet.favoritesEmpty}</p>
+          <p className="mt-2 text-sm muted">{ru.clientCabinet.favoritesEmpty}</p>
         ) : (
           <ul className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {favorites.map((p) => (
-              <li key={p.id} className="rounded-xl border p-3">
+              <li key={p.id} className="card p-3">
                 <Link href={`/ru/photographer/${p.username}`} className="block">
                   <span className="font-medium">{p.user.firstName} {p.user.lastName}</span>
-                  <span className="block text-xs opacity-60">{cityNameRu(p.city.slug)}</span>
+                  <span className="block text-xs muted">{cityNameRu(p.city.slug)}</span>
                   <div className="mt-2 grid grid-cols-3 gap-1 overflow-hidden rounded-lg">
                     {p.photos.map((ph) => (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -58,11 +58,11 @@ export default async function ClientCabinetPage() {
       <section className="mt-8">
         <h2 className="text-lg font-medium">{ru.clientCabinet.myInquiriesTitle}</h2>
         {inquiries.length === 0 ? (
-          <p className="mt-2 text-sm opacity-60">{ru.clientCabinet.myInquiriesEmpty}</p>
+          <p className="mt-2 text-sm muted">{ru.clientCabinet.myInquiriesEmpty}</p>
         ) : (
           <ul className="mt-3 flex flex-col gap-3">
             {inquiries.map((i) => (
-              <li key={i.id} className="rounded-xl border p-4 text-sm">
+              <li key={i.id} className="card p-4 text-sm">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <span className="opacity-70">
                     {cityNameRu(i.city.slug)}

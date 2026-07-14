@@ -27,7 +27,7 @@ export default async function ModerationPage() {
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-10">
-      <h1 className="text-2xl font-semibold tracking-tight">{ru.admin.moderationTitle}</h1>
+      <h1 className="text-3xl font-semibold">{ru.admin.moderationTitle}</h1>
       {profiles.length === 0 ? (
         <p className="mt-4 opacity-60">{ru.admin.empty}</p>
       ) : (

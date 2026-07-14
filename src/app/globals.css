@@ -1,26 +1,122 @@
 @import "tailwindcss";
 
+/* ─── Дизайн-токены Reportage Post ─────────────────────────────────────────
+   Editorial, фотоцентрично: тёплая бумага + чернила + один акцент (vermilion,
+   энергия репортажа/прессы). Монохром премиум, акцент — дозированно. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  --paper: #faf9f6;
+  --surface: #ffffff;
+  --surface-2: #f3f1ec;
+  --ink: #17161b;
+  --muted: #6f6d77;
+  --line: #e7e4dd;
+  --accent: #df4635;
+  --accent-ink: #ffffff;
+  --ring: rgba(223, 70, 53, 0.35);
+  --radius: 0.75rem;
+  --shadow-sm: 0 1px 2px rgba(20, 18, 25, 0.04), 0 1px 3px rgba(20, 18, 25, 0.06);
+  --shadow-md: 0 4px 12px rgba(20, 18, 25, 0.08);
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Совместимость со старым кодом (bg-foreground/text-background) */
+  --background: var(--paper);
+  --foreground: var(--ink);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --paper: #0c0c0e;
+    --surface: #161619;
+    --surface-2: #1e1d22;
+    --ink: #ecebe6;
+    --muted: #9a97a1;
+    --line: #29282e;
+    --accent: #f0584c;
+    --accent-ink: #16151a;
+    --ring: rgba(240, 88, 76, 0.4);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.5);
   }
 }
 
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+* {
+  border-color: var(--line);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3 { letter-spacing: -0.02em; }
+
+::selection { background: var(--accent); color: var(--accent-ink); }
+
+/* ─── Компонентные классы ──────────────────────────────────────────────── */
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all;
+  }
+  .btn:disabled { @apply cursor-not-allowed opacity-40; }
+
+  .btn-primary { background: var(--ink); color: var(--paper); }
+  .btn-primary:not(:disabled):hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+
+  .btn-accent { background: var(--accent); color: var(--accent-ink); }
+  .btn-accent:not(:disabled):hover { transform: translateY(-1px); box-shadow: var(--shadow-md); filter: brightness(1.05); }
+
+  .btn-outline { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+  .btn-outline:not(:disabled):hover { background: var(--surface-2); }
+
+  .btn-ghost { background: transparent; color: var(--muted); }
+  .btn-ghost:hover { color: var(--ink); }
+
+  .input {
+    @apply w-full rounded-xl px-3.5 py-2.5 text-sm transition-shadow;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--ink);
+  }
+  .input::placeholder { color: var(--muted); opacity: 0.7; }
+  .input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--ring); }
+
+  .card {
+    @apply rounded-xl;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-sm);
+  }
+  .card-hover { transition: all 0.15s ease; }
+  .card-hover:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
+
+  .chip {
+    @apply inline-flex cursor-pointer items-center rounded-full px-3.5 py-1.5 text-sm transition-colors;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--ink);
+  }
+  .chip:hover { background: var(--surface-2); }
+  .chip-active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+  .field-label { @apply mb-1.5 block text-sm font-medium; color: var(--ink); }
+  .field-hint { @apply mt-1 block text-xs; color: var(--muted); }
+
+  .muted { color: var(--muted); }
 }

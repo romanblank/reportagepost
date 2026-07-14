@@ -45,44 +45,47 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-4 py-12">
-      <h1 className="text-2xl font-semibold tracking-tight">{ru.auth.registerTitle}</h1>
-      <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-3">
-        <div className="flex gap-4 text-sm">
-          <label className="flex items-center gap-2">
-            <input type="radio" name="role" value="PHOTOGRAPHER" defaultChecked /> {ru.auth.rolePhotographer}
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="radio" name="role" value="CLIENT" /> {ru.auth.roleClient}
-          </label>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <label className="text-sm">
-            {ru.auth.firstName}
-            <input name="firstName" required minLength={2} className="mt-1 w-full rounded-lg border px-3 py-2" />
-          </label>
-          <label className="text-sm">
-            {ru.auth.lastName}
-            <input name="lastName" required minLength={2} className="mt-1 w-full rounded-lg border px-3 py-2" />
-          </label>
-        </div>
-        <label className="text-sm">
-          {ru.auth.email}
-          <input name="email" type="email" required autoComplete="email" className="mt-1 w-full rounded-lg border px-3 py-2" />
-        </label>
-        <label className="text-sm">
-          {ru.auth.password}
-          <input name="password" type="password" required minLength={10} autoComplete="new-password" className="mt-1 w-full rounded-lg border px-3 py-2" />
-        </label>
-        <label className="text-sm">
-          {ru.auth.inviteCode}
-          <input name="inviteCode" required className="mt-1 w-full rounded-lg border px-3 py-2" />
-        </label>
-        {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
-        <button type="submit" disabled={pending} className="mt-2 rounded-lg bg-foreground px-4 py-2 text-background disabled:opacity-50">
-          {ru.auth.submitRegister}
-        </button>
-      </form>
+    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-4 py-16">
+      <div className="card p-6 sm:p-8">
+        <h1 className="text-2xl font-semibold">{ru.auth.registerTitle}</h1>
+        <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4">
+          <div className="grid grid-cols-2 gap-2">
+            <label className="chip flex-1 justify-center has-[:checked]:border-ink has-[:checked]:bg-ink has-[:checked]:text-paper">
+              <input type="radio" name="role" value="PHOTOGRAPHER" defaultChecked className="sr-only" /> {ru.auth.rolePhotographer}
+            </label>
+            <label className="chip flex-1 justify-center has-[:checked]:border-ink has-[:checked]:bg-ink has-[:checked]:text-paper">
+              <input type="radio" name="role" value="CLIENT" className="sr-only" /> {ru.auth.roleClient}
+            </label>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="field-label">{ru.auth.firstName}</label>
+              <input name="firstName" required minLength={2} maxLength={60} autoComplete="given-name" className="input" />
+            </div>
+            <div>
+              <label className="field-label">{ru.auth.lastName}</label>
+              <input name="lastName" required minLength={2} maxLength={60} autoComplete="family-name" className="input" />
+            </div>
+          </div>
+          <div>
+            <label className="field-label">{ru.auth.email}</label>
+            <input name="email" type="email" required autoComplete="email" className="input" />
+          </div>
+          <div>
+            <label className="field-label">{ru.auth.password}</label>
+            <input name="password" type="password" required minLength={10} autoComplete="new-password" className="input" />
+            <span className="field-hint">Минимум 10 символов</span>
+          </div>
+          <div>
+            <label className="field-label">{ru.auth.inviteCode}</label>
+            <input name="inviteCode" required className="input" />
+          </div>
+          {error && <p role="alert" className="text-sm text-accent">{error}</p>}
+          <button type="submit" disabled={pending} className="btn btn-accent mt-1">
+            {ru.auth.submitRegister}
+          </button>
+        </form>
+      </div>
     </main>
   );
 }

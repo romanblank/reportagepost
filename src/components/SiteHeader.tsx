@@ -23,26 +23,30 @@ export async function SiteHeader() {
     }
   }
 
+  const linkCls = 'text-sm text-muted transition-colors hover:text-ink';
   return (
-    <header className="border-b">
-      <nav className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 text-sm">
-        <Link href="/" className="font-semibold tracking-tight">{ru.nav.brand}</Link>
-        <Link href={catalogHref} className="opacity-70 hover:opacity-100">{ru.nav.catalog}</Link>
-        <Link href="/ru/photo" className="opacity-70 hover:opacity-100">{ru.nav.feed}</Link>
-        <Link href="/ru/community" className="opacity-70 hover:opacity-100">{ru.nav.community}</Link>
-        {session && (
-          <Link href="/ru/messages" className="opacity-70 hover:opacity-100">{ru.nav.messages}</Link>
-        )}
-        <div className="ml-auto flex items-center gap-3">
+    <header className="sticky top-0 z-40 border-b border-line/70 bg-paper/80 backdrop-blur-md">
+      <nav className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-3.5">
+        <Link href="/" className="flex items-center gap-1.5 text-[15px] font-semibold tracking-tight">
+          <span className="inline-block h-2 w-2 rounded-full bg-accent" />
+          {ru.nav.brand}
+        </Link>
+        <div className="hidden items-center gap-5 sm:flex">
+          <Link href={catalogHref} className={linkCls}>{ru.nav.catalog}</Link>
+          <Link href="/ru/photo" className={linkCls}>{ru.nav.feed}</Link>
+          <Link href="/ru/community" className={linkCls}>{ru.nav.community}</Link>
+          {session && <Link href="/ru/messages" className={linkCls}>{ru.nav.messages}</Link>}
+        </div>
+        <div className="ml-auto flex items-center gap-4">
           {session ? (
             <>
-              <Link href={cabinetHref} className="opacity-70 hover:opacity-100">{ru.nav.cabinet}</Link>
+              <Link href={cabinetHref} className={linkCls}>{ru.nav.cabinet}</Link>
               <LogoutButton />
             </>
           ) : (
             <>
-              <Link href="/ru/login" className="opacity-70 hover:opacity-100">{ru.nav.login}</Link>
-              <Link href="/ru/register" className="rounded-lg bg-foreground px-3 py-1 text-background">{ru.nav.register}</Link>
+              <Link href="/ru/login" className={linkCls}>{ru.nav.login}</Link>
+              <Link href="/ru/register" className="btn btn-accent px-3.5 py-1.5">{ru.nav.register}</Link>
             </>
           )}
         </div>

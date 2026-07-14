@@ -16,14 +16,14 @@ export default async function MessagesPage() {
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-10">
-      <h1 className="text-2xl font-semibold tracking-tight">{ru.messages.title}</h1>
+      <h1 className="text-3xl font-semibold">{ru.messages.title}</h1>
       {dialogs.length === 0 ? (
         <p className="mt-4 opacity-60">{ru.messages.empty}</p>
       ) : (
         <ul className="mt-4 flex flex-col gap-2">
           {dialogs.map((d) => (
             <li key={d.peer.id}>
-              <Link href={`/ru/messages/${d.peer.id}`} className="flex items-baseline justify-between gap-3 rounded-xl border p-4">
+              <Link href={`/ru/messages/${d.peer.id}`} className="flex items-baseline justify-between gap-3 card p-4">
                 <span className="font-medium">
                   {d.peer.firstName} {d.peer.lastName}
                   {d.unread > 0 && (
@@ -32,7 +32,7 @@ export default async function MessagesPage() {
                     </span>
                   )}
                 </span>
-                <span className="line-clamp-1 text-sm opacity-60">{d.last.body}</span>
+                <span className="line-clamp-1 text-sm muted">{d.last.body}</span>
               </Link>
             </li>
           ))}

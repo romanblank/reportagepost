@@ -77,18 +77,17 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
   const isSelf = session?.userId === profile.userId;
 
   return (
-    <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
-      <header>
-        <h1 className="text-3xl font-semibold tracking-tight">
+    <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10">
+      <header className="border-b border-line pb-8">
+        <h1 className="text-3xl font-semibold sm:text-4xl">
           {profile.user.firstName} {profile.user.lastName}
         </h1>
-        <p className="mt-1 text-sm opacity-60">
-          {ru.profile.cityLabel}: {cityNameRu(profile.city.slug)} ·{' '}
-          {profile.categories.map((c) => categoryNameRu(c.category.slug)).join(' · ')}
+        <p className="mt-2 text-sm muted">
+          {cityNameRu(profile.city.slug)} · {profile.categories.map((c) => categoryNameRu(c.category.slug)).join(' · ')}
         </p>
-        {profile.bio && <p className="mt-3 max-w-2xl">{profile.bio}</p>}
+        {profile.bio && <p className="mt-4 max-w-2xl leading-relaxed">{profile.bio}</p>}
         {!isSelf && (
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-5 flex flex-wrap gap-2">
             <FollowButton userId={profile.userId} initialFollowing={Boolean(following)} authed={Boolean(session)} />
             <FavoriteButton userId={profile.userId} initialFavorited={favorited} authed={Boolean(session)} />
             <MessageButton userId={profile.userId} />
@@ -98,10 +97,10 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
 
       {profile.packages.length > 0 && (
         <section className="mt-8">
-          <h2 className="text-lg font-medium">{ru.profile.pricesTitle}</h2>
-          <ul className="mt-2 flex flex-wrap gap-3">
+          <h2 className="text-xs font-semibold uppercase tracking-widest muted">{ru.profile.pricesTitle}</h2>
+          <ul className="mt-3 flex flex-wrap gap-2">
             {profile.packages.map((pkg) => (
-              <li key={pkg.id} className="rounded-lg border px-4 py-2 text-sm">
+              <li key={pkg.id} className="rounded-full bg-surface-2 px-4 py-2 text-sm">
                 {ru.catalog.packageLabel(pkg.hours, formatRubMinor(pkg.priceMinor))}
               </li>
             ))}
@@ -110,18 +109,18 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
       )}
 
       {profile.stories.length > 0 && (
-        <section className="mt-8">
-          <h2 className="text-lg font-medium">{ru.profile.storiesTitle}</h2>
+        <section className="mt-10">
+          <h2 className="text-xs font-semibold uppercase tracking-widest muted">{ru.profile.storiesTitle}</h2>
           <ul className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {profile.stories.map((story) => (
-              <li key={story.id} className="rounded-xl border p-3">
+              <li key={story.id} className="card card-hover overflow-hidden">
                 <Link href={`/ru/story/${story.id}`} className="block">
                   {story.photos[0] && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={webVariantUrl(story.photos[0].storageKey)} alt="" loading="lazy"
-                      className="aspect-video w-full rounded-lg object-cover" />
+                      className="aspect-video w-full object-cover" />
                   )}
-                  <span className="mt-2 block font-medium">{story.title}</span>
+                  <span className="block p-3 font-medium">{story.title}</span>
                 </Link>
               </li>
             ))}
@@ -129,8 +128,8 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
         </section>
       )}
 
-      <section className="mt-8">
-        <h2 className="text-lg font-medium">{ru.profile.portfolioTitle}</h2>
+      <section className="mt-10">
+        <h2 className="text-xs font-semibold uppercase tracking-widest muted">{ru.profile.portfolioTitle}</h2>
         <div className="mt-3 columns-2 gap-2 md:columns-3">
           {profile.photos.map((photo) => (
             <figure key={photo.id} className="mb-2 break-inside-avoid">

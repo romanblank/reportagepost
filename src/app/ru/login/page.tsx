@@ -32,38 +32,24 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-4 py-12">
-      <h1 className="text-2xl font-semibold tracking-tight">{ru.auth.loginTitle}</h1>
-      <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-3">
-        <label className="text-sm">
-          {ru.auth.email}
-          <input
-            name="email"
-            type="email"
-            required
-            autoComplete="email"
-            className="mt-1 w-full rounded-lg border px-3 py-2"
-          />
-        </label>
-        <label className="text-sm">
-          {ru.auth.password}
-          <input
-            name="password"
-            type="password"
-            required
-            autoComplete="current-password"
-            className="mt-1 w-full rounded-lg border px-3 py-2"
-          />
-        </label>
-        {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
-        <button
-          type="submit"
-          disabled={pending}
-          className="mt-2 rounded-lg bg-foreground px-4 py-2 text-background disabled:opacity-50"
-        >
-          {ru.auth.submitLogin}
-        </button>
-      </form>
+    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-4 py-16">
+      <div className="card p-6 sm:p-8">
+        <h1 className="text-2xl font-semibold">{ru.auth.loginTitle}</h1>
+        <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4">
+          <div>
+            <label className="field-label" htmlFor="email">{ru.auth.email}</label>
+            <input id="email" name="email" type="email" required autoComplete="email" className="input" />
+          </div>
+          <div>
+            <label className="field-label" htmlFor="password">{ru.auth.password}</label>
+            <input id="password" name="password" type="password" required autoComplete="current-password" className="input" />
+          </div>
+          {error && <p role="alert" className="text-sm text-accent">{error}</p>}
+          <button type="submit" disabled={pending} className="btn btn-accent mt-1">
+            {ru.auth.submitLogin}
+          </button>
+        </form>
+      </div>
     </main>
   );
 }

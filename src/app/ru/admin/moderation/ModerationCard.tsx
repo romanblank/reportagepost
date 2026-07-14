@@ -33,10 +33,10 @@ export function ModerationCard(props: {
   }
 
   return (
-    <li className="rounded-xl border p-4">
+    <li className="card p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <span className="font-medium">{props.header}</span>
-        <span className="text-sm opacity-60">{props.meta}</span>
+        <span className="text-sm muted">{props.meta}</span>
       </div>
       <div className="mt-3 grid grid-cols-4 gap-1 sm:grid-cols-8">
         {props.photoUrls.map((url) => (
@@ -55,11 +55,11 @@ export function ModerationCard(props: {
           placeholder={ru.admin.rejectReason}
           className="min-w-64 flex-1 rounded-lg border px-3 py-2 text-sm" />
         <button onClick={() => decide('reject')} disabled={pending || reason.trim().length < 5}
-          className="rounded-lg border border-red-600 px-4 py-2 text-sm text-red-600 disabled:opacity-40">
+          className="rounded-lg border border-red-600 px-4 py-2 text-sm text-accent disabled:opacity-40">
           {ru.admin.reject}
         </button>
       </div>
-      {error && <p role="alert" className="mt-2 text-sm text-red-600">{error}</p>}
+      {error && <p role="alert" className="mt-2 text-sm text-accent">{error}</p>}
     </li>
   );
 }
