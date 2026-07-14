@@ -1,0 +1,147 @@
+name: Full journey
+on:
+  workflow_dispatch: {}
+
+jobs:
+  register-onboard:
+    runs-on: ubuntu-latest
+    env:
+      BASE: https://reportagepost.com
+      INVITE: nJ3BePMX0Bo
+      RUN: ${{ github.run_id }}
+    steps:
+      - run: npm init -y >/dev/null && npm i playwright@latest >/dev/null && npx playwright install chromium --with-deps >/dev/null
+      - name: Register photographer + onboarding + photos
+        run: |
+          cat > s1.mjs <<'EOF'
+          import { chromium } from 'playwright';
+          const BASE = process.env.BASE, INVITE = process.env.INVITE, RUN = process.env.RUN;
+          const log = (...a) => console.log('[S1]', ...a);
+          const b = await chromium.launch();
+          const ctx = await b.newContext();
+          const page = await ctx.newPage();
+          const errs = [];
+          page.on('console', m => { if (m.type()==='error') errs.push(m.text()); });
+          page.on('pageerror', e => errs.push('PAGEERROR '+e.message));
+
+          // photographer
+          await page.goto(BASE+'/ru/register', {waitUntil:'networkidle'});
+          await page.check('input[value=PHOTOGRAPHER]');
+          await page.fill('input[name=firstName]','Пётр');
+          await page.fill('input[name=lastName]','Тестовиков');
+          await page.fill('input[name=email]', `qa-photo-${RUN}@test.local`);
+          await page.fill('input[name=password]','qa-pass-123456');
+          await page.fill('input[name=inviteCode]', INVITE);
+          await Promise.all([page.waitForURL('**/ru/cabinet**',{timeout:15000}).catch(()=>{}), page.click('button[type=submit]')]);
+          log('after register url', page.url());
+
+          // onboarding
+          await page.goto(BASE+'/ru/onboarding', {waitUntil:'networkidle'});
+          await page.fill('input[name=username]', `qaphoto${RUN}`.slice(0,30));
+          await page.selectOption('select[name=citySlug]','moscow');
+          await page.getByText('Концерты и фестивали',{exact:true}).click();
+          await page.fill('textarea[name=bio]','Снимаю концерты и фестивали, тестовый профиль для QA-прогона.');
+          await page.click('button[type=submit]');
+          await page.waitForTimeout(2500);
+          log('profile submit, errors so far', errs.length);
+
+          // photos: download 15 real jpegs
+          const files = [];
+          for (let i=0;i<15;i++){
+            const r = await fetch(`https://picsum.photos/seed/rp${RUN}-${i}/2400/1600.jpg`);
+            const buf = Buffer.from(await r.arrayBuffer());
+            const fs = await import('node:fs'); const p = `/tmp/p${i}.jpg`; fs.writeFileSync(p, buf); files.push(p);
+          }
+          await page.setInputFiles('input[type=file]', files);
+          // ждём пока счётчик дойдёт до 15
+          await page.waitForFunction(() => document.body.innerText.includes('Загружено: 15') || document.body.innerText.includes('из 20'), null, {timeout:120000}).catch(()=>{});
+          await page.waitForTimeout(3000);
+          await page.screenshot({path:'/tmp/shot-onboarding.png', fullPage:true});
+          log('photos uploaded, page text snippet:', (await page.textContent('main'))?.slice(0,120));
+
+          // admin account (fixed, idempotent)
+          const ap = await ctx.newPage();
+          await ap.goto(BASE+'/ru/register',{waitUntil:'networkidle'});
+          await ap.check('input[value=CLIENT]');
+          await ap.fill('input[name=firstName]','Кью');
+          await ap.fill('input[name=lastName]','Эй');
+          await ap.fill('input[name=email]','qa-admin@test.local');
+          await ap.fill('input[name=password]','qa-admin-123456');
+          await ap.fill('input[name=inviteCode]', INVITE);
+          await ap.click('button[type=submit]');
+          await ap.waitForTimeout(2000);
+          log('admin account ensured');
+
+          log('ERRORS:', errs.length ? errs.join(' | ') : 'none');
+          await b.close();
+          EOF
+          node s1.mjs
+      - name: Promote qa-admin
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: rp
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: docker exec reportagepost npx tsx scripts/promote-admin.ts "qa-admin@test.local"
+      - name: Approve + browse everything
+        run: |
+          cat > s2.mjs <<'EOF'
+          import { chromium, devices } from 'playwright';
+          const BASE = process.env.BASE, RUN = process.env.RUN;
+          const report = [];
+          const b = await chromium.launch();
+
+          // login admin, approve photographer
+          const actx = await b.newContext();
+          const ap = await actx.newPage();
+          await ap.goto(BASE+'/ru/login',{waitUntil:'networkidle'});
+          await ap.fill('input[name=email]','qa-admin@test.local');
+          await ap.fill('input[name=password]','qa-admin-123456');
+          await Promise.all([ap.waitForNavigation().catch(()=>{}), ap.click('button[type=submit]')]);
+          await ap.goto(BASE+'/ru/admin/moderation',{waitUntil:'networkidle'});
+          const approveBtn = ap.getByRole('button',{name:'Одобрить'}).first();
+          if (await approveBtn.count()) { await approveBtn.click(); await ap.waitForTimeout(2000); report.push('APPROVE: одобрен фотограф из очереди'); }
+          else report.push('APPROVE: очередь пуста (нечего одобрять)');
+
+          // browse public pages, desktop + mobile, capture diagnostics
+          const pages = ['/', '/ru/russia', '/ru/russia/moscow', '/ru/photo', '/ru/community', '/ru/search?q=Пётр', `/ru/photographer/qaphoto${RUN}`.slice(0,60), '/ru/inquiry', '/ru/login', '/ru/register'];
+          for (const dev of [{name:'desktop',opts:{viewport:{width:1280,height:900}}},{name:'mobile',opts:devices['iPhone 13']}]) {
+            const ctx = await b.newContext(dev.opts);
+            for (const path of pages) {
+              const pg = await ctx.newPage();
+              const errs=[]; pg.on('console',m=>{if(m.type()==='error')errs.push(m.text());}); pg.on('pageerror',e=>errs.push('PE '+e.message));
+              const resp = await pg.goto(BASE+path,{waitUntil:'networkidle'}).catch(e=>{errs.push('NAV '+e.message);return null;});
+              const status = resp?.status() ?? 0;
+              // битые картинки
+              const brokenImgs = await pg.$$eval('img', imgs => imgs.filter(i=>i.complete && i.naturalWidth===0).length).catch(()=>-1);
+              // горизонтальное переполнение
+              const overflow = await pg.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2).catch(()=>false);
+              const bodyLen = (await pg.textContent('body').catch(()=>''))?.length ?? 0;
+              report.push(`[${dev.name}] ${status} ${path} | body=${bodyLen} brokenImg=${brokenImgs} overflow=${overflow}${errs.length?' ERR='+errs.join('¦'):''}`);
+              if (dev.name==='desktop') await pg.screenshot({path:`/tmp/shot-${path.replace(/[^a-z0-9]/gi,'_')}.png`, fullPage:true}).catch(()=>{});
+              await pg.close();
+            }
+            await ctx.close();
+          }
+
+          // лайтбокс на профиле
+          const lb = await (await b.newContext()).newPage();
+          await lb.goto(BASE+`/ru/photographer/qaphoto${RUN}`.slice(0,60),{waitUntil:'networkidle'});
+          const firstPhoto = lb.locator('figure img').first();
+          if (await firstPhoto.count()) {
+            await firstPhoto.click();
+            const dialog = lb.locator('[role=dialog]');
+            report.push('LIGHTBOX: '+(await dialog.count() ? 'открывается ✓' : 'НЕ открылся ✗'));
+          } else report.push('LIGHTBOX: нет фото в портфолио (профиль не одобрен?)');
+
+          console.log('=== JOURNEY REPORT ===');
+          for (const line of report) console.log(line);
+          await b.close();
+          EOF
+          node s2.mjs
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: journey-screenshots
+          path: /tmp/shot-*.png
