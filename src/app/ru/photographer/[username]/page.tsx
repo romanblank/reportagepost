@@ -8,8 +8,8 @@ import Link from 'next/link';
 import { formatRubMinor } from '@/lib/money';
 import { ru } from '@/i18n/ru';
 import { getSession } from '@/lib/auth';
-import { FavoriteButton, FollowButton, LikeButton, MessageButton } from '@/components/EngagementButtons';
-import { LightboxGallery } from '@/components/Lightbox';
+import { FavoriteButton, FollowButton, MessageButton } from '@/components/EngagementButtons';
+import { PortfolioGallery } from '@/components/PortfolioGallery';
 import { JsonLd } from '@/components/JsonLd';
 import { personLd } from '@/lib/structured-data';
 import { BASE_URL } from '@/lib/sitemap';
@@ -201,41 +201,22 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
 
       <section className="mt-8 sm:mt-10">
         <h2 className="text-xs font-semibold uppercase tracking-widest muted">{ru.profile.portfolioTitle}</h2>
-        <LightboxGallery images={profile.photos.map((p) => ({ src: webVariantUrl(p.storageKey), width: p.width, height: p.height }))}>
-          {(open) => (
-            // Мобайл: edge-to-edge masonry в 2 колонки с тонким швом (app-подача); десктоп: 3 колонки со скруглением
-            <div className="mt-3 -mx-4 columns-2 gap-1 px-0 sm:mx-0 sm:gap-2 sm:px-0 md:columns-3">
-              {profile.photos.map((photo, i) => (
-                <figure key={photo.id} className="group relative mb-1 break-inside-avoid sm:mb-2">
-                  {photo.editorsChoiceAt && (
-                    <span className="absolute left-2 top-2 z-10 rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-ink">
-                      {ru.profile.editorsChoice}
-                    </span>
-                  )}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={webVariantUrl(photo.storageKey)}
-                    alt=""
-                    loading="lazy"
-                    width={photo.width}
-                    height={photo.height}
-                    onClick={() => open(i)}
-                    style={photo.blurhash ? { backgroundImage: `url(${photo.blurhash})` } : undefined}
-                    className="w-full cursor-zoom-in bg-cover bg-center transition group-hover:brightness-95 sm:rounded-lg"
-                  />
-                  <figcaption className="mt-1 px-2 sm:px-0">
-                    <LikeButton
-                      photoId={photo.id}
-                      initialLiked={likedSet.has(photo.id)}
-                      initialCount={likeCount.get(photo.id) ?? 0}
-                      authed={Boolean(session)}
-                    />
-                  </figcaption>
-                </figure>
-              ))}
-            </div>
-          )}
-        </LightboxGallery>
+        {/* Мобайл: edge-to-edge masonry (app-подача); десктоп: 3 колонки. Client-
+            галерея принимает только сериализуемые данные (RSC-совместимо). */}
+        <PortfolioGallery
+          items={profile.photos.map((p) => ({
+            id: p.id,
+            src: webVariantUrl(p.storageKey),
+            width: p.width,
+            height: p.height,
+            blurhash: p.blurhash,
+            editorsChoice: Boolean(p.editorsChoiceAt),
+            liked: likedSet.has(p.id),
+            likeCount: likeCount.get(p.id) ?? 0,
+          }))}
+          authed={Boolean(session)}
+          editorsChoiceLabel={ru.profile.editorsChoice}
+        />
       </section>
     </main>
   );
