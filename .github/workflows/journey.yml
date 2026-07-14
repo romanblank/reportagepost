@@ -26,7 +26,7 @@ jobs:
 
           // photographer
           await page.goto(BASE+'/ru/register', {waitUntil:'networkidle'});
-          await page.check('input[value=PHOTOGRAPHER]');
+          await page.check('input[value=PHOTOGRAPHER]', {force:true});
           await page.fill('input[name=firstName]','Пётр');
           await page.fill('input[name=lastName]','Тестовиков');
           await page.fill('input[name=email]', `qa-photo-${RUN}@test.local`);
@@ -62,7 +62,7 @@ jobs:
           // admin account (fixed, idempotent)
           const ap = await ctx.newPage();
           await ap.goto(BASE+'/ru/register',{waitUntil:'networkidle'});
-          await ap.check('input[value=CLIENT]');
+          await ap.check('input[value=CLIENT]', {force:true});
           await ap.fill('input[name=firstName]','Кью');
           await ap.fill('input[name=lastName]','Эй');
           await ap.fill('input[name=email]','qa-admin@test.local');
