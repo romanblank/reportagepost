@@ -30,7 +30,7 @@ export function MobileTabBar({ authed, cabinetHref }: { authed: boolean; cabinet
       icon: <Icon d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V9.5z" /> },
     { href: '/ru/russia', label: ru.nav.catalog, match: (p) => /^\/ru\/[a-z-]+(\/|$)/.test(p) && !p.startsWith('/ru/photo') && !p.startsWith('/ru/search') && !p.startsWith('/ru/messages') && !p.startsWith('/ru/cabinet') && !p.startsWith('/ru/community'),
       icon: <Icon d="M4 6h16M4 12h16M4 18h16" /> },
-    { href: '/ru/search', label: ru.search.title, match: (p) => p.startsWith('/ru/search'),
+    { href: '/ru/search', label: ru.search.tab, match: (p) => p.startsWith('/ru/search'),
       icon: <Icon d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-3.5-3.5" /> },
     { href: authed ? '/ru/messages' : '/ru/login', label: ru.nav.messages, match: (p) => p.startsWith('/ru/messages'),
       icon: <Icon d="M4 5h16v11H8l-4 4V5z" /> },

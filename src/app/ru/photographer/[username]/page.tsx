@@ -98,24 +98,35 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
   const lastSeen = profile.user.lastSeenAt;
   const onlineText = relativeOnline(lastSeen);
 
+  const initials = `${profile.user.firstName.slice(0, 1)}${profile.user.lastName.slice(0, 1)}`;
+
   return (
-    <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:py-10">
-      <header className="border-b border-line pb-6 sm:pb-8">
-        <h1 className="text-3xl font-semibold sm:text-4xl">
+    <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-5 sm:py-10">
+      <header className="border-b border-line pb-5 sm:pb-8">
+        {/* Шапка профиля: аватар + имя + ряд статистики (app-подача как в Instagram) */}
+        <div className="flex items-center gap-4 sm:gap-5">
+          <span className="grid h-[72px] w-[72px] shrink-0 place-items-center rounded-full bg-surface-2 text-xl font-semibold sm:h-20 sm:w-20 sm:text-2xl">
+            {initials}
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-stretch justify-around gap-2 text-center">
+              <span className="flex flex-col"><b className="text-lg font-semibold leading-tight">{cityRank}</b><span className="text-xs muted">{ru.profile.statCityRank}</span></span>
+              <span className="flex flex-col"><b className="text-lg font-semibold leading-tight">{followers}</b><span className="text-xs muted">{ru.profile.statFollowers}</span></span>
+              <span className="flex flex-col"><b className="text-lg font-semibold leading-tight">{profile.photos.length}</b><span className="text-xs muted">{ru.profile.statPhotos}</span></span>
+            </div>
+          </div>
+        </div>
+
+        <h1 className="mt-4 text-2xl font-semibold sm:text-4xl">
           {profile.user.firstName} {profile.user.lastName}
         </h1>
-        <p className="mt-2 text-sm muted">
+        <p className="mt-1 text-sm muted">
           {cityNameRu(profile.city.slug)} · {profile.categories.map((c) => categoryNameRu(c.category.slug)).join(' · ')}
         </p>
-        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
-          <span><b className="font-semibold">{cityRank}</b> <span className="muted">{ru.profile.statCityRank}</span></span>
-          <span><b className="font-semibold">{followers}</b> <span className="muted">{ru.profile.statFollowers}</span></span>
-          <span><b className="font-semibold">{profile.photos.length}</b> <span className="muted">{ru.profile.statPhotos}</span></span>
-          {onlineText && <span className="muted">{onlineText}</span>}
-        </div>
-        {profile.bio && <p className="mt-4 max-w-2xl leading-relaxed">{profile.bio}</p>}
+        {onlineText && <p className="mt-0.5 text-xs muted">{onlineText}</p>}
+        {profile.bio && <p className="mt-3 max-w-2xl text-[15px] leading-relaxed">{profile.bio}</p>}
         {!isSelf && (
-          <div className="mt-5 flex flex-wrap gap-2">
+          <div className="mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
             <MessageButton userId={profile.userId} />
             <FollowButton userId={profile.userId} initialFollowing={Boolean(following)} authed={Boolean(session)} />
             <FavoriteButton userId={profile.userId} initialFavorited={favorited} authed={Boolean(session)} />
@@ -172,13 +183,14 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
         </section>
       )}
 
-      <section className="mt-10">
+      <section className="mt-8 sm:mt-10">
         <h2 className="text-xs font-semibold uppercase tracking-widest muted">{ru.profile.portfolioTitle}</h2>
         <LightboxGallery images={profile.photos.map((p) => ({ src: webVariantUrl(p.storageKey), width: p.width, height: p.height }))}>
           {(open) => (
-            <div className="mt-3 columns-2 gap-2 md:columns-3">
+            // Мобайл: edge-to-edge masonry в 2 колонки с тонким швом (app-подача); десктоп: 3 колонки со скруглением
+            <div className="mt-3 -mx-4 columns-2 gap-1 px-0 sm:mx-0 sm:gap-2 sm:px-0 md:columns-3">
               {profile.photos.map((photo, i) => (
-                <figure key={photo.id} className="group relative mb-2 break-inside-avoid">
+                <figure key={photo.id} className="group relative mb-1 break-inside-avoid sm:mb-2">
                   {photo.editorsChoiceAt && (
                     <span className="absolute left-2 top-2 z-10 rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-ink">
                       {ru.profile.editorsChoice}
@@ -192,9 +204,9 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
                     width={photo.width}
                     height={photo.height}
                     onClick={() => open(i)}
-                    className="w-full cursor-zoom-in rounded-lg transition group-hover:brightness-95"
+                    className="w-full cursor-zoom-in transition group-hover:brightness-95 sm:rounded-lg"
                   />
-                  <figcaption className="mt-1">
+                  <figcaption className="mt-1 px-2 sm:px-0">
                     <LikeButton
                       photoId={photo.id}
                       initialLiked={likedSet.has(photo.id)}
