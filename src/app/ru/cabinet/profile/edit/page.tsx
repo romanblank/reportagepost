@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { avatarUrl } from '@/lib/photos';
+import { parseFaq } from '@/lib/faq';
 import { ru } from '@/i18n/ru';
 import { EditProfileForm } from './EditProfileForm';
 
@@ -34,6 +35,7 @@ export default async function EditProfilePage() {
           equipment: profile.equipment ?? '',
           teamInfo: profile.teamInfo ?? '',
           languages: profile.languages,
+          faq: parseFaq(profile.faq),
           packages: profile.packages.map((p) => ({ hours: p.hours, priceRub: Math.round(p.priceMinor / 100) })),
         }}
       />

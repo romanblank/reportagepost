@@ -16,6 +16,7 @@ import { BASE_URL } from '@/lib/sitemap';
 import { ReviewSection } from '@/components/ReviewSection';
 import { reviewsForProfile } from '@/lib/reviews';
 import { VerifyButton } from '@/components/VerifyButton';
+import { parseFaq } from '@/lib/faq';
 
 // dynamic: страница показывает состояние лайков/подписки текущего пользователя
 export const dynamic = 'force-dynamic';
@@ -279,6 +280,20 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
           editorsChoiceLabel={ru.profile.editorsChoice}
         />
       </section>
+
+      {parseFaq(profile.faq).length > 0 && (
+        <section className="mt-10 border-t border-line pt-6">
+          <h2 className="text-lg font-medium">{ru.profile.faqTitle}</h2>
+          <dl className="mt-4 flex flex-col gap-4">
+            {parseFaq(profile.faq).map((item, i) => (
+              <div key={i}>
+                <dt className="font-medium">{item.q}</dt>
+                <dd className="mt-1 text-sm leading-relaxed muted">{item.a}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
 
       <ReviewSection
         profileId={profile.id}

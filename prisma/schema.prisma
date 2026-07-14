@@ -180,6 +180,7 @@ model PhotographerProfile {
   experienceYears Int? // стаж в годах (богатство анкеты, паритет MyWed)
   equipment   String? // камеры/оптика/свет
   teamInfo    String? // соло / команда / ассистенты
+  faq         Json? // [{q,a}] частые вопросы (богатство анкеты, паритет MyWed)
   status      ModerationStatus @default(PENDING)
   rejectReason String?
   // Денормализованный рейтинг для сортировки каталога (пересчёт фоном).

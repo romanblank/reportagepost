@@ -92,6 +92,7 @@ export const ru = {
     adminVerify: 'Отметить проверенным',
     adminUnverify: 'Снять проверку',
     aboutTitle: 'О фотографе',
+    faqTitle: 'Частые вопросы',
     experienceLabel: 'Опыт',
     experienceYears: (n: number) => `${n} ${n % 10 === 1 && n % 100 !== 11 ? 'год' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 'года' : 'лет'}`,
     languagesLabel: 'Языки',
@@ -154,6 +155,10 @@ export const ru = {
     avatarUpload: 'Загрузить фото',
     avatarUploading: 'Загружаем…',
     avatarError: 'Не удалось загрузить фото',
+    faqTitle: 'Частые вопросы (необязательно)',
+    faqQuestion: 'Вопрос',
+    faqAnswer: 'Ответ',
+    faqAdd: 'Добавить вопрос',
   },
   tg: {
     title: 'Уведомления в Telegram',

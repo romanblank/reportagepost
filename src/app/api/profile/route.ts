@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import { getSession } from '@/lib/auth';
@@ -111,6 +112,10 @@ const EditSchema = z.object({
   equipment: z.string().trim().max(500).optional(),
   teamInfo: z.string().trim().max(300).optional(),
   languages: z.array(z.string().trim().regex(/^[a-z]{2}$/)).max(8).optional(),
+  faq: z
+    .array(z.object({ q: z.string().trim().min(1).max(200), a: z.string().trim().min(1).max(1000) }))
+    .max(10)
+    .optional(),
   packages: z
     .array(z.object({ hours: z.number().int().min(1).max(24), priceMinor: z.number().int().min(1), currency: z.literal('RUB') }))
     .min(1)
@@ -150,6 +155,9 @@ export async function PATCH(req: Request) {
         equipment: d.equipment?.trim() || null,
         teamInfo: d.teamInfo?.trim() || null,
         ...(d.languages && d.languages.length ? { languages: d.languages } : {}),
+        ...(d.faq !== undefined
+          ? { faq: d.faq.length ? (d.faq as unknown as Prisma.InputJsonValue) : Prisma.DbNull }
+          : {}),
       },
     });
     if (d.packages) {

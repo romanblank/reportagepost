@@ -15,6 +15,7 @@ interface Initial {
   equipment: string;
   teamInfo: string;
   languages: string[];
+  faq: { q: string; a: string }[];
   packages: { hours: number; priceRub: number }[];
 }
 
@@ -33,6 +34,7 @@ export function EditProfileForm({ initial, avatar }: { initial: Initial; avatar:
   const [equipment, setEquipment] = useState(initial.equipment);
   const [teamInfo, setTeamInfo] = useState(initial.teamInfo);
   const [langs, setLangs] = useState<string[]>(initial.languages.length ? initial.languages : ['ru']);
+  const [faq, setFaq] = useState(initial.faq);
   const [packages, setPackages] = useState(initial.packages.length ? initial.packages : [{ hours: 2, priceRub: 10000 }]);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,6 +57,7 @@ export function EditProfileForm({ initial, avatar }: { initial: Initial; avatar:
         equipment: equipment.trim(),
         teamInfo: teamInfo.trim(),
         languages: langs,
+        faq: faq.map((f) => ({ q: f.q.trim(), a: f.a.trim() })).filter((f) => f.q && f.a).slice(0, 10),
         packages: packages.map((p) => ({ hours: p.hours, priceMinor: p.priceRub * 100, currency: 'RUB' })),
       }),
     }).catch(() => null);
@@ -139,6 +142,28 @@ export function EditProfileForm({ initial, avatar }: { initial: Initial; avatar:
         <div><label className="field-label">{ru.onboarding.telegram}</label>
           <input value={telegram} onChange={(e) => setTelegram(e.target.value)} className="input" /></div>
       </div>
+
+      <fieldset>
+        <legend className="field-label">{ru.editProfile.faqTitle}</legend>
+        <div className="mt-1 flex flex-col gap-3">
+          {faq.map((f, i) => (
+            <div key={i} className="flex flex-col gap-2 rounded-lg border border-line p-3">
+              <div className="flex items-center gap-2">
+                <input value={f.q} onChange={(e) => setFaq((prev) => prev.map((x, j) => j === i ? { ...x, q: e.target.value } : x))}
+                  placeholder={ru.editProfile.faqQuestion} maxLength={200} className="input" />
+                <button type="button" onClick={() => setFaq((prev) => prev.filter((_, j) => j !== i))}
+                  className="btn btn-ghost px-2 py-1.5 text-sm">✕</button>
+              </div>
+              <textarea value={f.a} onChange={(e) => setFaq((prev) => prev.map((x, j) => j === i ? { ...x, a: e.target.value } : x))}
+                placeholder={ru.editProfile.faqAnswer} rows={2} maxLength={1000} className="input" />
+            </div>
+          ))}
+        </div>
+        {faq.length < 10 && (
+          <button type="button" onClick={() => setFaq((p) => [...p, { q: '', a: '' }])}
+            className="btn btn-outline mt-3 px-3 py-1.5">{ru.editProfile.faqAdd}</button>
+        )}
+      </fieldset>
 
       <fieldset>
         <legend className="field-label">{ru.onboarding.packagesTitle}</legend>
