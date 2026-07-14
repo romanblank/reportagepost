@@ -1,5 +1,8 @@
 import { db } from '@/lib/db';
 import { enqueueForMany } from '@/lib/notifications';
+import { sendEmail } from '@/lib/email';
+import { tgSend } from '@/lib/telegram';
+import { APP_DOMAIN } from '@/lib/constants';
 
 export interface CreateInquiryInput {
   clientUserId?: string;
@@ -61,7 +64,7 @@ export async function createInquiry(
       cityId: city.id,
       ...(categoryId ? { categories: { some: { categoryId } } } : {}),
     },
-    select: { userId: true },
+    select: { userId: true, user: { select: { email: true, tgUserId: true } } },
   });
 
   const notified = await enqueueForMany(
@@ -69,6 +72,20 @@ export async function createInquiry(
     'EMAIL',
     'notification.inquiry.new',
     { inquiryId: inquiry.id, citySlug: input.citySlug, categorySlug: input.categorySlug ?? null },
+  );
+
+  // Прямая доставка (email + Telegram) — no-op без конфигурации. Очередь выше
+  // остаётся для аудита/дайджеста. Ждём отправки (мало получателей в бете).
+  const link = `https://${APP_DOMAIN}/ru/cabinet`;
+  const subject = 'Новая заявка на съёмку — Reportage Post';
+  const text = `Новая заявка в вашем городе. Открыть в кабинете: ${link}`;
+  await Promise.all(
+    recipients.flatMap((r) => {
+      const jobs: Promise<void>[] = [];
+      if (r.user.email) jobs.push(sendEmail(r.user.email, subject, text));
+      if (r.user.tgUserId) jobs.push(tgSend(r.user.tgUserId, text));
+      return jobs;
+    }),
   );
 
   return { inquiryId: inquiry.id, notified };
