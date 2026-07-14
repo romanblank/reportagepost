@@ -173,6 +173,13 @@ export const ru = {
     budget: 'Бюджет',
     eventDate: 'Дата',
     logout: 'Выйти',
+    adminTitle: 'Модерация',
+    adminQueue: (n: number) => (n === 0 ? 'Очередь пуста' : `В очереди: ${n}`),
+    adminOpenQueue: 'Открыть очередь',
+    clientLinkTitle: 'Ищете фотографа?',
+    clientLinkText: 'Оставьте заявку или найдите фотографа в каталоге.',
+    toCatalog: 'В каталог',
+    toInquiry: 'Оставить заявку',
   },
   onboarding: {
     title: 'Анкета фотографа',

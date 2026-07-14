@@ -32,9 +32,26 @@ export default async function CabinetPage() {
   const inquiries =
     profile?.status === 'APPROVED' ? await inquiriesForPhotographer(session.userId) : null;
 
+  const pendingCount =
+    session.role === 'ADMIN'
+      ? await db.photographerProfile.count({ where: { status: 'PENDING' } })
+      : 0;
+
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10">
-      <h1 className="text-3xl font-semibold">{ru.cabinet.title}</h1>
+    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:py-10">
+      <h1 className="text-2xl font-semibold sm:text-3xl">{ru.cabinet.title}</h1>
+
+      {session.role === 'ADMIN' && (
+        <section className="mt-4 card p-4">
+          <p className="text-sm muted">{ru.cabinet.adminTitle}</p>
+          <div className="mt-1 flex flex-wrap items-center gap-3">
+            <span className="font-medium">{ru.cabinet.adminQueue(pendingCount)}</span>
+            <Link href="/ru/admin/moderation" className="btn btn-accent px-3 py-1.5">
+              {ru.cabinet.adminOpenQueue}
+            </Link>
+          </div>
+        </section>
+      )}
 
       {session.role === 'PHOTOGRAPHER' && (
         <section className="mt-4 card p-4">
