@@ -26,6 +26,7 @@ export interface CatalogCard {
   username: string;
   firstName: string;
   lastName: string;
+  verified: boolean;
   avatarKey: string | null;
   bio: string | null;
   categories: string[];
@@ -115,6 +116,7 @@ export async function catalogForCity(filters: CatalogFilters): Promise<CatalogPa
 
   const cards = shown.map((p) => ({
     username: p.username,
+    verified: p.verified,
     avatarKey: p.avatarKey,
     firstName: p.user.firstName,
     lastName: p.user.lastName,

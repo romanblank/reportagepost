@@ -180,6 +180,7 @@ export default async function CatalogPage(props: {
                         </span>
                       )}
                       <span className="truncate">{card.firstName} {card.lastName}</span>
+                      {card.verified && <span title={ru.profile.verified} className="shrink-0 text-accent">✓</span>}
                     </span>
                     {card.minPackage && (
                       <span className="text-sm muted">

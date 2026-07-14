@@ -15,6 +15,7 @@ import { personLd } from '@/lib/structured-data';
 import { BASE_URL } from '@/lib/sitemap';
 import { ReviewSection } from '@/components/ReviewSection';
 import { reviewsForProfile } from '@/lib/reviews';
+import { VerifyButton } from '@/components/VerifyButton';
 
 // dynamic: страница показывает состояние лайков/подписки текущего пользователя
 export const dynamic = 'force-dynamic';
@@ -162,9 +163,18 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
           </div>
         </div>
 
-        <h1 className="mt-4 text-2xl font-semibold sm:text-4xl">
-          {profile.user.firstName} {profile.user.lastName}
+        <h1 className="mt-4 flex flex-wrap items-center gap-2 text-2xl font-semibold sm:text-4xl">
+          <span>{profile.user.firstName} {profile.user.lastName}</span>
+          {profile.verified && (
+            <span title={ru.profile.verifiedHint}
+              className="inline-flex items-center gap-1 rounded-full bg-accent/15 px-2.5 py-0.5 text-xs font-medium text-accent">
+              ✓ {ru.profile.verified}
+            </span>
+          )}
         </h1>
+        {session?.role === 'ADMIN' && (
+          <div className="mt-2"><VerifyButton profileId={profile.id} verified={profile.verified} /></div>
+        )}
         <p className="mt-1 text-sm muted">
           {cityNameRu(profile.city.slug)} · {profile.categories.map((c) => categoryNameRu(c.category.slug)).join(' · ')}
         </p>
