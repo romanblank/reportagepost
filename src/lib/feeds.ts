@@ -17,6 +17,7 @@ export interface FeedPhoto {
   firstName: string;
   lastName: string;
   scoreMilli: number;
+  avatarKey: string | null; // аватар автора (или инициалы)
   blurData: string | null; // LQIP-плейсхолдер (Photo.blurhash) — фон при загрузке
 }
 
@@ -57,6 +58,7 @@ async function bestOfWindow(sinceDays: number, limit: number): Promise<FeedPhoto
         firstName: p.profile.user.firstName,
         lastName: p.profile.user.lastName,
         scoreMilli,
+        avatarKey: p.profile.avatarKey,
         blurData: p.blurhash,
       } satisfies FeedPhoto;
     })
@@ -83,6 +85,7 @@ export async function freshPhotos(limit = 60): Promise<FeedPhoto[]> {
     firstName: p.profile.user.firstName,
     lastName: p.profile.user.lastName,
     scoreMilli: 0,
+    avatarKey: p.profile.avatarKey,
     blurData: p.blurhash,
   }));
 }
@@ -103,6 +106,7 @@ export async function editorsChoice(limit = 100): Promise<FeedPhoto[]> {
     firstName: p.profile.user.firstName,
     lastName: p.profile.user.lastName,
     scoreMilli: 0,
+    avatarKey: p.profile.avatarKey,
     blurData: p.blurhash,
   }));
 }
@@ -133,6 +137,7 @@ export async function followingFeed(userId: string, limit = 60): Promise<FeedPho
     firstName: p.profile.user.firstName,
     lastName: p.profile.user.lastName,
     scoreMilli: 0,
+    avatarKey: p.profile.avatarKey,
     blurData: p.blurhash,
   }));
 }
@@ -181,7 +186,7 @@ export async function recommendedFeed(userId: string, limit = 60): Promise<{ pho
         .map((p) => ({
           photoId: p.id, storageKey: p.storageKey, width: p.width, height: p.height,
           username: p.profile.username, firstName: p.profile.user.firstName, lastName: p.profile.user.lastName,
-          scoreMilli: scores.get(p.id) ?? 0, blurData: p.blurhash,
+          scoreMilli: scores.get(p.id) ?? 0, avatarKey: p.profile.avatarKey, blurData: p.blurhash,
         }))
         .sort((a, b) => b.scoreMilli - a.scoreMilli)
         .slice(0, limit);

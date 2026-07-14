@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { bestOfWeek, bestOfYear, editorsChoice, followingFeed, freshPhotos, recommendedFeed, type FeedPhoto } from '@/lib/feeds';
 import { getSession } from '@/lib/auth';
-import { webVariantUrl } from '@/lib/photos';
+import { webVariantUrl, avatarUrl } from '@/lib/photos';
 import { ru } from '@/i18n/ru';
 import { EmptyState } from '@/components/EmptyState';
 
@@ -80,9 +80,14 @@ export default async function PhotoFeedPage(props: {
             {photos.map((p) => (
               <Link key={p.photoId} href={`/ru/photographer/${p.username}`} className="block">
                 <div className="flex items-center gap-2 px-4 py-2">
-                  <span className="grid h-8 w-8 place-items-center rounded-full bg-surface-2 text-xs font-semibold">
-                    {p.firstName.slice(0, 1)}{p.lastName.slice(0, 1)}
-                  </span>
+                  {p.avatarKey ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={avatarUrl(p.avatarKey)} alt="" width={32} height={32} className="h-8 w-8 shrink-0 rounded-full object-cover" />
+                  ) : (
+                    <span className="grid h-8 w-8 place-items-center rounded-full bg-surface-2 text-xs font-semibold">
+                      {p.firstName.slice(0, 1)}{p.lastName.slice(0, 1)}
+                    </span>
+                  )}
                   <span className="text-sm font-medium">{p.firstName} {p.lastName}</span>
                 </div>
                 <div className="relative">

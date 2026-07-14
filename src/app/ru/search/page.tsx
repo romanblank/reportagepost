@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { searchPhotographers } from '@/lib/search';
 import { cityNameRu } from '@/lib/geo-data';
 import { categoryNameRu } from '@/lib/category-data';
-import { thumbVariantUrl } from '@/lib/photos';
+import { thumbVariantUrl, avatarUrl } from '@/lib/photos';
 import { ru } from '@/i18n/ru';
 
 export const metadata: Metadata = { title: ru.search.title };
@@ -42,7 +42,21 @@ export default async function SearchPage(props: { searchParams: Promise<{ q?: st
                   </div>
                 )}
                 <div className="p-4">
-                  <span className="font-medium">{r.firstName} {r.lastName}</span>
+                  <span className="flex items-center gap-2 font-medium">
+                    {r.avatarKey ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={avatarUrl(r.avatarKey)} alt="" width={28} height={28} className="h-7 w-7 shrink-0 rounded-full object-cover" />
+                    ) : (
+                      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-surface-2 text-xs">
+                        {r.firstName.slice(0, 1)}{r.lastName.slice(0, 1)}
+                      </span>
+                    )}
+                    <span className="truncate">{r.firstName} {r.lastName}</span>
+                    {r.verified && <span title={ru.profile.verified} className="shrink-0 text-accent">✓</span>}
+                  </span>
+                  {r.ratingCount > 0 && (
+                    <p className="mt-1 text-sm"><span className="text-accent">★</span> {r.ratingAvg.toFixed(1)} <span className="text-xs muted">({r.ratingCount})</span></p>
+                  )}
                   <p className="mt-1 text-sm muted">
                     {cityNameRu(r.citySlug)} · {r.categories.map((c) => categoryNameRu(c)).join(' · ')}
                   </p>
