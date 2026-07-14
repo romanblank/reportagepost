@@ -70,17 +70,18 @@ export default async function CatalogPage(props: {
   const basePath = `/ru/${params.country}/${params.city}`;
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10">
-      <h1 className="text-3xl font-semibold sm:text-4xl">{ru.catalog.title(cityName)}</h1>
-      <p className="mt-2 text-sm muted">{ru.catalog.photographersCount(cards.length)}</p>
+    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:py-10">
+      <h1 className="text-2xl font-semibold sm:text-4xl">{ru.catalog.title(cityName)}</h1>
+      <p className="mt-1.5 text-sm muted">{ru.catalog.photographersCount(cards.length)}</p>
 
-      <nav className="mt-6 flex flex-wrap gap-2">
-        <Link href={basePath} className={`chip ${!categorySlug ? 'chip-active' : ''}`}>
+      {/* Категории: горизонтальный скролл на мобиле (app-подача), обёртка edge-to-edge */}
+      <nav className="mt-5 -mx-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0">
+        <Link href={basePath} className={`chip shrink-0 ${!categorySlug ? 'chip-active' : ''}`}>
           {ru.catalog.allCategories}
         </Link>
         {CATEGORIES.map((c) => (
           <Link key={c.slug} href={`${basePath}?category=${c.slug}`}
-            className={`chip ${categorySlug === c.slug ? 'chip-active' : ''}`}>
+            className={`chip shrink-0 ${categorySlug === c.slug ? 'chip-active' : ''}`}>
             {c.nameRu}
           </Link>
         ))}

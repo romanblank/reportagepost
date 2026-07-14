@@ -2,6 +2,9 @@
 # полный node_modules (нужен prisma CLI для migrate deploy на старте).
 FROM node:22-alpine
 WORKDIR /app
+# Версия сборки (git SHA из CI) — /health отдаёт её, чтобы верифицировать деплой
+ARG APP_VERSION=dev
+ENV APP_VERSION=$APP_VERSION
 COPY package.json package-lock.json ./
 # dev-зависимости нужны для next build (tailwind/postcss/ts) — NODE_ENV ставим ПОСЛЕ
 RUN npm ci --include=dev
