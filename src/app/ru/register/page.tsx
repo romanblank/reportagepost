@@ -1,12 +1,22 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ru } from '@/i18n/ru';
 import { describeApiError } from '@/lib/form-errors';
 
+// useSearchParams требует Suspense (иначе падает next build — урок Брендоскопа).
 export default function RegisterPage() {
+  return (
+    <Suspense>
+      <RegisterForm />
+    </Suspense>
+  );
+}
+
+function RegisterForm() {
   const router = useRouter();
+  const invitePrefill = useSearchParams().get('invite') ?? '';
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -78,7 +88,7 @@ export default function RegisterPage() {
           </div>
           <div>
             <label className="field-label">{ru.auth.inviteCode}</label>
-            <input name="inviteCode" required className="input" />
+            <input name="inviteCode" required defaultValue={invitePrefill} className="input" />
           </div>
           {error && <p role="alert" className="text-sm text-accent">{error}</p>}
           <button type="submit" disabled={pending} className="btn btn-accent mt-1">

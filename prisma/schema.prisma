@@ -47,6 +47,7 @@ model User {
 
   profile       PhotographerProfile?
   inviteCode    InviteCode?          @relation(fields: [inviteCodeId], references: [id])
+  issuedInvites InviteCode[]         @relation("issuedInvites")
   events        ActivityEvent[]      @relation("actor")
   likes         Like[]
   comments      Comment[]
@@ -95,8 +96,10 @@ model InviteCode {
   maxUses   Int       @default(1)
   usedCount Int       @default(0)
   expiresAt DateTime?
+  issuedByUserId String? // атрибуция: кто выдал (S3 персональные инвайты)
   createdAt DateTime  @default(now())
   users     User[]
+  issuedBy  User?     @relation("issuedInvites", fields: [issuedByUserId], references: [id])
 }
 
 // ─── География: дерево страна → регион → город ─────────────────────────────

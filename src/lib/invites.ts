@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { db } from '@/lib/db';
 
 /**
@@ -15,4 +16,53 @@ export async function consumeInviteCode(code: string): Promise<string | null> {
     data: { usedCount: { increment: 1 } },
   });
   return updated.count === 1 ? invite.id : null;
+}
+
+/** Создать персональный инвайт (S3). Код — случайный base64url. */
+export async function createInvite(opts: {
+  issuedByUserId: string;
+  note?: string;
+  maxUses?: number;
+  expiresAt?: Date | null;
+}) {
+  const code = randomBytes(9).toString('base64url');
+  return db.inviteCode.create({
+    data: {
+      code,
+      note: opts.note?.trim() || null,
+      maxUses: opts.maxUses && opts.maxUses > 0 ? Math.min(opts.maxUses, 1000) : 1,
+      expiresAt: opts.expiresAt ?? null,
+      issuedByUserId: opts.issuedByUserId,
+    },
+  });
+}
+
+export interface InviteRow {
+  id: string;
+  code: string;
+  note: string | null;
+  maxUses: number;
+  usedCount: number;
+  registered: number; // сколько реально зарегистрировалось по коду
+  expiresAt: Date | null;
+  createdAt: Date;
+}
+
+/** Список инвайтов со статистикой (админ). */
+export async function invitesList(limit = 100): Promise<InviteRow[]> {
+  const rows = await db.inviteCode.findMany({
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+    include: { _count: { select: { users: true } } },
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    code: r.code,
+    note: r.note,
+    maxUses: r.maxUses,
+    usedCount: r.usedCount,
+    registered: r._count.users,
+    expiresAt: r.expiresAt,
+    createdAt: r.createdAt,
+  }));
 }
