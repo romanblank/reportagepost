@@ -73,6 +73,7 @@ export async function POST(req: Request) {
         width: analyzed.width,
         height: analyzed.height,
         phash: analyzed.phash,
+        blurhash: analyzed.blurData,
         // Prisma Json-поле требует индекс-сигнатуру — типизированный вердикт
         // сериализуем через каст (структура плоская, JSON-совместимая).
         aiVerdict: verdict ? (verdict as unknown as Prisma.InputJsonObject) : undefined,

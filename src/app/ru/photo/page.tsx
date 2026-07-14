@@ -93,7 +93,8 @@ export default async function PhotoFeedPage(props: {
                   )}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={webVariantUrl(p.storageKey)} alt="" loading="lazy"
-                    width={p.width} height={p.height} className="w-full" />
+                    width={p.width} height={p.height} className="w-full bg-cover bg-center"
+                    style={p.blurData ? { backgroundImage: `url(${p.blurData})` } : undefined} />
                 </div>
               </Link>
             ))}
@@ -111,7 +112,8 @@ export default async function PhotoFeedPage(props: {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={webVariantUrl(p.storageKey)} alt="" loading="lazy"
                     width={p.width} height={p.height}
-                    className="w-full transition duration-300 group-hover:scale-[1.02]" />
+                    className="w-full bg-cover bg-center transition duration-300 group-hover:scale-[1.02]"
+                    style={p.blurData ? { backgroundImage: `url(${p.blurData})` } : undefined} />
                 </div>
                 <span className="mt-1 block text-xs muted">{p.firstName} {p.lastName}</span>
               </Link>

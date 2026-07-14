@@ -204,7 +204,8 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
                     width={photo.width}
                     height={photo.height}
                     onClick={() => open(i)}
-                    className="w-full cursor-zoom-in transition group-hover:brightness-95 sm:rounded-lg"
+                    style={photo.blurhash ? { backgroundImage: `url(${photo.blurhash})` } : undefined}
+                    className="w-full cursor-zoom-in bg-cover bg-center transition group-hover:brightness-95 sm:rounded-lg"
                   />
                   <figcaption className="mt-1 px-2 sm:px-0">
                     <LikeButton

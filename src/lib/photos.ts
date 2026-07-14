@@ -12,6 +12,7 @@ export interface AnalyzedPhoto {
   width: number;
   height: number;
   phash: string; // perceptual hash для дедупа/анти-кражи
+  blurData: string; // крошечный размытый base64 data-URI — плейсхолдер при загрузке
 }
 
 export interface ProcessedPhoto extends AnalyzedPhoto {
@@ -47,7 +48,13 @@ export async function analyzePhoto(input: Buffer): Promise<AnalyzedPhoto> {
   // Perceptual hash — с ориентированного кадра, чтобы повёрнутый ре-аплоад ловился.
   const oriented = await sharp(input).rotate().toBuffer();
   const phash = await computeDHash(oriented);
-  return { width, height, phash };
+
+  // LQIP-плейсхолдер: крошечный размытый JPEG в base64. Показывается фоном под
+  // <img>, пока грузится настоящий кадр (плавная загрузка вместо пустых дыр).
+  const tiny = await sharp(oriented).resize(24, 24, { fit: 'inside' }).blur(1.2).jpeg({ quality: 35 }).toBuffer();
+  const blurData = `data:image/jpeg;base64,${tiny.toString('base64')}`;
+
+  return { width, height, phash, blurData };
 }
 
 /**

@@ -35,6 +35,7 @@ describe('photo pipeline', () => {
     const analyzed = await analyzePhoto(big);
     expect(analyzed.width).toBe(MIN_LONG_SIDE);
     expect(analyzed.phash).toHaveLength(16);
+    expect(analyzed.blurData).toMatch(/^data:image\/jpeg;base64,/); // LQIP-плейсхолдер
 
     const stored = await storePhotoVariants(big);
     expect(stored.storageKey).toMatch(/^photos\/[0-9a-f-]+\/original\.jpg$/);
