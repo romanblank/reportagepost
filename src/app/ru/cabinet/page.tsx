@@ -9,6 +9,7 @@ import { categoryNameRu } from '@/lib/category-data';
 import { formatRubMinor } from '@/lib/money';
 import { ru } from '@/i18n/ru';
 import { LogoutButton } from '@/components/LogoutButton';
+import { TelegramLinkButton } from '@/components/TelegramLinkButton';
 
 export const metadata: Metadata = { title: ru.cabinet.title };
 export const dynamic = 'force-dynamic'; // всегда свежие заявки/статус
@@ -37,6 +38,8 @@ export default async function CabinetPage() {
     session.role === 'ADMIN'
       ? await db.photographerProfile.count({ where: { status: 'PENDING' } })
       : 0;
+
+  const me = await db.user.findUnique({ where: { id: session.userId }, select: { tgUserId: true } });
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:py-10">
@@ -110,6 +113,13 @@ export default async function CabinetPage() {
           )}
         </section>
       )}
+
+      <section className="mt-6 card p-4">
+        <p className="text-sm muted">{ru.tg.title}</p>
+        <div className="mt-2">
+          <TelegramLinkButton bound={Boolean(me?.tgUserId)} />
+        </div>
+      </section>
 
       {/* «Выйти» — на мобиле убрали из шапки, здесь единственная точка выхода */}
       <div className="mt-8 border-t border-line pt-5 sm:hidden">

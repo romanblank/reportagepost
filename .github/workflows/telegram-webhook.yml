@@ -1,0 +1,20 @@
+name: Telegram setWebhook
+on:
+  workflow_dispatch: {}
+
+# Регистрирует вебхук бота в Telegram. Запускать ПОСЛЕ того как оператор положил
+# TELEGRAM_BOT_TOKEN и TELEGRAM_WEBHOOK_SECRET в Lockbox и прошёл деплой (fetch-secrets
+# прокинул их в контейнер). Токен/секрет берутся из env контейнера, наружу не светятся.
+jobs:
+  set-webhook:
+    runs-on: ubuntu-latest
+    steps:
+      - name: setWebhook via container env
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: rp
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: >
+            docker exec reportagepost node -e "if(!process.env.TELEGRAM_BOT_TOKEN){console.error('no token');process.exit(1)}
+            fetch('https://api.telegram.org/bot'+process.env.TELEGRAM_BOT_TOKEN+'/setWebhook',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({url:'https://reportagepost.com/api/telegram',secret_token:process.env.TELEGRAM_WEBHOOK_SECRET,allowed_updates:['message']})}).then(r=>r.json()).then(j=>{console.log(JSON.stringify(j));if(!j.ok)process.exit(1)}).catch(e=>{console.error(e);process.exit(1)})"

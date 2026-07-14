@@ -97,6 +97,15 @@ export const ru = {
     byLabel: 'Автор',
     photosCount: (n: number) => `${n} кадров`,
   },
+  tg: {
+    title: 'Уведомления в Telegram',
+    link: 'Привязать Telegram',
+    linking: 'Открываем…',
+    unlink: 'Отвязать',
+    bound: 'Telegram привязан — уведомления приходят в бота.',
+    hint: 'Заявки и сообщения будут мгновенно приходить в Telegram.',
+    error: 'Telegram-бот пока недоступен. Попробуйте позже.',
+  },
   comments: {
     title: 'Комментарии',
     count: (n: number) => `Комментарии (${n})`,

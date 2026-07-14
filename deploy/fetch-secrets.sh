@@ -30,6 +30,18 @@ if "SMSC_LOGIN" in entries:
     lines.append(f"SMSC_PASSWORD={entries.get('SMSC_PASSWORD','')}")
 if "SMSC_SENDER" in entries:
     lines.append(f"SMSC_SENDER={entries['SMSC_SENDER']}")
+# Telegram-бот (уведомления). Секрет вебхука проверяем на входящих апдейтах.
+if "TELEGRAM_BOT_TOKEN" in entries:
+    lines.append(f"TELEGRAM_BOT_TOKEN={entries['TELEGRAM_BOT_TOKEN']}")
+if "TELEGRAM_WEBHOOK_SECRET" in entries:
+    lines.append(f"TELEGRAM_WEBHOOK_SECRET={entries['TELEGRAM_WEBHOOK_SECRET']}")
+# SMTP (транзакционная почта, Postbox). Пробрасываются, когда оператор заведёт.
+for k in ("SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASSWORD", "SMTP_FROM"):
+    if k in entries:
+        lines.append(f"{k}={entries[k]}")
+# Yandex Vision (AI-премодерация) — авторизация через SA инстанса, нужен лишь folder id.
+if "YC_FOLDER_ID" in entries:
+    lines.append(f"YC_FOLDER_ID={entries['YC_FOLDER_ID']}")
 with open(sys.argv[1], "w") as f:
     f.write("\n".join(lines) + "\n")
 print(f"wrote {sys.argv[1]} ({len(lines)} vars)")

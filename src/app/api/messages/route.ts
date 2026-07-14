@@ -5,6 +5,8 @@ import { MessageError, dialogsFor, sendMessage } from '@/lib/messages';
 import { handleRoute, jsonError } from '@/lib/errors';
 import { rateLimit } from '@/lib/rate-limit';
 import { publishToUser } from '@/lib/realtime';
+import { notifyTelegram } from '@/lib/telegram';
+import { APP_DOMAIN } from '@/lib/constants';
 
 export function GET() {
   return handleRoute(async () => {
@@ -34,6 +36,11 @@ export function POST(req: Request) {
       const message = await sendMessage(session.userId, parsed.data.recipientId, parsed.data.body);
       // Живая доставка получателю (SSE): событие → браузер обновит тред/счётчик
       publishToUser(parsed.data.recipientId, { type: 'message', from: session.userId });
+      // Telegram-уведомление (если привязан). Не блокируем ответ — fire-and-forget.
+      void notifyTelegram(
+        parsed.data.recipientId,
+        `Новое сообщение на Reportage Post. Открыть: https://${APP_DOMAIN}/ru/messages`,
+      );
       return NextResponse.json({ messageId: message.id }, { status: 201 });
     } catch (e) {
       if (e instanceof MessageError) return jsonError(e.code, 400);
