@@ -68,14 +68,14 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
   if (!profile) notFound();
 
   const session = await getSession();
-  const favorited = session
-    ? Boolean(
-        await db.favoritePhotographer.findUnique({
+  // Все независимые запросы — одним Promise.all (ревью №7: было 4 сериализованных
+  // round-trip'а на каждый force-dynamic заход).
+  const [favoritedRow, likes, myLikes, following, followers, rankAbove, moreInCity, reviews, alreadyReviewedRow] = await Promise.all([
+    session
+      ? db.favoritePhotographer.findUnique({
           where: { userId_profileId: { userId: session.userId, profileId: profile.id } },
-        }),
-      )
-    : false;
-  const [likes, myLikes, following, followers, rankAbove, moreInCity] = await Promise.all([
+        })
+      : Promise.resolve(null),
     db.like.groupBy({
       by: ['photoId'],
       where: { photoId: { in: profile.photos.map((p) => p.id) } },
@@ -108,23 +108,23 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
         photos: { where: { status: 'APPROVED' }, orderBy: { publishedAt: 'desc' }, take: 1, select: { storageKey: true } },
       },
     }),
+    reviewsForProfile(profile.id),
+    session
+      ? db.review.findUnique({
+          where: { authorUserId_profileId: { authorUserId: session.userId, profileId: profile.id } },
+          select: { id: true },
+        })
+      : Promise.resolve(null),
   ]);
+  const favorited = Boolean(favoritedRow);
+  const alreadyReviewed = Boolean(alreadyReviewedRow);
   const likeCount = new Map(likes.map((l) => [l.photoId, l._count]));
   const likedSet = new Set(myLikes.map((l) => l.photoId));
   const isSelf = session?.userId === profile.userId;
   const cityRank = rankAbove + 1;
   const lastSeen = profile.user.lastSeenAt;
   const onlineText = relativeOnline(lastSeen);
-
-  const reviews = await reviewsForProfile(profile.id);
-  const alreadyReviewed = session
-    ? Boolean(
-        await db.review.findUnique({
-          where: { authorUserId_profileId: { authorUserId: session.userId, profileId: profile.id } },
-          select: { id: true },
-        }),
-      )
-    : false;
+  const faq = parseFaq(profile.faq);
 
   const initials = `${profile.user.firstName.slice(0, 1)}${profile.user.lastName.slice(0, 1)}`;
 
@@ -281,11 +281,11 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
         />
       </section>
 
-      {parseFaq(profile.faq).length > 0 && (
+      {faq.length > 0 && (
         <section className="mt-10 border-t border-line pt-6">
           <h2 className="text-lg font-medium">{ru.profile.faqTitle}</h2>
           <dl className="mt-4 flex flex-col gap-4">
-            {parseFaq(profile.faq).map((item, i) => (
+            {faq.map((item, i) => (
               <div key={i}>
                 <dt className="font-medium">{item.q}</dt>
                 <dd className="mt-1 text-sm leading-relaxed muted">{item.a}</dd>
@@ -303,6 +303,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
           rating: r.rating,
           body: r.body,
           verified: r.verified,
+          authorUserId: r.authorUserId,
           authorName: r.authorName,
           createdAt: r.createdAt.toISOString(),
           reply: r.reply,

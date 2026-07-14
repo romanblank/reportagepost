@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import { getSession } from '@/lib/auth';
+import { rateLimit } from '@/lib/rate-limit';
 
 // Онбординг, шаг 1: анкета фотографа (город, категории, цены пакетами, контакты)
 const ProfileSchema = z.object({
@@ -105,9 +106,10 @@ export async function POST(req: Request) {
 // username/город — идентичность/локация, отдельно (пока не редактируются).
 const EditSchema = z.object({
   bio: z.string().trim().max(2000).optional(),
-  siteUrl: z.string().trim().max(200).optional(),
-  whatsapp: z.string().trim().max(20).optional(),
-  telegram: z.string().trim().max(40).optional(),
+  // Паритет с POST (ревью №7): те же правила формата, '' допускается для очистки.
+  siteUrl: z.string().trim().url().max(200).refine((u) => /^https?:\/\//i.test(u), 'только http(s)').optional().or(z.literal('')),
+  whatsapp: z.string().trim().regex(/^\+[1-9]\d{7,14}$/, 'E.164').optional().or(z.literal('')),
+  telegram: z.string().trim().regex(/^@?[A-Za-z0-9_]{5,32}$/).optional().or(z.literal('')),
   experienceYears: z.number().int().min(0).max(70).nullable().optional(),
   equipment: z.string().trim().max(500).optional(),
   teamInfo: z.string().trim().max(300).optional(),
@@ -136,6 +138,12 @@ export async function PATCH(req: Request) {
 
   const profile = await db.photographerProfile.findUnique({ where: { userId: session.userId }, select: { id: true } });
   if (!profile) return NextResponse.json({ error: 'no_profile' }, { status: 404 });
+
+  try {
+    await rateLimit(`profile-edit:user:${session.userId}`, 30, 3600);
+  } catch {
+    return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
+  }
 
   // siteUrl: только http(s) (guard от javascript:/data: — как в POST)
   const site = d.siteUrl?.trim();

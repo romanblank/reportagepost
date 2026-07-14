@@ -10,6 +10,7 @@ export interface ReviewItem {
   rating: number;
   body: string;
   verified: boolean;
+  authorUserId: string;
   authorName: string;
   createdAt: string;
   reply: string | null;
@@ -66,7 +67,7 @@ export function ReviewSection({
     setPending(false);
     if (res?.status === 201) {
       setItems((prev) => [
-        { id: `tmp-${Date.now()}`, rating, body: body.trim(), verified: false, authorName: '', createdAt: new Date().toISOString(), reply: null },
+        { id: `tmp-${Date.now()}`, rating, body: body.trim(), verified: false, authorUserId: me.userId ?? '', authorName: '', createdAt: new Date().toISOString(), reply: null },
         ...prev,
       ]);
       setBody(''); setRating(0); setShowForm(false);
@@ -146,7 +147,7 @@ export function ReviewSection({
                 {r.verified && (
                   <span className="rounded-full bg-surface-2 px-2 py-0.5 text-xs muted">{ru.reviews.verified}</span>
                 )}
-                {(me.isAdmin || (me.userId && r.id.startsWith('tmp-'))) && (
+                {(me.isAdmin || (me.userId != null && r.authorUserId === me.userId)) && (
                   <button type="button" onClick={() => remove(r.id)} className="ml-auto text-xs text-muted hover:text-accent">
                     {me.isAdmin ? ru.reviews.hide : ru.reviews.delete}
                   </button>

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { processAndStoreAvatar, PhotoValidationError } from '@/lib/photos';
+import { rateLimit } from '@/lib/rate-limit';
 
 export const maxDuration = 30;
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -11,6 +12,17 @@ export async function POST(req: Request) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   if (session.role !== 'PHOTOGRAPHER') return NextResponse.json({ error: 'photographers_only' }, { status: 403 });
+
+  // Ранний отказ по Content-Length ДО буферизации тела (ревью №7: DoS памятью)
+  const declared = Number(req.headers.get('content-length') ?? 0);
+  if (declared > MAX_BYTES) return NextResponse.json({ error: 'file_too_large' }, { status: 413 });
+
+  // Лимит частоты (ревью №7: sharp-обработка — CPU; без лимита — DoS)
+  try {
+    await rateLimit(`avatar:user:${session.userId}`, 10, 3600);
+  } catch {
+    return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
+  }
 
   const profile = await db.photographerProfile.findUnique({ where: { userId: session.userId }, select: { id: true } });
   if (!profile) return NextResponse.json({ error: 'no_profile' }, { status: 404 });

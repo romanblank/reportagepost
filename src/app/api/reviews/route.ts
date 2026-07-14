@@ -3,12 +3,14 @@ import { z } from 'zod';
 import { getSession } from '@/lib/auth';
 import { handleRoute, jsonError, DomainError } from '@/lib/errors';
 import { addReview, replyToReview, setReviewHidden, REVIEW_MAX } from '@/lib/reviews';
+import { recomputeOne } from '@/lib/rating';
+import { rateLimit } from '@/lib/rate-limit';
 import { db } from '@/lib/db';
 
 const createSchema = z.object({
   profileId: z.string().min(1),
   rating: z.number().int().min(1).max(5),
-  body: z.string().min(1).max(REVIEW_MAX * 2),
+  body: z.string().min(1).max(REVIEW_MAX),
 });
 
 export function POST(req: Request) {
@@ -22,7 +24,7 @@ export function POST(req: Request) {
   });
 }
 
-const replySchema = z.object({ reviewId: z.string().min(1), reply: z.string().min(1).max(REVIEW_MAX * 2) });
+const replySchema = z.object({ reviewId: z.string().min(1), reply: z.string().min(1).max(REVIEW_MAX) });
 
 export function PATCH(req: Request) {
   return handleRoute(async () => {
@@ -30,6 +32,7 @@ export function PATCH(req: Request) {
     if (!session) return jsonError('unauthorized', 401);
     const parsed = replySchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) throw new DomainError('validation', 400);
+    await rateLimit(`review-reply:user:${session.userId}`, 30, 3600);
     await replyToReview(session.userId, parsed.data.reviewId, parsed.data.reply);
     return NextResponse.json({ ok: true });
   });
@@ -49,10 +52,11 @@ export function DELETE(req: Request) {
       await setReviewHidden(parsed.data.reviewId, true);
       return NextResponse.json({ ok: true });
     }
-    const review = await db.review.findUnique({ where: { id: parsed.data.reviewId }, select: { authorUserId: true } });
+    const review = await db.review.findUnique({ where: { id: parsed.data.reviewId }, select: { authorUserId: true, profileId: true } });
     if (!review) return NextResponse.json({ ok: true });
     if (review.authorUserId !== session.userId) throw new DomainError('forbidden', 403);
     await db.review.delete({ where: { id: parsed.data.reviewId } });
+    await recomputeOne(review.profileId); // отзыв влиял на рейтинг → пересчёт
     return NextResponse.json({ ok: true });
   });
 }

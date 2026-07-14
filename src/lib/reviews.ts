@@ -83,9 +83,14 @@ export async function replyToReview(ownerUserId: string, reviewId: string, rawRe
   await db.review.update({ where: { id: reviewId }, data: { reply, repliedAt: new Date() } });
 }
 
-/** Скрыть/показать отзыв (админ). */
+/** Скрыть/показать отзыв (админ). Пересчитываем рейтинг — отзыв влияет на него. */
 export async function setReviewHidden(reviewId: string, hidden: boolean): Promise<void> {
-  await db.review.update({ where: { id: reviewId }, data: { status: hidden ? 'HIDDEN' : 'VISIBLE' } });
+  const r = await db.review.update({
+    where: { id: reviewId },
+    data: { status: hidden ? 'HIDDEN' : 'VISIBLE' },
+    select: { profileId: true },
+  });
+  await recomputeOne(r.profileId);
 }
 
 export interface ReviewView {
@@ -93,6 +98,7 @@ export interface ReviewView {
   rating: number;
   body: string;
   verified: boolean;
+  authorUserId: string; // для проверки «мой отзыв» на клиенте (как в комментариях)
   authorName: string;
   createdAt: Date;
   reply: string | null;
@@ -127,6 +133,7 @@ export async function reviewsForProfile(
       rating: r.rating,
       body: r.body,
       verified: r.verified,
+      authorUserId: r.authorUserId,
       authorName: `${r.author.firstName} ${r.author.lastName}`.trim(),
       createdAt: r.createdAt,
       reply: r.reply,
