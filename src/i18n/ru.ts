@@ -85,6 +85,7 @@ export const ru = {
     portfolioTitle: 'Портфолио',
     storiesTitle: 'Серии',
     editorsChoice: 'Выбор редакции',
+    moreInCity: (city: string) => `Ещё фотографы — ${city}`,
     site: 'Сайт',
     statCityRank: 'место в городе',
     statFollowers: 'подписчиков',

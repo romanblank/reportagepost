@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { db } from '@/lib/db';
 import { cityNameRu } from '@/lib/geo-data';
 import { categoryNameRu } from '@/lib/category-data';
-import { webVariantUrl } from '@/lib/photos';
+import { webVariantUrl, thumbVariantUrl } from '@/lib/photos';
 import Link from 'next/link';
 import { formatRubMinor } from '@/lib/money';
 import { ru } from '@/i18n/ru';
@@ -71,7 +71,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
         }),
       )
     : false;
-  const [likes, myLikes, following, followers, rankAbove] = await Promise.all([
+  const [likes, myLikes, following, followers, rankAbove, moreInCity] = await Promise.all([
     db.like.groupBy({
       by: ['photoId'],
       where: { photoId: { in: profile.photos.map((p) => p.id) } },
@@ -92,6 +92,17 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
     // Место в городе: сколько одобренных профилей города с рейтингом выше
     db.photographerProfile.count({
       where: { status: 'APPROVED', cityId: profile.cityId, ratingScore: { gt: profile.ratingScore } },
+    }),
+    // «Ещё в этом городе» — кросс-линки для находимости (работает на текущих данных)
+    db.photographerProfile.findMany({
+      where: { status: 'APPROVED', cityId: profile.cityId, id: { not: profile.id } },
+      orderBy: { ratingScore: 'desc' },
+      take: 6,
+      select: {
+        username: true,
+        user: { select: { firstName: true, lastName: true } },
+        photos: { where: { status: 'APPROVED' }, orderBy: { publishedAt: 'desc' }, take: 1, select: { storageKey: true } },
+      },
     }),
   ]);
   const likeCount = new Map(likes.map((l) => [l.photoId, l._count]));
@@ -218,6 +229,30 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
           editorsChoiceLabel={ru.profile.editorsChoice}
         />
       </section>
+
+      {moreInCity.length > 0 && (
+        <section className="mt-10 border-t border-line pt-6">
+          <h2 className="text-xs font-semibold uppercase tracking-widest muted">
+            {ru.profile.moreInCity(cityNameRu(profile.city.slug))}
+          </h2>
+          <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
+            {moreInCity.map((m) => (
+              <li key={m.username}>
+                <Link href={`/ru/photographer/${m.username}`} className="group block">
+                  <div className="aspect-square overflow-hidden rounded-lg bg-surface-2">
+                    {m.photos[0] && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={thumbVariantUrl(m.photos[0].storageKey)} alt="" loading="lazy"
+                        className="h-full w-full object-cover transition group-hover:brightness-95" />
+                    )}
+                  </div>
+                  <span className="mt-1 block truncate text-sm">{m.user.firstName} {m.user.lastName}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </main>
   );
 }

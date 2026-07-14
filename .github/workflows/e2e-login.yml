@@ -11,8 +11,25 @@ jobs:
         run: |
           cat > probe.mjs <<'EOF'
           import { chromium } from 'playwright';
-          const pages = ['/', '/ru/russia', '/ru/russia/moscow', '/ru/photo', '/ru/community', '/ru/search?q=тест', '/ru/login', '/ru/register'];
+          const BASE = 'https://reportagepost.com';
+          const pages = ['/', '/ru/russia', '/ru/russia/moscow', '/ru/russia/saint-petersburg', '/ru/photo', '/ru/community', '/ru/search?q=тест', '/ru/login', '/ru/register'];
           const b = await chromium.launch();
+          // Динамически находим страницу фотографа и серии (раньше их не проверяли —
+          // из-за этого 500 на профиле проходил незамеченным, RSC render-prop).
+          const disco = await b.newPage();
+          for (const city of ['/ru/russia/saint-petersburg', '/ru/russia/moscow']) {
+            await disco.goto(BASE + city, { waitUntil: 'networkidle' }).catch(() => {});
+            const prof = await disco.$$eval('a[href^="/ru/photographer/"]', (a) => a[0]?.getAttribute('href')).catch(() => null);
+            if (prof) {
+              pages.push(prof);
+              await disco.goto(BASE + prof, { waitUntil: 'networkidle' }).catch(() => {});
+              const story = await disco.$$eval('a[href^="/ru/story/"]', (a) => a[0]?.getAttribute('href')).catch(() => null);
+              if (story) pages.push(story);
+              break;
+            }
+          }
+          await disco.close();
+          console.log('probing pages:', pages.join(', '));
           let failed = 0;
           for (const path of pages) {
             const page = await b.newPage();
