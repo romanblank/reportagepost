@@ -69,7 +69,15 @@ async function scoreOne(p: ProfileForRating, now: Date): Promise<number> {
     lastPublishedAt,
     now,
   });
-  return engagement + completeness * 1000;
+  // Вклад отзывов (паритет MyWed): средняя оценка × число (до 20) — доверие
+  // весомее лайков. VISIBLE только.
+  const rev = await db.review.aggregate({
+    where: { profileId: p.id, status: 'VISIBLE' },
+    _avg: { rating: true },
+    _count: true,
+  });
+  const reviewMilli = Math.round((rev._avg.rating ?? 0) * Math.min(rev._count, 20) * 200);
+  return engagement + completeness * 1000 + reviewMilli;
 }
 
 /** Точечный пересчёт одного профиля (аудит P1-2: O(1) на approve вместо O(N)). */

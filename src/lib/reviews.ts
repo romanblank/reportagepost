@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { DomainError } from '@/lib/errors';
 import { rateLimit } from '@/lib/rate-limit';
+import { recomputeOne } from '@/lib/rating';
 
 // Отзывы клиентов о фотографах (паритет MyWed). Оценка 1–5 + текст, один отзыв на
 // пару клиент↔фотограф, guard текста (антиспам/контакты — общение через платформу),
@@ -49,8 +50,9 @@ export async function addReview(authorUserId: string, profileId: string, rating:
     },
   });
 
+  let created;
   try {
-    return await db.review.create({
+    created = await db.review.create({
       data: { authorUserId, profileId, rating, body, verified: interacted > 0 },
     });
   } catch (e) {
@@ -59,6 +61,8 @@ export async function addReview(authorUserId: string, profileId: string, rating:
     }
     throw e;
   }
+  await recomputeOne(profileId); // отзыв влияет на рейтинг → пересчёт
+  return created;
 }
 
 /** Ответ фотографа на отзыв (владелец профиля). */

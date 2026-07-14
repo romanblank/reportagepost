@@ -63,6 +63,10 @@ describe.skipIf(!hasDb)('reviews: правила и агрегат (БД)', () =
     expect(aggregate.avg).toBeCloseTo(4.5, 5);
     expect(items[0].verified).toBe(true); // verified сортируется выше
 
+    // отзывы влияют на рейтинг: reviewMilli = avg(4.5) × min(2,20) × 200 = 1800
+    const prof = await db.photographerProfile.findUniqueOrThrow({ where: { id: profile.id } });
+    expect(prof.ratingScore).toBeGreaterThanOrEqual(1800);
+
     await db.message.deleteMany({ where: { OR: [{ senderId: client2.id }, { recipientId: owner.id }] } });
     await db.review.deleteMany({ where: { profileId: { in: [profile.id, selfProfile.id] } } });
     await db.photographerProfile.deleteMany({ where: { id: { in: [profile.id, selfProfile.id] } } });
