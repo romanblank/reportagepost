@@ -5,6 +5,7 @@ import { bestOfWeek, bestOfYear, editorsChoice, followingFeed, freshPhotos, reco
 import { getSession } from '@/lib/auth';
 import { webVariantUrl } from '@/lib/photos';
 import { ru } from '@/i18n/ru';
+import { EmptyState } from '@/components/EmptyState';
 
 export const metadata: Metadata = { title: ru.photoFeed.title };
 // Персональные табы требуют сессии — рендерим динамически
@@ -66,7 +67,12 @@ export default async function PhotoFeedPage(props: {
       </div>
       {note && <p className="px-4 pt-3 text-sm muted sm:px-0">{note}</p>}
       {photos.length === 0 ? (
-        <p className="mt-16 text-center muted">{ru.photoFeed.empty}</p>
+        <EmptyState
+          icon={<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="8.5" cy="10" r="1.5" /><path d="M21 16l-5-5L5 19" /></svg>}
+          title={ru.photoFeed.empty}
+          subtitle={ru.photoFeed.emptySubtitle}
+          action={{ href: '/ru/russia', label: ru.photoFeed.emptyAction }}
+        />
       ) : (
         <>
           {/* Мобайл: одноколоночная лента full-bleed (Instagram-подача) */}

@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 import { dialogsFor } from '@/lib/messages';
 import { ru } from '@/i18n/ru';
+import { EmptyState } from '@/components/EmptyState';
 
 export const metadata: Metadata = { title: ru.messages.title };
 export const dynamic = 'force-dynamic';
@@ -15,10 +16,15 @@ export default async function MessagesPage() {
   const dialogs = await dialogsFor(session.userId);
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-10">
-      <h1 className="text-3xl font-semibold">{ru.messages.title}</h1>
+    <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6 sm:py-10">
+      <h1 className="text-2xl font-semibold sm:text-3xl">{ru.messages.title}</h1>
       {dialogs.length === 0 ? (
-        <p className="mt-4 opacity-60">{ru.messages.empty}</p>
+        <EmptyState
+          icon={<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M4 5h16v11H8l-4 4V5z" /></svg>}
+          title={ru.messages.empty}
+          subtitle={ru.messages.emptySubtitle}
+          action={{ href: '/ru/russia', label: ru.messages.emptyAction }}
+        />
       ) : (
         <ul className="mt-4 flex flex-col gap-2">
           {dialogs.map((d) => (
