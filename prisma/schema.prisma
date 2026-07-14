@@ -48,6 +48,7 @@ model User {
   inviteCode    InviteCode?          @relation(fields: [inviteCodeId], references: [id])
   events        ActivityEvent[]      @relation("actor")
   likes         Like[]
+  comments      Comment[]
   follows       Follow[]             @relation("follower")
   followedBy    Follow[]             @relation("followee")
   inquiries     Inquiry[]
@@ -264,6 +265,7 @@ model Photo {
   category Category            @relation(fields: [categoryId], references: [id])
   story    Story?              @relation(fields: [storyId], references: [id])
   likes    Like[]
+  comments Comment[]
 
   @@index([profileId, status])
   @@index([status, publishedAt(sort: Desc)])
@@ -286,6 +288,7 @@ model Story {
   category Category            @relation(fields: [categoryId], references: [id])
   photos   Photo[]
   likes    Like[]
+  comments Comment[]
 
   @@index([profileId, status])
 }
@@ -304,6 +307,13 @@ enum ActivityType {
   UNFOLLOW
   PHOTO_PUBLISH
   STORY_PUBLISH
+  COMMENT_CREATE
+  COMMENT_DELETE
+}
+
+enum CommentStatus {
+  VISIBLE
+  HIDDEN
 }
 
 enum TargetType {
@@ -346,6 +356,24 @@ model Like {
 
   @@unique([userId, photoId])
   @@unique([userId, storyId])
+}
+
+model Comment {
+  id           String        @id @default(cuid())
+  authorUserId String
+  photoId      String?
+  storyId      String?
+  body         String
+  status       CommentStatus @default(VISIBLE)
+  createdAt    DateTime      @default(now())
+
+  author User   @relation(fields: [authorUserId], references: [id])
+  photo  Photo? @relation(fields: [photoId], references: [id], onDelete: Cascade)
+  story  Story? @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@index([photoId, status, createdAt])
+  @@index([storyId, status, createdAt])
+  @@index([authorUserId, createdAt])
 }
 
 model Follow {

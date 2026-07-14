@@ -5,6 +5,8 @@ import { db } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import { webVariantUrl } from '@/lib/photos';
 import { StoryLikeButton } from './StoryLikeButton';
+import { CommentSection } from './CommentSection';
+import { commentsForStory } from '@/lib/comments';
 import { ru } from '@/i18n/ru';
 import { LightboxGallery } from '@/components/Lightbox';
 
@@ -33,9 +35,12 @@ export default async function StoryPage(props: { params: Promise<{ storyId: stri
   if (!story) notFound();
 
   const session = await getSession();
-  const myLike = session
-    ? await db.like.findUnique({ where: { userId_storyId: { userId: session.userId, storyId } } })
-    : null;
+  const [myLike, comments] = await Promise.all([
+    session
+      ? db.like.findUnique({ where: { userId_storyId: { userId: session.userId, storyId } } })
+      : Promise.resolve(null),
+    commentsForStory(storyId),
+  ]);
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8">
@@ -70,6 +75,18 @@ export default async function StoryPage(props: { params: Promise<{ storyId: stri
           </div>
         )}
       </LightboxGallery>
+
+      <CommentSection
+        storyId={story.id}
+        initial={comments.map((c) => ({
+          id: c.id,
+          body: c.body,
+          createdAt: c.createdAt.toISOString(),
+          authorName: c.authorName,
+          authorUserId: c.authorUserId,
+        }))}
+        me={{ userId: session?.userId ?? null, isAdmin: session?.role === 'ADMIN', authed: Boolean(session) }}
+      />
     </main>
   );
 }
