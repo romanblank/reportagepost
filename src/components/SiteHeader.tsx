@@ -50,7 +50,7 @@ export async function SiteHeader() {
         <Link href={catalogHref} className={linkCls}>{ru.nav.catalog}</Link>
         <Link href="/ru/photo" className={linkCls}>{ru.nav.feed}</Link>
         <Link href="/ru/community" className={linkCls}>{ru.nav.community}</Link>
-        <Link href="/ru/search" className={linkCls}>Поиск</Link>
+        <Link href="/ru/search" className={linkCls}>{ru.search.title}</Link>
         {session && <Link href="/ru/messages" className={linkCls}>{ru.nav.messages}</Link>}
       </div>
     </header>

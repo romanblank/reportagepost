@@ -5,7 +5,9 @@ import { db } from '@/lib/db';
 import { cityNameRu } from '@/lib/geo-data';
 import { ru } from '@/i18n/ru';
 
-export const revalidate = 600; // список городов меняется редко; НЕ читает searchParams
+// Динамическая: корневой layout читает cookies (сессия в шапке) → всё дерево
+// динамическое, ISR тут не работает (аудит: revalidate был мёртвым).
+export const dynamic = 'force-dynamic';
 
 async function findCountry(slug: string) {
   return db.country.findFirst({ where: { slug, active: true } });

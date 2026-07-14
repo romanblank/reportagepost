@@ -177,11 +177,11 @@ export default async function CatalogPage(props: {
       {(page > 1 || hasNext) && (
         <nav className="mt-8 flex justify-between text-sm">
           {page > 1 ? (
-            <Link href={pageHref(basePath, categorySlug, searchParams.date, page - 1)}
+            <Link href={pageHref(basePath, categorySlug, searchParams.date, searchParams.maxPrice, page - 1)}
               className="btn btn-outline">← {ru.catalog.prevPage}</Link>
           ) : <span />}
           {hasNext ? (
-            <Link href={pageHref(basePath, categorySlug, searchParams.date, page + 1)}
+            <Link href={pageHref(basePath, categorySlug, searchParams.date, searchParams.maxPrice, page + 1)}
               className="btn btn-outline">{ru.catalog.nextPage} →</Link>
           ) : <span />}
         </nav>
@@ -190,10 +190,11 @@ export default async function CatalogPage(props: {
   );
 }
 
-function pageHref(base: string, category?: string, date?: string, page?: number): string {
+function pageHref(base: string, category?: string, date?: string, maxPrice?: string, page?: number): string {
   const q = new URLSearchParams();
   if (category) q.set('category', category);
   if (date) q.set('date', date);
+  if (maxPrice) q.set('maxPrice', maxPrice);
   if (page && page > 1) q.set('page', String(page));
   const s = q.toString();
   return s ? `${base}?${s}` : base;

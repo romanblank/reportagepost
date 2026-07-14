@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ru } from '@/i18n/ru';
 import { describeApiError } from '@/lib/form-errors';
@@ -24,6 +24,12 @@ export function OnboardingForm({ cities, categories }: { cities: Option[]; categ
   const [username, setUsername] = useState('');
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
   const [thumbs, setThumbs] = useState<string[]>([]);
+  const thumbsRef = useRef<string[]>([]);
+  thumbsRef.current = thumbs;
+
+  // Освобождаем blob-URL ТОЛЬКО при размонтировании (не при каждом добавлении —
+  // иначе уничтожили бы URL ещё показываемых превью)
+  useEffect(() => () => { thumbsRef.current.forEach((u) => URL.revokeObjectURL(u)); }, []);
 
   // Слаг адреса страницы: строчная латиница/цифры/дефис — устраняет ловушку
   // «ввёл имя с пробелом → непонятная ошибка» (фидбэк оператора 2026-07-14)

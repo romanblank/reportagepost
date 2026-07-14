@@ -18,13 +18,13 @@ export const dynamic = 'force-dynamic';
 function relativeOnline(lastSeen: Date | null): string | null {
   if (!lastSeen) return null;
   const mins = Math.floor((Date.now() - lastSeen.getTime()) / 60000);
-  if (mins < 10) return 'сейчас онлайн';
-  if (mins < 60) return `был ${mins} мин назад`;
+  if (mins < 10) return ru.online.now;
+  if (mins < 60) return ru.online.minsAgo(mins);
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `был ${hours} ч назад`;
+  if (hours < 24) return ru.online.hoursAgo(hours);
   const days = Math.floor(hours / 24);
-  if (days < 30) return `был ${days} дн назад`;
-  return 'давно не заходил';
+  if (days < 30) return ru.online.daysAgo(days);
+  return ru.online.longAgo;
 }
 
 async function findProfile(username: string) {
@@ -108,9 +108,9 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
           {cityNameRu(profile.city.slug)} · {profile.categories.map((c) => categoryNameRu(c.category.slug)).join(' · ')}
         </p>
         <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
-          <span><b className="font-semibold">{cityRank}</b> <span className="muted">место в городе</span></span>
-          <span><b className="font-semibold">{followers}</b> <span className="muted">подписчиков</span></span>
-          <span><b className="font-semibold">{profile.photos.length}</b> <span className="muted">фото</span></span>
+          <span><b className="font-semibold">{cityRank}</b> <span className="muted">{ru.profile.statCityRank}</span></span>
+          <span><b className="font-semibold">{followers}</b> <span className="muted">{ru.profile.statFollowers}</span></span>
+          <span><b className="font-semibold">{profile.photos.length}</b> <span className="muted">{ru.profile.statPhotos}</span></span>
           {onlineText && <span className="muted">{onlineText}</span>}
         </div>
         {profile.bio && <p className="mt-4 max-w-2xl leading-relaxed">{profile.bio}</p>}
@@ -133,7 +133,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
             )}
             {profile.siteUrl && /^https?:\/\//i.test(profile.siteUrl) && (
               <a href={profile.siteUrl} target="_blank" rel="noreferrer"
-                className="rounded-full border border-line px-3 py-1.5 transition hover:bg-surface-2">Сайт</a>
+                className="rounded-full border border-line px-3 py-1.5 transition hover:bg-surface-2">{ru.profile.site}</a>
             )}
           </div>
         )}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface LightboxImage {
   src: string;
@@ -18,6 +18,8 @@ export function LightboxGallery({
   children: (open: (index: number) => void) => React.ReactNode;
 }) {
   const [index, setIndex] = useState<number | null>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const returnFocusRef = useRef<Element | null>(null);
 
   const close = useCallback(() => setIndex(null), []);
   const prev = useCallback(() => setIndex((i) => (i === null ? i : (i - 1 + images.length) % images.length)), [images.length]);
@@ -32,9 +34,13 @@ export function LightboxGallery({
     }
     document.addEventListener('keydown', onKey);
     document.body.style.overflow = 'hidden';
+    // Фокус в диалог, возврат на исходный элемент при закрытии (a11y-аудит)
+    returnFocusRef.current = document.activeElement;
+    closeRef.current?.focus();
     return () => {
       document.removeEventListener('keydown', onKey);
       document.body.style.overflow = '';
+      (returnFocusRef.current as HTMLElement | null)?.focus?.();
     };
   }, [index, close, prev, next]);
 
@@ -49,6 +55,7 @@ export function LightboxGallery({
           onClick={close}
           role="dialog"
           aria-modal="true"
+          aria-label="Просмотр фото"
         >
           <button
             onClick={(e) => { e.stopPropagation(); prev(); }}
@@ -74,6 +81,7 @@ export function LightboxGallery({
             ›
           </button>
           <button
+            ref={closeRef}
             onClick={close}
             aria-label="Закрыть"
             className="absolute right-4 top-4 rounded-full bg-white/10 px-3 py-1 text-white transition hover:bg-white/20"
