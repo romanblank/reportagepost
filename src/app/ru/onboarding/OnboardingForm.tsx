@@ -26,7 +26,9 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
   const [thumbs, setThumbs] = useState<string[]>([]);
   const thumbsRef = useRef<string[]>([]);
-  thumbsRef.current = thumbs;
+  // Синхронизируем ref в эффекте (не в теле рендера — иначе react-hooks/refs
+  // валит lint: доступ к ref во время рендера небезопасен под Concurrent)
+  useEffect(() => { thumbsRef.current = thumbs; }, [thumbs]);
 
   // Освобождаем blob-URL ТОЛЬКО при размонтировании (не при каждом добавлении —
   // иначе уничтожили бы URL ещё показываемых превью)
@@ -38,15 +40,7 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
     return v.toLowerCase().replace(/[\s_]+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-').replace(/^-+/, '').slice(0, 30);
   }
 
-  const PHOTO_ERRORS: Record<string, string> = {
-    too_small: 'слишком маленькое разрешение (нужна длинная сторона от 2400px)',
-    not_image: 'это не изображение',
-    file_too_large: 'файл больше 40 МБ',
-    photo_limit: 'достигнут лимит фото',
-    category_not_in_profile: 'категория не выбрана в анкете',
-    no_profile: 'сначала сохраните анкету',
-    validation: 'проверьте файл',
-  };
+  const PHOTO_ERRORS = ru.onboarding.photoError;
 
   const FIELD_NAMES: Record<string, string> = {
     username: ru.onboarding.fieldUsername,
@@ -88,7 +82,7 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
       if (body?.error === 'profile_exists') { setStep('photos'); return; }
     }
     setError(await describeApiError(res, {
-      codeLabels: { username_taken: ru.onboarding.errUsernameTaken, city_not_found: 'Выберите город из списка' },
+      codeLabels: { username_taken: ru.onboarding.errUsernameTaken, city_not_found: ru.onboarding.errCityNotFound },
       fieldLabels: FIELD_NAMES,
       fallback: ru.inquiry.errorGeneric,
     }));
@@ -113,7 +107,7 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
       } else {
         const body = res ? await res.json().catch(() => null) : null;
         const code = body?.error as string | undefined;
-        const msg = PHOTO_ERRORS[code ?? ''] ?? body?.message ?? 'не удалось загрузить';
+        const msg = PHOTO_ERRORS[code ?? ''] ?? body?.message ?? ru.onboarding.uploadFailedGeneric;
         setError(ru.onboarding.errPhoto(`${file.name}: ${msg}`));
         if (code === 'photo_limit') break;
       }

@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { hash, verify } from '@node-rs/argon2';
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
@@ -63,7 +64,10 @@ export async function verifySessionToken(token: string): Promise<SessionPayload 
  * Route Handlers): отклоняет BANNED и токены со старым tokenVersion (отзыв при
  * бане/смене пароля/логауте-везде). Стоит одного запроса — приемлемо для SSR/API.
  */
-export async function getSession(): Promise<SessionPayload | null> {
+// cache() (аудит №5): дедуп в пределах одного рендер-прохода — layout и
+// SiteHeader зовут getSession каждый, без cache это двойная JWT-верификация +
+// запрос к БД на каждой странице.
+export const getSession = cache(async function getSession(): Promise<SessionPayload | null> {
   const jar = await cookies();
   const token = jar.get(SESSION_COOKIE)?.value;
   if (!token) return null;
@@ -78,7 +82,7 @@ export async function getSession(): Promise<SessionPayload | null> {
 
   // роль берём из БД (актуальнее токена, если менялась)
   return { userId: claims.userId, role: user.role, tokenVersion: user.tokenVersion };
-}
+});
 
 export function sessionCookieOptions() {
   return {

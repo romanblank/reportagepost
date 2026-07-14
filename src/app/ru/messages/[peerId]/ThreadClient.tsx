@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ru } from '@/i18n/ru';
 
@@ -15,13 +15,16 @@ export function ThreadClient({ peerId, selfId, initial }: { peerId: string; self
   const router = useRouter();
   const [messages, setMessages] = useState(initial);
   const [error, setError] = useState<string | null>(null);
-
-  // Синхронизация со свежими данными сервера после router.refresh() (аудит P1):
-  // без этого входящие сообщения не появлялись, хотя уже помечались прочитанными
-  useEffect(() => {
-    setMessages(initial);
-  }, [initial]);
   const [pending, setPending] = useState(false);
+
+  // Синхронизация со свежими данными сервера после router.refresh() (аудит P1:
+  // без этого входящие не появлялись). Официальный react-паттерн «правка стейта
+  // при смене пропа» — во время рендера, не в эффекте (react-hooks/set-state-in-effect).
+  const [prevInitial, setPrevInitial] = useState(initial);
+  if (initial !== prevInitial) {
+    setPrevInitial(initial);
+    setMessages(initial);
+  }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

@@ -5,6 +5,7 @@ import { ru } from "@/i18n/ru";
 import { DEFAULT_LOCALE, PUBLIC_LAUNCH } from "@/lib/constants";
 import { SiteHeader } from "@/components/SiteHeader";
 import { getSession } from "@/lib/auth";
+import { cabinetHrefFor } from "@/lib/nav";
 import { MobileTabBar } from "@/components/MobileTabBar";
 
 const geistSans = Geist({
@@ -45,7 +46,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const session = await getSession();
-  const cabinetHref = session?.role === 'CLIENT' ? '/ru/cabinet/client' : '/ru/cabinet';
+  const cabinetHref = cabinetHrefFor(session?.role);
   return (
     <html
       lang={DEFAULT_LOCALE}

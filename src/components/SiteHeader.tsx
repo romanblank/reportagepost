@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { getSession } from '@/lib/auth';
 import { ru } from '@/i18n/ru';
+import { CATALOG_ROOT, cabinetHrefFor } from '@/lib/nav';
 import { LogoutButton } from './LogoutButton';
 
 // Session-aware шапка (аудит: продукт был недостижим без ручного ввода URL).
@@ -8,10 +9,9 @@ import { LogoutButton } from './LogoutButton';
 export async function SiteHeader() {
   const session = await getSession();
 
-  // Каталог → обзор городов; кабинет зависит от роли
-  const catalogHref = '/ru/russia';
-  let cabinetHref = '/ru/cabinet';
-  if (session?.role === 'CLIENT') cabinetHref = '/ru/cabinet/client';
+  // Каталог → обзор городов; кабинет зависит от роли (единый источник — nav.ts)
+  const catalogHref = CATALOG_ROOT;
+  const cabinetHref = cabinetHrefFor(session?.role);
 
   const linkCls = 'text-sm text-muted transition-colors hover:text-ink';
   return (

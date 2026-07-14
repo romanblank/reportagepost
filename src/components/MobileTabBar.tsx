@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ru } from '@/i18n/ru';
+import { CATALOG_ROOT, FEED_ROOT, isCatalogPath } from '@/lib/nav';
 
 // Нижняя таб-навигация (app-shell как в Instagram/Telegram) — только мобайл.
 // Иконки — inline SVG (без внешних зависимостей, работает в Mini App).
@@ -25,10 +26,13 @@ function Icon({ d }: { d: string }) {
 export function MobileTabBar({ authed, cabinetHref }: { authed: boolean; cabinetHref: string }) {
   const pathname = usePathname() ?? '/';
 
+  // Позитивный матч активной вкладки (аудит №5): каждая вкладка знает СВОИ
+  // маршруты, «Каталог» — гео-пути через isCatalogPath. Незнакомый путь →
+  // ни одна не активна (раньше catch-all ложно подсвечивал «Каталог» и двоил).
   const tabs: Tab[] = [
-    { href: '/ru/photo', label: ru.nav.feed, match: (p) => p.startsWith('/ru/photo'),
+    { href: FEED_ROOT, label: ru.nav.feed, match: (p) => p.startsWith('/ru/photo'),
       icon: <Icon d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V9.5z" /> },
-    { href: '/ru/russia', label: ru.nav.catalog, match: (p) => /^\/ru\/[a-z-]+(\/|$)/.test(p) && !p.startsWith('/ru/photo') && !p.startsWith('/ru/search') && !p.startsWith('/ru/messages') && !p.startsWith('/ru/cabinet') && !p.startsWith('/ru/community'),
+    { href: CATALOG_ROOT, label: ru.nav.catalog, match: isCatalogPath,
       icon: <Icon d="M4 6h16M4 12h16M4 18h16" /> },
     { href: '/ru/search', label: ru.search.tab, match: (p) => p.startsWith('/ru/search'),
       icon: <Icon d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-3.5-3.5" /> },

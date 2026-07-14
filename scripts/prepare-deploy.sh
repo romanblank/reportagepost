@@ -27,7 +27,13 @@ if git ls-files --cached --others --exclude-standard | grep -E '(\.DS_Store|\.lo
   say "Dev-мусор в трекинге (.DS_Store/логи/tmp)"
 fi
 
-# 4. Тесты и билд
+# 4. Lint (аудит №5: раньше не в гейте → ошибки react-hooks копились незаметно
+# при зелёных сборках). eslint падает только на errors, warnings не блокируют.
+# БЕЗ пайпа — иначе exit-код маскируется (урок про gate-пайп в CLAUDE.md).
+echo "→ npm run lint"
+npm run lint >/dev/null 2>&1 || say "Lint падает (ошибки ESLint — прогони: npm run lint)"
+
+# 5. Тесты и билд
 echo "→ npm test"
 npm test --silent || say "Тесты падают"
 # Билд БЕЗ DATABASE_URL — как реальный Docker-билд в CI (урок 2026-07-14:

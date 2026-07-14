@@ -40,8 +40,8 @@ export function ModerationCard(props: {
       </div>
       <div className="mt-3 grid grid-cols-4 gap-1 sm:grid-cols-8">
         {props.photoUrls.map((url) => (
-          // eslint-disable-next-line @next/next/no-img-element
           <a key={url} href={url.replace('/thumb.jpg', '/web.jpg')} target="_blank" rel="noreferrer">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={url} alt="" loading="lazy" className="aspect-square w-full rounded object-cover" />
           </a>
         ))}
