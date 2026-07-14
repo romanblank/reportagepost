@@ -31,4 +31,40 @@ describe.skipIf(!hasDb)('feeds: подписки и рекомендации (Б
     await db.photographerProfile.delete({ where: { id: profile.id } });
     await db.user.deleteMany({ where: { id: { in: [author.id, follower.id] } } });
   });
+
+  it('лучшее недели: ранжирует по текущим лайкам в окне; лайк вне окна недели не в счёте', async () => {
+    const { db } = await import('@/lib/db');
+    const { bestOfWeek, bestOfYear } = await import('@/lib/feeds');
+
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const day = 86_400_000;
+    const city = await db.city.findFirstOrThrow({ where: { slug: 'moscow' } });
+    const cat = await db.category.findFirstOrThrow({ where: { slug: 'sports' } });
+    const author = await db.user.create({ data: { role: 'PHOTOGRAPHER', status: 'ACTIVE', firstName: 'Б', lastName: 'В', email: `bw-${stamp}@test.local` } });
+    const profile = await db.photographerProfile.create({ data: { userId: author.id, username: `bw-${stamp}`, cityId: city.id, status: 'APPROVED' } });
+    const mk = async (n: string) => (await db.photo.create({ data: { profileId: profile.id, categoryId: cat.id, storageKey: `photos/bw-${stamp}-${n}/original.jpg`, width: 2400, height: 1600, status: 'APPROVED', publishedAt: new Date() } })).id;
+    const [pFresh, pOld] = await Promise.all([mk('fresh'), mk('old')]);
+    const liker = async (n: string) => (await db.user.create({ data: { role: 'CLIENT', status: 'ACTIVE', firstName: 'Л', lastName: n, email: `bwl-${n}-${stamp}@test.local` } })).id;
+    const [l1, l2] = await Promise.all([liker('1'), liker('2')]);
+
+    const now = Date.now();
+    await db.like.createMany({
+      data: [
+        { userId: l1, photoId: pFresh, weightMilli: 2000, createdAt: new Date(now - 2 * day) }, // в окне недели
+        { userId: l2, photoId: pOld, weightMilli: 5000, createdAt: new Date(now - 20 * day) }, // вне недели, в году
+      ],
+    });
+
+    const week = await bestOfWeek();
+    expect(week.find((p) => p.photoId === pFresh)?.scoreMilli).toBe(2000);
+    expect(week.some((p) => p.photoId === pOld)).toBe(false); // лайк 20 дней назад — не в неделе
+
+    const year = await bestOfYear();
+    expect(year.find((p) => p.photoId === pOld)?.scoreMilli).toBe(5000); // в году виден
+
+    await db.like.deleteMany({ where: { photoId: { in: [pFresh, pOld] } } });
+    await db.photo.deleteMany({ where: { id: { in: [pFresh, pOld] } } });
+    await db.photographerProfile.delete({ where: { id: profile.id } });
+    await db.user.deleteMany({ where: { id: { in: [author.id, l1, l2] } } });
+  });
 });

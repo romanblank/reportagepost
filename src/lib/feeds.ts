@@ -2,7 +2,11 @@ import { db } from '@/lib/db';
 import { DomainError } from '@/lib/errors';
 
 // Ленты (модель MyWed): «лучшее недели/года» — алгоритмические (взвешенные
-// лайки за окно, по журналу событий), «выбор редакции» — ручная отметка.
+// лайки за окно, по МАТЕРИАЛИЗОВАННЫМ лайкам Like), «выбор редакции» — ручная.
+// (Считаем по Like, а не переигрывая PHOTO_LIKE/UNLIKE из журнала: анлайк
+// удаляет строку Like, поэтому анлайкнутые не в счёте. Переигрывание событий
+// давало фото отрицательный score — анлайк в окне лайка вне окна — и роняло его
+// несправедливо. Волна аудита №6.)
 
 export interface FeedPhoto {
   photoId: string;
@@ -17,20 +21,15 @@ export interface FeedPhoto {
 
 async function bestOfWindow(sinceDays: number, limit: number): Promise<FeedPhoto[]> {
   const since = new Date(Date.now() - sinceDays * 86_400_000);
-  const grouped = await db.activityEvent.groupBy({
-    by: ['targetId', 'type'],
-    where: {
-      targetType: 'PHOTO',
-      type: { in: ['PHOTO_LIKE', 'PHOTO_UNLIKE'] },
-      createdAt: { gte: since },
-    },
+  const grouped = await db.like.groupBy({
+    by: ['photoId'],
+    where: { photoId: { not: null }, createdAt: { gte: since } },
     _sum: { weightMilli: true },
   });
 
   const scores = new Map<string, number>();
   for (const g of grouped) {
-    const sign = g.type === 'PHOTO_LIKE' ? 1 : -1;
-    scores.set(g.targetId, (scores.get(g.targetId) ?? 0) + sign * (g._sum.weightMilli ?? 0));
+    if (g.photoId) scores.set(g.photoId, g._sum.weightMilli ?? 0);
   }
   const top = [...scores.entries()]
     .filter(([, s]) => s > 0)
@@ -157,20 +156,15 @@ export async function recommendedFeed(userId: string, limit = 60): Promise<{ pho
       take: 5000,
     });
     if (catPhotos.length === 0) return fallbackFeed(limit);
-    const events = await db.activityEvent.groupBy({
-      by: ['targetId', 'type'],
-      where: {
-        targetType: 'PHOTO',
-        targetId: { in: catPhotos.map((p) => p.id) },
-        type: { in: ['PHOTO_LIKE', 'PHOTO_UNLIKE'] },
-        createdAt: { gte: since },
-      },
+    // По материализованным лайкам (см. коммент к bestOfWindow), не по журналу.
+    const grouped = await db.like.groupBy({
+      by: ['photoId'],
+      where: { photoId: { in: catPhotos.map((p) => p.id) }, createdAt: { gte: since } },
       _sum: { weightMilli: true },
     });
     const scores = new Map<string, number>();
-    for (const e of events) {
-      const sign = e.type === 'PHOTO_LIKE' ? 1 : -1;
-      scores.set(e.targetId, (scores.get(e.targetId) ?? 0) + sign * (e._sum.weightMilli ?? 0));
+    for (const g of grouped) {
+      if (g.photoId) scores.set(g.photoId, g._sum.weightMilli ?? 0);
     }
     const topIds = [...scores.entries()].filter(([, s]) => s > 0).sort((a, b) => b[1] - a[1]).slice(0, limit).map(([id]) => id);
     const candidates = await db.photo.findMany({

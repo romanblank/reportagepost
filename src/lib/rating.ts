@@ -20,7 +20,7 @@ export function decayFactor(ageMs: number): number {
   return Math.pow(0.5, ageDays / HALF_LIFE_DAYS);
 }
 
-/** Вклад событий фото-лайков профиля с затуханием, в милли-баллах. */
+/** Вклад текущих фото-лайков профиля с затуханием, в милли-баллах. */
 export async function engagementMilli(profileId: string, now = new Date()): Promise<number> {
   const photos = await db.photo.findMany({
     where: { profileId, status: 'APPROVED' },
@@ -28,25 +28,24 @@ export async function engagementMilli(profileId: string, now = new Date()): Prom
   });
   if (photos.length === 0) return 0;
 
-  // Окно 5×полураспад (~300 дней): вклад старше <1% (аудит P1-3) — не грузим
-  // весь append-only журнал за всё время.
+  // Считаем по МАТЕРИАЛИЗОВАННЫМ лайкам (таблица Like), а НЕ переигрывая журнал
+  // PHOTO_LIKE/PHOTO_UNLIKE (волна аудита №6, глубинный баг): анлайк удаляет
+  // строку Like, поэтому анлайкнутые лайки исчезают сами. Переигрывание событий
+  // затухало лайк и анлайк независимо от их времён — анлайк (позже) затухал
+  // МЕНЬШЕ лайка, оставляя отрицательный остаток, который съедал чужие честные
+  // лайки. По Like такое невозможно: только существующие лайки, каждый затухает
+  // от своего createdAt. Окно 5×полураспад (~300 дней): вклад старше <1%.
   const since = new Date(now.getTime() - 5 * HALF_LIFE_DAYS * 86_400_000);
-  const events = await db.activityEvent.findMany({
-    where: {
-      targetType: 'PHOTO',
-      targetId: { in: photos.map((p) => p.id) },
-      type: { in: ['PHOTO_LIKE', 'PHOTO_UNLIKE'] },
-      createdAt: { gte: since },
-    },
-    select: { type: true, weightMilli: true, createdAt: true },
+  const likes = await db.like.findMany({
+    where: { photoId: { in: photos.map((p) => p.id) }, createdAt: { gte: since } },
+    select: { weightMilli: true, createdAt: true },
   });
 
   let sum = 0;
-  for (const e of events) {
-    const signed = e.type === 'PHOTO_LIKE' ? e.weightMilli : -e.weightMilli;
-    sum += signed * decayFactor(now.getTime() - e.createdAt.getTime());
+  for (const l of likes) {
+    sum += l.weightMilli * decayFactor(now.getTime() - l.createdAt.getTime());
   }
-  return Math.max(0, Math.round(sum));
+  return Math.round(sum);
 }
 
 type ProfileForRating = Prisma.PhotographerProfileGetPayload<{
