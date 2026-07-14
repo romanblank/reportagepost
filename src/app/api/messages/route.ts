@@ -4,6 +4,7 @@ import { getSession } from '@/lib/auth';
 import { MessageError, dialogsFor, sendMessage } from '@/lib/messages';
 import { handleRoute, jsonError } from '@/lib/errors';
 import { rateLimit } from '@/lib/rate-limit';
+import { publishToUser } from '@/lib/realtime';
 
 export function GET() {
   return handleRoute(async () => {
@@ -31,6 +32,8 @@ export function POST(req: Request) {
 
     try {
       const message = await sendMessage(session.userId, parsed.data.recipientId, parsed.data.body);
+      // Живая доставка получателю (SSE): событие → браузер обновит тред/счётчик
+      publishToUser(parsed.data.recipientId, { type: 'message', from: session.userId });
       return NextResponse.json({ messageId: message.id }, { status: 201 });
     } catch (e) {
       if (e instanceof MessageError) return jsonError(e.code, 400);

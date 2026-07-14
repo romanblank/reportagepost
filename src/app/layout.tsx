@@ -7,6 +7,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { getSession } from "@/lib/auth";
 import { cabinetHrefFor } from "@/lib/nav";
 import { MobileTabBar } from "@/components/MobileTabBar";
+import { LiveUpdates } from "@/components/LiveUpdates";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -56,6 +57,7 @@ export default async function RootLayout({
       <body className="min-h-full flex flex-col pb-16 sm:pb-0">
         <SiteHeader />
         {children}
+        {session && <LiveUpdates />}
         <MobileTabBar authed={Boolean(session)} cabinetHref={cabinetHref} />
       </body>
     </html>
