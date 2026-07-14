@@ -34,3 +34,10 @@ jobs:
               -H 'Content-Type: application/json' \
               -d '{"username":"diag'"$RANDOM"'","citySlug":"moscow","categorySlugs":["concerts-festivals"],"bio":"Тест анкеты фотографа для диагностики","packages":[{"hours":3,"priceMinor":1500000,"currency":"RUB"}]}')
             echo "profile response: $PROF"
+            echo "--- ЗАГРУЗКА ФОТО В S3 (2400px jpeg):"
+            docker run --rm -v /tmp:/out alpine sh -c "apk add -q imagemagick && magick -size 2400x1600 xc:navy /out/diag.jpg" 2>/dev/null || (command -v convert && convert -size 2400x1600 xc:navy /tmp/diag.jpg)
+            ls -la /tmp/diag.jpg 2>/dev/null || echo "нет imagemagick — пропускаю фото"
+            if [ -f /tmp/diag.jpg ]; then
+              PH=$(curl -s -w '\nHTTP:%{http_code}' -b /tmp/cj -X POST "$B/api/profile/photos" -F file=@/tmp/diag.jpg -F categorySlug=concerts-festivals)
+              echo "photo response: $PH"
+            fi
