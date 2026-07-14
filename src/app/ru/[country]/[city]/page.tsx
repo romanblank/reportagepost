@@ -9,6 +9,7 @@ import { CATEGORIES, categoryNameRu } from '@/lib/category-data';
 import { thumbVariantUrl } from '@/lib/photos';
 import { formatRubMinor } from '@/lib/money';
 import { ru } from '@/i18n/ru';
+import { EmptyState } from '@/components/EmptyState';
 
 // SEO-страница каталога города (SSR). До S4 — под noindex (заголовок глобальный).
 // ВНИМАНИЕ (аудит волны №2): страница читает searchParams (фильтры/пагинация) →
@@ -133,14 +134,15 @@ export default async function CatalogPage(props: {
       )}
 
       {cards.length === 0 && visiting.length === 0 ? (
-        <div className="card mt-8 flex flex-col items-center gap-3 p-10 text-center">
-          <p className="text-lg font-medium">{ru.catalog.empty}</p>
-          <p className="muted">{ru.catalog.emptyCta(cityName)}</p>
-          <div className="mt-1 flex flex-wrap justify-center gap-2">
-            <Link href="/ru/register" className="btn btn-accent">{ru.catalog.emptyRegister}</Link>
-            <Link href="/ru/inquiry" className="btn btn-outline">{ru.catalog.emptyInquiry}</Link>
-          </div>
-        </div>
+        <EmptyState
+          icon={<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" /></svg>}
+          title={ru.catalog.empty}
+          subtitle={ru.catalog.emptyCta(cityName)}
+          actions={[
+            { href: '/ru/register', label: ru.catalog.emptyRegister, variant: 'accent' },
+            { href: '/ru/inquiry', label: ru.catalog.emptyInquiry, variant: 'outline' },
+          ]}
+        />
       ) : cards.length === 0 ? null : (
         <ul className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {cards.map((card) => (
