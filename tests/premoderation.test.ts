@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyGuard, premoderate } from '@/lib/premoderation';
+import { applyGuard, premoderate, mapVisionResponse } from '@/lib/premoderation';
 
 describe('premoderation guard: санитайз недоверенного вывода модели', () => {
   it('клампит оценки вне [0,1]', () => {
@@ -38,10 +38,36 @@ describe('premoderation guard: санитайз недоверенного вы�
     expect(v.labels.every((l) => l.length <= 40)).toBe(true);
   });
 
-  it('premoderate без ключа модели → null (тихий no-op, ручная модерация)', async () => {
-    const prev = process.env.PREMODERATION_API_KEY;
-    delete process.env.PREMODERATION_API_KEY;
+  it('premoderate без YC_FOLDER_ID → null (тихий no-op, ручная модерация)', async () => {
+    const prev = process.env.YC_FOLDER_ID;
+    delete process.env.YC_FOLDER_ID;
     expect(await premoderate(Buffer.from('x'))).toBeNull();
-    if (prev !== undefined) process.env.PREMODERATION_API_KEY = prev;
+    if (prev !== undefined) process.env.YC_FOLDER_ID = prev;
+  });
+});
+
+describe('premoderation: разбор ответа Yandex Vision (чистая функция)', () => {
+  const visionResp = {
+    results: [{ results: [{ classification: { properties: [
+      { name: 'adult', probability: 0.92 },
+      { name: 'gruesome', probability: 0.1 },
+      { name: 'text', probability: 0.7 },
+    ] } }] }],
+  };
+  it('adult/gruesome → nsfw (максимум); метки p>0.5', () => {
+    const v = mapVisionResponse(visionResp);
+    expect(v.nsfwScore).toBeCloseTo(0.92, 5);
+    expect(v.offTopicScore).toBe(0);
+    expect(v.labels).toContain('adult');
+    expect(v.labels).toContain('text');
+    expect(v.labels).not.toContain('gruesome'); // 0.1 ≤ 0.5
+  });
+  it('пустой/битый ответ → нули, без ошибки', () => {
+    expect(mapVisionResponse(null)).toEqual({ nsfwScore: 0, offTopicScore: 0, labels: [] });
+    expect(mapVisionResponse({})).toEqual({ nsfwScore: 0, offTopicScore: 0, labels: [] });
+  });
+
+  it('guard поверх Vision-вывода: высокий adult → reject', () => {
+    expect(applyGuard(mapVisionResponse(visionResp)).recommend).toBe('reject');
   });
 });

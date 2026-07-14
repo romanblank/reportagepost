@@ -65,15 +65,58 @@ export interface PremoderationProvider {
   analyze(imageBuffer: Buffer): Promise<unknown>; // сырой вывод модели
 }
 
-// Провайдер за абстракцией (как storage/sms): без ключа — null, премодерация
-// выключена, работает ручная. Реальный провайдер подключается при выдаче ключа.
+// IAM-токен из metadata сервисного аккаунта инстанса (тот же механизм, что тянет
+// Lockbox). Работает только на VM; локально/без SA — null.
+async function iamToken(): Promise<string | null> {
+  try {
+    const res = await fetch(
+      'http://169.254.169.254/computeMetadata/v1/instance/service-accounts/default/token',
+      { headers: { 'Metadata-Flavor': 'Google' } },
+    );
+    const data = await res.json();
+    return data?.access_token ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// Разбор ответа Yandex Vision (модель «moderation») → форма для guard. Чистая
+// функция, тестируема. adult/gruesome → nsfw (берём максимум); метки с p>0.5.
+export function mapVisionResponse(json: unknown): { nsfwScore: number; offTopicScore: number; labels: string[] } {
+  const props =
+    (json as { results?: { results?: { classification?: { properties?: { name?: string; probability?: number }[] } }[] }[] })
+      ?.results?.[0]?.results?.[0]?.classification?.properties ?? [];
+  const p = (name: string): number => props.find((x) => x.name === name)?.probability ?? 0;
+  const nsfwScore = Math.max(p('adult'), p('gruesome'));
+  const labels = props.filter((x) => (x.probability ?? 0) > 0.5 && x.name).map((x) => x.name as string);
+  return { nsfwScore, offTopicScore: 0, labels }; // офф-топик Vision не даёт — 0
+}
+
+// Провайдер за абстракцией: Yandex Vision (модель moderation). Активен, если задан
+// YC_FOLDER_ID и доступен IAM-токен инстанса (роль ai.vision.user у SA VM). Иначе
+// null — премодерация выключена, работает ручная модерация.
 export function getPremoderationProvider(): PremoderationProvider | null {
-  const key = process.env.PREMODERATION_API_KEY;
-  if (!key) return null;
+  const folderId = process.env.YC_FOLDER_ID;
+  if (!folderId) return null;
   return {
-    analyze() {
-      // Заглушка до подключения реального эндпоинта модели (ключ уже есть).
-      throw new Error('premoderation provider not implemented');
+    async analyze(imageBuffer: Buffer) {
+      const token = await iamToken();
+      if (!token) return null;
+      const res = await fetch('https://vision.api.cloud.yandex.net/vision/v1/batchAnalyze', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          folderId,
+          analyzeSpecs: [
+            {
+              content: imageBuffer.toString('base64'),
+              features: [{ type: 'CLASSIFICATION', classificationConfig: { model: 'moderation' } }],
+            },
+          ],
+        }),
+      });
+      if (!res.ok) return null;
+      return mapVisionResponse(await res.json());
     },
   };
 }
