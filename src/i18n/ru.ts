@@ -145,6 +145,10 @@ export const ru = {
     saving: 'Сохраняем…',
     saved: 'Анкета обновлена',
     toProfile: 'Открыть мою страницу',
+    avatar: 'Фото профиля',
+    avatarUpload: 'Загрузить фото',
+    avatarUploading: 'Загружаем…',
+    avatarError: 'Не удалось загрузить фото',
   },
   tg: {
     title: 'Уведомления в Telegram',

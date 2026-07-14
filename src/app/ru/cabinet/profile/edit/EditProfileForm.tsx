@@ -20,8 +20,11 @@ interface Initial {
 
 const LANGS = ['ru', 'en', 'es', 'de', 'fr', 'it', 'zh', 'tr'];
 
-export function EditProfileForm({ initial }: { initial: Initial }) {
+export function EditProfileForm({ initial, avatar }: { initial: Initial; avatar: string | null }) {
   const router = useRouter();
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(avatar);
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  const [avatarErr, setAvatarErr] = useState(false);
   const [bio, setBio] = useState(initial.bio);
   const [siteUrl, setSiteUrl] = useState(initial.siteUrl);
   const [whatsapp, setWhatsapp] = useState(initial.whatsapp);
@@ -64,8 +67,42 @@ export function EditProfileForm({ initial }: { initial: Initial }) {
     setError(await describeApiError(res, { fallback: ru.inquiry.errorGeneric }));
   }
 
+  async function uploadAvatar(file: File | null) {
+    if (!file) return;
+    setAvatarBusy(true);
+    setAvatarErr(false);
+    const fd = new FormData();
+    fd.set('file', file);
+    const res = await fetch('/api/profile/avatar', { method: 'POST', body: fd }).catch(() => null);
+    setAvatarBusy(false);
+    if (res?.ok) {
+      setAvatarUrl(URL.createObjectURL(file)); // мгновенное превью
+      router.refresh();
+    } else {
+      setAvatarErr(true);
+    }
+  }
+
   return (
     <form onSubmit={save} className="mt-6 flex flex-col gap-5">
+      <div className="flex items-center gap-4">
+        {avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={avatarUrl} alt="" className="h-16 w-16 rounded-full object-cover" />
+        ) : (
+          <span className="grid h-16 w-16 place-items-center rounded-full bg-surface-2 text-muted">?</span>
+        )}
+        <div>
+          <span className="field-label block">{ru.editProfile.avatar}</span>
+          <label className={`btn btn-outline mt-1 px-3 py-1.5 text-sm ${avatarBusy ? 'opacity-50' : 'cursor-pointer'}`}>
+            {avatarBusy ? ru.editProfile.avatarUploading : ru.editProfile.avatarUpload}
+            <input type="file" accept="image/*" className="sr-only" disabled={avatarBusy}
+              onChange={(e) => uploadAvatar(e.target.files?.[0] ?? null)} />
+          </label>
+          {avatarErr && <span className="ml-2 text-xs text-accent">{ru.editProfile.avatarError}</span>}
+        </div>
+      </div>
+
       <div>
         <label className="field-label">{ru.onboarding.bio}</label>
         <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} className="input" maxLength={2000} />

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { avatarUrl } from '@/lib/photos';
 import { ru } from '@/i18n/ru';
 import { EditProfileForm } from './EditProfileForm';
 
@@ -23,6 +24,7 @@ export default async function EditProfilePage() {
     <main className="mx-auto w-full max-w-xl flex-1 px-4 py-6 sm:py-10">
       <h1 className="text-2xl font-semibold sm:text-3xl">{ru.editProfile.title}</h1>
       <EditProfileForm
+        avatar={profile.avatarKey ? avatarUrl(profile.avatarKey) : null}
         initial={{
           bio: profile.bio ?? '',
           siteUrl: profile.siteUrl ?? '',

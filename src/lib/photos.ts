@@ -75,6 +75,24 @@ export async function storePhotoVariants(input: Buffer): Promise<{ storageKey: s
   return { storageKey: `${base}/original.jpg` };
 }
 
+/** Аватар: квадрат 400×400 (cover) в хранилище. Уникальный ключ на загрузку —
+ *  чтобы не ловить устаревший CDN-кэш при замене. */
+export async function processAndStoreAvatar(input: Buffer, profileId: string): Promise<string> {
+  try {
+    await sharp(input).metadata();
+  } catch {
+    throw new PhotoValidationError('not_image', 'Файл не является изображением');
+  }
+  const key = `avatars/${profileId}/${randomUUID()}.jpg`;
+  const jpeg = await sharp(input).rotate().resize(400, 400, { fit: 'cover' }).jpeg({ quality: 85 }).toBuffer();
+  await storage.put(key, jpeg, 'image/jpeg');
+  return key;
+}
+
+export function avatarUrl(key: string): string {
+  return storage.publicUrl(key);
+}
+
 /** URL веб-варианта по ключу оригинала. */
 export function webVariantUrl(storageKey: string): string {
   return storage.publicUrl(storageKey.replace('/original.jpg', '/web.jpg'));

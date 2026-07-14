@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { db } from '@/lib/db';
 import { cityNameRu } from '@/lib/geo-data';
 import { categoryNameRu } from '@/lib/category-data';
-import { webVariantUrl, thumbVariantUrl } from '@/lib/photos';
+import { webVariantUrl, thumbVariantUrl, avatarUrl } from '@/lib/photos';
 import Link from 'next/link';
 import { formatRubMinor } from '@/lib/money';
 import { ru } from '@/i18n/ru';
@@ -144,9 +144,15 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
       <header className="border-b border-line pb-5 sm:pb-8">
         {/* Шапка профиля: аватар + имя + ряд статистики (app-подача как в Instagram) */}
         <div className="flex items-center gap-4 sm:gap-5">
-          <span className="grid h-[72px] w-[72px] shrink-0 place-items-center rounded-full bg-surface-2 text-xl font-semibold sm:h-20 sm:w-20 sm:text-2xl">
-            {initials}
-          </span>
+          {profile.avatarKey ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={avatarUrl(profile.avatarKey)} alt="" width={80} height={80}
+              className="h-[72px] w-[72px] shrink-0 rounded-full object-cover sm:h-20 sm:w-20" />
+          ) : (
+            <span className="grid h-[72px] w-[72px] shrink-0 place-items-center rounded-full bg-surface-2 text-xl font-semibold sm:h-20 sm:w-20 sm:text-2xl">
+              {initials}
+            </span>
+          )}
           <div className="min-w-0 flex-1">
             <div className="flex items-stretch justify-around gap-2 text-center">
               <span className="flex flex-col"><b className="text-lg font-semibold leading-tight">{cityRank}</b><span className="text-xs muted">{ru.profile.statCityRank}</span></span>
