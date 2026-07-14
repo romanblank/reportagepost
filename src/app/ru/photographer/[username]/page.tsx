@@ -99,8 +99,8 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
   const onlineText = relativeOnline(lastSeen);
 
   return (
-    <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10">
-      <header className="border-b border-line pb-8">
+    <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:py-10">
+      <header className="border-b border-line pb-6 sm:pb-8">
         <h1 className="text-3xl font-semibold sm:text-4xl">
           {profile.user.firstName} {profile.user.lastName}
         </h1>
