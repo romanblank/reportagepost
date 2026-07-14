@@ -38,10 +38,16 @@ export interface InAppNotification {
   createdAt: Date;
 }
 
-/** Создаёт in-app уведомление и толкает live-событие (SSE обновит счётчик). */
+/** Создаёт in-app уведомление и толкает live-событие (SSE обновит счётчик).
+ *  Уведомление ВТОРИЧНО: собственные ошибки глушим, чтобы не ронять основное
+ *  действие (заявку/отзыв/сообщение), даже если вызвано в await. */
 export async function notifyInApp(userId: string, type: string, payload: Prisma.InputJsonValue): Promise<void> {
-  await db.notification.create({ data: { userId, channel: 'IN_APP', type, payload, state: 'SENT' } });
-  publishToUser(userId, { type: 'notification' });
+  try {
+    await db.notification.create({ data: { userId, channel: 'IN_APP', type, payload, state: 'SENT' } });
+    publishToUser(userId, { type: 'notification' });
+  } catch (e) {
+    console.error('[notify] in-app failed:', e);
+  }
 }
 
 export async function inAppNotifications(userId: string, limit = 50): Promise<InAppNotification[]> {

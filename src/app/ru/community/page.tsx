@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { communityStats, recentPhotographers } from '@/lib/widgets';
+import { communityStats, recentPhotographers, topRatedPhotographers } from '@/lib/widgets';
 import { bestOfWeek } from '@/lib/feeds';
 import { cityNameRu } from '@/lib/geo-data';
-import { webVariantUrl, thumbVariantUrl } from '@/lib/photos';
+import { webVariantUrl, thumbVariantUrl, avatarUrl } from '@/lib/photos';
 import { ru } from '@/i18n/ru';
 
 export const metadata: Metadata = { title: ru.dashboard.title };
@@ -12,10 +12,11 @@ export const metadata: Metadata = { title: ru.dashboard.title };
 export const dynamic = 'force-dynamic';
 
 export default async function CommunityPage() {
-  const [stats, recent, best] = await Promise.all([
+  const [stats, recent, best, topRated] = await Promise.all([
     communityStats(),
     recentPhotographers(),
     bestOfWeek(12),
+    topRatedPhotographers(),
   ]);
 
   const tiles = [
@@ -37,6 +38,32 @@ export default async function CommunityPage() {
           </div>
         ))}
       </div>
+
+      {topRated.length > 0 && (
+        <section className="mt-8">
+          <h2 className="text-lg font-medium">{ru.dashboard.topRatedTitle}</h2>
+          <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {topRated.map((p) => (
+              <li key={p.username}>
+                <Link href={`/ru/photographer/${p.username}`} className="flex items-center gap-3 card p-3">
+                  {p.avatarKey ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={avatarUrl(p.avatarKey)} alt="" width={44} height={44} className="h-11 w-11 shrink-0 rounded-full object-cover" />
+                  ) : (
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-surface-2 text-sm font-semibold">
+                      {p.firstName.slice(0, 1)}{p.lastName.slice(0, 1)}
+                    </span>
+                  )}
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium">{p.firstName} {p.lastName}</span>
+                    <span className="text-sm"><span className="text-accent">★</span> {p.ratingAvg.toFixed(1)} <span className="text-xs muted">({p.ratingCount})</span></span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {recent.length > 0 && (
         <section className="mt-8">
