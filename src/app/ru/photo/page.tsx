@@ -68,13 +68,21 @@ export default async function PhotoFeedPage(props: {
       {photos.length === 0 ? (
         <p className="mt-16 text-center muted">{ru.photoFeed.empty}</p>
       ) : (
-        <div className="mt-6 columns-2 gap-2 md:columns-3 lg:columns-4">
+        <div className="mt-6 columns-2 gap-3 md:columns-3 lg:columns-4">
           {photos.map((p) => (
-            <Link key={p.photoId} href={`/ru/photographer/${p.username}`} className="mb-2 block">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={webVariantUrl(p.storageKey)} alt="" loading="lazy"
-                width={p.width} height={p.height} className="w-full rounded-lg" />
-              <span className="text-xs muted">{p.firstName} {p.lastName}</span>
+            <Link key={p.photoId} href={`/ru/photographer/${p.username}`} className="group mb-3 block break-inside-avoid">
+              <div className="relative overflow-hidden rounded-lg">
+                {(active === 'week' || active === 'year') && p.scoreMilli > 0 && (
+                  <span className="absolute left-2 top-2 z-10 rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-ink">
+                    {active === 'week' ? ru.photoFeed.badgeWeek : ru.photoFeed.badgeYear}
+                  </span>
+                )}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={webVariantUrl(p.storageKey)} alt="" loading="lazy"
+                  width={p.width} height={p.height}
+                  className="w-full transition duration-300 group-hover:scale-[1.02]" />
+              </div>
+              <span className="mt-1 block text-xs muted">{p.firstName} {p.lastName}</span>
             </Link>
           ))}
         </div>

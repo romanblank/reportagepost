@@ -37,7 +37,11 @@ export async function SiteHeader() {
           <Link href="/ru/community" className={linkCls}>{ru.nav.community}</Link>
           {session && <Link href="/ru/messages" className={linkCls}>{ru.nav.messages}</Link>}
         </div>
-        <div className="ml-auto flex items-center gap-4">
+        <form method="get" action="/ru/search" className="ml-auto hidden md:block">
+          <input name="q" placeholder={ru.search.placeholder}
+            className="input h-9 w-44 py-1.5 text-sm" aria-label={ru.search.title} />
+        </form>
+        <div className="ml-auto flex items-center gap-4 md:ml-4">
           {session ? (
             <>
               <Link href={cabinetHref} className={linkCls}>{ru.nav.cabinet}</Link>
