@@ -4,8 +4,10 @@ import { getSession } from '@/lib/auth';
 import {
   ONBOARDING_PHOTOS_MAX,
   PhotoValidationError,
-  processAndStorePhoto,
+  analyzePhoto,
+  storePhotoVariants,
 } from '@/lib/photos';
+import { findNearDuplicate } from '@/lib/photo-dedup';
 
 export const maxDuration = 60; // обработка sharp на больших файлах
 
@@ -44,15 +46,27 @@ export async function POST(req: Request) {
 
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
-    const processed = await processAndStorePhoto(buffer);
+    // Стадия 1: анализ + phash (без записи в хранилище)
+    const analyzed = await analyzePhoto(buffer);
 
+    // Guard дедупа ДО записи: свой повторный кадр → duplicate; совпал с ЧУЖИМ →
+    // possible_theft (загрузка чужого портфолио). Отклоняем, файлы не осиротеют.
+    const dup = await findNearDuplicate(analyzed.phash, profile.id);
+    if (dup) {
+      const error = dup.kind === 'foreign' ? 'duplicate_foreign' : 'duplicate_own';
+      return NextResponse.json({ error }, { status: 409 });
+    }
+
+    // Стадия 2: запись вариантов + строка Photo
+    const stored = await storePhotoVariants(buffer);
     const photo = await db.photo.create({
       data: {
         profileId: profile.id,
         categoryId: profileCategory.categoryId,
-        storageKey: processed.storageKey,
-        width: processed.width,
-        height: processed.height,
+        storageKey: stored.storageKey,
+        width: analyzed.width,
+        height: analyzed.height,
+        phash: analyzed.phash,
         // status: PENDING по умолчанию — публикация только после модерации
       },
     });

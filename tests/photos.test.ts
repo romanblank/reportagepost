@@ -4,7 +4,8 @@ import 'dotenv/config';
 import {
   MIN_LONG_SIDE,
   PhotoValidationError,
-  processAndStorePhoto,
+  analyzePhoto,
+  storePhotoVariants,
   thumbVariantUrl,
   webVariantUrl,
 } from '@/lib/photos';
@@ -19,30 +20,33 @@ function makeJpeg(width: number, height: number): Promise<Buffer> {
 
 describe('photo pipeline', () => {
   it('отклоняет не-изображение', async () => {
-    await expect(processAndStorePhoto(Buffer.from('not an image'))).rejects.toThrow(
+    await expect(analyzePhoto(Buffer.from('not an image'))).rejects.toThrow(
       PhotoValidationError,
     );
   });
 
   it('отклоняет маленькое фото (guard по длинной стороне)', async () => {
     const small = await makeJpeg(800, 600);
-    await expect(processAndStorePhoto(small)).rejects.toMatchObject({ code: 'too_small' });
+    await expect(analyzePhoto(small)).rejects.toMatchObject({ code: 'too_small' });
   });
 
-  it('принимает фото ≥ MIN_LONG_SIDE, кладёт 3 варианта в хранилище', async () => {
+  it('анализ ≥ MIN_LONG_SIDE даёт размеры и phash; запись кладёт 3 варианта', async () => {
     const big = await makeJpeg(MIN_LONG_SIDE, 1600);
-    const result = await processAndStorePhoto(big);
-    expect(result.width).toBe(MIN_LONG_SIDE);
-    expect(result.storageKey).toMatch(/^photos\/[0-9a-f-]+\/original\.jpg$/);
+    const analyzed = await analyzePhoto(big);
+    expect(analyzed.width).toBe(MIN_LONG_SIDE);
+    expect(analyzed.phash).toHaveLength(16);
+
+    const stored = await storePhotoVariants(big);
+    expect(stored.storageKey).toMatch(/^photos\/[0-9a-f-]+\/original\.jpg$/);
 
     const { storage } = await import('@/lib/storage');
     for (const variant of ['original', 'web', 'thumb']) {
-      const data = await storage.get(result.storageKey.replace('original', variant));
+      const data = await storage.get(stored.storageKey.replace('original', variant));
       expect(data, variant).not.toBeNull();
     }
     // web-вариант ужат до 2048
     const webMeta = await sharp(
-      (await storage.get(result.storageKey.replace('original', 'web')))!,
+      (await storage.get(stored.storageKey.replace('original', 'web')))!,
     ).metadata();
     expect(Math.max(webMeta.width!, webMeta.height!)).toBeLessThanOrEqual(2048);
   });

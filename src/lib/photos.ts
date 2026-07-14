@@ -1,16 +1,21 @@
 import { randomUUID } from 'node:crypto';
 import sharp from 'sharp';
 import { storage } from '@/lib/storage';
+import { computeDHash } from '@/lib/phash';
 
 // Требование к портфолио (модель MyWed) — константы в photos-constants.ts
 // (клиентские компоненты не могут импортировать этот файл из-за sharp).
 export { MIN_LONG_SIDE, ONBOARDING_PHOTOS_MIN, ONBOARDING_PHOTOS_MAX } from '@/lib/photos-constants';
 import { MIN_LONG_SIDE } from '@/lib/photos-constants';
 
-export interface ProcessedPhoto {
-  storageKey: string; // ключ оригинала; варианты лежат рядом
+export interface AnalyzedPhoto {
   width: number;
   height: number;
+  phash: string; // perceptual hash для дедупа/анти-кражи
+}
+
+export interface ProcessedPhoto extends AnalyzedPhoto {
+  storageKey: string; // ключ оригинала; варианты лежат рядом
 }
 
 export class PhotoValidationError extends Error {
@@ -20,10 +25,11 @@ export class PhotoValidationError extends Error {
 }
 
 /**
- * Пайплайн: валидация → варианты (web 2048, thumb 640) → хранилище.
- * Guard-проверки программные (правило: не доверять ничему извне).
+ * Стадия 1 — анализ БЕЗ записи: валидация (guard-проверки программные) + размеры
+ * + perceptual hash. Отдельно от записи, чтобы дедуп-проверка отклоняла ДО
+ * загрузки в хранилище (иначе осиротевшие файлы в Object Storage).
  */
-export async function processAndStorePhoto(input: Buffer): Promise<ProcessedPhoto> {
+export async function analyzePhoto(input: Buffer): Promise<AnalyzedPhoto> {
   let meta;
   try {
     meta = await sharp(input).metadata();
@@ -38,10 +44,19 @@ export async function processAndStorePhoto(input: Buffer): Promise<ProcessedPhot
       `Длинная сторона ${Math.max(width, height)}px < ${MIN_LONG_SIDE}px`,
     );
   }
+  // Perceptual hash — с ориентированного кадра, чтобы повёрнутый ре-аплоад ловился.
+  const oriented = await sharp(input).rotate().toBuffer();
+  const phash = await computeDHash(oriented);
+  return { width, height, phash };
+}
 
+/**
+ * Стадия 2 — варианты (web 2048, thumb 640) в хранилище. EXIF вычищается
+ * (rotate применяет ориентацию до удаления метаданных).
+ */
+export async function storePhotoVariants(input: Buffer): Promise<{ storageKey: string }> {
   const id = randomUUID();
   const base = `photos/${id}`;
-  // EXIF вычищается (rotate применяет ориентацию до удаления метаданных)
   const original = await sharp(input).rotate().jpeg({ quality: 92 }).toBuffer();
   const web = await sharp(input).rotate().resize(2048, 2048, { fit: 'inside' }).jpeg({ quality: 82 }).toBuffer();
   const thumb = await sharp(input).rotate().resize(640, 640, { fit: 'inside' }).jpeg({ quality: 78 }).toBuffer();
@@ -50,7 +65,7 @@ export async function processAndStorePhoto(input: Buffer): Promise<ProcessedPhot
   await storage.put(`${base}/web.jpg`, web, 'image/jpeg');
   await storage.put(`${base}/thumb.jpg`, thumb, 'image/jpeg');
 
-  return { storageKey: `${base}/original.jpg`, width, height };
+  return { storageKey: `${base}/original.jpg` };
 }
 
 /** URL веб-варианта по ключу оригинала. */

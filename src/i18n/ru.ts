@@ -243,6 +243,8 @@ export const ru = {
       category_not_in_profile: 'категория не выбрана в анкете',
       no_profile: 'сначала сохраните анкету',
       validation: 'проверьте файл',
+      duplicate_own: 'это фото уже загружено',
+      duplicate_foreign: 'такой кадр уже есть на платформе у другого автора',
     } as Record<string, string>,
   },
   auth: {

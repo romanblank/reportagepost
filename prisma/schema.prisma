@@ -251,6 +251,7 @@ model Photo {
   storageKey  String           @unique // ключ в Object Storage; CDN-URL строится из него
   width       Int
   height      Int
+  phash       String? // perceptual hash (dHash) для дедупа/анти-кражи портфолио
   blurhash    String? // плейсхолдер при загрузке
   status      ModerationStatus @default(PENDING)
   rejectReason String?
