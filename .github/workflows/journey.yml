@@ -99,9 +99,10 @@ jobs:
           await ap.fill('input[name=password]','qa-admin-123456');
           await Promise.all([ap.waitForNavigation().catch(()=>{}), ap.click('button[type=submit]')]);
           await ap.goto(BASE+'/ru/admin/moderation',{waitUntil:'networkidle'});
-          const approveBtn = ap.getByRole('button',{name:'Одобрить'}).first();
-          if (await approveBtn.count()) { await approveBtn.click(); await ap.waitForTimeout(2000); report.push('APPROVE: одобрен фотограф из очереди'); }
-          else report.push('APPROVE: очередь пуста (нечего одобрять)');
+          // одобряем ИМЕННО нашего фотографа (карточка с его username), не первого
+          const card = ap.locator('li', { hasText: `qaphoto${RUN}`.slice(0,30) }).first();
+          if (await card.count()) { await card.getByRole('button',{name:'Одобрить'}).click(); await ap.waitForTimeout(2500); report.push('APPROVE: одобрен наш тестовый фотограф ✓'); }
+          else report.push('APPROVE: карточка нашего фотографа не найдена в очереди');
 
           // browse public pages, desktop + mobile, capture diagnostics
           const pages = ['/', '/ru/russia', '/ru/russia/moscow', '/ru/photo', '/ru/community', '/ru/search?q=Пётр', `/ru/photographer/qaphoto${RUN}`.slice(0,60), '/ru/inquiry', '/ru/login', '/ru/register'];

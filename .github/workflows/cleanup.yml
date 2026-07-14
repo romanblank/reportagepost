@@ -1,0 +1,14 @@
+name: Cleanup test data
+on:
+  workflow_dispatch: {}
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: rp
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: docker exec reportagepost npx tsx scripts/cleanup-test-data.ts
