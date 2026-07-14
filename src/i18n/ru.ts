@@ -39,7 +39,10 @@ export const ru = {
     title: (city: string) => `Репортажные фотографы — ${city}`,
     metaDescription: (city: string, count: number) =>
       `Каталог репортажных фотографов: ${city}. ${count} проверенных фотографов: портфолио, цены, прямой контакт.`,
-    empty: 'В этом городе пока нет фотографов. Скоро появятся.',
+    empty: 'В этом городе пока нет фотографов',
+    emptyCta: (city: string) => `Будьте первым репортажным фотографом в городе ${city} — или оставьте заявку, и мы позовём подходящих.`,
+    emptyRegister: 'Я фотограф',
+    emptyInquiry: 'Оставить заявку',
     allCategories: 'Все категории',
     perHourFrom: (price: string) => `от ${price}/час`,
     packageLabel: (hours: number, price: string) => `${hours} ч — ${price}`,

@@ -132,7 +132,14 @@ export default async function CatalogPage(props: {
       )}
 
       {cards.length === 0 && visiting.length === 0 ? (
-        <p className="mt-16 text-center muted">{ru.catalog.empty}</p>
+        <div className="card mt-8 flex flex-col items-center gap-3 p-10 text-center">
+          <p className="text-lg font-medium">{ru.catalog.empty}</p>
+          <p className="muted">{ru.catalog.emptyCta(cityName)}</p>
+          <div className="mt-1 flex flex-wrap justify-center gap-2">
+            <Link href="/ru/register" className="btn btn-accent">{ru.catalog.emptyRegister}</Link>
+            <Link href="/ru/inquiry" className="btn btn-outline">{ru.catalog.emptyInquiry}</Link>
+          </div>
+        </div>
       ) : cards.length === 0 ? null : (
         <ul className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {cards.map((card) => (
