@@ -131,7 +131,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
               <a href={`https://t.me/${profile.telegram.replace(/^@/, '')}`} target="_blank" rel="noreferrer"
                 className="rounded-full border border-line px-3 py-1.5 transition hover:bg-surface-2">Telegram</a>
             )}
-            {profile.siteUrl && (
+            {profile.siteUrl && /^https?:\/\//i.test(profile.siteUrl) && (
               <a href={profile.siteUrl} target="_blank" rel="noreferrer"
                 className="rounded-full border border-line px-3 py-1.5 transition hover:bg-surface-2">Сайт</a>
             )}

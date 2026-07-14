@@ -13,7 +13,9 @@ const ProfileSchema = z.object({
   citySlug: z.string().trim(),
   categorySlugs: z.array(z.string().trim()).min(1).max(3),
   bio: z.string().trim().max(2000).optional(),
-  siteUrl: z.string().trim().url().max(200).optional(),
+  // Только http/https — zod .url() пропускает javascript:/data: (stored XSS в
+  // href на профиле). Серверный guard: клиентский normalizeUrl обходится.
+  siteUrl: z.string().trim().url().max(200).refine((u) => /^https?:\/\//i.test(u), 'только http(s)').optional(),
   whatsapp: z.string().trim().regex(/^\+[1-9]\d{7,14}$/, 'E.164').optional(),
   telegram: z.string().trim().regex(/^@?[A-Za-z0-9_]{5,32}$/).optional(),
   packages: z
