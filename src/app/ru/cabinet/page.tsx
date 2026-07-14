@@ -71,6 +71,9 @@ export default async function CabinetPage() {
                   {ru.cabinet.viewProfile}
                 </Link>
               )}
+              <Link href="/ru/cabinet/profile/edit" className="text-sm underline">
+                {ru.editProfile.title}
+              </Link>
             </div>
           ) : (
             <div className="mt-1 flex items-center gap-3">

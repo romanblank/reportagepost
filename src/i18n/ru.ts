@@ -139,6 +139,13 @@ export const ru = {
       forbidden: 'Недостаточно прав',
     } as Record<string, string>,
   },
+  editProfile: {
+    title: 'Редактировать анкету',
+    save: 'Сохранить',
+    saving: 'Сохраняем…',
+    saved: 'Анкета обновлена',
+    toProfile: 'Открыть мою страницу',
+  },
   tg: {
     title: 'Уведомления в Telegram',
     link: 'Привязать Telegram',

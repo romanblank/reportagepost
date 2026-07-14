@@ -99,3 +99,66 @@ export async function POST(req: Request) {
     { status: 201 },
   );
 }
+
+// Редактирование своей анкеты (MyWed: править можно всегда). Меняем контент-поля;
+// username/город — идентичность/локация, отдельно (пока не редактируются).
+const EditSchema = z.object({
+  bio: z.string().trim().max(2000).optional(),
+  siteUrl: z.string().trim().max(200).optional(),
+  whatsapp: z.string().trim().max(20).optional(),
+  telegram: z.string().trim().max(40).optional(),
+  experienceYears: z.number().int().min(0).max(70).nullable().optional(),
+  equipment: z.string().trim().max(500).optional(),
+  teamInfo: z.string().trim().max(300).optional(),
+  languages: z.array(z.string().trim().regex(/^[a-z]{2}$/)).max(8).optional(),
+  packages: z
+    .array(z.object({ hours: z.number().int().min(1).max(24), priceMinor: z.number().int().min(1), currency: z.literal('RUB') }))
+    .min(1)
+    .max(6)
+    .optional(),
+});
+
+export async function PATCH(req: Request) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  if (session.role !== 'PHOTOGRAPHER') return NextResponse.json({ error: 'photographers_only' }, { status: 403 });
+
+  const parsed = EditSchema.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'validation', details: parsed.error.flatten().fieldErrors }, { status: 400 });
+  }
+  const d = parsed.data;
+
+  const profile = await db.photographerProfile.findUnique({ where: { userId: session.userId }, select: { id: true } });
+  if (!profile) return NextResponse.json({ error: 'no_profile' }, { status: 404 });
+
+  // siteUrl: только http(s) (guard от javascript:/data: — как в POST)
+  const site = d.siteUrl?.trim();
+  if (site && !/^https?:\/\//i.test(site)) {
+    return NextResponse.json({ error: 'validation', details: { siteUrl: ['только http(s)'] } }, { status: 400 });
+  }
+
+  await db.$transaction(async (tx) => {
+    await tx.photographerProfile.update({
+      where: { id: profile.id },
+      data: {
+        bio: d.bio?.trim() || null,
+        siteUrl: site || null,
+        whatsapp: d.whatsapp?.trim() || null,
+        telegram: d.telegram?.trim().replace(/^@/, '') || null,
+        experienceYears: d.experienceYears ?? null,
+        equipment: d.equipment?.trim() || null,
+        teamInfo: d.teamInfo?.trim() || null,
+        ...(d.languages && d.languages.length ? { languages: d.languages } : {}),
+      },
+    });
+    if (d.packages) {
+      await tx.pricePackage.deleteMany({ where: { profileId: profile.id } });
+      await tx.pricePackage.createMany({
+        data: d.packages.map((p, i) => ({ profileId: profile.id, hours: p.hours, priceMinor: p.priceMinor, currency: p.currency, sortOrder: i })),
+      });
+    }
+  });
+
+  return NextResponse.json({ ok: true });
+}
