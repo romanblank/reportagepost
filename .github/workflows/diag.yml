@@ -34,14 +34,6 @@ jobs:
               -H 'Content-Type: application/json' \
               -d '{"username":"diag'"$RANDOM"'","citySlug":"moscow","categorySlugs":["concerts-festivals"],"bio":"Тест анкеты фотографа для диагностики","packages":[{"hours":3,"priceMinor":1500000,"currency":"RUB"}]}')
             echo "profile response: $PROF"
-            echo "--- ЗАГРУЗКА ФОТО В S3 (реальный 2400px jpeg):"
-            curl -s -L "https://picsum.photos/2400/1600.jpg" -o /tmp/diag.jpg
-            SIZE=$(wc -c < /tmp/diag.jpg 2>/dev/null || echo 0)
-            echo "downloaded bytes: $SIZE"
-            if [ "$SIZE" -gt 10000 ]; then
-              PH=$(curl -s -w '\nHTTP:%{http_code}' -b /tmp/cj -X POST "$B/api/profile/photos" -F file=@/tmp/diag.jpg -F categorySlug=concerts-festivals)
-              echo "photo response: $PH"
-              KEY=$(echo "$PH" | grep -o '"uploaded":[0-9]*' || true)
-              echo "--- проверка объекта в бакете:"
-              docker exec reportagepost sh -c 'ls -la /app/.uploads 2>/dev/null && echo "ВНИМАНИЕ: фото на диске, не S3" || echo "локального .uploads нет (значит S3)"'
-            fi
+            echo "--- РЕЖИМ ХРАНИЛИЩА (S3 vs диск):"
+            docker exec reportagepost sh -c 'if [ -n "$S3_BUCKET" ]; then echo "S3 включён, бакет=$S3_BUCKET"; else echo "ВНИМАНИЕ: S3 не сконфигурирован — фото на диске"; fi'
+            docker exec reportagepost sh -c 'ls /app/.uploads >/dev/null 2>&1 && echo "есть /app/.uploads (фото писались на диск!)" || echo "нет /app/.uploads (хорошо, всё в S3)"'

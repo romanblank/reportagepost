@@ -164,8 +164,12 @@ export const ru = {
     photosHint: (min: number, max: number, side: number) =>
       `${min}–${max} фото, длинная сторона от ${side}px. Загружайте по одному или пачкой.`,
     uploaded: (n: number, max: number) => `Загружено: ${n} из ${max}`,
+    needMore: (n: number) => `Нужно ещё минимум ${n} фото для отправки.`,
+    uploadingN: (done: number, total: number) => `Загрузка… ${done} из ${total}`,
     uploadBtn: 'Выбрать фото',
+    uploadingBtn: 'Загружаем…',
     finish: 'Отправить на модерацию',
+    finishHint: (min: number) => `Кнопка станет активной после ${min} фото.`,
     doneTitle: 'Заявка на модерации',
     doneText: 'Мы посмотрим портфолио и ответим. Статус — в кабинете.',
     toCabinet: 'В кабинет',

@@ -22,6 +22,8 @@ export function OnboardingForm({ cities, categories }: { cities: Option[]; categ
   const [chosenCats, setChosenCats] = useState<string[]>([]);
   const [uploaded, setUploaded] = useState(0);
   const [username, setUsername] = useState('');
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
+  const [thumbs, setThumbs] = useState<string[]>([]);
 
   // Слаг адреса страницы: строчная латиница/цифры/дефис — устраняет ловушку
   // «ввёл имя с пробелом → непонятная ошибка» (фидбэк оператора 2026-07-14)
@@ -88,24 +90,31 @@ export function OnboardingForm({ cities, categories }: { cities: Option[]; categ
   async function uploadPhotos(files: FileList | null) {
     if (!files?.length || !chosenCats.length) return;
     setError(null);
-    for (const file of Array.from(files)) {
-      setPending(true);
+    const list = Array.from(files);
+    setPending(true);
+    setUploadProgress({ done: 0, total: list.length });
+    let done = 0;
+    for (const file of list) {
       const fd = new FormData();
       fd.set('file', file);
       fd.set('categorySlug', chosenCats[0]);
       const res = await fetch('/api/profile/photos', { method: 'POST', body: fd }).catch(() => null);
-      setPending(false);
       if (res?.status === 201) {
         const body = await res.json();
         setUploaded(body.uploaded);
+        setThumbs((prev) => [...prev, URL.createObjectURL(file)]); // локальное превью
       } else {
         const body = res ? await res.json().catch(() => null) : null;
         const code = body?.error as string | undefined;
         const msg = PHOTO_ERRORS[code ?? ''] ?? body?.message ?? 'не удалось загрузить';
-        setError(ru.onboarding.errPhoto(msg));
+        setError(ru.onboarding.errPhoto(`${file.name}: ${msg}`));
         if (code === 'photo_limit') break;
       }
+      done += 1;
+      setUploadProgress({ done, total: list.length });
     }
+    setUploadProgress(null);
+    setPending(false);
   }
 
   if (step === 'done') {
@@ -121,23 +130,59 @@ export function OnboardingForm({ cities, categories }: { cities: Option[]; categ
   }
 
   if (step === 'photos') {
+    const remaining = Math.max(0, ONBOARDING_PHOTOS_MIN - uploaded);
+    const pct = uploadProgress ? Math.round((uploadProgress.done / uploadProgress.total) * 100) : 0;
     return (
       <section>
         <h2 className="text-lg font-medium">{ru.onboarding.photosTitle}</h2>
         <p className="mt-1 text-sm opacity-60">
           {ru.onboarding.photosHint(ONBOARDING_PHOTOS_MIN, ONBOARDING_PHOTOS_MAX, MIN_LONG_SIDE)}
         </p>
-        <p className="mt-3 text-sm">{ru.onboarding.uploaded(uploaded, ONBOARDING_PHOTOS_MAX)}</p>
-        <label className="mt-2 inline-block cursor-pointer rounded-lg border px-4 py-2 text-sm">
-          {ru.onboarding.uploadBtn}
+
+        <p className="mt-3 text-sm font-medium">{ru.onboarding.uploaded(uploaded, ONBOARDING_PHOTOS_MAX)}</p>
+        {remaining > 0 && !uploadProgress && (
+          <p className="text-sm opacity-60">{ru.onboarding.needMore(remaining)}</p>
+        )}
+
+        {/* Живой прогресс загрузки пачки (skeleton-полоса, не спиннер) */}
+        {uploadProgress && (
+          <div className="mt-2">
+            <p className="text-sm">{ru.onboarding.uploadingN(uploadProgress.done, uploadProgress.total)}</p>
+            <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
+              <div className="h-full bg-foreground transition-all" style={{ width: `${pct}%` }} />
+            </div>
+          </div>
+        )}
+
+        {/* Превью загруженных */}
+        {thumbs.length > 0 && (
+          <div className="mt-3 grid grid-cols-4 gap-1 sm:grid-cols-6">
+            {thumbs.map((src, i) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img key={i} src={src} alt="" className="aspect-square w-full rounded object-cover" />
+            ))}
+            {uploadProgress && Array.from({ length: uploadProgress.total - uploadProgress.done }).map((_, i) => (
+              <div key={`sk-${i}`} className="aspect-square w-full animate-pulse rounded bg-black/10 dark:bg-white/10" />
+            ))}
+          </div>
+        )}
+
+        <label className={`mt-3 inline-block rounded-lg border px-4 py-2 text-sm ${pending ? 'opacity-50' : 'cursor-pointer'}`}>
+          {pending ? ru.onboarding.uploadingBtn : ru.onboarding.uploadBtn}
           <input type="file" accept="image/*" multiple className="hidden" disabled={pending}
             onChange={(e) => uploadPhotos(e.target.files)} />
         </label>
         {error && <p role="alert" className="mt-2 text-sm text-red-600">{error}</p>}
-        {uploaded >= ONBOARDING_PHOTOS_MIN && (
-          <button onClick={() => setStep('done')} className="mt-4 block rounded-lg bg-foreground px-4 py-2 text-background">
-            {ru.onboarding.finish}
-          </button>
+
+        <button
+          onClick={() => setStep('done')}
+          disabled={uploaded < ONBOARDING_PHOTOS_MIN || pending}
+          className="mt-4 block rounded-lg bg-foreground px-4 py-2 text-background disabled:opacity-40"
+        >
+          {ru.onboarding.finish}
+        </button>
+        {uploaded < ONBOARDING_PHOTOS_MIN && (
+          <p className="mt-1 text-xs opacity-50">{ru.onboarding.finishHint(ONBOARDING_PHOTOS_MIN)}</p>
         )}
       </section>
     );
