@@ -50,6 +50,7 @@ model User {
   events        ActivityEvent[]      @relation("actor")
   likes         Like[]
   comments      Comment[]
+  reviews       Review[]
   follows       Follow[]             @relation("follower")
   followedBy    Follow[]             @relation("followee")
   inquiries     Inquiry[]
@@ -190,6 +191,7 @@ model PhotographerProfile {
   busyDates  BusyDate[]
   travelPlans TravelPlan[]
   favoritedBy FavoritePhotographer[]
+  reviews    Review[]
 
   @@index([cityId, status, ratingScore(sort: Desc)])
 }
@@ -357,6 +359,25 @@ model Like {
 
   @@unique([userId, photoId])
   @@unique([userId, storyId])
+}
+
+model Review {
+  id           String        @id @default(cuid())
+  authorUserId String        // клиент, оставивший отзыв
+  profileId    String        // фотограф
+  rating       Int           // 1..5
+  body         String
+  status       CommentStatus @default(VISIBLE) // VISIBLE по умолчанию; админ может HIDDEN
+  verified     Boolean       @default(false)   // было реальное взаимодействие (сообщение)
+  reply        String?       // ответ фотографа
+  repliedAt    DateTime?
+  createdAt    DateTime      @default(now())
+
+  author  User                @relation(fields: [authorUserId], references: [id])
+  profile PhotographerProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([authorUserId, profileId]) // один отзыв на пару клиент↔фотограф
+  @@index([profileId, status, createdAt])
 }
 
 model Comment {

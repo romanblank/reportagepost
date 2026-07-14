@@ -13,6 +13,8 @@ import { PortfolioGallery } from '@/components/PortfolioGallery';
 import { JsonLd } from '@/components/JsonLd';
 import { personLd } from '@/lib/structured-data';
 import { BASE_URL } from '@/lib/sitemap';
+import { ReviewSection } from '@/components/ReviewSection';
+import { reviewsForProfile } from '@/lib/reviews';
 
 // dynamic: страница показывает состояние лайков/подписки текущего пользователя
 export const dynamic = 'force-dynamic';
@@ -111,6 +113,16 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
   const cityRank = rankAbove + 1;
   const lastSeen = profile.user.lastSeenAt;
   const onlineText = relativeOnline(lastSeen);
+
+  const reviews = await reviewsForProfile(profile.id);
+  const alreadyReviewed = session
+    ? Boolean(
+        await db.review.findUnique({
+          where: { authorUserId_profileId: { authorUserId: session.userId, profileId: profile.id } },
+          select: { id: true },
+        }),
+      )
+    : false;
 
   const initials = `${profile.user.firstName.slice(0, 1)}${profile.user.lastName.slice(0, 1)}`;
 
@@ -229,6 +241,28 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
           editorsChoiceLabel={ru.profile.editorsChoice}
         />
       </section>
+
+      <ReviewSection
+        profileId={profile.id}
+        aggregate={reviews.aggregate}
+        initial={reviews.items.map((r) => ({
+          id: r.id,
+          rating: r.rating,
+          body: r.body,
+          verified: r.verified,
+          authorName: r.authorName,
+          createdAt: r.createdAt.toISOString(),
+          reply: r.reply,
+        }))}
+        me={{
+          userId: session?.userId ?? null,
+          authed: Boolean(session),
+          isClient: session?.role === 'CLIENT',
+          isOwner: isSelf,
+          isAdmin: session?.role === 'ADMIN',
+          alreadyReviewed,
+        }}
+      />
 
       {moreInCity.length > 0 && (
         <section className="mt-10 border-t border-line pt-6">
