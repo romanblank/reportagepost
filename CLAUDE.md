@@ -32,7 +32,7 @@
 - Урок live-проверок HTML: React/SSR вставляет `<!-- -->` между JSX-интерполяциями — grep по составному тексту ложно падает; проверять по href/атрибутам. db.schema требует локальный PG (env-зависимость, правило c): без DATABASE_URL — skip, это не падение.
 
 ## Уроки CI/деплоя (2026-07-13, первая настройка пайплайна)
-- **Лок-файл и платформенные optional deps** (sharp/emnapi): `npm install` на macOS пишет неполный lock → `npm ci` в Linux-CI падает. Лечение только полной пересборкой: `rm -rf node_modules package-lock.json && npm install`. `--package-lock-only` НЕ помогает.
+- **Лок-файл и платформенные optional deps** (sharp/emnapi/aws-sdk): `npm i <pkg>` на macOS пишет неполный lock → `npm ci` в Linux-CI падает. ПРАВИЛО: после ЛЮБОГО `npm i` сразу `rm -rf node_modules package-lock.json && npm install` (не `--package-lock-only`). Наступали 3 раза (sharp, emnapi, aws-sdk) — gate не ловит, т.к. локальные node_modules полные.
 - **Тесты самодостаточны**: интеграционный тест сам создаёт нужные ему записи БД (и убирает за собой). Полагаться на «в моей базе уже есть фотограф» = зелёное локально, красное в CI.
 - **Dockerfile**: `ENV NODE_ENV=production` ставить ПОСЛЕ `npm ci` и `npm run build` — иначе npm пропустит dev-зависимости (tailwind/ts), нужные билду.
 - **zsh**: `$USERNAME` — зарезервированная переменная (= имя OS-пользователя), не использовать в скриптах проверок.
