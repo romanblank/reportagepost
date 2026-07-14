@@ -175,6 +175,9 @@ model PhotographerProfile {
   whatsapp    String? // E.164
   telegram    String? // @username
   languages   String[]         @default(["ru"]) // языки общения, ISO 639-1
+  experienceYears Int? // стаж в годах (богатство анкеты, паритет MyWed)
+  equipment   String? // камеры/оптика/свет
+  teamInfo    String? // соло / команда / ассистенты
   status      ModerationStatus @default(PENDING)
   rejectReason String?
   // Денормализованный рейтинг для сортировки каталога (пересчёт фоном).

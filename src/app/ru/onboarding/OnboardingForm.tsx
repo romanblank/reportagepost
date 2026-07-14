@@ -20,6 +20,7 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
   const [error, setError] = useState<string | null>(null);
   const [packages, setPackages] = useState([{ hours: 2, priceRub: 10000 }]);
   const [chosenCats, setChosenCats] = useState<string[]>([]);
+  const [chosenLangs, setChosenLangs] = useState<string[]>(['ru']);
   const [uploaded, setUploaded] = useState(0);
   const [username, setUsername] = useState(suggestedUsername);
   const [editingUsername, setEditingUsername] = useState(false);
@@ -69,6 +70,10 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
         siteUrl: (() => { const v = String(f.get('siteUrl') ?? '').trim(); return v ? normalizeUrl(v) : undefined; })(),
         whatsapp: (() => { const v = String(f.get('whatsapp') ?? '').trim(); return v ? normalizePhone(v) : undefined; })(),
         telegram: String(f.get('telegram') ?? '').trim() || undefined,
+        experienceYears: Number(f.get('experienceYears')) || undefined,
+        equipment: String(f.get('equipment') ?? '').trim() || undefined,
+        teamInfo: String(f.get('teamInfo') ?? '').trim() || undefined,
+        languages: chosenLangs,
         packages: packages.map((p) => ({ hours: p.hours, priceMinor: p.priceRub * 100, currency: 'RUB' })),
       }),
     }).catch(() => null);
@@ -236,6 +241,31 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
         <label className="field-label">{ru.onboarding.bio}</label>
         <textarea name="bio" rows={3} className="input" />
         <span className="field-hint">{ru.onboarding.bioHint}</span>
+      </div>
+      <div>
+        <span className="field-hint mt-0 mb-2 block">{ru.onboarding.richnessHint}</span>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="field-label">{ru.onboarding.experience}</label>
+            <input name="experienceYears" type="number" min={0} max={70} step={1} inputMode="numeric" className="input w-28" />
+          </div>
+          <div>
+            <span className="field-label">{ru.onboarding.languages}</span>
+            <div className="mt-1 flex flex-wrap gap-2">
+              {['ru', 'en', 'es', 'de', 'fr', 'it', 'zh', 'tr'].map((l) => (
+                <label key={l} className={`chip ${chosenLangs.includes(l) ? 'chip-active' : ''}`}>
+                  <input type="checkbox" className="sr-only" checked={chosenLangs.includes(l)}
+                    onChange={() => setChosenLangs((prev) => prev.includes(l) ? prev.filter((x) => x !== l) : [...prev, l])} />
+                  {ru.profile.langName[l] ?? l}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div><label className="field-label">{ru.onboarding.equipment}</label>
+            <input name="equipment" maxLength={500} placeholder={ru.onboarding.equipmentPlaceholder} className="input" /></div>
+          <div><label className="field-label">{ru.onboarding.team}</label>
+            <input name="teamInfo" maxLength={300} placeholder={ru.onboarding.teamPlaceholder} className="input" /></div>
+        </div>
       </div>
       <div>
         <span className="field-hint mt-0 mb-2 block">{ru.onboarding.contactsHint}</span>

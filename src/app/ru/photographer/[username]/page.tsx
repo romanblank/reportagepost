@@ -164,6 +164,22 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
         </p>
         {onlineText && <p className="mt-0.5 text-xs muted">{onlineText}</p>}
         {profile.bio && <p className="mt-3 max-w-2xl text-[15px] leading-relaxed">{profile.bio}</p>}
+        {(profile.experienceYears != null || profile.languages.length > 0 || profile.equipment || profile.teamInfo) && (
+          <dl className="mt-4 grid max-w-2xl grid-cols-1 gap-x-8 gap-y-1.5 text-sm sm:grid-cols-2">
+            {profile.experienceYears != null && (
+              <div className="flex gap-2"><dt className="muted">{ru.profile.experienceLabel}:</dt><dd>{ru.profile.experienceYears(profile.experienceYears)}</dd></div>
+            )}
+            {profile.languages.length > 0 && (
+              <div className="flex gap-2"><dt className="muted">{ru.profile.languagesLabel}:</dt><dd>{profile.languages.map((l) => ru.profile.langName[l] ?? l).join(', ')}</dd></div>
+            )}
+            {profile.equipment && (
+              <div className="flex gap-2"><dt className="muted">{ru.profile.equipmentLabel}:</dt><dd>{profile.equipment}</dd></div>
+            )}
+            {profile.teamInfo && (
+              <div className="flex gap-2"><dt className="muted">{ru.profile.teamLabel}:</dt><dd>{profile.teamInfo}</dd></div>
+            )}
+          </dl>
+        )}
         {!isSelf && (
           <div className="mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
             <MessageButton userId={profile.userId} />

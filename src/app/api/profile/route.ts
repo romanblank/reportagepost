@@ -18,6 +18,11 @@ const ProfileSchema = z.object({
   siteUrl: z.string().trim().url().max(200).refine((u) => /^https?:\/\//i.test(u), 'только http(s)').optional(),
   whatsapp: z.string().trim().regex(/^\+[1-9]\d{7,14}$/, 'E.164').optional(),
   telegram: z.string().trim().regex(/^@?[A-Za-z0-9_]{5,32}$/).optional(),
+  // Богатство анкеты (паритет MyWed)
+  experienceYears: z.number().int().min(0).max(70).optional(),
+  equipment: z.string().trim().max(500).optional(),
+  teamInfo: z.string().trim().max(300).optional(),
+  languages: z.array(z.string().trim().regex(/^[a-z]{2}$/)).max(8).optional(),
   packages: z
     .array(
       z.object({
@@ -76,6 +81,10 @@ export async function POST(req: Request) {
       siteUrl: data.siteUrl,
       whatsapp: data.whatsapp,
       telegram: data.telegram?.replace(/^@/, ''),
+      experienceYears: data.experienceYears,
+      equipment: data.equipment,
+      teamInfo: data.teamInfo,
+      ...(data.languages && data.languages.length ? { languages: data.languages } : {}),
       categories: {
         create: categories.map((c) => ({ categoryId: c.id })),
       },
