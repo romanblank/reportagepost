@@ -10,6 +10,9 @@ import { ru } from '@/i18n/ru';
 import { getSession } from '@/lib/auth';
 import { FavoriteButton, FollowButton, LikeButton, MessageButton } from '@/components/EngagementButtons';
 import { LightboxGallery } from '@/components/Lightbox';
+import { JsonLd } from '@/components/JsonLd';
+import { personLd } from '@/lib/structured-data';
+import { BASE_URL } from '@/lib/sitemap';
 
 // dynamic: страница показывает состояние лайков/подписки текущего пользователя
 export const dynamic = 'force-dynamic';
@@ -100,8 +103,21 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
 
   const initials = `${profile.user.firstName.slice(0, 1)}${profile.user.lastName.slice(0, 1)}`;
 
+  const absUrl = (u: string) => (u.startsWith('http') ? u : `${BASE_URL}${u}`);
+
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-5 sm:py-10">
+      <JsonLd
+        data={personLd({
+          firstName: profile.user.firstName,
+          lastName: profile.user.lastName,
+          username: profile.username,
+          cityName: cityNameRu(profile.city.slug),
+          categories: profile.categories.map((c) => categoryNameRu(c.category.slug)),
+          imageUrls: profile.photos.slice(0, 5).map((p) => absUrl(webVariantUrl(p.storageKey))),
+          bio: profile.bio,
+        })}
+      />
       <header className="border-b border-line pb-5 sm:pb-8">
         {/* Шапка профиля: аватар + имя + ряд статистики (app-подача как в Instagram) */}
         <div className="flex items-center gap-4 sm:gap-5">

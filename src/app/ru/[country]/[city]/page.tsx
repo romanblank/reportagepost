@@ -10,6 +10,8 @@ import { thumbVariantUrl } from '@/lib/photos';
 import { formatRubMinor } from '@/lib/money';
 import { ru } from '@/i18n/ru';
 import { EmptyState } from '@/components/EmptyState';
+import { JsonLd } from '@/components/JsonLd';
+import { catalogItemListLd } from '@/lib/structured-data';
 
 // SEO-страница каталога города (SSR). До S4 — под noindex (заголовок глобальный).
 // ВНИМАНИЕ (аудит волны №2): страница читает searchParams (фильтры/пагинация) →
@@ -72,6 +74,14 @@ export default async function CatalogPage(props: {
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:py-10">
+      {cards.length > 0 && (
+        <JsonLd
+          data={catalogItemListLd(
+            cityName,
+            cards.map((c) => ({ username: c.username, name: `${c.firstName} ${c.lastName}` })),
+          )}
+        />
+      )}
       <h1 className="text-2xl font-semibold sm:text-4xl">{ru.catalog.title(cityName)}</h1>
       <p className="mt-1.5 text-sm muted">{ru.catalog.photographersCount(cards.length)}</p>
 
