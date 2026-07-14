@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { DomainError } from '@/lib/errors';
 import { rateLimit } from '@/lib/rate-limit';
 import { recomputeOne } from '@/lib/rating';
+import { notifyInApp } from '@/lib/notifications';
 
 // Отзывы клиентов о фотографах (паритет MyWed). Оценка 1–5 + текст, один отзыв на
 // пару клиент↔фотограф, guard текста (антиспам/контакты — общение через платформу),
@@ -62,6 +63,7 @@ export async function addReview(authorUserId: string, profileId: string, rating:
     throw e;
   }
   await recomputeOne(profileId); // отзыв влияет на рейтинг → пересчёт
+  void notifyInApp(profile.userId, 'notification.review.new', {}); // фотографу
   return created;
 }
 

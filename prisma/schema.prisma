@@ -480,6 +480,7 @@ enum NotificationChannel {
   EMAIL
   TELEGRAM
   WEBSOCKET
+  IN_APP
 }
 
 enum NotificationState {
@@ -496,6 +497,7 @@ model Notification {
   payload   Json
   state     NotificationState   @default(QUEUED)
   error     String?
+  readAt    DateTime? // in-app: прочитано (для канала IN_APP)
   createdAt DateTime            @default(now())
   sentAt    DateTime?
 

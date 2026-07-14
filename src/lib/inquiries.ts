@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { enqueueForMany } from '@/lib/notifications';
+import { enqueueForMany, notifyInApp } from '@/lib/notifications';
 import { sendEmail } from '@/lib/email';
 import { tgSend } from '@/lib/telegram';
 import { APP_DOMAIN } from '@/lib/constants';
@@ -72,6 +72,11 @@ export async function createInquiry(
     'EMAIL',
     'notification.inquiry.new',
     { inquiryId: inquiry.id, citySlug: input.citySlug, categorySlug: input.categorySlug ?? null },
+  );
+
+  // In-app уведомления получателям (центр уведомлений + live-счётчик)
+  await Promise.all(
+    recipients.map((r) => notifyInApp(r.userId, 'notification.inquiry.new', { citySlug: input.citySlug })),
   );
 
   // Прямая доставка (email + Telegram) — no-op без конфигурации. Очередь выше

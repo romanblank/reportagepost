@@ -68,6 +68,7 @@ describe.skipIf(!hasDb)('reviews: правила и агрегат (БД)', () =
     expect(prof.ratingScore).toBeGreaterThanOrEqual(1800);
 
     await db.message.deleteMany({ where: { OR: [{ senderId: client2.id }, { recipientId: owner.id }] } });
+    await db.notification.deleteMany({ where: { userId: { in: [owner.id, client.id, otherPhotog.id, selfProfileClient.id, client2.id] } } });
     await db.review.deleteMany({ where: { profileId: { in: [profile.id, selfProfile.id] } } });
     await db.photographerProfile.deleteMany({ where: { id: { in: [profile.id, selfProfile.id] } } });
     await db.user.deleteMany({ where: { id: { in: [owner.id, client.id, otherPhotog.id, selfProfileClient.id, client2.id] } } });

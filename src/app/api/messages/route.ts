@@ -5,6 +5,7 @@ import { MessageError, dialogsFor, sendMessage } from '@/lib/messages';
 import { handleRoute, jsonError } from '@/lib/errors';
 import { rateLimit } from '@/lib/rate-limit';
 import { publishToUser } from '@/lib/realtime';
+import { notifyInApp } from '@/lib/notifications';
 import { notifyTelegram } from '@/lib/telegram';
 import { APP_DOMAIN } from '@/lib/constants';
 
@@ -36,6 +37,7 @@ export function POST(req: Request) {
       const message = await sendMessage(session.userId, parsed.data.recipientId, parsed.data.body);
       // Живая доставка получателю (SSE): событие → браузер обновит тред/счётчик
       publishToUser(parsed.data.recipientId, { type: 'message', from: session.userId });
+      void notifyInApp(parsed.data.recipientId, 'notification.message.new', {});
       // Telegram-уведомление (если привязан). Не блокируем ответ — fire-and-forget.
       void notifyTelegram(
         parsed.data.recipientId,

@@ -220,6 +220,16 @@ export const ru = {
     recentTitle: 'Новые в сообществе',
     bestWeekTitle: 'Лучшее за неделю',
   },
+  notifications: {
+    title: 'Уведомления',
+    empty: 'Пока нет уведомлений.',
+    templates: {
+      'notification.inquiry.new': 'Новая заявка на съёмку в вашем городе',
+      'notification.message.new': 'Новое сообщение',
+      'notification.review.new': 'Новый отзыв о вашей работе',
+      'notification.follow.new': 'Новый подписчик',
+    } as Record<string, string>,
+  },
   messages: {
     title: 'Сообщения',
     empty: 'Пока нет диалогов.',

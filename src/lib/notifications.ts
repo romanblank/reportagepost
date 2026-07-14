@@ -1,5 +1,6 @@
 import type { NotificationChannel, Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
+import { publishToUser } from '@/lib/realtime';
 
 // Очередь уведомлений (мультиканальная, ADR mobile-strategy).
 // Постановка — здесь; доставка — диспетчером (email при получении SMTP-ключа,
@@ -25,4 +26,46 @@ export async function enqueueForMany(
     data: userIds.map((userId) => ({ userId, channel, type, payload })),
   });
   return result.count;
+}
+
+// ─── In-app центр уведомлений (канал IN_APP, read-state) ────────────────────
+
+export interface InAppNotification {
+  id: string;
+  type: string; // i18n-ключ шаблона
+  payload: Record<string, unknown>;
+  readAt: Date | null;
+  createdAt: Date;
+}
+
+/** Создаёт in-app уведомление и толкает live-событие (SSE обновит счётчик). */
+export async function notifyInApp(userId: string, type: string, payload: Prisma.InputJsonValue): Promise<void> {
+  await db.notification.create({ data: { userId, channel: 'IN_APP', type, payload, state: 'SENT' } });
+  publishToUser(userId, { type: 'notification' });
+}
+
+export async function inAppNotifications(userId: string, limit = 50): Promise<InAppNotification[]> {
+  const rows = await db.notification.findMany({
+    where: { userId, channel: 'IN_APP' },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+  });
+  return rows.map((n) => ({
+    id: n.id,
+    type: n.type,
+    payload: (n.payload ?? {}) as Record<string, unknown>,
+    readAt: n.readAt,
+    createdAt: n.createdAt,
+  }));
+}
+
+export async function unreadNotificationCount(userId: string): Promise<number> {
+  return db.notification.count({ where: { userId, channel: 'IN_APP', readAt: null } });
+}
+
+export async function markNotificationsRead(userId: string): Promise<void> {
+  await db.notification.updateMany({
+    where: { userId, channel: 'IN_APP', readAt: null },
+    data: { readAt: new Date() },
+  });
 }

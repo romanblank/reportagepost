@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { DomainError } from '@/lib/errors';
 import { likeWeightFor } from '@/lib/rating';
+import { notifyInApp } from '@/lib/notifications';
 
 // Лайки и подписки: материализованное состояние + append-only событие с весом.
 // Вес лайка (v2-механика MyWed): базовый 1000, у одобренного фотографа — 2000.
@@ -81,5 +82,6 @@ export async function toggleFollow(followerId: string, followeeId: string): Prom
       data: { actorUserId: followerId, type: 'FOLLOW', targetType: 'PROFILE', targetId: followeeId },
     }),
   ]);
+  void notifyInApp(followeeId, 'notification.follow.new', {});
   return { following: true };
 }
