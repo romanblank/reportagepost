@@ -6,7 +6,7 @@ import { catalogForCity } from '@/lib/catalog';
 import { visitingCity } from '@/lib/travel';
 import { cityNameRu } from '@/lib/geo-data';
 import { CATEGORIES, categoryNameRu } from '@/lib/category-data';
-import { thumbVariantUrl } from '@/lib/photos';
+import { thumbVariantUrl, avatarUrl } from '@/lib/photos';
 import { formatRubMinor } from '@/lib/money';
 import { ru } from '@/i18n/ru';
 import { EmptyState } from '@/components/EmptyState';
@@ -168,8 +168,19 @@ export default async function CatalogPage(props: {
                   </div>
                 )}
                 <div className="p-4">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="font-medium">{card.firstName} {card.lastName}</span>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="flex min-w-0 items-center gap-2 font-medium">
+                      {card.avatarKey ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={avatarUrl(card.avatarKey)} alt="" width={28} height={28}
+                          className="h-7 w-7 shrink-0 rounded-full object-cover" />
+                      ) : (
+                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-surface-2 text-xs">
+                          {card.firstName.slice(0, 1)}{card.lastName.slice(0, 1)}
+                        </span>
+                      )}
+                      <span className="truncate">{card.firstName} {card.lastName}</span>
+                    </span>
                     {card.minPackage && (
                       <span className="text-sm muted">
                         {ru.catalog.packageLabel(card.minPackage.hours, formatRubMinor(card.minPackage.priceMinor))}

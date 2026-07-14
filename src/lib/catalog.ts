@@ -26,6 +26,7 @@ export interface CatalogCard {
   username: string;
   firstName: string;
   lastName: string;
+  avatarKey: string | null;
   bio: string | null;
   categories: string[];
   minPackage: { hours: number; priceMinor: number; currency: string } | null;
@@ -99,6 +100,7 @@ export async function catalogForCity(filters: CatalogFilters): Promise<CatalogPa
   const hasNext = rows.length > CATALOG_PAGE_SIZE;
   const cards = rows.slice(0, CATALOG_PAGE_SIZE).map((p) => ({
     username: p.username,
+    avatarKey: p.avatarKey,
     firstName: p.user.firstName,
     lastName: p.user.lastName,
     bio: p.bio,
