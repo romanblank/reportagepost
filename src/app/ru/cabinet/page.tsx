@@ -8,6 +8,7 @@ import { cityNameRu } from '@/lib/geo-data';
 import { categoryNameRu } from '@/lib/category-data';
 import { formatRubMinor } from '@/lib/money';
 import { ru } from '@/i18n/ru';
+import { LogoutButton } from '@/components/LogoutButton';
 
 export const metadata: Metadata = { title: ru.cabinet.title };
 export const dynamic = 'force-dynamic'; // всегда свежие заявки/статус
@@ -109,6 +110,11 @@ export default async function CabinetPage() {
           )}
         </section>
       )}
+
+      {/* «Выйти» — на мобиле убрали из шапки, здесь единственная точка выхода */}
+      <div className="mt-8 border-t border-line pt-5 sm:hidden">
+        <LogoutButton />
+      </div>
     </main>
   );
 }

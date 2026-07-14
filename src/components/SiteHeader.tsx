@@ -31,7 +31,8 @@ export async function SiteHeader() {
           <input name="q" placeholder={ru.search.placeholder}
             className="input h-9 w-44 py-1.5 text-sm" aria-label={ru.search.title} />
         </form>
-        <div className="ml-auto flex items-center gap-4 md:ml-4">
+        {/* На мобиле навигация в нижнем таб-баре — верхний auth-кластер прячем (app-подача) */}
+        <div className="ml-auto hidden items-center gap-4 sm:flex md:ml-4">
           {session ? (
             <>
               <Link href={cabinetHref} className={linkCls}>{ru.nav.cabinet}</Link>
