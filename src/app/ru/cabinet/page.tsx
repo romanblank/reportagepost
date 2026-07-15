@@ -18,7 +18,9 @@ export const metadata: Metadata = { title: ru.cabinet.title };
 export const dynamic = 'force-dynamic'; // всегда свежие заявки/статус
 
 const STATUS_LABEL = {
+  DRAFT: ru.cabinet.statusDraft,
   PENDING: ru.cabinet.statusPending,
+  NEEDS_REVISION: ru.cabinet.statusRevision,
   APPROVED: ru.cabinet.statusApproved,
   REJECTED: ru.cabinet.statusRejected,
 } as const;
@@ -74,6 +76,9 @@ export default async function CabinetPage() {
             </Link>
             <Link href="/ru/admin/invites" className="text-sm underline">
               {ru.adminInvites.title}
+            </Link>
+            <Link href="/ru/admin/audit" className="text-sm underline">
+              {ru.adminAudit.title}
             </Link>
           </div>
         </section>

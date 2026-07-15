@@ -21,7 +21,8 @@ const DecisionSchema = z.discriminatedUnion('action', [
 ]);
 
 export async function POST(req: Request) {
-  if (!(await requireAdmin())) {
+  const admin = await requireAdmin();
+  if (!admin) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }
 
@@ -43,9 +44,9 @@ export async function POST(req: Request) {
   }
 
   if (parsed.data.action === 'approve') {
-    const { published } = await approveProfile(parsed.data.profileId);
+    const { published } = await approveProfile(parsed.data.profileId, admin.userId);
     return NextResponse.json({ ok: true, action: 'approve', published });
   }
-  await rejectProfile(parsed.data.profileId, parsed.data.reason);
+  await rejectProfile(parsed.data.profileId, parsed.data.reason, admin.userId);
   return NextResponse.json({ ok: true, action: 'reject' });
 }

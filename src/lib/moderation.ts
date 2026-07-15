@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { logAudit } from '@/lib/audit';
 
 // Модерация онбординга: профиль целиком (модель MyWed — портфолио оценивается
 // как единое целое). Пофотовая модерация после онбординга — отдельным шагом.
@@ -38,7 +39,7 @@ export async function moderationQueue(): Promise<QueueItem[]> {
 }
 
 /** Одобрение: профиль APPROVED, пользователь ACTIVE, фото публикуются + события. */
-export async function approveProfile(profileId: string): Promise<{ published: number }> {
+export async function approveProfile(profileId: string, actorUserId?: string): Promise<{ published: number }> {
   return db.$transaction(async (tx) => {
     const profile = await tx.photographerProfile.findUniqueOrThrow({
       where: { id: profileId },
@@ -69,6 +70,11 @@ export async function approveProfile(profileId: string): Promise<{ published: nu
         })),
       });
     }
+    if (actorUserId) {
+      await logAudit(tx, actorUserId, 'profile.approve', 'PROFILE', profileId, {
+        published: profile.photos.map((p) => p.id),
+      });
+    }
     return { published: profile.photos.length };
   }).then(async (result) => {
     // Стартовый рейтинг ТОЛЬКО одобряемого профиля (аудит P1-2: точечно, не
@@ -80,7 +86,7 @@ export async function approveProfile(profileId: string): Promise<{ published: nu
 }
 
 /** Отклонение: профиль REJECTED с обязательной причиной (честность к фотографу). */
-export async function rejectProfile(profileId: string, reason: string): Promise<void> {
+export async function rejectProfile(profileId: string, reason: string, actorUserId?: string): Promise<void> {
   await db.$transaction(async (tx) => {
     await tx.photographerProfile.update({
       where: { id: profileId },
@@ -90,5 +96,8 @@ export async function rejectProfile(profileId: string, reason: string): Promise<
       where: { profileId, status: 'PENDING' },
       data: { status: 'REJECTED', rejectReason: reason },
     });
+    if (actorUserId) {
+      await logAudit(tx, actorUserId, 'profile.reject', 'PROFILE', profileId, { reason });
+    }
   });
 }

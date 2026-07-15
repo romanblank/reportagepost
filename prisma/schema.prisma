@@ -62,6 +62,7 @@ model User {
   sentMessages  Message[]            @relation("sender")
   recvMessages  Message[]            @relation("recipient")
   notifications Notification[]
+  adminAudits   AdminAudit[]
 }
 
 // Верификация телефона по SMS-коду (E.164). Код хранится как argon2-хеш
@@ -165,7 +166,9 @@ model Category {
 // ─── Профиль фотографа ──────────────────────────────────────────────────────
 
 enum ModerationStatus {
+  DRAFT          // черновик (создан админом, не подан, не в каталоге)
   PENDING
+  NEEDS_REVISION // возвращён фотографу на доработку с комментарием
   APPROVED
   REJECTED
 }
@@ -189,6 +192,7 @@ model PhotographerProfile {
   faq         Json? // [{q,a}] частые вопросы (богатство анкеты, паритет MyWed)
   status      ModerationStatus @default(PENDING)
   rejectReason String?
+  revisionNote String? // комментарий «на доработку» (виден фотографу)
   // Денормализованный рейтинг для сортировки каталога (пересчёт фоном).
   // v1: полнота профиля + свежесть; v2 (S2): взвешенные лайки со сгоранием.
   ratingScore Int              @default(0)
@@ -552,4 +556,22 @@ model Payment {
   user User @relation(fields: [userId], references: [id])
 
   @@index([userId, createdAt(sort: Desc)])
+}
+
+// ─── Аудит действий администратора (spec/02-admin §8.4) ─────────────────────
+// Отдельно от append-only ActivityEvent: та про продуктовую активность,
+// эта — про действия оператора над чужими данными/статусами (P0, реверсивность).
+model AdminAudit {
+  id          BigInt   @id @default(autoincrement())
+  actorUserId String
+  action      String // 'profile.approve', 'profile.reject', 'user.ban'…
+  targetType  String
+  targetId    String
+  meta        Json? // причина, diff полей, снимок затронутых id
+  createdAt   DateTime @default(now())
+  actor User @relation(fields: [actorUserId], references: [id])
+
+  @@index([actorUserId, createdAt])
+  @@index([targetType, targetId, createdAt])
+  @@index([action, createdAt])
 }
