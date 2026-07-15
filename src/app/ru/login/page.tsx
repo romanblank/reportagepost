@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ru } from '@/i18n/ru';
@@ -41,10 +43,13 @@ export default function LoginPage() {
             <input id="email" name="email" type="email" required autoComplete="email" className="input" />
           </div>
           <div>
-            <label className="field-label" htmlFor="password">{ru.auth.password}</label>
+            <div className="flex items-baseline justify-between">
+              <label className="field-label" htmlFor="password">{ru.auth.password}</label>
+              <Link href="/ru/forgot" className="text-xs underline muted hover:text-ink">{ru.auth.pwreset.forgotLink}</Link>
+            </div>
             <input id="password" name="password" type="password" required autoComplete="current-password" className="input" />
           </div>
-          {error && <p role="alert" className="text-sm text-accent">{error}</p>}
+          {error && <p role="alert" className="text-sm text-danger">{error}</p>}
           <button type="submit" disabled={pending} className="btn btn-accent mt-1">
             {ru.auth.submitLogin}
           </button>

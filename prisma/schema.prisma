@@ -65,6 +65,7 @@ model User {
   recvMessages  Message[]            @relation("recipient")
   notifications Notification[]
   adminAudits   AdminAudit[]
+  passwordResets PasswordReset[]
 }
 
 // Верификация телефона по SMS-коду (E.164). Код хранится как argon2-хеш
@@ -576,4 +577,18 @@ model AdminAudit {
   @@index([actorUserId, createdAt])
   @@index([targetType, targetId, createdAt])
   @@index([action, createdAt])
+}
+
+// Сброс пароля по email-ссылке (нужно при открытой регистрации). Токен хранится
+// как sha256-хеш; сырой — только в письме. TTL + одноразовость.
+model PasswordReset {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
 }
