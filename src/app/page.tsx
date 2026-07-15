@@ -13,20 +13,20 @@ export default async function Home() {
   return (
     <main className="flex-1">
       <section className="mx-auto w-full max-w-4xl px-4 py-20 sm:py-28 text-center">
-        <p className="text-sm font-medium uppercase tracking-widest text-accent">
+        <p className="t-caption text-accent">
           {ru.landing.kicker}
         </p>
         <h1 className="t-display mx-auto mt-4 max-w-3xl">
           {ru.landing.heroTitle}
         </h1>
-        <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed muted">
+        <p className="t-body-lg mx-auto mt-6 max-w-2xl muted">
           {ru.landing.heroLead}
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-          <Link href="/ru/register" className="btn btn-accent px-6 py-3 text-base">
+          <Link href="/ru/register" className="btn btn-accent btn-lg">
             {ru.landing.registerCta}
           </Link>
-          <Link href="/ru/login" className="btn btn-outline px-6 py-3 text-base">
+          <Link href="/ru/login" className="btn btn-outline btn-lg">
             {ru.landing.loginCta}
           </Link>
         </div>
@@ -35,11 +35,11 @@ export default async function Home() {
 
       {recent.length > 0 && (
         <section className="mx-auto w-full max-w-6xl px-4 pb-16">
-          <h2 className="text-xs font-semibold uppercase tracking-widest muted">{ru.landing.recentWork}</h2>
+          <h2 className="t-caption muted">{ru.landing.recentWork}</h2>
           <div className="mt-3 columns-2 gap-2 sm:columns-3 md:columns-4">
             {recent.map((p) => (
               <Link key={p.photoId} href={`/ru/photographer/${p.username}`} className="group mb-2 block break-inside-avoid">
-                <div className="overflow-hidden rounded-lg">
+                <div className="overflow-hidden rounded-media">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={webVariantUrl(p.storageKey)} alt="" loading="lazy" width={p.width} height={p.height}
                     className="w-full transition duration-300 group-hover:scale-[1.02]" />
@@ -52,11 +52,11 @@ export default async function Home() {
 
       <section className="mx-auto grid w-full max-w-4xl gap-4 px-4 pb-24 sm:grid-cols-2">
         <div className="card p-6">
-          <h2 className="text-lg font-semibold">{ru.landing.forPhotographers}</h2>
+          <h2 className="t-h3">{ru.landing.forPhotographers}</h2>
           <p className="mt-2 text-sm leading-relaxed muted">{ru.landing.forPhotographersText}</p>
         </div>
         <div className="card p-6">
-          <h2 className="text-lg font-semibold">{ru.landing.forClients}</h2>
+          <h2 className="t-h3">{ru.landing.forClients}</h2>
           <p className="mt-2 text-sm leading-relaxed muted">{ru.landing.forClientsText}</p>
         </div>
       </section>
