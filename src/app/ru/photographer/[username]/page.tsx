@@ -45,7 +45,7 @@ async function findProfile(username: string) {
       city: true,
       categories: { include: { category: true } },
       packages: { orderBy: { sortOrder: 'asc' } },
-      photos: { where: { status: 'APPROVED' }, orderBy: { publishedAt: 'desc' }, take: 60 },
+      photos: { where: { status: 'APPROVED' }, orderBy: [{ sortOrder: 'asc' }, { publishedAt: 'desc' }], take: 60 },
       stories: {
         where: { status: 'APPROVED' },
         orderBy: { publishedAt: 'desc' },
