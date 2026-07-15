@@ -3,10 +3,13 @@ import { notFound } from 'next/navigation';
 import { db } from '@/lib/db';
 import { cityNameRu } from '@/lib/geo-data';
 import { categoryNameRu } from '@/lib/category-data';
-import { webVariantUrl, thumbVariantUrl, avatarUrl } from '@/lib/photos';
+import { webVariantUrl, thumbVariantUrl } from '@/lib/photos';
 import Link from 'next/link';
 import { formatRubMinor } from '@/lib/money';
 import { ru } from '@/i18n/ru';
+import { Avatar } from '@/components/ui/Avatar';
+import { Rating } from '@/components/ui/Rating';
+import { VerifiedBadge } from '@/components/ui/Badge';
 import { getSession } from '@/lib/auth';
 import { FavoriteButton, FollowButton, MessageButton } from '@/components/EngagementButtons';
 import { PortfolioGallery } from '@/components/PortfolioGallery';
@@ -126,7 +129,6 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
   const onlineText = relativeOnline(lastSeen);
   const faq = parseFaq(profile.faq);
 
-  const initials = `${profile.user.firstName.slice(0, 1)}${profile.user.lastName.slice(0, 1)}`;
 
   const absUrl = (u: string) => (u.startsWith('http') ? u : `${BASE_URL}${u}`);
 
@@ -146,15 +148,8 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
       <header className="border-b border-line pb-5 sm:pb-8">
         {/* Шапка профиля: аватар + имя + ряд статистики (app-подача как в Instagram) */}
         <div className="flex items-center gap-4 sm:gap-5">
-          {profile.avatarKey ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={avatarUrl(profile.avatarKey)} alt="" width={80} height={80}
-              className="h-[72px] w-[72px] shrink-0 rounded-full object-cover sm:h-20 sm:w-20" />
-          ) : (
-            <span className="grid h-[72px] w-[72px] shrink-0 place-items-center rounded-full bg-surface-2 text-xl font-semibold sm:h-20 sm:w-20 sm:text-2xl">
-              {initials}
-            </span>
-          )}
+          <Avatar avatarKey={profile.avatarKey} firstName={profile.user.firstName}
+            lastName={profile.user.lastName} size={80} />
           <div className="min-w-0 flex-1">
             <div className="flex items-stretch justify-around gap-2 text-center">
               <span className="flex flex-col"><b className="text-lg font-semibold leading-tight">{cityRank}</b><span className="text-xs muted">{ru.profile.statCityRank}</span></span>
@@ -166,12 +161,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
 
         <h1 className="t-h1 mt-4 flex flex-wrap items-center gap-2">
           <span>{profile.user.firstName} {profile.user.lastName}</span>
-          {profile.verified && (
-            <span title={ru.profile.verifiedHint}
-              className="inline-flex items-center gap-1 rounded-full bg-accent/15 px-2.5 py-0.5 text-xs font-medium text-accent">
-              ✓ {ru.profile.verified}
-            </span>
-          )}
+          {profile.verified && <VerifiedBadge label={ru.profile.verifiedHint} size={22} />}
         </h1>
         {session?.role === 'ADMIN' && (
           <div className="mt-2"><VerifyButton profileId={profile.id} verified={profile.verified} /></div>
@@ -181,10 +171,11 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
         </p>
         {onlineText && <p className="mt-0.5 text-xs muted">{onlineText}</p>}
         {reviews.aggregate.count > 0 && (
-          <p className="mt-1 text-sm">
-            <span className="text-accent">★</span> <b className="font-semibold">{reviews.aggregate.avg.toFixed(1)}</b>{' '}
-            <span className="muted">{ru.reviews.count(reviews.aggregate.count)}</span>
-          </p>
+          <div className="mt-1.5 flex items-center gap-2">
+            <Rating value={reviews.aggregate.avg} size="lg" showCount={false} />
+            <span className="text-sm tnum"><b className="font-semibold">{reviews.aggregate.avg.toFixed(1)}</b>{' '}
+              <span className="muted">{ru.reviews.count(reviews.aggregate.count)}</span></span>
+          </div>
         )}
         {profile.bio && <p className="mt-3 max-w-2xl text-[15px] leading-relaxed">{profile.bio}</p>}
         {(profile.experienceYears != null || profile.languages.length > 0 || profile.equipment || profile.teamInfo) && (

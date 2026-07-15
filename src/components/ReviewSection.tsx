@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { ru } from '@/i18n/ru';
 import { describeApiError } from '@/lib/form-errors';
+import { Rating } from '@/components/ui/Rating';
 
 export interface ReviewItem {
   id: string;
@@ -26,12 +27,7 @@ interface Me {
 }
 
 function Stars({ n }: { n: number }) {
-  return (
-    <span aria-label={`${n} из 5`} className="text-accent">
-      {'★'.repeat(n)}
-      <span className="text-muted">{'★'.repeat(5 - n)}</span>
-    </span>
-  );
+  return <Rating value={n} showCount={false} />;
 }
 
 export function ReviewSection({
@@ -123,12 +119,12 @@ export function ReviewSection({
           <div className="mt-1 flex gap-1 text-2xl">
             {[1, 2, 3, 4, 5].map((s) => (
               <button key={s} type="button" onClick={() => setRating(s)} aria-label={`${s}`}
-                className={s <= rating ? 'text-accent' : 'text-muted'}>★</button>
+                className={`text-xl ${s <= rating ? 'text-ink' : 'text-muted-2'}`}>★</button>
             ))}
           </div>
           <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={4}
             placeholder={ru.reviews.placeholder} className="input mt-3" maxLength={2000} />
-          {error && <p role="alert" className="mt-1 text-sm text-accent">{error}</p>}
+          {error && <p role="alert" className="mt-1 text-sm text-danger">{error}</p>}
           <button type="submit" disabled={pending || !body.trim() || rating < 1} className="btn btn-accent mt-2 px-4 py-2">
             {pending ? ru.reviews.sending : ru.reviews.submit}
           </button>

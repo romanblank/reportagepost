@@ -6,9 +6,12 @@ import { catalogForCity } from '@/lib/catalog';
 import { visitingCity } from '@/lib/travel';
 import { cityNameRu } from '@/lib/geo-data';
 import { CATEGORIES, categoryNameRu } from '@/lib/category-data';
-import { thumbVariantUrl, avatarUrl } from '@/lib/photos';
+import { thumbVariantUrl } from '@/lib/photos';
 import { formatRubMinor } from '@/lib/money';
 import { ru } from '@/i18n/ru';
+import { Avatar } from '@/components/ui/Avatar';
+import { Rating } from '@/components/ui/Rating';
+import { VerifiedBadge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/EmptyState';
 import { JsonLd } from '@/components/JsonLd';
 import { catalogItemListLd } from '@/lib/structured-data';
@@ -170,17 +173,9 @@ export default async function CatalogPage(props: {
                 <div className="p-4">
                   <div className="flex items-center justify-between gap-2">
                     <span className="flex min-w-0 items-center gap-2 font-medium">
-                      {card.avatarKey ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={avatarUrl(card.avatarKey)} alt="" width={28} height={28}
-                          className="h-7 w-7 shrink-0 rounded-full object-cover" />
-                      ) : (
-                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-surface-2 text-xs">
-                          {card.firstName.slice(0, 1)}{card.lastName.slice(0, 1)}
-                        </span>
-                      )}
+                      <Avatar avatarKey={card.avatarKey} firstName={card.firstName} lastName={card.lastName} size={28} />
                       <span className="truncate">{card.firstName} {card.lastName}</span>
-                      {card.verified && <span title={ru.profile.verified} className="shrink-0 text-accent">✓</span>}
+                      {card.verified && <VerifiedBadge label={ru.profile.verified} size={16} />}
                     </span>
                     {card.minPackage && (
                       <span className="text-sm muted">
@@ -189,10 +184,9 @@ export default async function CatalogPage(props: {
                     )}
                   </div>
                   {card.ratingCount > 0 && (
-                    <p className="mt-1 text-sm">
-                      <span className="text-accent">★</span> {card.ratingAvg.toFixed(1)}{' '}
-                      <span className="text-xs muted">({card.ratingCount})</span>
-                    </p>
+                    <div className="mt-1.5">
+                      <Rating value={card.ratingAvg} count={card.ratingCount} size="sm" />
+                    </div>
                   )}
                   {card.bio && <p className="mt-1 line-clamp-2 text-sm muted">{card.bio}</p>}
                   <p className="mt-2 text-xs muted opacity-70">
