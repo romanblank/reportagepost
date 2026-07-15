@@ -223,6 +223,11 @@ export const ru = {
     favorite: 'В избранное',
     favorited: 'В избранном',
   },
+  ui: {
+    toastError: 'Не удалось сохранить. Попробуйте ещё раз.',
+    toastNetwork: 'Нет связи с сервером.',
+    close: 'Закрыть',
+  },
   photoFeed: {
     title: 'Фотографии',
     tabWeek: 'Лучшие за неделю',

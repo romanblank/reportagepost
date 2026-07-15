@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ru } from '@/i18n/ru';
+import { Icon } from '@/components/ui/Icon';
+import { useToast } from '@/components/ui/Toast';
 
 export function LikeButton({ photoId, initialLiked, initialCount, authed }: {
   photoId: string;
@@ -11,6 +13,7 @@ export function LikeButton({ photoId, initialLiked, initialCount, authed }: {
   authed: boolean;
 }) {
   const router = useRouter();
+  const { toast } = useToast();
   const [liked, setLiked] = useState(initialLiked);
   const [count, setCount] = useState(initialCount);
 
@@ -19,20 +22,21 @@ export function LikeButton({ photoId, initialLiked, initialCount, authed }: {
       router.push('/ru/login');
       return;
     }
-    // оптимистично
     setLiked(!liked);
     setCount((c) => c + (liked ? -1 : 1));
     const res = await fetch(`/api/photos/${photoId}/like`, { method: 'POST' }).catch(() => null);
     if (!res?.ok) {
       setLiked(liked);
       setCount((c) => c + (liked ? 1 : -1));
+      toast(ru.ui.toastError, 'danger');
     }
   }
 
   return (
     <button onClick={toggle} aria-pressed={liked}
-      className={`rounded-full border px-3 py-1 text-sm ${liked ? 'bg-foreground text-background' : ''}`}>
-      ♥ {count}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors ${liked ? 'bg-ink text-paper' : 'border-line hover:bg-surface-2'}`}>
+      <Icon name={liked ? 'heart-filled' : 'heart'} size={16} />
+      <span className="tnum">{count}</span>
     </button>
   );
 }
@@ -43,6 +47,7 @@ export function FollowButton({ userId, initialFollowing, authed }: {
   authed: boolean;
 }) {
   const router = useRouter();
+  const { toast } = useToast();
   const [following, setFollowing] = useState(initialFollowing);
 
   async function toggle() {
@@ -52,12 +57,15 @@ export function FollowButton({ userId, initialFollowing, authed }: {
     }
     setFollowing(!following);
     const res = await fetch(`/api/photographers/${userId}/follow`, { method: 'POST' }).catch(() => null);
-    if (!res?.ok) setFollowing(following);
+    if (!res?.ok) {
+      setFollowing(following);
+      toast(ru.ui.toastError, 'danger');
+    }
   }
 
   return (
     <button onClick={toggle} aria-pressed={following}
-      className={`rounded-full border px-4 py-1 text-sm ${following ? 'bg-foreground text-background' : ''}`}>
+      className={`btn btn-outline btn-sm ${following ? 'chip-active' : ''}`}>
       {following ? ru.engage.following : ru.engage.follow}
     </button>
   );
@@ -66,9 +74,8 @@ export function FollowButton({ userId, initialFollowing, authed }: {
 export function MessageButton({ userId }: { userId: string }) {
   const router = useRouter();
   return (
-    <button onClick={() => router.push(`/ru/messages/${userId}`)}
-      className="rounded-full border px-4 py-1 text-sm">
-      {ru.engage.write}
+    <button onClick={() => router.push(`/ru/messages/${userId}`)} className="btn btn-accent btn-sm">
+      <Icon name="message" size={16} /> {ru.engage.write}
     </button>
   );
 }
@@ -79,6 +86,7 @@ export function FavoriteButton({ userId, initialFavorited, authed }: {
   authed: boolean;
 }) {
   const router = useRouter();
+  const { toast } = useToast();
   const [fav, setFav] = useState(initialFavorited);
 
   async function toggle() {
@@ -88,13 +96,17 @@ export function FavoriteButton({ userId, initialFavorited, authed }: {
     }
     setFav(!fav);
     const res = await fetch(`/api/photographers/${userId}/favorite`, { method: 'POST' }).catch(() => null);
-    if (!res?.ok) setFav(fav);
+    if (!res?.ok) {
+      setFav(fav);
+      toast(ru.ui.toastError, 'danger');
+    }
   }
 
   return (
     <button onClick={toggle} aria-pressed={fav}
-      className={`rounded-full border px-4 py-1 text-sm ${fav ? 'bg-foreground text-background' : ''}`}>
-      {fav ? `★ ${ru.engage.favorited}` : `☆ ${ru.engage.favorite}`}
+      className={`btn btn-sm ${fav ? 'btn-outline' : 'btn-ghost'}`}>
+      <Icon name={fav ? 'star-filled' : 'star'} size={16} />
+      {fav ? ru.engage.favorited : ru.engage.favorite}
     </button>
   );
 }

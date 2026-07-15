@@ -10,6 +10,7 @@ import { MobileTabBar } from "@/components/MobileTabBar";
 import { LiveUpdates } from "@/components/LiveUpdates";
 import { SiteFooter } from "@/components/SiteFooter";
 import { CookieConsent } from "@/components/CookieConsent";
+import { ToastProvider } from "@/components/ui/Toast";
 
 // Editorial Gallery: Inter (текст/UI, лучшая кириллица среди гротесков) +
 // Cormorant (журнальная антиква для дисплей-заголовков). Обе с кириллицей.
@@ -67,12 +68,14 @@ export default async function RootLayout({
     >
       {/* pb-16 на мобиле — под нижнюю таб-навигацию */}
       <body className="min-h-full flex flex-col pb-16 sm:pb-0">
-        <SiteHeader />
-        {children}
-        <SiteFooter />
-        {session && <LiveUpdates />}
-        <CookieConsent />
-        <MobileTabBar authed={Boolean(session)} cabinetHref={cabinetHref} />
+        <ToastProvider>
+          <SiteHeader />
+          {children}
+          <SiteFooter />
+          {session && <LiveUpdates />}
+          <CookieConsent />
+          <MobileTabBar authed={Boolean(session)} cabinetHref={cabinetHref} />
+        </ToastProvider>
       </body>
     </html>
   );
