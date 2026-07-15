@@ -41,7 +41,7 @@ export default async function CommunityPage() {
 
       {topRated.length > 0 && (
         <section className="mt-8">
-          <h2 className="text-lg font-medium">{ru.dashboard.topRatedTitle}</h2>
+          <h2 className="t-h3">{ru.dashboard.topRatedTitle}</h2>
           <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {topRated.map((p) => (
               <li key={p.username}>
@@ -56,7 +56,7 @@ export default async function CommunityPage() {
                   )}
                   <span className="min-w-0">
                     <span className="block truncate font-medium">{p.firstName} {p.lastName}</span>
-                    <span className="text-sm"><span className="text-accent">★</span> {p.ratingAvg.toFixed(1)} <span className="text-xs muted">({p.ratingCount})</span></span>
+                    <span className="text-sm muted">{ru.reviews.count(p.ratingCount)}</span>
                   </span>
                 </Link>
               </li>

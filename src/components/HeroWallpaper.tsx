@@ -93,9 +93,9 @@ export function HeroWallpaper() {
           animation: hwRise .7s .12s cubic-bezier(.16,1,.3,1) forwards;
         }
         .hw-title {
-          font-family: var(--font-unbounded), system-ui, sans-serif; font-weight: 800;
-          font-size: clamp(38px, 6.4vw, 92px); line-height: 1; letter-spacing: -.03em;
-          margin: 0; max-width: 16ch; color: #fff; text-wrap: balance;
+          font-family: var(--font-cormorant), Georgia, serif; font-weight: 600;
+          font-size: clamp(46px, 7.4vw, 108px); line-height: 1.02; letter-spacing: -.01em;
+          margin: 0; max-width: 15ch; color: #fff; text-wrap: balance;
         }
         .hw-word { display: inline-block; opacity: 0; transform: translateY(26px); animation: hwRise .8s cubic-bezier(.16,1,.3,1) forwards; }
         .hw-lede {

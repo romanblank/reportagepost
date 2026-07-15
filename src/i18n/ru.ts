@@ -273,7 +273,7 @@ export const ru = {
     statCities: 'Городов',
     statStories: 'Серий',
     recentTitle: 'Новые в сообществе',
-    topRatedTitle: 'Топ по отзывам',
+    topRatedTitle: 'Признание заказчиков',
     bestWeekTitle: 'Лучшее за неделю',
   },
   notifications: {
