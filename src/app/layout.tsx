@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Cormorant, Geist_Mono } from "next/font/google";
+import { Inter, Cormorant, Unbounded, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ru } from "@/i18n/ru";
 import { DEFAULT_LOCALE, PUBLIC_LAUNCH } from "@/lib/constants";
@@ -24,6 +24,14 @@ const cormorant = Cormorant({
   variable: "--font-cormorant",
   subsets: ["latin", "cyrillic"],
   weight: ["500", "600"],
+  display: "swap",
+});
+
+// Дисплей-гротеск с нативной кириллицей — характерный голос героя (не «слоп»)
+const unbounded = Unbounded({
+  variable: "--font-unbounded",
+  subsets: ["latin", "cyrillic"],
+  weight: ["600", "700", "800"],
   display: "swap",
 });
 
@@ -64,7 +72,7 @@ export default async function RootLayout({
   return (
     <html
       lang={DEFAULT_LOCALE}
-      className={`${inter.variable} ${cormorant.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${cormorant.variable} ${unbounded.variable} ${geistMono.variable} h-full antialiased`}
     >
       {/* pb-16 на мобиле — под нижнюю таб-навигацию */}
       <body className="min-h-full flex flex-col pb-16 sm:pb-0">

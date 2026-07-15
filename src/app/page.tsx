@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ru } from "@/i18n/ru";
 import { freshPhotos } from "@/lib/feeds";
 import { webVariantUrl } from "@/lib/photos";
+import { HeroWallpaper } from "@/components/HeroWallpaper";
 
 // force-dynamic: лендинг тянет свежие работы из БД (урок: static-страница с
 // запросом падает на пререндере в Docker-билде без DATABASE_URL).
@@ -12,26 +13,7 @@ export default async function Home() {
   const recent = await freshPhotos(12);
   return (
     <main className="flex-1">
-      <section className="mx-auto w-full max-w-4xl px-4 py-20 sm:py-28 text-center">
-        <p className="t-caption text-accent">
-          {ru.landing.kicker}
-        </p>
-        <h1 className="t-display mx-auto mt-4 max-w-3xl">
-          {ru.landing.heroTitle}
-        </h1>
-        <p className="t-body-lg mx-auto mt-6 max-w-2xl muted">
-          {ru.landing.heroLead}
-        </p>
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-          <Link href="/ru/register" className="btn btn-accent btn-lg">
-            {ru.landing.registerCta}
-          </Link>
-          <Link href="/ru/login" className="btn btn-outline btn-lg">
-            {ru.landing.loginCta}
-          </Link>
-        </div>
-        <p className="mt-6 text-sm muted">{ru.landing.closedNote}</p>
-      </section>
+      <HeroWallpaper />
 
       {recent.length > 0 && (
         <section className="mx-auto w-full max-w-6xl px-4 pb-16">
