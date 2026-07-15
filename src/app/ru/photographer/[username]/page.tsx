@@ -173,8 +173,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
         {reviews.aggregate.count > 0 && (
           <div className="mt-1.5 flex items-center gap-2">
             <Rating value={reviews.aggregate.avg} size="lg" showCount={false} />
-            <span className="text-sm tnum"><b className="font-semibold">{reviews.aggregate.avg.toFixed(1)}</b>{' '}
-              <span className="muted">{ru.reviews.count(reviews.aggregate.count)}</span></span>
+            <span className="text-sm muted">{ru.reviews.count(reviews.aggregate.count)}</span>
           </div>
         )}
         {profile.bio && <p className="mt-3 max-w-2xl text-[15px] leading-relaxed">{profile.bio}</p>}

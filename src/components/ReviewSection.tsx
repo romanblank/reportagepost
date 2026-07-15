@@ -97,7 +97,7 @@ export function ReviewSection({
         {aggregate.count > 0 && (
           <span className="text-sm">
             <Stars n={Math.round(aggregate.avg)} />{' '}
-            <span className="muted">{ru.reviews.summary(aggregate.avg.toFixed(1), aggregate.count)}</span>
+            <span className="muted">{ru.reviews.summary(aggregate.count)}</span>
           </span>
         )}
       </div>

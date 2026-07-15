@@ -185,7 +185,7 @@ export default async function CatalogPage(props: {
                     {card.verified && <VerifiedBadge label={ru.profile.verified} size={15} />}
                   </div>
                   <div className="mt-1 flex items-center gap-2">
-                    {card.ratingCount > 0 && <Rating value={card.ratingAvg} count={card.ratingCount} size="sm" />}
+                    {card.ratingCount > 0 && <Rating value={card.ratingAvg} showCount={false} size="sm" />}
                     <span className="t-caption truncate muted">
                       {card.categories.map((slug) => categoryNameRu(slug)).join(' · ')}
                     </span>

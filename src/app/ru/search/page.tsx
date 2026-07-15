@@ -4,6 +4,7 @@ import { searchPhotographers } from '@/lib/search';
 import { cityNameRu } from '@/lib/geo-data';
 import { categoryNameRu } from '@/lib/category-data';
 import { thumbVariantUrl, avatarUrl } from '@/lib/photos';
+import { VerifiedBadge } from '@/components/ui/Badge';
 import { ru } from '@/i18n/ru';
 
 export const metadata: Metadata = { title: ru.search.title };
@@ -52,10 +53,10 @@ export default async function SearchPage(props: { searchParams: Promise<{ q?: st
                       </span>
                     )}
                     <span className="truncate">{r.firstName} {r.lastName}</span>
-                    {r.verified && <span title={ru.profile.verified} className="shrink-0 text-accent">✓</span>}
+                    {r.verified && <VerifiedBadge label={ru.profile.verified} size={15} />}
                   </span>
                   {r.ratingCount > 0 && (
-                    <p className="mt-1 text-sm"><span className="text-accent">★</span> {r.ratingAvg.toFixed(1)} <span className="text-xs muted">({r.ratingCount})</span></p>
+                    <p className="mt-1 text-sm muted">{ru.reviews.count(r.ratingCount)}</p>
                   )}
                   <p className="mt-1 text-sm muted">
                     {cityNameRu(r.citySlug)} · {r.categories.map((c) => categoryNameRu(c)).join(' · ')}
