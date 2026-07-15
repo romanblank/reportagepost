@@ -4,7 +4,10 @@ import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { ru } from '@/i18n/ru';
+import { RU_CITIES } from '@/lib/geo-data';
+import { travelPlansFor } from '@/lib/travel';
 import { AvailabilityCalendar } from '@/components/AvailabilityCalendar';
+import { TravelPlans } from '@/components/TravelPlans';
 
 export const metadata: Metadata = { title: ru.availability.title };
 export const dynamic = 'force-dynamic';
@@ -16,30 +19,53 @@ export default async function AvailabilityPage() {
 
   const profile = await db.photographerProfile.findUnique({
     where: { userId: session.userId },
-    select: { id: true, status: true },
+    select: { id: true, status: true, city: { select: { slug: true } } },
   });
+  const approved = profile?.status === 'APPROVED';
 
-  const busy =
-    profile?.status === 'APPROVED'
-      ? await db.busyDate.findMany({
-          where: { profileId: profile.id, date: { gte: new Date(new Date().setHours(0, 0, 0, 0)) } },
+  const from = new Date(new Date().setUTCHours(0, 0, 0, 0));
+  const [busy, plans] = approved
+    ? await Promise.all([
+        db.busyDate.findMany({
+          where: { profileId: profile.id, date: { gte: from } },
           orderBy: { date: 'asc' },
           select: { date: true },
-        })
-      : [];
+        }),
+        travelPlansFor(session.userId),
+      ])
+    : [[], []];
+
+  // Города назначения: все РФ-города, кроме своего
+  const cities = RU_CITIES.filter((c) => c.slug !== profile?.city.slug)
+    .map((c) => ({ slug: c.slug, name: c.nameRu }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'ru'));
 
   return (
     <main className="mx-auto w-full max-w-lg flex-1 px-4 py-6 sm:py-10">
       <Link href="/ru/cabinet" className="text-sm underline muted">← {ru.cabinet.title}</Link>
       <h1 className="mt-3 text-2xl font-semibold sm:text-3xl">{ru.availability.title}</h1>
 
-      {profile?.status !== 'APPROVED' ? (
+      {!approved ? (
         <p className="mt-4 text-sm muted">{ru.availability.locked}</p>
       ) : (
         <>
           <p className="mt-2 text-sm muted">{ru.availability.lead}</p>
           <div className="mt-6 card p-4">
             <AvailabilityCalendar initialBusy={busy.map((b) => b.date.toISOString().slice(0, 10))} />
+          </div>
+
+          <h2 className="mt-8 text-lg font-medium">{ru.travel.title}</h2>
+          <p className="mt-1 text-sm muted">{ru.travel.lead}</p>
+          <div className="mt-4 card p-4">
+            <TravelPlans
+              initialPlans={plans.map((p) => ({
+                id: p.id,
+                citySlug: p.city.slug,
+                fromDate: p.fromDate.toISOString().slice(0, 10),
+                toDate: p.toDate.toISOString().slice(0, 10),
+              }))}
+              cities={cities}
+            />
           </div>
         </>
       )}
