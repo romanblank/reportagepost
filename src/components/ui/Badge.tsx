@@ -13,8 +13,10 @@ export function VerifiedBadge({ label, size = 16 }: { label: string; size?: numb
 }
 
 export function EditorsBadge({ label }: { label: string }) {
+  // «Выбор редакции» — знак заслуги, латунь/золото (не красный)
   return (
-    <span className="t-caption inline-flex items-center gap-1 rounded-sm border border-line-2 px-2 py-0.5 text-ink-2">
+    <span className="t-caption inline-flex items-center gap-1 rounded-sm border border-recognition px-2 py-0.5 text-recognition">
+      <Icon name="star-filled" size={12} />
       {label}
     </span>
   );

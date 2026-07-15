@@ -35,7 +35,7 @@ export function PortfolioGallery({
         {items.map((photo, i) => (
           <figure key={photo.id} className="group relative mb-1 break-inside-avoid sm:mb-2">
             {photo.editorsChoice && (
-              <span className="absolute left-2 top-2 z-10 rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-ink">
+              <span className="absolute left-2 top-2 z-10 rounded-full bg-recognition px-2 py-0.5 text-xs font-medium text-recognition-ink">
                 {editorsChoiceLabel}
               </span>
             )}

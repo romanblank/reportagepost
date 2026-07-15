@@ -37,6 +37,13 @@
   /* Verified — нейтрально-стальной, не красный */
   --verified: #4a6fa5;
 
+  /* Признание — латунь/золото: носитель заслуги (Выбор редакции, награды, ранг).
+     Заменяет красный на оценочных смыслах (ребрендинг 2026-07). */
+  --recognition: #b7791f;
+  --recognition-hi: #e8b04b;
+  --recognition-soft: #fbf1dc;
+  --recognition-ink: #14151a;
+
   /* Радиусы */
   --radius-sm: 4px;       /* чипы, бейджи */
   --radius-md: 8px;       /* кнопки, инпуты, карточки */
@@ -83,6 +90,10 @@
     --danger:  #e0574a;  --danger-soft:  #2a1512;
     --info:    #5b8def;  --info-soft:    #131e33;
     --verified: #6e93c9;
+    --recognition: #e8b04b;
+    --recognition-hi: #f0c46e;
+    --recognition-soft: #2a2110;
+    --recognition-ink: #0b0b0d;
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
     --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.5);
     --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.6);
@@ -113,6 +124,10 @@
   --color-info: var(--info);
   --color-info-soft: var(--info-soft);
   --color-verified: var(--verified);
+  --color-recognition: var(--recognition);
+  --color-recognition-hi: var(--recognition-hi);
+  --color-recognition-soft: var(--recognition-soft);
+  --color-recognition-ink: var(--recognition-ink);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --radius-sm: var(--radius-sm);
