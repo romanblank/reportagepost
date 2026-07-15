@@ -96,6 +96,11 @@ export default async function CabinetPage() {
               <Link href="/ru/cabinet/profile/edit" className="text-sm underline">
                 {ru.editProfile.title}
               </Link>
+              {profile.status === 'APPROVED' && (
+                <Link href="/ru/cabinet/availability" className="text-sm underline">
+                  {ru.cabinet.availabilityLink}
+                </Link>
+              )}
             </div>
           ) : (
             <div className="mt-1 flex items-center gap-3">

@@ -1,41 +1,30 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getSession } from '@/lib/auth';
-import { db } from '@/lib/db';
+import { toggleBusyDate, listBusyDates } from '@/lib/availability';
+import { handleRoute, jsonError } from '@/lib/errors';
 
 // Календарь занятости фотографа: список и toggle занятых дат
 export async function GET() {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  const profile = await db.photographerProfile.findUnique({ where: { userId: session.userId } });
-  if (!profile) return NextResponse.json({ error: 'no_profile' }, { status: 409 });
-
-  const busy = await db.busyDate.findMany({
-    where: { profileId: profile.id, date: { gte: new Date() } },
-    orderBy: { date: 'asc' },
+  return handleRoute(async () => {
+    const session = await getSession();
+    if (!session) return jsonError('unauthorized', 401);
+    const from = new Date(new Date().setUTCHours(0, 0, 0, 0));
+    return NextResponse.json({ dates: await listBusyDates(session.userId, from) });
   });
-  return NextResponse.json({ dates: busy.map((b) => b.date.toISOString().slice(0, 10)) });
 }
 
 const ToggleSchema = z.object({ date: z.iso.date() });
 
 export async function POST(req: Request) {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  const profile = await db.photographerProfile.findUnique({ where: { userId: session.userId } });
-  if (!profile) return NextResponse.json({ error: 'no_profile' }, { status: 409 });
+  return handleRoute(async () => {
+    const session = await getSession();
+    if (!session) return jsonError('unauthorized', 401);
 
-  const parsed = ToggleSchema.safeParse(await req.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: 'validation' }, { status: 400 });
+    const parsed = ToggleSchema.safeParse(await req.json().catch(() => null));
+    if (!parsed.success) return jsonError('validation', 400);
 
-  const date = new Date(`${parsed.data.date}T00:00:00Z`);
-  const existing = await db.busyDate.findUnique({
-    where: { profileId_date: { profileId: profile.id, date } },
+    const busy = await toggleBusyDate(session.userId, parsed.data.date);
+    return NextResponse.json({ busy });
   });
-  if (existing) {
-    await db.busyDate.delete({ where: { id: existing.id } });
-    return NextResponse.json({ busy: false });
-  }
-  await db.busyDate.create({ data: { profileId: profile.id, date } });
-  return NextResponse.json({ busy: true });
 }
