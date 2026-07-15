@@ -82,7 +82,7 @@ export default async function CatalogPage(props: {
           )}
         />
       )}
-      <h1 className="text-2xl font-semibold sm:text-4xl">{ru.catalog.title(cityName)}</h1>
+      <h1 className="t-h1">{ru.catalog.title(cityName)}</h1>
       <p className="mt-1.5 text-sm muted">{ru.catalog.photographersCount(cards.length)}</p>
 
       {/* Категории: горизонтальный скролл на мобиле (app-подача), обёртка edge-to-edge */}

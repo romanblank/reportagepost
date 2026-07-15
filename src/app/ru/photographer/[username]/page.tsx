@@ -164,7 +164,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
           </div>
         </div>
 
-        <h1 className="mt-4 flex flex-wrap items-center gap-2 text-2xl font-semibold sm:text-4xl">
+        <h1 className="t-h1 mt-4 flex flex-wrap items-center gap-2">
           <span>{profile.user.firstName} {profile.user.lastName}</span>
           {profile.verified && (
             <span title={ru.profile.verifiedHint}

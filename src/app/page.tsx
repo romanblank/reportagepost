@@ -16,7 +16,7 @@ export default async function Home() {
         <p className="text-sm font-medium uppercase tracking-widest text-accent">
           {ru.landing.kicker}
         </p>
-        <h1 className="mx-auto mt-4 max-w-3xl text-4xl font-semibold leading-[1.1] sm:text-6xl">
+        <h1 className="t-display mx-auto mt-4 max-w-3xl">
           {ru.landing.heroTitle}
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed muted">

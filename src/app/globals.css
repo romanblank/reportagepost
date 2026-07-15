@@ -1,40 +1,92 @@
 @import "tailwindcss";
 
-/* ─── Дизайн-токены Reportage Post ─────────────────────────────────────────
-   Editorial, фотоцентрично: тёплая бумага + чернила + один акцент (vermilion,
-   энергия репортажа/прессы). Монохром премиум, акцент — дозированно. */
+/* ─── Дизайн-токены Reportage Post · «Editorial Gallery» ────────────────────
+   Цифровая фотогалерея с журнальной типографикой. Фото — единственный источник
+   цвета; интерфейс монохромен; холодный галерейный нейтрал (не тёплая бумага —
+   она желтит превью и врёт про баланс белого). Акцент — дозированно (CTA,
+   уведомления, «Выбор редакции»); звёзды/verified/цена НЕ красные. */
 :root {
-  --paper: #faf9f6;
+  /* Поверхности — холодный нейтрал */
+  --paper: #fbfbfc;
   --surface: #ffffff;
-  --surface-2: #f3f1ec;
-  --ink: #17161b;
-  --muted: #6f6d77;
-  --line: #e7e4dd;
-  --accent: #df4635;
+  --surface-2: #f2f3f5;   /* вложенные блоки, чипы, hover, skeleton-база */
+  --surface-3: #e9eaed;   /* skeleton-волна, глубже вложенный слой */
+
+  /* Текст */
+  --ink: #14151a;         /* near-black, не чистый #000 */
+  --ink-2: #3a3b42;       /* вторичные заголовки, сильная мета */
+  --muted: #71727a;       /* подписи, мета (AA-safe на surface) */
+  --muted-2: #9a9ba3;     /* дизейбл, плейсхолдер — не для мелкого текста */
+
+  /* Линии */
+  --line: #e6e7eb;        /* hairline 1px — основной разделитель */
+  --line-2: #d6d7dc;      /* линия на surface-2 / сильнее */
+
+  /* Бренд-акцент (точечно!) */
+  --accent: #e5484d;      /* приглушённый пресс-красный */
   --accent-ink: #ffffff;
-  --ring: rgba(223, 70, 53, 0.35);
-  --radius: 0.75rem;
+  --accent-soft: #fdecec; /* заливка бейджа/hover акцента */
+  --ring: rgba(229, 72, 77, 0.32);
+
+  /* Семантические (разведены с брендом) */
+  --success: #2e7d5b;  --success-soft: #e6f4ec;
+  --warning: #b7791f;  --warning-soft: #fbf1dc;
+  --danger:  #c0392b;  --danger-soft:  #fbe9e7;
+  --info:    #2d6cdf;  --info-soft:    #e8effd;
+
+  /* Verified — нейтрально-стальной, не красный */
+  --verified: #4a6fa5;
+
+  /* Радиусы */
+  --radius-sm: 4px;       /* чипы, бейджи */
+  --radius-md: 8px;       /* кнопки, инпуты, карточки */
+  --radius-lg: 14px;      /* модалки, крупные панели */
+  --radius-media: 2px;    /* фото-контейнеры — почти острые = «галерейнее» */
+  --radius-full: 9999px;
+  --radius: var(--radius-md); /* легаси-алиас (старый rounded через --radius) */
+
+  /* Тени — только оверлеям (модалка/поповер/тост/lightbox) */
   --shadow-sm: 0 1px 2px rgba(20, 18, 25, 0.04), 0 1px 3px rgba(20, 18, 25, 0.06);
   --shadow-md: 0 4px 12px rgba(20, 18, 25, 0.08);
+  --shadow-lg: 0 12px 32px rgba(20, 18, 25, 0.12), 0 4px 8px rgba(20, 18, 25, 0.06);
+  --shadow-xl: 0 24px 64px rgba(20, 18, 25, 0.18), 0 8px 16px rgba(20, 18, 25, 0.08);
 
-  /* Совместимость со старым кодом (bg-foreground/text-background) */
+  /* Тайминги */
+  --dur-fast: 150ms;  --dur-base: 250ms;  --dur-slow: 400ms;
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
+  --ease-in-out: cubic-bezier(.4, 0, .2, 1);
+
+  /* Легаси-алиасы (bg-foreground/text-background) — удалить при переверстке экранов */
   --background: var(--paper);
   --foreground: var(--ink);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --paper: #0c0c0e;
-    --surface: #161619;
-    --surface-2: #1e1d22;
-    --ink: #ecebe6;
-    --muted: #9a97a1;
-    --line: #29282e;
-    --accent: #f0584c;
-    --accent-ink: #16151a;
-    --ring: rgba(240, 88, 76, 0.4);
+    /* Тёмная — «премьерный показ», не «ночной режим» */
+    --paper: #0b0b0d;     /* глубокий near-black, не #000 */
+    --surface: #141518;
+    --surface-2: #1c1d21;
+    --surface-3: #26272c;
+    --ink: #ecedef;
+    --ink-2: #b9bac0;
+    --muted: #85868e;
+    --muted-2: #63646b;
+    --line: #26272c;
+    --line-2: #34353b;
+    --accent: #f2565b;
+    --accent-ink: #0b0b0d;
+    --accent-soft: #2a1618;
+    --ring: rgba(242, 86, 91, 0.40);
+    --success: #3ba776;  --success-soft: #12241b;
+    --warning: #d9a040;  --warning-soft: #2a2110;
+    --danger:  #e0574a;  --danger-soft:  #2a1512;
+    --info:    #5b8def;  --info-soft:    #131e33;
+    --verified: #6e93c9;
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
     --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.6);
+    --shadow-xl: 0 28px 72px rgba(0, 0, 0, 0.7);
   }
 }
 
@@ -42,14 +94,33 @@
   --color-paper: var(--paper);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
   --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
   --color-muted: var(--muted);
+  --color-muted-2: var(--muted-2);
   --color-line: var(--line);
+  --color-line-2: var(--line-2);
   --color-accent: var(--accent);
   --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-verified: var(--verified);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-media: var(--radius-media);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-cormorant), Georgia, "Times New Roman", serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
@@ -60,63 +131,103 @@
 body {
   background: var(--paper);
   color: var(--ink);
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
-h1, h2, h3 { letter-spacing: -0.02em; }
-
 ::selection { background: var(--accent); color: var(--accent-ink); }
+
+/* ─── Типо-роли (единственный способ набора заголовков; §2.3 спеки) ────────── */
+@layer components {
+  .t-display {
+    font-family: var(--font-cormorant), Georgia, serif;
+    font-weight: 600; line-height: 1.05; letter-spacing: 0;
+    font-size: clamp(2.5rem, 1.6rem + 4.5vw, 4.5rem);
+  }
+  .t-h1 {
+    font-family: var(--font-cormorant), Georgia, serif;
+    font-weight: 600; line-height: 1.1;
+    font-size: clamp(2rem, 1.4rem + 3vw, 3.25rem);
+  }
+  .t-h2 {
+    font-family: var(--font-cormorant), Georgia, serif;
+    font-weight: 600; line-height: 1.15;
+    font-size: clamp(1.5rem, 1.2rem + 1.5vw, 2.25rem);
+  }
+  .t-h3 { font-weight: 600; font-size: 1.25rem; line-height: 1.3; letter-spacing: -0.01em; }
+  .t-body-lg { font-size: 1.125rem; line-height: 1.6; }
+  .t-body { font-size: 1rem; line-height: 1.6; }
+  .t-small { font-size: 0.875rem; line-height: 1.5; }
+  .t-caption {
+    font-size: 0.75rem; line-height: 1.4; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .tnum { font-variant-numeric: tabular-nums; }
+}
 
 /* ─── Компонентные классы ──────────────────────────────────────────────── */
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all;
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium;
+    min-height: 2.5rem;
+    transition: background var(--dur-fast), border-color var(--dur-fast),
+                color var(--dur-fast), filter var(--dur-fast);
   }
+  .btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--ring); }
+  .btn:not(:disabled):active { transform: scale(0.98); }
   .btn:disabled { @apply cursor-not-allowed opacity-40; }
+  .btn-sm { @apply px-3 py-1.5 text-xs; min-height: 2rem; }
+  .btn-lg { @apply px-5 py-3 text-base; min-height: 2.75rem; }
 
   .btn-primary { background: var(--ink); color: var(--paper); }
-  .btn-primary:not(:disabled):hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+  .btn-primary:not(:disabled):hover { background: var(--ink-2); }
 
   .btn-accent { background: var(--accent); color: var(--accent-ink); }
-  .btn-accent:not(:disabled):hover { transform: translateY(-1px); box-shadow: var(--shadow-md); filter: brightness(1.05); }
+  .btn-accent:not(:disabled):hover { filter: brightness(1.06); }
 
-  .btn-outline { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+  .btn-outline { background: transparent; color: var(--ink); border: 1px solid var(--line-2); }
   .btn-outline:not(:disabled):hover { background: var(--surface-2); }
 
   .btn-ghost { background: transparent; color: var(--muted); }
-  .btn-ghost:hover { color: var(--ink); }
+  .btn-ghost:not(:disabled):hover { color: var(--ink); background: var(--surface-2); }
+
+  .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
+  .btn-danger:not(:disabled):hover { background: var(--danger-soft); }
 
   .input {
-    @apply w-full rounded-xl px-3.5 py-2.5 text-sm transition-shadow;
+    @apply w-full rounded-md px-3.5 py-2.5 text-sm transition-shadow;
     background: var(--surface);
     border: 1px solid var(--line);
     color: var(--ink);
   }
-  .input::placeholder { color: var(--muted); opacity: 0.7; }
+  .input::placeholder { color: var(--muted-2); }
   .input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--ring); }
+  .input-error { border-color: var(--danger); }
+  .input-error:focus { border-color: var(--danger); box-shadow: 0 0 0 3px var(--danger-soft); }
 
   .card {
-    @apply rounded-xl;
+    @apply rounded-md;
     background: var(--surface);
     border: 1px solid var(--line);
-    box-shadow: var(--shadow-sm);
   }
-  .card-hover { transition: all 0.15s ease; }
-  .card-hover:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
+  .card-hover { transition: border-color var(--dur-base), background var(--dur-base); }
+  .card-hover:hover { border-color: var(--line-2); }
+  .card-hover:focus-within { box-shadow: 0 0 0 3px var(--ring); }
 
   .chip {
-    @apply inline-flex cursor-pointer items-center rounded-full px-3.5 py-1.5 text-sm transition-colors;
+    @apply inline-flex cursor-pointer items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm;
     background: var(--surface);
     border: 1px solid var(--line);
     color: var(--ink);
+    transition: background var(--dur-fast), border-color var(--dur-fast);
   }
   .chip:hover { background: var(--surface-2); }
-  .chip-active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .chip-active { border-color: var(--ink); font-weight: 600; }
 
   .field-label { @apply mb-1.5 block text-sm font-medium; color: var(--ink); }
   .field-hint { @apply mt-1 block text-xs; color: var(--muted); }
+  .field-error { @apply mt-1 block text-xs; color: var(--danger); }
 
   .muted { color: var(--muted); }
 }

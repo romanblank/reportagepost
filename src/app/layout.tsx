@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, Cormorant, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ru } from "@/i18n/ru";
 import { DEFAULT_LOCALE, PUBLIC_LAUNCH } from "@/lib/constants";
@@ -11,9 +11,19 @@ import { LiveUpdates } from "@/components/LiveUpdates";
 import { SiteFooter } from "@/components/SiteFooter";
 import { CookieConsent } from "@/components/CookieConsent";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Editorial Gallery: Inter (текст/UI, лучшая кириллица среди гротесков) +
+// Cormorant (журнальная антиква для дисплей-заголовков). Обе с кириллицей.
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin", "cyrillic"],
+  display: "swap",
+});
+
+const cormorant = Cormorant({
+  variable: "--font-cormorant",
+  subsets: ["latin", "cyrillic"],
+  weight: ["500", "600"],
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
@@ -38,8 +48,8 @@ export const metadata: Metadata = {
 // Тема-зависимый цвет тулбара + viewport (Next 16: отдельный экспорт)
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#faf9f6' },
-    { media: '(prefers-color-scheme: dark)', color: '#0c0c0e' },
+    { media: '(prefers-color-scheme: light)', color: '#fbfbfc' },
+    { media: '(prefers-color-scheme: dark)', color: '#0b0b0d' },
   ],
 };
 
@@ -53,7 +63,7 @@ export default async function RootLayout({
   return (
     <html
       lang={DEFAULT_LOCALE}
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${cormorant.variable} ${geistMono.variable} h-full antialiased`}
     >
       {/* pb-16 на мобиле — под нижнюю таб-навигацию */}
       <body className="min-h-full flex flex-col pb-16 sm:pb-0">
