@@ -3,7 +3,10 @@ import { z } from 'zod';
 import { db } from '@/lib/db';
 import {
   SESSION_COOKIE,
+  PENDING_2FA_COOKIE,
   createSessionToken,
+  createPending2faToken,
+  pending2faCookieOptions,
   sessionCookieOptions,
   verifyPassword,
 } from '@/lib/auth';
@@ -30,6 +33,14 @@ export function POST(req: Request) {
       return jsonError('invalid_credentials', 401);
     }
     if (user.status === 'BANNED') return jsonError('banned', 403);
+
+    // 2FA включена → полную сессию НЕ выдаём, только промежуточный стейт
+    if (user.twoFactorEnabledAt) {
+      const pending = await createPending2faToken(user.id);
+      const res = NextResponse.json({ twoFactor: true });
+      res.cookies.set(PENDING_2FA_COOKIE, pending, pending2faCookieOptions());
+      return res;
+    }
 
     await db.user.update({ where: { id: user.id }, data: { lastSeenAt: new Date() } });
 

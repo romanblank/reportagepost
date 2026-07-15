@@ -104,6 +104,9 @@ export default async function CabinetPage() {
               <Link href="/ru/cabinet/portfolio" className="text-sm underline">
                 {ru.cabinet.portfolioLink}
               </Link>
+              <Link href="/ru/cabinet/settings" className="text-sm underline">
+                {ru.cabinet.settingsLink}
+              </Link>
               {profile.status === 'APPROVED' && (
                 <Link href="/ru/cabinet/availability" className="text-sm underline">
                   {ru.cabinet.availabilityLink}

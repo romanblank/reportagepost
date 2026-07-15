@@ -44,6 +44,8 @@ model User {
   inviteCodeId String? // закрытость до S4: кто пригласил
   pdnConsentAt DateTime? // согласие на обработку ПДн (152-ФЗ)
   pdnConsentVersion String? // версия принятой политики
+  totpSecret String? // секрет TOTP (2FA); null — 2FA не настроена
+  twoFactorEnabledAt DateTime? // 2FA включена (подтверждена кодом)
   createdAt    DateTime   @default(now())
   lastSeenAt   DateTime?
 
@@ -66,6 +68,7 @@ model User {
   notifications Notification[]
   adminAudits   AdminAudit[]
   passwordResets PasswordReset[]
+  recoveryCodes  RecoveryCode[]
 }
 
 // Верификация телефона по SMS-коду (E.164). Код хранится как argon2-хеш
@@ -586,6 +589,19 @@ model PasswordReset {
   userId    String
   tokenHash String    @unique
   expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+// Резервные коды 2FA (одноразовые). Хранятся как sha256-хеш; сырые показываются
+// пользователю один раз при включении. Восстановление при утере аутентификатора.
+model RecoveryCode {
+  id        String    @id @default(cuid())
+  userId    String
+  codeHash  String
   usedAt    DateTime?
   createdAt DateTime  @default(now())
   user User @relation(fields: [userId], references: [id])

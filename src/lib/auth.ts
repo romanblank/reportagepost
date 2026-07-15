@@ -84,6 +84,39 @@ export const getSession = cache(async function getSession(): Promise<SessionPayl
   return { userId: claims.userId, role: user.role, tokenVersion: user.tokenVersion };
 });
 
+// ─── Промежуточный стейт «первый фактор пройден» (2FA) ──────────────────────
+// После верного пароля, если у юзера включена 2FA, полную сессию НЕ выдаём —
+// выдаём короткоживущий подписанный токен, дающий право только на экран ввода кода.
+export const PENDING_2FA_COOKIE = 'rp_2fa';
+
+export async function createPending2faToken(userId: string): Promise<string> {
+  return new SignJWT({ userId, typ: '2fa' })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('10m')
+    .sign(secretKey());
+}
+
+export async function verifyPending2faToken(token: string): Promise<string | null> {
+  try {
+    const { payload } = await jwtVerify(token, secretKey());
+    if (payload.typ !== '2fa' || typeof payload.userId !== 'string') return null;
+    return payload.userId;
+  } catch {
+    return null;
+  }
+}
+
+export function pending2faCookieOptions() {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
+    path: '/',
+    maxAge: 10 * 60,
+  };
+}
+
 export function sessionCookieOptions() {
   return {
     httpOnly: true,
