@@ -102,6 +102,7 @@ export const ru = {
   profile: {
     notFound: 'Фотограф не найден',
     pricesTitle: 'Стоимость',
+    packageHours: (hours: number) => `${hours} ч съёмки`,
     portfolioTitle: 'Портфолио',
     storiesTitle: 'Серии',
     editorsChoice: 'Выбор редакции',

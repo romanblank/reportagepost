@@ -221,11 +221,12 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
 
       {profile.packages.length > 0 && (
         <section className="mt-8">
-          <h2 className="text-xs font-semibold uppercase tracking-widest muted">{ru.profile.pricesTitle}</h2>
-          <ul className="mt-3 flex flex-wrap gap-2">
+          <h2 className="t-caption muted">{ru.profile.pricesTitle}</h2>
+          <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {profile.packages.map((pkg) => (
-              <li key={pkg.id} className="rounded-full bg-surface-2 px-4 py-2 text-sm">
-                {ru.catalog.packageLabel(pkg.hours, formatRubMinor(pkg.priceMinor))}
+              <li key={pkg.id} className="card p-4">
+                <div className="t-caption muted">{ru.profile.packageHours(pkg.hours)}</div>
+                <div className="tnum mt-1 text-xl font-semibold">{formatRubMinor(pkg.priceMinor)}</div>
               </li>
             ))}
           </ul>
@@ -234,7 +235,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
 
       {profile.stories.length > 0 && (
         <section className="mt-10">
-          <h2 className="text-xs font-semibold uppercase tracking-widest muted">{ru.profile.storiesTitle}</h2>
+          <h2 className="t-caption muted">{ru.profile.storiesTitle}</h2>
           <ul className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {profile.stories.map((story) => (
               <li key={story.id} className="card card-hover overflow-hidden">
@@ -253,7 +254,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
       )}
 
       <section className="mt-8 sm:mt-10">
-        <h2 className="text-xs font-semibold uppercase tracking-widest muted">{ru.profile.portfolioTitle}</h2>
+        <h2 className="t-caption muted">{ru.profile.portfolioTitle}</h2>
         {/* Мобайл: edge-to-edge masonry (app-подача); десктоп: 3 колонки. Client-
             галерея принимает только сериализуемые данные (RSC-совместимо). */}
         <PortfolioGallery
@@ -311,7 +312,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
 
       {moreInCity.length > 0 && (
         <section className="mt-10 border-t border-line pt-6">
-          <h2 className="text-xs font-semibold uppercase tracking-widest muted">
+          <h2 className="t-caption muted">
             {ru.profile.moreInCity(cityNameRu(profile.city.slug))}
           </h2>
           <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
