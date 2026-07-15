@@ -1,12 +1,14 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile, unlink } from 'node:fs/promises';
 import path from 'node:path';
-import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 
 // Хранилище за абстракцией (инвариант CLAUDE.md): сейчас локальный диск (dev),
 // S3-адаптер (Yandex Object Storage) добавится реализацией этого же интерфейса.
 export interface ObjectStorage {
   put(key: string, data: Buffer, contentType: string): Promise<void>;
   get(key: string): Promise<Buffer | null>;
+  /** Удаление объекта (ПнД: чистка фото/аватара при удалении аккаунта). */
+  delete(key: string): Promise<void>;
   /** Публичный URL объекта (dev: наш роут-раздатчик; prod: CDN). */
   publicUrl(key: string): string;
 }
@@ -33,6 +35,14 @@ class LocalDiskStorage implements ObjectStorage {
       return await readFile(safePath(key));
     } catch {
       return null;
+    }
+  }
+
+  async delete(key: string): Promise<void> {
+    try {
+      await unlink(safePath(key));
+    } catch {
+      // нет файла — идемпотентно
     }
   }
 
@@ -72,6 +82,15 @@ class S3Storage implements ObjectStorage {
       return bytes ? Buffer.from(bytes) : null;
     } catch {
       return null;
+    }
+  }
+
+  async delete(key: string): Promise<void> {
+    safePath(key);
+    try {
+      await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
+    } catch {
+      // best-effort: не роняем удаление аккаунта из-за одного объекта
     }
   }
 

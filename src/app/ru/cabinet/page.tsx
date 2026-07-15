@@ -12,6 +12,7 @@ import { LogoutButton } from '@/components/LogoutButton';
 import { TelegramLinkButton } from '@/components/TelegramLinkButton';
 import { profileCompleteness } from '@/lib/profile-completeness';
 import { ONBOARDING_PHOTOS_MIN } from '@/lib/photos-constants';
+import { DeleteAccountButton } from '@/components/DeleteAccountButton';
 
 export const metadata: Metadata = { title: ru.cabinet.title };
 export const dynamic = 'force-dynamic'; // всегда свежие заявки/статус
@@ -173,6 +174,11 @@ export default async function CabinetPage() {
       <div className="mt-8 border-t border-line pt-5 sm:hidden">
         <LogoutButton />
       </div>
+
+      <section className="mt-8 border-t border-line pt-5">
+        <p className="text-sm font-medium">{ru.account.dangerTitle}</p>
+        <div className="mt-2"><DeleteAccountButton /></div>
+      </section>
     </main>
   );
 }

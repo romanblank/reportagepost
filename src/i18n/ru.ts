@@ -145,6 +145,16 @@ export const ru = {
       forbidden: 'Недостаточно прав',
     } as Record<string, string>,
   },
+  account: {
+    dangerTitle: 'Удаление аккаунта',
+    dangerHint: 'Аккаунт, анкета, фото и все данные удалятся безвозвратно.',
+    deleteBtn: 'Удалить аккаунт',
+    passwordLabel: 'Введите пароль для подтверждения',
+    confirm: 'Удалить навсегда',
+    deleting: 'Удаляем…',
+    cancel: 'Отмена',
+    wrongPassword: 'Неверный пароль',
+  },
   editProfile: {
     title: 'Редактировать анкету',
     save: 'Сохранить',

@@ -1,0 +1,62 @@
+import { db } from '@/lib/db';
+import { storage } from '@/lib/storage';
+
+// Удаление аккаунта и данных (ПнД, S4.2). Явное упорядоченное удаление даёт
+// КОНТРОЛИРУЕМЫЙ blast radius (безопаснее массовых onDelete-каскадов). Записи
+// бизнес-характера анонимизируются (события/инвайты — теряют связь с юзером),
+// PII-владения удаляется. Фото/аватар — из Object Storage.
+export async function deleteAccount(userId: string): Promise<void> {
+  // 1. Ключи хранилища собираем ДО удаления строк
+  const profile = await db.photographerProfile.findUnique({
+    where: { userId },
+    select: { id: true, avatarKey: true, photos: { select: { storageKey: true } } },
+  });
+  const storageKeys: string[] = [];
+  if (profile) {
+    for (const ph of profile.photos) {
+      const base = ph.storageKey.replace(/\/original\.jpg$/, '');
+      storageKeys.push(`${base}/original.jpg`, `${base}/web.jpg`, `${base}/thumb.jpg`);
+    }
+    if (profile.avatarKey) storageKeys.push(profile.avatarKey);
+  }
+
+  await db.$transaction(async (tx) => {
+    // 2. Анонимизация (сохраняем агрегаты/бизнес-записи без связи с юзером)
+    await tx.activityEvent.updateMany({ where: { actorUserId: userId }, data: { actorUserId: null } });
+    await tx.inviteCode.updateMany({ where: { issuedByUserId: userId }, data: { issuedByUserId: null } });
+
+    // 3. Данные, принадлежащие пользователю
+    await tx.message.deleteMany({ where: { OR: [{ senderId: userId }, { recipientId: userId }] } });
+    await tx.notification.deleteMany({ where: { userId } });
+    await tx.phoneVerification.deleteMany({ where: { userId } });
+    await tx.favoritePhotographer.deleteMany({ where: { userId } });
+    await tx.follow.deleteMany({ where: { OR: [{ followerId: userId }, { followeeId: userId }] } });
+    await tx.like.deleteMany({ where: { userId } });
+    await tx.comment.deleteMany({ where: { authorUserId: userId } });
+    await tx.review.deleteMany({ where: { authorUserId: userId } });
+    await tx.inquiry.deleteMany({ where: { clientUserId: userId } });
+
+    // 4. Профиль фотографа + поддерево (+ чужие данные на нём)
+    if (profile) {
+      const photoIds = (await tx.photo.findMany({ where: { profileId: profile.id }, select: { id: true } })).map((p) => p.id);
+      const storyIds = (await tx.story.findMany({ where: { profileId: profile.id }, select: { id: true } })).map((s) => s.id);
+      await tx.like.deleteMany({ where: { OR: [{ photoId: { in: photoIds } }, { storyId: { in: storyIds } }] } });
+      await tx.comment.deleteMany({ where: { OR: [{ photoId: { in: photoIds } }, { storyId: { in: storyIds } }] } });
+      await tx.review.deleteMany({ where: { profileId: profile.id } });
+      await tx.favoritePhotographer.deleteMany({ where: { profileId: profile.id } });
+      await tx.busyDate.deleteMany({ where: { profileId: profile.id } });
+      await tx.travelPlan.deleteMany({ where: { profileId: profile.id } });
+      await tx.pricePackage.deleteMany({ where: { profileId: profile.id } });
+      await tx.profileCategory.deleteMany({ where: { profileId: profile.id } });
+      await tx.photo.deleteMany({ where: { profileId: profile.id } }); // до stories (photo.storyId FK)
+      await tx.story.deleteMany({ where: { profileId: profile.id } });
+      await tx.photographerProfile.delete({ where: { id: profile.id } });
+    }
+
+    // 5. Сам пользователь
+    await tx.user.delete({ where: { id: userId } });
+  });
+
+  // 6. Чистка хранилища — best-effort, вне транзакции
+  await Promise.all(storageKeys.map((k) => storage.delete(k).catch(() => {})));
+}

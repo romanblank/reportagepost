@@ -9,6 +9,7 @@ import { thumbVariantUrl } from '@/lib/photos';
 import { formatRubMinor } from '@/lib/money';
 import { ru } from '@/i18n/ru';
 import { LogoutButton } from '@/components/LogoutButton';
+import { DeleteAccountButton } from '@/components/DeleteAccountButton';
 
 export const metadata: Metadata = { title: ru.clientCabinet.title };
 export const dynamic = 'force-dynamic';
@@ -86,6 +87,11 @@ export default async function ClientCabinetPage() {
       <div className="mt-8 border-t border-line pt-5 sm:hidden">
         <LogoutButton />
       </div>
+
+      <section className="mt-8 border-t border-line pt-5">
+        <p className="text-sm font-medium">{ru.account.dangerTitle}</p>
+        <div className="mt-2"><DeleteAccountButton /></div>
+      </section>
     </main>
   );
 }
