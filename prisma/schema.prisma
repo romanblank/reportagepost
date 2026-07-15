@@ -48,6 +48,8 @@ model User {
   profile       PhotographerProfile?
   inviteCode    InviteCode?          @relation(fields: [inviteCodeId], references: [id])
   issuedInvites InviteCode[]         @relation("issuedInvites")
+  subscription  Subscription?
+  payments      Payment[]
   events        ActivityEvent[]      @relation("actor")
   likes         Like[]
   comments      Comment[]
@@ -507,5 +509,44 @@ model Notification {
   user User @relation(fields: [userId], references: [id])
 
   @@index([state, createdAt])
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+// ─── S5 монетизация: PRO-подписка + платежи (Т-Касса) ──────────────────────
+
+enum SubscriptionTier {
+  FREE
+  PRO
+}
+
+model Subscription {
+  id               String           @id @default(cuid())
+  userId           String           @unique
+  tier             SubscriptionTier @default(FREE)
+  currentPeriodEnd DateTime? // до какой даты активен PRO
+  grandfathered    Boolean          @default(false) // бесплатный PRO бете
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  user User @relation(fields: [userId], references: [id])
+}
+
+enum PaymentStatus {
+  NEW
+  CONFIRMED
+  REJECTED
+  REFUNDED
+}
+
+model Payment {
+  id               String        @id @default(cuid())
+  userId           String
+  orderId          String        @unique // наш OrderId — идемпотентность вебхука
+  amountMinor      Int // копейки (инвариант: minor units)
+  status           PaymentStatus @default(NEW)
+  tinkoffPaymentId String? // PaymentId от Т-Кассы
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  user User @relation(fields: [userId], references: [id])
+
   @@index([userId, createdAt(sort: Desc)])
 }
