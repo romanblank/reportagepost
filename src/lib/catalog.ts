@@ -31,7 +31,8 @@ export interface CatalogCard {
   bio: string | null;
   categories: string[];
   minPackage: { hours: number; priceMinor: number; currency: string } | null;
-  photoKeys: string[]; // до 6 превью
+  coverKey: string | null; // обложка каталога (выбранная или лучший кадр)
+  photoKeys: string[]; // до 6 превью (запас под hover-полосу)
   ratingAvg: number; // средняя оценка отзывов (0 если нет)
   ratingCount: number;
   score: number;
@@ -125,6 +126,10 @@ export async function catalogForCity(filters: CatalogFilters): Promise<CatalogPa
     minPackage: p.packages[0]
       ? { hours: p.packages[0].hours, priceMinor: p.packages[0].priceMinor, currency: p.packages[0].currency }
       : null,
+    coverKey:
+      (p.coverPhotoId && p.photos.find((ph) => ph.id === p.coverPhotoId)?.storageKey) ||
+      p.photos[0]?.storageKey ||
+      null,
     photoKeys: p.photos.map((ph) => ph.storageKey),
     ratingAvg: revMap.get(p.id)?.avg ?? 0,
     ratingCount: revMap.get(p.id)?.count ?? 0,

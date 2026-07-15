@@ -6,7 +6,7 @@ import { catalogForCity } from '@/lib/catalog';
 import { visitingCity } from '@/lib/travel';
 import { cityNameRu } from '@/lib/geo-data';
 import { CATEGORIES, categoryNameRu } from '@/lib/category-data';
-import { thumbVariantUrl } from '@/lib/photos';
+import { thumbVariantUrl, webVariantUrl } from '@/lib/photos';
 import { formatRubMinor } from '@/lib/money';
 import { ru } from '@/i18n/ru';
 import { Avatar } from '@/components/ui/Avatar';
@@ -157,41 +157,39 @@ export default async function CatalogPage(props: {
           ]}
         />
       ) : cards.length === 0 ? null : (
-        <ul className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="mt-6 grid grid-cols-1 gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
           {cards.map((card) => (
-            <li key={card.username} className="card card-hover overflow-hidden">
+            <li key={card.username} className="group">
               <Link href={`/ru/photographer/${card.username}`} className="block">
-                {card.photoKeys.length > 0 && (
-                  <div className="grid grid-cols-3 gap-px bg-line">
-                    {card.photoKeys.slice(0, 3).map((key) => (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img key={key} src={thumbVariantUrl(key)} alt="" loading="lazy"
-                        className="aspect-square w-full object-cover" />
-                    ))}
-                  </div>
-                )}
-                <div className="p-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="flex min-w-0 items-center gap-2 font-medium">
-                      <Avatar avatarKey={card.avatarKey} firstName={card.firstName} lastName={card.lastName} size={28} />
-                      <span className="truncate">{card.firstName} {card.lastName}</span>
-                      {card.verified && <VerifiedBadge label={ru.profile.verified} size={16} />}
-                    </span>
-                    {card.minPackage && (
-                      <span className="text-sm muted">
-                        {ru.catalog.packageLabel(card.minPackage.hours, formatRubMinor(card.minPackage.priceMinor))}
-                      </span>
-                    )}
-                  </div>
-                  {card.ratingCount > 0 && (
-                    <div className="mt-1.5">
-                      <Rating value={card.ratingAvg} count={card.ratingCount} size="sm" />
+                {/* Обложка 4:5 — один лучший кадр (галерейная сетка), не триптих */}
+                <div className="relative overflow-hidden rounded-media bg-surface-2">
+                  {card.coverKey ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={webVariantUrl(card.coverKey)} alt="" loading="lazy"
+                      className="aspect-[4/5] w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
+                  ) : (
+                    <div className="grid aspect-[4/5] w-full place-items-center">
+                      <Avatar avatarKey={card.avatarKey} firstName={card.firstName} lastName={card.lastName} size={72} />
                     </div>
                   )}
-                  {card.bio && <p className="mt-1 line-clamp-2 text-sm muted">{card.bio}</p>}
-                  <p className="mt-2 text-xs muted opacity-70">
-                    {card.categories.map((slug) => categoryNameRu(slug)).join(' · ')}
-                  </p>
+                  {card.minPackage && (
+                    <span className="tnum absolute bottom-2 right-2 rounded-sm bg-paper/85 px-2 py-1 text-xs font-medium backdrop-blur-sm">
+                      {ru.catalog.packageLabel(card.minPackage.hours, formatRubMinor(card.minPackage.priceMinor))}
+                    </span>
+                  )}
+                </div>
+                <div className="mt-3">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Avatar avatarKey={card.avatarKey} firstName={card.firstName} lastName={card.lastName} size={24} />
+                    <span className="t-small truncate font-medium">{card.firstName} {card.lastName}</span>
+                    {card.verified && <VerifiedBadge label={ru.profile.verified} size={15} />}
+                  </div>
+                  <div className="mt-1 flex items-center gap-2">
+                    {card.ratingCount > 0 && <Rating value={card.ratingAvg} count={card.ratingCount} size="sm" />}
+                    <span className="t-caption truncate muted">
+                      {card.categories.map((slug) => categoryNameRu(slug)).join(' · ')}
+                    </span>
+                  </div>
                 </div>
               </Link>
             </li>
