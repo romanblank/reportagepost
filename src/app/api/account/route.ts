@@ -15,7 +15,9 @@ export async function DELETE(req: Request) {
   if (!parsed.success) return NextResponse.json({ error: 'validation' }, { status: 400 });
 
   const user = await db.user.findUnique({ where: { id: session.userId }, select: { passwordHash: true } });
-  if (!user?.passwordHash || !(await verifyPassword(user.passwordHash, parsed.data.password))) {
+  // Есть пароль — подтверждаем им. Без пароля (будущий OTP-вход) достаточно
+  // авторизованной сессии — иначе право на удаление данных (ПнД) недоступно.
+  if (user?.passwordHash && !(await verifyPassword(user.passwordHash, parsed.data.password))) {
     return NextResponse.json({ error: 'wrong_password' }, { status: 403 });
   }
 
