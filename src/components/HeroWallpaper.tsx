@@ -14,19 +14,12 @@ const HOLD_MS = 6000;
 
 export function HeroWallpaper() {
   const [idx, setIdx] = useState(0);
-  const [loaded, setLoaded] = useState<Set<number>>(() => new Set([0]));
 
   useEffect(() => {
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const t = setInterval(() => setIdx((i) => (i + 1) % HERO_SHOTS.length), HOLD_MS);
     return () => clearInterval(t);
   }, []);
-
-  // Прелоад следующего кадра
-  useEffect(() => {
-    const next = (idx + 1) % HERO_SHOTS.length;
-    setLoaded((prev) => (prev.has(next) ? prev : new Set(prev).add(next)));
-  }, [idx]);
 
   const words = ru.landing.heroTitle.split(' ');
   const active = HERO_SHOTS[idx];
@@ -38,7 +31,7 @@ export function HeroWallpaper() {
           <div
             key={s.id}
             className={`hw-layer${i === idx ? ' on' : ''}`}
-            style={loaded.has(i) ? { backgroundImage: `url(${heroImageUrl(s)})` } : undefined}
+            style={{ backgroundImage: `url(${heroImageUrl(s)})` }}
           />
         ))}
         <div className="hw-grain" />
