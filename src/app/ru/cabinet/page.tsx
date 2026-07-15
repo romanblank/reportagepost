@@ -64,11 +64,11 @@ export default async function CabinetPage() {
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:py-10">
-      <h1 className="text-2xl font-semibold sm:text-3xl">{ru.cabinet.title}</h1>
+      <h1 className="t-h2">{ru.cabinet.title}</h1>
 
       {session.role === 'ADMIN' && (
         <section className="mt-4 card p-4">
-          <p className="text-sm muted">{ru.cabinet.adminTitle}</p>
+          <p className="t-caption muted">{ru.cabinet.adminTitle}</p>
           <div className="mt-1 flex flex-wrap items-center gap-3">
             <span className="font-medium">{ru.cabinet.adminQueue(pendingCount)}</span>
             <Link href="/ru/admin/moderation" className="btn btn-accent px-3 py-1.5">
@@ -86,7 +86,7 @@ export default async function CabinetPage() {
 
       {session.role === 'PHOTOGRAPHER' && (
         <section className="mt-4 card p-4">
-          <p className="text-sm muted">{ru.cabinet.statusLabel}</p>
+          <p className="t-caption muted">{ru.cabinet.statusLabel}</p>
           {profile ? (
             <div className="mt-1 flex flex-wrap items-center gap-3">
               <span className="font-medium">{STATUS_LABEL[profile.status]}</span>
@@ -147,7 +147,7 @@ export default async function CabinetPage() {
 
       {session.role === 'PHOTOGRAPHER' && (
         <section className="mt-6">
-          <h2 className="text-lg font-medium">{ru.cabinet.inquiriesTitle}</h2>
+          <h2 className="t-h3">{ru.cabinet.inquiriesTitle}</h2>
           {profile?.status !== 'APPROVED' ? (
             <p className="mt-2 text-sm muted">{ru.cabinet.inquiriesLocked}</p>
           ) : !inquiries || inquiries.length === 0 ? (
@@ -177,7 +177,7 @@ export default async function CabinetPage() {
       )}
 
       <section className="mt-6 card p-4">
-        <p className="text-sm muted">{ru.tg.title}</p>
+        <p className="t-caption muted">{ru.tg.title}</p>
         <div className="mt-2">
           <TelegramLinkButton bound={Boolean(me?.tgUserId)} />
         </div>
