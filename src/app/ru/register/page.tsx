@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useState } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ru } from '@/i18n/ru';
 import { describeApiError } from '@/lib/form-errors';
@@ -19,9 +20,12 @@ function RegisterForm() {
   const invitePrefill = useSearchParams().get('invite') ?? '';
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [consent, setConsent] = useState(false);
+  const [showInvite, setShowInvite] = useState(Boolean(invitePrefill));
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!consent) { setError(ru.auth.consentRequired); return; }
     setPending(true);
     setError(null);
     const f = new FormData(e.currentTarget);
@@ -34,7 +38,8 @@ function RegisterForm() {
         lastName: f.get('lastName'),
         email: f.get('email'),
         password: f.get('password'),
-        inviteCode: f.get('inviteCode'),
+        inviteCode: f.get('inviteCode') || undefined,
+        pdnConsent: consent,
       }),
     }).catch(() => null);
     setPending(false);
@@ -57,7 +62,7 @@ function RegisterForm() {
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-4 py-16">
       <div className="card p-6 sm:p-8">
-        <h1 className="text-2xl font-semibold">{ru.auth.registerTitle}</h1>
+        <h1 className="t-h3">{ru.auth.registerTitle}</h1>
         <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-2">
             <label className="chip flex-1 justify-center has-[:checked]:border-ink has-[:checked]:bg-ink has-[:checked]:text-paper">
@@ -86,12 +91,29 @@ function RegisterForm() {
             <input name="password" type="password" required minLength={10} autoComplete="new-password" className="input" />
             <span className="field-hint">Минимум 10 символов</span>
           </div>
-          <div>
-            <label className="field-label">{ru.auth.inviteCode}</label>
-            <input name="inviteCode" required defaultValue={invitePrefill} className="input" />
-          </div>
-          {error && <p role="alert" className="text-sm text-accent">{error}</p>}
-          <button type="submit" disabled={pending} className="btn btn-accent mt-1">
+          {showInvite ? (
+            <div>
+              <label className="field-label">{ru.auth.inviteCode}</label>
+              <input name="inviteCode" defaultValue={invitePrefill} className="input" />
+            </div>
+          ) : (
+            <button type="button" onClick={() => setShowInvite(true)}
+              className="self-start text-sm underline muted hover:text-ink">
+              {ru.auth.hasInvite}
+            </button>
+          )}
+          <label className="flex items-start gap-2.5 text-sm">
+            <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent)]" />
+            <span className="muted">
+              {ru.auth.consentAccept}{' '}
+              <Link href="/ru/legal/privacy" target="_blank" className="underline hover:text-ink">{ru.auth.consentPrivacy}</Link>{' '}
+              {ru.auth.consentAnd}{' '}
+              <Link href="/ru/legal/offer" target="_blank" className="underline hover:text-ink">{ru.auth.consentOffer}</Link>.
+            </span>
+          </label>
+          {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+          <button type="submit" disabled={pending || !consent} className="btn btn-accent mt-1">
             {ru.auth.submitRegister}
           </button>
         </form>

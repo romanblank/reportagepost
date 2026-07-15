@@ -8,7 +8,7 @@ import {
   hashPassword,
   sessionCookieOptions,
 } from '@/lib/auth';
-import { PUBLIC_LAUNCH } from '@/lib/constants';
+import { OPEN_REGISTRATION, PDN_CONSENT_VERSION } from '@/lib/constants';
 import { clientIp, rateLimit } from '@/lib/rate-limit';
 
 // Валидация на границе (правило: данным извне не верить)
@@ -19,6 +19,8 @@ const RegisterSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
   password: z.string().min(10).max(200),
   inviteCode: z.string().trim().optional(),
+  // Согласие на обработку ПДн (152-ФЗ) — обязательно при открытом сборе данных
+  pdnConsent: z.literal(true),
 });
 
 export async function POST(req: Request) {
@@ -38,9 +40,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
   }
 
-  // Инвайт-гейт: до публичного запуска регистрация только по коду
+  // Гейт регистрации. Открытая регистрация (OPEN_REGISTRATION) — инвайт
+  // опционален (реферальная атрибуция, если код есть). Закрытая — код обязателен.
+  // noindex завязан на PUBLIC_LAUNCH и здесь не затрагивается (ребрендинг 2026-07).
   let inviteCodeId: string | null = null;
-  if (!PUBLIC_LAUNCH) {
+  if (!OPEN_REGISTRATION) {
     if (!data.inviteCode) {
       return NextResponse.json({ error: 'invite_required' }, { status: 403 });
     }
@@ -48,6 +52,9 @@ export async function POST(req: Request) {
     if (!inviteCodeId) {
       return NextResponse.json({ error: 'invite_invalid' }, { status: 403 });
     }
+  } else if (data.inviteCode) {
+    // Открыто, но код передан — засчитываем атрибуцию (best-effort, не блокируем)
+    inviteCodeId = await consumeInviteCode(data.inviteCode);
   }
 
   const existing = await db.user.findUnique({ where: { email: data.email } });
@@ -65,6 +72,8 @@ export async function POST(req: Request) {
       email: data.email,
       passwordHash: await hashPassword(data.password),
       inviteCodeId,
+      pdnConsentAt: new Date(),
+      pdnConsentVersion: PDN_CONSENT_VERSION,
     },
   });
 

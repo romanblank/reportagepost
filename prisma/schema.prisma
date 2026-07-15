@@ -42,6 +42,8 @@ model User {
   tgLinkCode   String?    @unique // одноразовый код привязки (deep-link /start)
   locale       String     @default("ru")
   inviteCodeId String? // закрытость до S4: кто пригласил
+  pdnConsentAt DateTime? // согласие на обработку ПДн (152-ФЗ)
+  pdnConsentVersion String? // версия принятой политики
   createdAt    DateTime   @default(now())
   lastSeenAt   DateTime?
 
