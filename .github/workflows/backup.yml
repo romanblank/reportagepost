@@ -1,0 +1,58 @@
+# Ночной бэкап БД → Object Storage (deep-think Ops P0: бэкапов не было вообще).
+# pg_dump гоняется в postgres-контейнере на VM (не нужен postgres-client на хосте),
+# заливается в бакет через aws-cli с уже имеющимися на VM S3-ключами (.env.prod).
+#
+# ⚠️ ПЕРЕД ДОВЕРИЕМ: оператор запускает вручную (workflow_dispatch) и смотрит логи;
+# затем убедиться в restore (restore-drill — отдельный workflow). Бэкап без
+# проверенного restore = не бэкап.
+name: Backup DB
+
+on:
+  schedule:
+    - cron: "0 1 * * *" # каждый день 01:00 UTC
+  workflow_dispatch: {}
+
+concurrency:
+  group: backup-db
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: pg_dump → Object Storage (на VM)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: rp
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+            cd /opt/reportagepost
+            # DATABASE_URL и S3-ключи лежат в .env.prod (Lockbox)
+            export $(grep -E '^(DATABASE_URL|S3_ACCESS_KEY_ID|S3_SECRET_ACCESS_KEY|S3_ENDPOINT|S3_BUCKET)=' .env.prod | xargs -d '\n')
+            TS=$(date -u +%Y%m%d-%H%M%S)
+            FILE="rp-db-${TS}.sql.gz"
+            echo "Дамп → ${FILE}"
+            # CA для verify-full нет в контейнере postgres:16 → для дампа по внутренней
+            # сети VM→Managed PG понижаем до sslmode=require (шифрование без проверки CA).
+            DUMP_URL=$(echo "$DATABASE_URL" | sed -E 's/sslmode=verify-full/sslmode=require/; s/&sslrootcert=[^&]*//; s/\?sslrootcert=[^&]*&/?/')
+            docker run --rm -v /opt/reportagepost:/work postgres:16 \
+              bash -c "pg_dump \"\$0\" --no-owner --no-privileges | gzip > /work/${FILE}" "$DUMP_URL"
+            echo "Заливка в s3://${S3_BUCKET}/db-backups/${FILE}"
+            docker run --rm -v /opt/reportagepost:/work \
+              -e AWS_ACCESS_KEY_ID="$S3_ACCESS_KEY_ID" \
+              -e AWS_SECRET_ACCESS_KEY="$S3_SECRET_ACCESS_KEY" \
+              amazon/aws-cli --endpoint-url "$S3_ENDPOINT" \
+              s3 cp "/work/${FILE}" "s3://${S3_BUCKET}/db-backups/${FILE}"
+            rm -f "/opt/reportagepost/${FILE}"
+            # Ретеншн: оставить 14 последних дампов
+            docker run --rm \
+              -e AWS_ACCESS_KEY_ID="$S3_ACCESS_KEY_ID" \
+              -e AWS_SECRET_ACCESS_KEY="$S3_SECRET_ACCESS_KEY" \
+              amazon/aws-cli --endpoint-url "$S3_ENDPOINT" \
+              s3 ls "s3://${S3_BUCKET}/db-backups/" | sort | head -n -14 | awk '{print $4}' | while read -r old; do
+                [ -n "$old" ] && docker run --rm -e AWS_ACCESS_KEY_ID="$S3_ACCESS_KEY_ID" -e AWS_SECRET_ACCESS_KEY="$S3_SECRET_ACCESS_KEY" amazon/aws-cli --endpoint-url "$S3_ENDPOINT" s3 rm "s3://${S3_BUCKET}/db-backups/${old}" || true
+              done
+            echo "Бэкап готов: ${FILE}"

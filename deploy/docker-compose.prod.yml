@@ -9,6 +9,12 @@ services:
       - "127.0.0.1:3000:3000"
     env_file:
       - .env.prod
+    # Ротация логов (deep-think Ops P1): диск 30GB, инцидент no-space-left 2026-07-13.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/health"]
       interval: 30s

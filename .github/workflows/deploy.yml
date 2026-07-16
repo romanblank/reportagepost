@@ -106,4 +106,21 @@ jobs:
               sleep 6
               if curl -sf http://127.0.0.1:3000/health >/dev/null; then echo "HEALTH OK"; exit 0; fi
             done
-            echo "HEALTH FAILED — откат: .previous-deploy"; cat .previous-deploy || true; exit 1
+            # АВТО-ОТКАТ (deep-think Ops P0): при провале health поднимаем прошлый
+            # образ из .previous-deploy, чтобы прод не остался на битом. Безопасно,
+            # т.к. миграции — expand-contract (аддитивны, совместимы с прошлым образом).
+            echo "HEALTH FAILED — авто-откат на .previous-deploy"
+            if [ -f .previous-deploy ]; then
+              PREV_IMAGE=$(grep -oE 'IMAGE=.*' .previous-deploy | cut -d= -f2-)
+              if [ -n "$PREV_IMAGE" ]; then
+                echo "Откат на $PREV_IMAGE"
+                docker pull "$PREV_IMAGE" || true
+                IMAGE="$PREV_IMAGE" docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
+                cp .previous-deploy .deploy.env
+                for i in $(seq 1 20); do
+                  sleep 6
+                  if curl -sf http://127.0.0.1:3000/health >/dev/null; then echo "ОТКАТ OK — прод на прошлом образе"; break; fi
+                done
+              fi
+            fi
+            echo "Деплой провалил health — откат выполнен (если был прошлый образ)"; exit 1

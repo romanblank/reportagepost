@@ -1,0 +1,50 @@
+# Внешний аптайм-пробинг прода → Telegram-алерт оператору (deep-think Ops P0:
+# прод падал без единого алерта). Пингуем снаружи (GitHub Actions) — ловит и
+# полную смерть VM, и db-fail, и протухший SSL.
+#
+# ⚠️ ТРЕБУЕТ СЕКРЕТОВ (оператор добавляет в GitHub → Settings → Secrets):
+#   TELEGRAM_BOT_TOKEN     — токен бота (тот же, что в Lockbox)
+#   TELEGRAM_ALERT_CHAT_ID — chat_id оператора для алертов
+# Без секретов job молча пропускает отправку (safe no-op).
+name: Uptime
+
+on:
+  schedule:
+    - cron: "*/10 * * * *" # каждые 10 минут
+  workflow_dispatch: {}
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Пинг /health + SSL, алерт при проблеме
+        env:
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHAT: ${{ secrets.TELEGRAM_ALERT_CHAT_ID }}
+        run: |
+          set -uo pipefail
+          URL="https://reportagepost.com/health"
+          alert() {
+            echo "ALERT: $1"
+            if [ -n "${TG_TOKEN:-}" ] && [ -n "${TG_CHAT:-}" ]; then
+              curl -s -m 15 "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+                --data-urlencode "chat_id=${TG_CHAT}" \
+                --data-urlencode "text=🔴 Reportage Post: $1" >/dev/null || true
+            fi
+            exit 1
+          }
+          # 1. HTTP + тело
+          BODY=$(curl -s -m 20 -w "\n%{http_code}" "$URL") || alert "сайт недоступен (curl fail)"
+          CODE=$(echo "$BODY" | tail -1)
+          JSON=$(echo "$BODY" | sed '$d')
+          [ "$CODE" = "200" ] || alert "HTTP ${CODE} на /health"
+          echo "$JSON" | grep -q '"db":"ok"' || alert "БД недоступна (health: ${JSON})"
+          # 2. SSL: предупредить, если ≤14 дней до истечения
+          END=$(echo | openssl s_client -servername reportagepost.com -connect reportagepost.com:443 2>/dev/null | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2)
+          if [ -n "$END" ]; then
+            END_TS=$(date -d "$END" +%s 2>/dev/null || echo 0)
+            NOW_TS=$(date +%s)
+            DAYS=$(( (END_TS - NOW_TS) / 86400 ))
+            if [ "$END_TS" -gt 0 ] && [ "$DAYS" -le 14 ]; then alert "SSL истекает через ${DAYS} дн."; fi
+          fi
+          echo "OK: ${JSON}"
