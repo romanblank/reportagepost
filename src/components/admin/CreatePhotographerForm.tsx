@@ -9,7 +9,7 @@ interface Option { slug: string; name: string }
 export function CreatePhotographerForm({ cities, categories }: { cities: Option[]; categories: Option[] }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [created, setCreated] = useState<{ username: string } | null>(null);
+  const [created, setCreated] = useState<{ username: string; profileId: string } | null>(null);
   const [cats, setCats] = useState<string[]>([]);
 
   function toggleCat(slug: string) {
@@ -47,9 +47,10 @@ export function CreatePhotographerForm({ cities, categories }: { cities: Option[
     return (
       <div className="card p-5">
         <p className="font-medium">{ru.adminPhotographers.created}: @{created.username}</p>
-        <div className="mt-3 flex gap-3">
-          <Link href={`/ru/photographer/${created.username}`} className="btn btn-accent btn-sm">{ru.adminPhotographers.openProfile}</Link>
-          <button type="button" onClick={() => { setCreated(null); setCats([]); }} className="btn btn-outline btn-sm">{ru.adminPhotographers.createTitle}</button>
+        <div className="mt-3 flex flex-wrap gap-3">
+          <Link href={`/ru/admin/photographers/${created.profileId}`} className="btn btn-accent btn-sm">{ru.adminPhotographers.manage} · {ru.adminPhotographers.uploadPhoto}</Link>
+          <Link href={`/ru/photographer/${created.username}`} className="btn btn-outline btn-sm">{ru.adminPhotographers.openProfile}</Link>
+          <button type="button" onClick={() => { setCreated(null); setCats([]); }} className="btn btn-ghost btn-sm">{ru.adminPhotographers.createTitle}</button>
         </div>
       </div>
     );

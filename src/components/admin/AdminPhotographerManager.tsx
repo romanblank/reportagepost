@@ -1,0 +1,98 @@
+'use client';
+
+import { useState } from 'react';
+import { ru } from '@/i18n/ru';
+import { useToast } from '@/components/ui/Toast';
+
+interface Photo { id: string; thumb: string }
+interface Props {
+  profileId: string;
+  initialStatus: 'DRAFT' | 'PENDING' | 'NEEDS_REVISION' | 'APPROVED' | 'REJECTED';
+  categories: { slug: string; name: string }[];
+  initialPhotos: Photo[];
+}
+
+export function AdminPhotographerManager({ profileId, initialStatus, categories, initialPhotos }: Props) {
+  const { toast } = useToast();
+  const [status, setStatus] = useState(initialStatus);
+  const [photos, setPhotos] = useState(initialPhotos);
+  const [cat, setCat] = useState(categories[0]?.slug ?? '');
+  const [busy, setBusy] = useState(false);
+
+  async function togglePublish() {
+    setBusy(true);
+    const action = status === 'APPROVED' ? 'unpublish' : 'publish';
+    const res = await fetch(`/api/admin/photographers/${profileId}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }),
+    }).catch(() => null);
+    setBusy(false);
+    if (!res?.ok) return toast(ru.ui.toastError, 'danger');
+    const d = await res.json();
+    setStatus(d.status);
+  }
+
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setBusy(true);
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('categorySlug', cat);
+    const res = await fetch(`/api/admin/photographers/${profileId}/photos`, { method: 'POST', body: fd }).catch(() => null);
+    setBusy(false);
+    if (!res?.ok) {
+      const d = await res?.json().catch(() => ({}));
+      return toast(d?.error?.startsWith('duplicate') ? ru.adminPhotographers.dupError : ru.adminPhotographers.uploadError, 'danger');
+    }
+    const d = await res.json();
+    setPhotos((p) => [{ id: d.photoId, thumb: d.thumbUrl }, ...p]);
+  }
+
+  const STATUS_LABEL: Record<string, string> = {
+    APPROVED: ru.adminPhotographers.statusApproved,
+    DRAFT: ru.adminPhotographers.statusDraft,
+    PENDING: ru.adminPhotographers.statusPending,
+    NEEDS_REVISION: ru.adminPhotographers.statusPending,
+    REJECTED: ru.adminPhotographers.statusRejected,
+  };
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-center gap-3">
+        <span className={`rounded-sm px-2 py-0.5 text-xs font-medium ${status === 'APPROVED' ? 'bg-success-soft text-success' : 'bg-surface-2 muted'}`}>
+          {STATUS_LABEL[status]}
+        </span>
+        <button type="button" onClick={togglePublish} disabled={busy}
+          className={`btn btn-sm ${status === 'APPROVED' ? 'btn-outline' : 'btn-accent'}`}>
+          {status === 'APPROVED' ? ru.adminPhotographers.unpublish : ru.adminPhotographers.toPublish}
+        </button>
+      </div>
+
+      <div className="mt-6">
+        <div className="flex items-end justify-between gap-3">
+          <h2 className="t-h3">{ru.adminPhotographers.photosTitle} · {photos.length}</h2>
+          <div className="flex items-center gap-2">
+            <select value={cat} onChange={(e) => setCat(e.target.value)} className="input h-9 w-auto py-1 text-sm">
+              {categories.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+            </select>
+            <label className={`btn btn-accent btn-sm ${busy ? 'opacity-50' : 'cursor-pointer'}`}>
+              {busy ? ru.adminPhotographers.uploading : ru.adminPhotographers.uploadPhoto}
+              <input type="file" accept="image/*" className="sr-only" disabled={busy} onChange={onFile} />
+            </label>
+          </div>
+        </div>
+        {photos.length === 0 ? (
+          <p className="mt-4 text-sm muted">{ru.adminPhotographers.noPhotos}</p>
+        ) : (
+          <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4">
+            {photos.map((p) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img key={p.id} src={p.thumb} alt="" loading="lazy" className="aspect-square w-full rounded-media object-cover" />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
