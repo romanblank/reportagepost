@@ -36,7 +36,7 @@ export default async function CountryPage(props: { params: Promise<{ country: st
 
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:py-10">
-      <h1 className="text-3xl font-semibold sm:text-4xl">{ru.country.title}</h1>
+      <h1 className="t-h1">{ru.country.title}</h1>
       <p className="mt-2 muted">{ru.country.lead}</p>
       <ul className="mt-8 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
         {cities.map((city) => (

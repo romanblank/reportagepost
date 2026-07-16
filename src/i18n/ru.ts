@@ -330,6 +330,7 @@ export const ru = {
       'notification.profile.approved': 'Ваша страница принята — вы в каталоге',
       'notification.profile.revision': 'Редакция вернула страницу с комментарием',
       'notification.pro.requested': 'Фотограф запросил подключение PRO',
+      'notification.comment.new': 'Новый комментарий к вашей работе',
     } as Record<string, string>,
   },
   messages: {

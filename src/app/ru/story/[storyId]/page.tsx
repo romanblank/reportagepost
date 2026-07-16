@@ -44,7 +44,7 @@ export default async function StoryPage(props: { params: Promise<{ storyId: stri
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8">
-      <h1 className="text-3xl font-semibold">{story.title}</h1>
+      <h1 className="t-h1">{story.title}</h1>
       <p className="mt-1 text-sm muted">
         {ru.story.byLabel}:{' '}
         <Link href={`/ru/photographer/${story.profile.username}`} className="underline">

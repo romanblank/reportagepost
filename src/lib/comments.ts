@@ -57,6 +57,19 @@ export async function addComment(userId: string, target: CommentTarget, rawBody:
       targetId: 'photoId' in target ? target.photoId : target.storyId,
     },
   });
+
+  // Петля признания (deep-think Content P1): уведомить автора работы о комментарии
+  // (если это не свой же коммент). Вторично — не роняем создание коммента.
+  const owner = 'photoId' in target
+    ? await db.photo.findUnique({ where: { id: target.photoId }, select: { profile: { select: { userId: true } } } })
+    : await db.story.findUnique({ where: { id: target.storyId }, select: { profile: { select: { userId: true } } } });
+  const ownerUserId = owner?.profile.userId;
+  if (ownerUserId && ownerUserId !== userId) {
+    const { notifyInApp } = await import('@/lib/notifications');
+    await notifyInApp(ownerUserId, 'notification.comment.new', {
+      ...(('photoId' in target) ? { photoId: target.photoId } : { storyId: target.storyId }),
+    }).catch(() => {});
+  }
   return created;
 }
 

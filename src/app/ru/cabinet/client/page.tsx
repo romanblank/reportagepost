@@ -26,7 +26,7 @@ export default async function ClientCabinetPage() {
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:py-10">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-semibold">{ru.clientCabinet.title}</h1>
+        <h1 className="t-h1">{ru.clientCabinet.title}</h1>
         <Link href="/ru/inquiry" className="btn btn-accent px-3 py-1.5">
           {ru.clientCabinet.newInquiry}
         </Link>

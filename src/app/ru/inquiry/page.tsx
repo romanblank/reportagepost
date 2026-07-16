@@ -14,7 +14,7 @@ export default function InquiryPage() {
 
   return (
     <main className="mx-auto w-full max-w-xl flex-1 px-4 py-6 sm:py-10">
-      <h1 className="text-3xl font-semibold">{ru.inquiry.title}</h1>
+      <h1 className="t-h1">{ru.inquiry.title}</h1>
       <p className="mt-1 text-sm muted">{ru.inquiry.lead}</p>
       <div className="mt-6">
         <InquiryForm

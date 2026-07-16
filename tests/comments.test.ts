@@ -64,6 +64,8 @@ describe.skipIf(!hasDb)('comments: гейт APPROVED, права удалени�
 
     await db.activityEvent.deleteMany({ where: { actorUserId: { in: [commenter.id, stranger.id] } } });
     await db.comment.deleteMany({ where: { authorUserId: commenter.id } });
+    // addComment теперь шлёт автору работы уведомление о комменте → удалить Notification ДО user (FK RESTRICT)
+    await db.notification.deleteMany({ where: { userId: { in: [owner.id, commenter.id, stranger.id] } } });
     await db.story.deleteMany({ where: { profileId: profile.id } });
     await db.photographerProfile.delete({ where: { id: profile.id } });
     await db.user.deleteMany({ where: { id: { in: [owner.id, commenter.id, stranger.id] } } });
