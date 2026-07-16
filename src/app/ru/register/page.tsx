@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ru } from '@/i18n/ru';
 import { describeApiError } from '@/lib/form-errors';
+import { AuthScene } from '@/components/AuthScene';
 
 // useSearchParams требует Suspense (иначе падает next build — урок Брендоскопа).
 export default function RegisterPage() {
@@ -60,10 +61,9 @@ function RegisterForm() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-4 py-16">
-      <div className="card p-6 sm:p-8">
-        <h1 className="t-h3">{ru.auth.registerTitle}</h1>
-        <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4">
+    <AuthScene>
+      <h1 className="t-h2">{ru.auth.registerTitle}</h1>
+      <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-2">
             <label className="chip flex-1 justify-center has-[:checked]:border-ink has-[:checked]:bg-ink has-[:checked]:text-paper">
               <input type="radio" name="role" value="PHOTOGRAPHER" defaultChecked className="sr-only" /> {ru.auth.rolePhotographer}
@@ -113,11 +113,14 @@ function RegisterForm() {
             </span>
           </label>
           {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-          <button type="submit" disabled={pending || !consent} className="btn btn-accent mt-1">
+          <button type="submit" disabled={pending || !consent} className="btn btn-accent btn-lg mt-1">
             {ru.auth.submitRegister}
           </button>
+          <p className="mt-1 text-sm muted">
+            {ru.auth.haveAccount}{' '}
+            <Link href="/ru/login" className="underline hover:text-ink">{ru.auth.toLogin}</Link>
+          </p>
         </form>
-      </div>
-    </main>
+    </AuthScene>
   );
 }

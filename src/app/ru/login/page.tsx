@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ru } from '@/i18n/ru';
+import { AuthScene } from '@/components/AuthScene';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -53,48 +54,48 @@ export default function LoginPage() {
 
   if (twoFactor) {
     return (
-      <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-4 py-16">
-        <div className="card p-6 sm:p-8">
-          <h1 className="t-h3">{ru.auth.twoFa.challengeTitle}</h1>
-          <form onSubmit={onVerify} className="mt-6 flex flex-col gap-4">
-            <p className="text-sm muted">{ru.auth.twoFa.challengeLead}</p>
-            <div>
-              <label className="field-label" htmlFor="code">{ru.auth.twoFa.codeLabel}</label>
-              <input id="code" name="code" inputMode="numeric" autoComplete="one-time-code" autoFocus
-                placeholder={ru.auth.twoFa.codePlaceholder}
-                className="input tnum text-center text-lg tracking-[0.3em]" />
-              <span className="field-hint">{ru.auth.twoFa.recoveryHint}</span>
-            </div>
-            {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-            <button type="submit" disabled={pending} className="btn btn-accent mt-1">{ru.auth.twoFa.verify}</button>
-          </form>
-        </div>
-      </main>
+      <AuthScene>
+        <h1 className="t-h2">{ru.auth.twoFa.challengeTitle}</h1>
+        <form onSubmit={onVerify} className="mt-6 flex flex-col gap-4">
+          <p className="text-sm muted">{ru.auth.twoFa.challengeLead}</p>
+          <div>
+            <label className="field-label" htmlFor="code">{ru.auth.twoFa.codeLabel}</label>
+            <input id="code" name="code" inputMode="numeric" autoComplete="one-time-code" autoFocus
+              placeholder={ru.auth.twoFa.codePlaceholder}
+              className="input tnum text-center text-lg tracking-[0.3em]" />
+            <span className="field-hint">{ru.auth.twoFa.recoveryHint}</span>
+          </div>
+          {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+          <button type="submit" disabled={pending} className="btn btn-accent btn-lg mt-1">{ru.auth.twoFa.verify}</button>
+        </form>
+      </AuthScene>
     );
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-4 py-16">
-      <div className="card p-6 sm:p-8">
-        <h1 className="text-2xl font-semibold">{ru.auth.loginTitle}</h1>
-        <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4">
-          <div>
-            <label className="field-label" htmlFor="email">{ru.auth.email}</label>
-            <input id="email" name="email" type="email" required autoComplete="email" className="input" />
+    <AuthScene>
+      <h1 className="t-h1">{ru.auth.loginTitle}</h1>
+      <form onSubmit={onSubmit} className="mt-7 flex flex-col gap-4">
+        <div>
+          <label className="field-label" htmlFor="email">{ru.auth.email}</label>
+          <input id="email" name="email" type="email" required autoComplete="email" className="input" />
+        </div>
+        <div>
+          <div className="flex items-baseline justify-between">
+            <label className="field-label" htmlFor="password">{ru.auth.password}</label>
+            <Link href="/ru/forgot" className="text-xs underline muted hover:text-ink">{ru.auth.pwreset.forgotLink}</Link>
           </div>
-          <div>
-            <div className="flex items-baseline justify-between">
-              <label className="field-label" htmlFor="password">{ru.auth.password}</label>
-              <Link href="/ru/forgot" className="text-xs underline muted hover:text-ink">{ru.auth.pwreset.forgotLink}</Link>
-            </div>
-            <input id="password" name="password" type="password" required autoComplete="current-password" className="input" />
-          </div>
-          {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-          <button type="submit" disabled={pending} className="btn btn-accent mt-1">
-            {ru.auth.submitLogin}
-          </button>
-        </form>
-      </div>
-    </main>
+          <input id="password" name="password" type="password" required autoComplete="current-password" className="input" />
+        </div>
+        {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+        <button type="submit" disabled={pending} className="btn btn-accent btn-lg mt-1">
+          {ru.auth.submitLogin}
+        </button>
+        <p className="mt-2 text-sm muted">
+          {ru.auth.noAccount}{' '}
+          <Link href="/ru/register" className="underline hover:text-ink">{ru.auth.toRegister}</Link>
+        </p>
+      </form>
+    </AuthScene>
   );
 }

@@ -4,6 +4,7 @@ import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { ru } from '@/i18n/ru';
+import { AuthScene } from '@/components/AuthScene';
 
 export default function ResetPage() {
   return (
@@ -35,9 +36,8 @@ function ResetForm() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-4 py-16">
-      <div className="card p-6 sm:p-8">
-        <h1 className="t-h3">{ru.auth.pwreset.resetTitle}</h1>
+    <AuthScene>
+        <h1 className="t-h2">{ru.auth.pwreset.resetTitle}</h1>
         {done ? (
           <>
             <p className="mt-4 text-sm muted">{ru.auth.pwreset.resetDone}</p>
@@ -54,10 +54,9 @@ function ResetForm() {
               <span className="field-hint">Минимум 10 символов</span>
             </div>
             {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-            <button type="submit" disabled={pending} className="btn btn-accent mt-1">{ru.auth.pwreset.resetSubmit}</button>
+            <button type="submit" disabled={pending} className="btn btn-accent btn-lg mt-1">{ru.auth.pwreset.resetSubmit}</button>
           </form>
         )}
-      </div>
-    </main>
+    </AuthScene>
   );
 }

@@ -11,6 +11,7 @@ import { LiveUpdates } from "@/components/LiveUpdates";
 import { SiteFooter } from "@/components/SiteFooter";
 import { CookieConsent } from "@/components/CookieConsent";
 import { ToastProvider } from "@/components/ui/Toast";
+import { Chrome } from "@/components/Chrome";
 
 // Editorial Gallery: Inter (текст/UI, лучшая кириллица среди гротесков) +
 // Cormorant (журнальная антиква для дисплей-заголовков). Обе с кириллицей.
@@ -69,12 +70,15 @@ export default async function RootLayout({
       {/* pb-16 на мобиле — под нижнюю таб-навигацию */}
       <body className="min-h-full flex flex-col pb-16 sm:pb-0">
         <ToastProvider>
-          <SiteHeader />
-          {children}
-          <SiteFooter />
+          <Chrome
+            header={<SiteHeader />}
+            footer={<SiteFooter />}
+            cookie={<CookieConsent />}
+            mobileTab={<MobileTabBar authed={Boolean(session)} cabinetHref={cabinetHref} />}
+          >
+            {children}
+          </Chrome>
           {session && <LiveUpdates />}
-          <CookieConsent />
-          <MobileTabBar authed={Boolean(session)} cabinetHref={cabinetHref} />
         </ToastProvider>
       </body>
     </html>

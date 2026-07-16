@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { ru } from '@/i18n/ru';
+import { AuthScene } from '@/components/AuthScene';
 
 export default function ForgotPage() {
   const [pending, setPending] = useState(false);
@@ -22,9 +23,8 @@ export default function ForgotPage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-4 py-16">
-      <div className="card p-6 sm:p-8">
-        <h1 className="t-h3">{ru.auth.pwreset.forgotTitle}</h1>
+    <AuthScene>
+        <h1 className="t-h2">{ru.auth.pwreset.forgotTitle}</h1>
         {done ? (
           <>
             <p className="mt-4 text-sm muted">{ru.auth.pwreset.forgotDone}</p>
@@ -41,7 +41,6 @@ export default function ForgotPage() {
             <Link href="/ru/login" className="self-start text-sm underline muted hover:text-ink">{ru.auth.pwreset.backToLogin}</Link>
           </form>
         )}
-      </div>
-    </main>
+    </AuthScene>
   );
 }
