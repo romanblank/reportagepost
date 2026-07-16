@@ -147,28 +147,28 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
       />
       <header className="border-b border-line pb-5 sm:pb-8">
         {/* Шапка профиля: аватар + имя + ряд статистики (app-подача как в Instagram) */}
-        <div className="flex items-center gap-4 sm:gap-5">
+        {/* Разворот: аватар + имя антиквой + категории; статы — инлайн-строкой, не «плавающие боксы» */}
+        <div className="flex items-start gap-5 sm:gap-6">
           <Avatar avatarKey={profile.avatarKey} firstName={profile.user.firstName}
-            lastName={profile.user.lastName} size={80} />
+            lastName={profile.user.lastName} size={104} />
           <div className="min-w-0 flex-1">
-            <div className="flex items-stretch justify-around gap-2 text-center">
-              <span className="flex flex-col"><b className="text-lg font-semibold leading-tight">{cityRank}</b><span className="text-xs muted">{ru.profile.statCityRank}</span></span>
-              <span className="flex flex-col"><b className="text-lg font-semibold leading-tight">{followers}</b><span className="text-xs muted">{ru.profile.statFollowers}</span></span>
-              <span className="flex flex-col"><b className="text-lg font-semibold leading-tight">{profile.photos.length}</b><span className="text-xs muted">{ru.profile.statPhotos}</span></span>
+            <h1 className="t-h1 flex flex-wrap items-center gap-2">
+              <span>{profile.user.firstName} {profile.user.lastName}</span>
+              {profile.verified && <VerifiedBadge label={ru.profile.verifiedHint} size={22} />}
+            </h1>
+            <p className="mt-1.5 text-sm muted">
+              {cityNameRu(profile.city.slug)} · {profile.categories.map((c) => categoryNameRu(c.category.slug)).join(' · ')}
+            </p>
+            {session?.role === 'ADMIN' && (
+              <div className="mt-2"><VerifyButton profileId={profile.id} verified={profile.verified} /></div>
+            )}
+            <div className="mt-4 flex flex-wrap items-baseline gap-x-7 gap-y-2">
+              <span className="flex items-baseline gap-1.5"><b className="tnum text-lg font-semibold">{cityRank}</b><span className="t-caption muted">{ru.profile.statCityRank}</span></span>
+              <span className="flex items-baseline gap-1.5"><b className="tnum text-lg font-semibold">{followers}</b><span className="t-caption muted">{ru.profile.statFollowers}</span></span>
+              <span className="flex items-baseline gap-1.5"><b className="tnum text-lg font-semibold">{profile.photos.length}</b><span className="t-caption muted">{ru.profile.statPhotos}</span></span>
             </div>
           </div>
         </div>
-
-        <h1 className="t-h1 mt-4 flex flex-wrap items-center gap-2">
-          <span>{profile.user.firstName} {profile.user.lastName}</span>
-          {profile.verified && <VerifiedBadge label={ru.profile.verifiedHint} size={22} />}
-        </h1>
-        {session?.role === 'ADMIN' && (
-          <div className="mt-2"><VerifyButton profileId={profile.id} verified={profile.verified} /></div>
-        )}
-        <p className="mt-1 text-sm muted">
-          {cityNameRu(profile.city.slug)} · {profile.categories.map((c) => categoryNameRu(c.category.slug)).join(' · ')}
-        </p>
         {onlineText && <p className="mt-0.5 text-xs muted">{onlineText}</p>}
         {reviews.aggregate.count > 0 && (
           <div className="mt-1.5 flex items-center gap-2">

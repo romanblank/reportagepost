@@ -32,14 +32,14 @@ export default async function Home() {
         </section>
       )}
 
-      <section className="mx-auto grid w-full max-w-4xl gap-4 px-4 pb-24 sm:grid-cols-2">
-        <div className="card p-6">
+      <section className="mx-auto grid w-full max-w-4xl gap-x-12 gap-y-8 px-4 pb-24 sm:grid-cols-2">
+        <div className="border-t border-line-2 pt-5">
           <h2 className="t-h3">{ru.landing.forPhotographers}</h2>
-          <p className="mt-2 text-sm leading-relaxed muted">{ru.landing.forPhotographersText}</p>
+          <p className="t-body mt-2.5 max-w-prose muted">{ru.landing.forPhotographersText}</p>
         </div>
-        <div className="card p-6">
+        <div className="border-t border-line-2 pt-5">
           <h2 className="t-h3">{ru.landing.forClients}</h2>
-          <p className="mt-2 text-sm leading-relaxed muted">{ru.landing.forClientsText}</p>
+          <p className="t-body mt-2.5 max-w-prose muted">{ru.landing.forClientsText}</p>
         </div>
       </section>
     </main>
