@@ -24,17 +24,17 @@ export default async function CommunityPage() {
     { label: ru.dashboard.statPhotos, value: stats.photos },
     { label: ru.dashboard.statCities, value: stats.cities },
     { label: ru.dashboard.statStories, value: stats.stories },
-  ];
+  ].filter((t) => t.value > 0);
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
-      <h1 className="text-3xl font-semibold">{ru.dashboard.title}</h1>
+    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:py-14">
+      <h1 className="t-h1">{ru.dashboard.title}</h1>
 
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="mt-6 flex flex-wrap gap-x-12 gap-y-4 border-y border-line py-6">
         {tiles.map((t) => (
-          <div key={t.label} className="card p-4">
-            <div className="text-2xl font-semibold">{t.value}</div>
-            <div className="text-sm muted">{t.label}</div>
+          <div key={t.label}>
+            <div className="tnum text-3xl font-semibold leading-none sm:text-4xl">{t.value}</div>
+            <div className="t-caption mt-2 muted">{t.label}</div>
           </div>
         ))}
       </div>

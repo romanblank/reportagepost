@@ -20,11 +20,12 @@ export default async function LegalPage(props: { params: Promise<{ doc: string }
   if (!title) notFound();
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-10">
-      <h1 className="text-2xl font-semibold sm:text-3xl">{title}</h1>
-      <div className="mt-4 rounded-xl border border-line bg-surface-2 p-5">
-        <p className="font-medium">{ru.legal.preparingTitle}</p>
-        <p className="mt-2 text-sm leading-relaxed muted">{ru.legal.preparingText}</p>
+    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center px-4 py-20 sm:py-28">
+      <p className="t-caption text-recognition">{ru.footer.tagline}</p>
+      <h1 className="t-h1 mt-3">{title}</h1>
+      <div className="mt-6 max-w-prose border-t border-line pt-6">
+        <p className="t-body-lg">{ru.legal.preparingTitle}</p>
+        <p className="mt-3 t-body muted">{ru.legal.preparingText}</p>
       </div>
     </main>
   );

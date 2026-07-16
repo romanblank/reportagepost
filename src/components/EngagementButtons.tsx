@@ -6,11 +6,12 @@ import { ru } from '@/i18n/ru';
 import { Icon } from '@/components/ui/Icon';
 import { useToast } from '@/components/ui/Toast';
 
-export function LikeButton({ photoId, initialLiked, initialCount, authed }: {
+export function LikeButton({ photoId, initialLiked, initialCount, authed, onDark = false }: {
   photoId: string;
   initialLiked: boolean;
   initialCount: number;
   authed: boolean;
+  onDark?: boolean;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -32,6 +33,15 @@ export function LikeButton({ photoId, initialLiked, initialCount, authed }: {
     }
   }
 
+  if (onDark) {
+    return (
+      <button onClick={toggle} aria-pressed={liked}
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-white/90 transition hover:text-white">
+        <Icon name={liked ? 'heart-filled' : 'heart'} size={17} />
+        {count > 0 && <span className="tnum">{count}</span>}
+      </button>
+    );
+  }
   return (
     <button onClick={toggle} aria-pressed={liked}
       className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors ${liked ? 'bg-ink text-paper' : 'border-line hover:bg-surface-2'}`}>

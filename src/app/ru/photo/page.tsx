@@ -91,11 +91,6 @@ export default async function PhotoFeedPage(props: {
                   <span className="text-sm font-medium">{p.firstName} {p.lastName}</span>
                 </div>
                 <div className="relative">
-                  {(active === 'week' || active === 'year') && p.scoreMilli > 0 && (
-                    <span className="absolute left-3 top-3 z-10 rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-ink">
-                      {active === 'week' ? ru.photoFeed.badgeWeek : ru.photoFeed.badgeYear}
-                    </span>
-                  )}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={webVariantUrl(p.storageKey)} alt="" loading="lazy"
                     width={p.width} height={p.height} className="w-full bg-cover bg-center"
@@ -108,19 +103,17 @@ export default async function PhotoFeedPage(props: {
           <div className="mt-6 hidden columns-2 gap-3 sm:block md:columns-3 lg:columns-4">
             {photos.map((p) => (
               <Link key={p.photoId} href={`/ru/photographer/${p.username}`} className="group mb-3 block break-inside-avoid">
-                <div className="relative overflow-hidden rounded-lg">
-                  {(active === 'week' || active === 'year') && p.scoreMilli > 0 && (
-                    <span className="absolute left-2 top-2 z-10 rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-ink">
-                      {active === 'week' ? ru.photoFeed.badgeWeek : ru.photoFeed.badgeYear}
-                    </span>
-                  )}
+                <div className="relative overflow-hidden rounded-media">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={webVariantUrl(p.storageKey)} alt="" loading="lazy"
                     width={p.width} height={p.height}
-                    className="w-full bg-cover bg-center transition duration-300 group-hover:scale-[1.02]"
+                    className="w-full bg-cover bg-center transition duration-500 ease-out group-hover:scale-[1.03]"
                     style={p.blurData ? { backgroundImage: `url(${p.blurData})` } : undefined} />
+                  {/* автор проступает снизу по наведению — не «серая подпись» под каждым */}
+                  <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end bg-gradient-to-t from-black/55 to-transparent px-3 pb-2.5 pt-8 text-xs font-medium text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                    {p.firstName} {p.lastName}
+                  </span>
                 </div>
-                <span className="mt-1 block text-xs muted">{p.firstName} {p.lastName}</span>
               </Link>
             ))}
           </div>
