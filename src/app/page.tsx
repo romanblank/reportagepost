@@ -32,7 +32,7 @@ export default async function Home() {
         </section>
       )}
 
-      <section className="mx-auto grid w-full max-w-4xl gap-x-12 gap-y-8 px-4 pb-24 sm:grid-cols-2">
+      <section className="mx-auto grid w-full max-w-4xl gap-x-12 gap-y-8 px-4 pb-16 sm:grid-cols-2">
         <div className="border-t border-line-2 pt-5">
           <h2 className="t-h3">{ru.landing.forPhotographers}</h2>
           <p className="t-body mt-2.5 max-w-prose muted">{ru.landing.forPhotographersText}</p>
@@ -40,6 +40,32 @@ export default async function Home() {
         <div className="border-t border-line-2 pt-5">
           <h2 className="t-h3">{ru.landing.forClients}</h2>
           <p className="t-body mt-2.5 max-w-prose muted">{ru.landing.forClientsText}</p>
+        </div>
+      </section>
+
+      {/* Как это работает — три шага (нумерация = реальная последовательность) */}
+      <section className="mx-auto w-full max-w-4xl px-4 pb-16">
+        <h2 className="t-h2">{ru.landing.howTitle}</h2>
+        <ol className="mt-6 grid gap-8 sm:grid-cols-3">
+          {[
+            { t: ru.landing.step1Title, d: ru.landing.step1Text },
+            { t: ru.landing.step2Title, d: ru.landing.step2Text },
+            { t: ru.landing.step3Title, d: ru.landing.step3Text },
+          ].map((s, i) => (
+            <li key={s.t} className="border-t border-line-2 pt-4">
+              <span className="t-caption text-recognition tabular-nums">0{i + 1}</span>
+              <h3 className="t-h3 mt-1.5">{s.t}</h3>
+              <p className="t-body mt-2 muted">{s.d}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {/* Отстройка от бирж/соцсетей */}
+      <section className="mx-auto w-full max-w-4xl px-4 pb-24">
+        <div className="border-t border-line-2 pt-5">
+          <h2 className="t-h2">{ru.landing.whyTitle}</h2>
+          <p className="t-body-lg mt-3 max-w-prose muted">{ru.landing.whyText}</p>
         </div>
       </section>
     </main>

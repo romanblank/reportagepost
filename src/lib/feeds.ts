@@ -205,12 +205,21 @@ async function fallbackFeed(limit: number): Promise<{ photos: FeedPhoto[]; perso
 
 /** Ручная отметка редакции (инструмент оператора). */
 export async function toggleEditorsChoice(photoId: string): Promise<{ chosen: boolean }> {
-  const photo = await db.photo.findUnique({ where: { id: photoId } });
+  const photo = await db.photo.findUnique({
+    where: { id: photoId },
+    include: { profile: { select: { userId: true } } },
+  });
   if (!photo || photo.status !== 'APPROVED') throw new DomainError('photo_not_found', 404);
   const chosen = !photo.editorsChoiceAt;
   await db.photo.update({
     where: { id: photoId },
     data: { editorsChoiceAt: chosen ? new Date() : null },
   });
+  // Петля признания (deep-think Content P1): уведомить автора о попадании в «Выбор
+  // редакции». Только при включении. Вторично — не роняем действие.
+  if (chosen) {
+    const { notifyInApp } = await import('@/lib/notifications');
+    await notifyInApp(photo.profile.userId, 'notification.photo.editors_choice', { photoId }).catch(() => {});
+  }
   return { chosen };
 }
