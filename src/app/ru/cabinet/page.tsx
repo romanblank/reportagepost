@@ -35,7 +35,7 @@ export default async function CabinetPage() {
     session.role === 'PHOTOGRAPHER'
       ? await db.photographerProfile.findUnique({
           where: { userId: session.userId },
-          include: { _count: { select: { photos: true } } },
+          include: { _count: { select: { photos: true, favoritedBy: true, reviews: true } } },
         })
       : null;
 
@@ -60,11 +60,11 @@ export default async function CabinetPage() {
       ? await db.photographerProfile.count({ where: { status: 'PENDING' } })
       : 0;
 
-  const me = await db.user.findUnique({ where: { id: session.userId }, select: { tgUserId: true } });
+  const me = await db.user.findUnique({ where: { id: session.userId }, select: { tgUserId: true, firstName: true } });
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:py-10">
-      <h1 className="t-h2">{ru.cabinet.title}</h1>
+      <h1 className="t-h2">{me?.firstName ? ru.cabinet.greeting(me.firstName) : ru.cabinet.title}</h1>
 
       {session.role === 'ADMIN' && (
         <section className="mt-4 card p-4">
@@ -90,43 +90,70 @@ export default async function CabinetPage() {
         </section>
       )}
 
-      {session.role === 'PHOTOGRAPHER' && (
-        <section className="mt-4 card p-4">
-          <p className="t-caption muted">{ru.cabinet.statusLabel}</p>
-          {profile ? (
-            <div className="mt-1 flex flex-wrap items-center gap-3">
-              <span className="font-medium">{STATUS_LABEL[profile.status]}</span>
-              {profile.status === 'REJECTED' && profile.rejectReason && (
-                <span className="text-sm text-accent">{profile.rejectReason}</span>
-              )}
-              {profile.status === 'APPROVED' && (
-                <Link href={`/ru/photographer/${profile.username}`} className="text-sm underline">
-                  {ru.cabinet.viewProfile}
+      {session.role === 'PHOTOGRAPHER' && profile && (
+        <>
+          <section className="mt-4 flex flex-wrap items-center justify-between gap-3">
+            <span
+              className={`rounded-sm px-2.5 py-1 text-xs font-medium ${
+                profile.status === 'APPROVED' ? 'bg-success-soft text-success' : 'bg-surface-2 muted'
+              }`}
+            >
+              {STATUS_LABEL[profile.status]}
+            </span>
+            {profile.status === 'APPROVED' && (
+              <Link href={`/ru/photographer/${profile.username}`} className="text-sm underline muted">
+                {ru.cabinet.viewProfile} →
+              </Link>
+            )}
+            {profile.status === 'REJECTED' && profile.rejectReason && (
+              <span className="text-sm text-accent">{profile.rejectReason}</span>
+            )}
+            {profile.status === 'NEEDS_REVISION' && profile.revisionNote && (
+              <span className="text-sm text-accent">{profile.revisionNote}</span>
+            )}
+          </section>
+
+          <section className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[
+              { n: profile._count.photos, label: ru.cabinet.statPhotos },
+              { n: profile._count.favoritedBy, label: ru.cabinet.statSaves },
+              { n: profile._count.reviews, label: ru.cabinet.statReviews },
+              { n: inquiries?.length ?? 0, label: ru.cabinet.statInquiries },
+            ].map((s) => (
+              <div key={s.label} className="card px-4 py-3">
+                <div className="text-2xl font-semibold tabular-nums">{s.n}</div>
+                <div className="mt-0.5 text-xs muted">{s.label}</div>
+              </div>
+            ))}
+          </section>
+
+          <section className="mt-6">
+            <p className="t-caption muted">{ru.cabinet.manageTitle}</p>
+            <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {[
+                { href: '/ru/cabinet/profile/edit', title: ru.editProfile.title, desc: ru.cabinet.tileEditDesc },
+                { href: '/ru/cabinet/portfolio', title: ru.cabinet.portfolioLink, desc: ru.cabinet.tilePortfolioDesc },
+                ...(profile.status === 'APPROVED'
+                  ? [{ href: '/ru/cabinet/availability', title: ru.cabinet.availabilityLink, desc: ru.cabinet.tileAvailabilityDesc }]
+                  : []),
+                { href: '/ru/cabinet/settings', title: ru.cabinet.settingsLink, desc: ru.cabinet.tileSettingsDesc },
+              ].map((t) => (
+                <Link key={t.href} href={t.href} className="card p-4 transition-colors hover:border-accent">
+                  <div className="font-medium">{t.title}</div>
+                  <div className="mt-0.5 text-sm muted">{t.desc}</div>
                 </Link>
-              )}
-              <Link href="/ru/cabinet/profile/edit" className="text-sm underline">
-                {ru.editProfile.title}
-              </Link>
-              <Link href="/ru/cabinet/portfolio" className="text-sm underline">
-                {ru.cabinet.portfolioLink}
-              </Link>
-              <Link href="/ru/cabinet/settings" className="text-sm underline">
-                {ru.cabinet.settingsLink}
-              </Link>
-              {profile.status === 'APPROVED' && (
-                <Link href="/ru/cabinet/availability" className="text-sm underline">
-                  {ru.cabinet.availabilityLink}
-                </Link>
-              )}
+              ))}
             </div>
-          ) : (
-            <div className="mt-1 flex items-center gap-3">
-              <span>{ru.cabinet.noProfile}</span>
-              <Link href="/ru/onboarding" className="btn btn-accent px-3 py-1.5">
-                {ru.cabinet.fillProfile}
-              </Link>
-            </div>
-          )}
+          </section>
+        </>
+      )}
+
+      {session.role === 'PHOTOGRAPHER' && !profile && (
+        <section className="mt-4 card p-5 text-center">
+          <p className="font-medium">{ru.cabinet.noProfile}</p>
+          <Link href="/ru/onboarding" className="btn btn-accent mt-3 px-4 py-2">
+            {ru.cabinet.fillProfile}
+          </Link>
         </section>
       )}
 

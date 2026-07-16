@@ -431,6 +431,17 @@ export const ru = {
     availabilityLink: 'Календарь занятости',
     portfolioLink: 'Портфолио',
     settingsLink: 'Настройки и безопасность',
+    // Дашборд
+    statPhotos: 'Кадров в портфолио',
+    statSaves: 'Сохранили в избранное',
+    statReviews: 'Отзывов',
+    statInquiries: 'Заявок в городе',
+    manageTitle: 'Управление',
+    tileEditDesc: 'Био, жанры, опыт, контакты',
+    tilePortfolioDesc: 'Загрузка и порядок кадров',
+    tileAvailabilityDesc: 'Занятые дни и выезды',
+    tileSettingsDesc: 'Пароль, email, вход',
+    greeting: (name: string) => `Здравствуйте, ${name}`,
   },
   settings: {
     title: 'Настройки и безопасность',
