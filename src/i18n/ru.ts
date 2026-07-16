@@ -110,6 +110,11 @@ export const ru = {
     title: (city: string) => `Репортажные фотографы — ${city}`,
     metaDescription: (city: string, count: number) =>
       `Каталог репортажных фотографов: ${city}. ${count} проверенных фотографов: портфолио, цены, прямой контакт.`,
+    // Город × категория (SEO-страницы)
+    categoryTitle: (category: string, city: string) => `${category} — фотографы, ${city}`,
+    categoryMetaDescription: (category: string, city: string, count: number) =>
+      `${category}: репортажные фотографы в городе ${city}. ${count} авторов — портфолио, цены, прямой контакт без комиссии.`,
+    breadcrumbRoot: 'Каталог',
     empty: 'В этом городе пока нет фотографов',
     emptyCta: (city: string) => `Будьте первым репортажным фотографом в городе ${city} — или оставьте заявку, и мы позовём подходящих.`,
     emptyRegister: 'Я фотограф',

@@ -33,17 +33,31 @@ export interface CatalogLdItem {
   name: string;
 }
 
-export function catalogItemListLd(cityName: string, items: CatalogLdItem[]): Record<string, unknown> {
+export function catalogItemListLd(listName: string, items: CatalogLdItem[]): Record<string, unknown> {
   return {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
-    name: `Репортажные фотографы — ${cityName}`,
+    name: listName,
     numberOfItems: items.length,
     itemListElement: items.map((it, i) => ({
       '@type': 'ListItem',
       position: i + 1,
       url: `${BASE_URL}/ru/photographer/${it.username}`,
       name: it.name,
+    })),
+  };
+}
+
+// Хлебные крошки (BreadcrumbList) для город/город×категория — SEO-навигация.
+export function breadcrumbLd(items: { name: string; path: string }[]): Record<string, unknown> {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: items.map((it, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: it.name,
+      item: `${BASE_URL}${it.path}`,
     })),
   };
 }

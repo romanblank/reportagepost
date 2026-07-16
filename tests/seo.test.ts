@@ -28,6 +28,27 @@ describe('sitemap: билдер (чистая функция)', () => {
     const profileEntry = entries.find((e) => e.url.endsWith('/photographer/a'));
     expect(profileEntry?.lastModified).toBe(d);
   });
+
+  it('включает комбо город×категория (path-роуты)', () => {
+    const entries = sitemapEntries(
+      [{ slug: 'moscow', approvedCount: 2 }],
+      [],
+      now,
+      [{ citySlug: 'moscow', categorySlug: 'sports' }],
+    );
+    expect(entries.map((e) => e.url)).toContain(`${BASE_URL}/ru/russia/moscow/sports`);
+  });
+});
+
+describe('breadcrumbLd (чистая функция)', () => {
+  it('позиции 1..N с абсолютными URL', async () => {
+    const { breadcrumbLd } = await import('@/lib/structured-data');
+    const ld = breadcrumbLd([{ name: 'Каталог', path: '/ru/russia/moscow' }, { name: 'Спорт', path: '/ru/russia/moscow/sports' }]);
+    expect(ld['@type']).toBe('BreadcrumbList');
+    const items = ld.itemListElement as Array<Record<string, unknown>>;
+    expect(items[0].position).toBe(1);
+    expect(items[1].item).toBe(`${BASE_URL}/ru/russia/moscow/sports`);
+  });
 });
 
 describe('structured-data: JSON-LD билдеры', () => {

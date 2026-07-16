@@ -16,12 +16,19 @@ export interface SitemapProfile {
   lastMod: Date;
 }
 
+// Комбо «город × категория» с ≥1 APPROVED-фотографом (пустые не индексируем).
+export interface SitemapCityCategory {
+  citySlug: string;
+  categorySlug: string;
+}
+
 export const BASE_URL = `https://${APP_DOMAIN}`;
 
 export function sitemapEntries(
   cities: SitemapCity[],
   profiles: SitemapProfile[],
   now: Date,
+  cityCategories: SitemapCityCategory[] = [],
 ): MetadataRoute.Sitemap {
   const entries: MetadataRoute.Sitemap = [
     { url: `${BASE_URL}/`, lastModified: now, changeFrequency: 'daily', priority: 1 },
@@ -36,6 +43,15 @@ export function sitemapEntries(
       lastModified: now,
       changeFrequency: 'daily',
       priority: 0.7,
+    });
+  }
+
+  for (const cc of cityCategories) {
+    entries.push({
+      url: `${BASE_URL}/ru/russia/${cc.citySlug}/${cc.categorySlug}`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.65,
     });
   }
 
