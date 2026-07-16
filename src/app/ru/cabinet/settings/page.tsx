@@ -2,8 +2,10 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
+import { db } from '@/lib/db';
 import { twoFactorStatus } from '@/lib/two-factor';
 import { ru } from '@/i18n/ru';
+import { AccountSettings } from '@/components/AccountSettings';
 import { TwoFactorManager } from '@/components/TwoFactorManager';
 
 export const metadata: Metadata = { title: ru.settings.title };
@@ -13,16 +15,37 @@ export default async function SettingsPage() {
   const session = await getSession();
   if (!session) redirect('/ru/login');
 
-  const status = await twoFactorStatus(session.userId);
+  const [user, status] = await Promise.all([
+    db.user.findUniqueOrThrow({
+      where: { id: session.userId },
+      select: { firstName: true, lastName: true, email: true, passwordHash: true },
+    }),
+    twoFactorStatus(session.userId),
+  ]);
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6 sm:py-10">
       <Link href="/ru/cabinet" className="text-sm underline muted">← {ru.cabinet.title}</Link>
-      <h1 className="t-h2 mt-3">{ru.settings.title}</h1>
+      <h1 className="t-h1 mt-3">{ru.settings.title}</h1>
       <p className="mt-1 text-sm muted">{ru.settings.securityLead}</p>
 
-      <section className="mt-6 card p-5 sm:p-6">
-        <TwoFactorManager initial={status} />
+      <section className="mt-8">
+        <p className="t-caption text-recognition">{ru.settings.sectionAccount}</p>
+        <div className="mt-3 card p-5 sm:p-6">
+          <AccountSettings initial={{
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            hasPassword: Boolean(user.passwordHash),
+          }} />
+        </div>
+      </section>
+
+      <section className="mt-8">
+        <p className="t-caption text-recognition">{ru.settings.sectionSecurity}</p>
+        <div className="mt-3 card p-5 sm:p-6">
+          <TwoFactorManager initial={status} />
+        </div>
       </section>
     </main>
   );

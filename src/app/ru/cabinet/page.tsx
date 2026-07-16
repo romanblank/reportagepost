@@ -83,6 +83,9 @@ export default async function CabinetPage() {
             <Link href="/ru/admin/photographers/new" className="btn btn-outline px-3 py-1.5">
               {ru.adminPhotographers.createTitle}
             </Link>
+            <Link href="/ru/cabinet/settings" className="text-sm underline">
+              {ru.cabinet.settingsLink}
+            </Link>
           </div>
         </section>
       )}
