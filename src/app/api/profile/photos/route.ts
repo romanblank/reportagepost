@@ -3,13 +3,14 @@ import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import {
-  ONBOARDING_PHOTOS_MAX,
   PhotoValidationError,
   analyzePhoto,
   storePhotoVariants,
 } from '@/lib/photos';
 import { findNearDuplicate } from '@/lib/photo-dedup';
 import { premoderate } from '@/lib/premoderation';
+import { tierOf } from '@/lib/subscription';
+import { portfolioLimit } from '@/lib/pricing';
 
 export const maxDuration = 60; // обработка sharp на больших файлах
 
@@ -26,9 +27,11 @@ export async function POST(req: Request) {
   });
   if (!profile) return NextResponse.json({ error: 'no_profile' }, { status: 409 });
 
+  // Лимит портфолио зависит от тарифа (FREE 20 / PRO 300) — граница FREE/PRO.
+  const limit = portfolioLimit(await tierOf(session.userId));
   const photoCount = await db.photo.count({ where: { profileId: profile.id } });
-  if (photoCount >= ONBOARDING_PHOTOS_MAX) {
-    return NextResponse.json({ error: 'photo_limit', limit: ONBOARDING_PHOTOS_MAX }, { status: 409 });
+  if (photoCount >= limit) {
+    return NextResponse.json({ error: 'photo_limit', limit }, { status: 409 });
   }
 
   const form = await req.formData().catch(() => null);
@@ -82,7 +85,7 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(
-      { photoId: photo.id, uploaded: photoCount + 1, limit: ONBOARDING_PHOTOS_MAX },
+      { photoId: photo.id, uploaded: photoCount + 1, limit },
       { status: 201 },
     );
   } catch (e) {

@@ -10,14 +10,24 @@ interface Props {
   initialStatus: 'DRAFT' | 'PENDING' | 'NEEDS_REVISION' | 'APPROVED' | 'REJECTED';
   categories: { slug: string; name: string }[];
   initialPhotos: Photo[];
+  initialIsPro: boolean;
 }
 
-export function AdminPhotographerManager({ profileId, initialStatus, categories, initialPhotos }: Props) {
+export function AdminPhotographerManager({ profileId, initialStatus, categories, initialPhotos, initialIsPro }: Props) {
   const { toast } = useToast();
   const [status, setStatus] = useState(initialStatus);
   const [photos, setPhotos] = useState(initialPhotos);
   const [cat, setCat] = useState(categories[0]?.slug ?? '');
+  const [isPro, setIsPro] = useState(initialIsPro);
   const [busy, setBusy] = useState(false);
+
+  async function grantPro() {
+    setBusy(true);
+    const res = await fetch(`/api/admin/photographers/${profileId}/grant-pro`, { method: 'POST' }).catch(() => null);
+    setBusy(false);
+    if (!res?.ok) return toast(ru.ui.toastError, 'danger');
+    setIsPro(true);
+  }
 
   async function togglePublish() {
     setBusy(true);
@@ -67,6 +77,13 @@ export function AdminPhotographerManager({ profileId, initialStatus, categories,
           className={`btn btn-sm ${status === 'APPROVED' ? 'btn-outline' : 'btn-accent'}`}>
           {status === 'APPROVED' ? ru.adminPhotographers.unpublish : ru.adminPhotographers.toPublish}
         </button>
+        {isPro ? (
+          <span className="rounded-sm bg-recognition-soft px-2 py-0.5 text-xs font-medium text-recognition">{ru.adminPhotographers.grantedPro}</span>
+        ) : (
+          <button type="button" onClick={grantPro} disabled={busy} className="btn btn-outline btn-sm">
+            {ru.adminPhotographers.grantPro}
+          </button>
+        )}
       </div>
 
       <div className="mt-6">

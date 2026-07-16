@@ -537,7 +537,13 @@ model Subscription {
   userId           String           @unique
   tier             SubscriptionTier @default(FREE)
   currentPeriodEnd DateTime? // до какой даты активен PRO
-  grandfathered    Boolean          @default(false) // бесплатный PRO бете
+  grandfathered    Boolean          @default(false) // бесплатный PRO бете (founding)
+  // S5-монетизация (deep-think 2026-07-16): цена по городам + триал + бета-грейс.
+  cityTier         String? // A|B|C на момент оформления (цена зафиксирована по городу)
+  priceMinorLocked Int? // зафиксированная цена (founding-lock) в копейках/мес
+  trialEndsAt      DateTime? // конец пробного периода (PRO по клику без карты)
+  graceEndsAt      DateTime? // конец бесплатного бета-PRO → далее переход на оплату
+  proRequestedAt   DateTime? // фотограф запросил подключение PRO (бета: ручная активация оператором)
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
   user User @relation(fields: [userId], references: [id])

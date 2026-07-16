@@ -21,8 +21,10 @@ describe.skipIf(!hasDb)('audit: аудит-лог действий админа 
     expect(rows[0].action).toBe('profile.approve');
     expect(rows[0].targetType).toBe('PROFILE');
 
-    // cleanup (AdminAudit → user из-за FK RESTRICT)
+    // cleanup (AdminAudit → user из-за FK RESTRICT; approveProfile теперь шлёт
+    // lifecycle-уведомление владельцу → удалить Notification ДО user, FK RESTRICT)
     await db.adminAudit.deleteMany({ where: { actorUserId: admin.id } });
+    await db.notification.deleteMany({ where: { userId: { in: [admin.id, owner.id] } } });
     await db.photo.deleteMany({ where: { profileId: profile.id } });
     await db.photographerProfile.delete({ where: { id: profile.id } });
     await db.user.deleteMany({ where: { id: { in: [admin.id, owner.id] } } });

@@ -81,6 +81,9 @@ export async function approveProfile(profileId: string, actorUserId?: string): P
     // полный пересчёт всех в HTTP-запросе модератора)
     const { recomputeOne } = await import('@/lib/rating');
     await recomputeOne(profileId);
+    // Lifecycle: сообщить фотографу об одобрении (deep-think P0). Вторично — не роняем.
+    const { notifyProfileApproved } = await import('@/lib/profile-lifecycle');
+    await notifyProfileApproved(profileId).catch(() => {});
     return result;
   });
 }
@@ -100,4 +103,8 @@ export async function rejectProfile(profileId: string, reason: string, actorUser
       await logAudit(tx, actorUserId, 'profile.reject', 'PROFILE', profileId, { reason });
     }
   });
+  // Lifecycle: доставить причину фотографу (deep-think P0: rejectReason сохранялся,
+  // но не доставлялся). Вторично — не роняем основное действие.
+  const { notifyProfileRevision } = await import('@/lib/profile-lifecycle');
+  await notifyProfileRevision(profileId, reason).catch(() => {});
 }

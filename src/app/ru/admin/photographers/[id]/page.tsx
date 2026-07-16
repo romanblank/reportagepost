@@ -4,6 +4,7 @@ import { redirect, notFound } from 'next/navigation';
 import { requireAdmin } from '@/lib/admin';
 import { db } from '@/lib/db';
 import { thumbVariantUrl } from '@/lib/photos';
+import { isPro as isProUser } from '@/lib/subscription';
 import { cityNameRu } from '@/lib/geo-data';
 import { categoryNameRu } from '@/lib/category-data';
 import { ru } from '@/i18n/ru';
@@ -28,6 +29,7 @@ export default async function ManagePhotographerPage(props: { params: Promise<{ 
   if (!profile) notFound();
 
   const categories = profile.categories.map((c) => ({ slug: c.category.slug, name: categoryNameRu(c.category.slug) }));
+  const photographerIsPro = await isProUser(profile.userId);
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:py-10">
@@ -47,6 +49,7 @@ export default async function ManagePhotographerPage(props: { params: Promise<{ 
           initialStatus={profile.status}
           categories={categories}
           initialPhotos={profile.photos.map((p) => ({ id: p.id, thumb: thumbVariantUrl(p.storageKey) }))}
+          initialIsPro={photographerIsPro}
         />
       </div>
     </main>

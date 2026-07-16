@@ -1,18 +1,14 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getSession } from '@/lib/auth';
+import { db } from '@/lib/db';
 import { formatRubMinor } from '@/lib/money';
-import {
-  PLAN_FEATURES,
-  PRO_MONTHLY_MINOR,
-  PRO_ANNUAL_MINOR,
-  PRO_ANNUAL_MONTHLY_EQUIV_MINOR,
-  PRO_ANNUAL_SAVING_PCT,
-} from '@/lib/pricing';
+import { PLAN_FEATURES, priceForCity, annualSavingPct } from '@/lib/pricing';
+import { cityNameRu } from '@/lib/geo-data';
 import { ru } from '@/i18n/ru';
 
 export const metadata: Metadata = { title: ru.pro.kicker };
-export const dynamic = 'force-dynamic'; // CTA зависит от сессии/роли
+export const dynamic = 'force-dynamic'; // цена/CTA зависят от сессии, города, роли
 
 function Check({ on }: { on: boolean }) {
   return on ? (
@@ -25,6 +21,18 @@ function Check({ on }: { on: boolean }) {
 export default async function ProPage() {
   const session = await getSession();
   const isPhotographer = session?.role === 'PHOTOGRAPHER';
+
+  // Цена — по городу фотографа; для гостей/заказчиков — столичный якорь (tier A).
+  let citySlug: string | null = null;
+  if (isPhotographer && session) {
+    const profile = await db.photographerProfile.findUnique({
+      where: { userId: session.userId },
+      include: { city: true },
+    });
+    citySlug = profile?.city.slug ?? null;
+  }
+  const price = priceForCity(citySlug ?? 'moscow');
+  const cityLabel = citySlug ? cityNameRu(citySlug) : null;
 
   const cta = session
     ? isPhotographer
@@ -57,15 +65,16 @@ export default async function ProPage() {
           <div className="flex items-center justify-between">
             <h2 className="t-h3 text-recognition">{ru.pro.planPro}</h2>
             <span className="rounded-sm bg-recognition-soft px-2 py-0.5 text-xs font-medium text-recognition">
-              {ru.pro.annualSaving(PRO_ANNUAL_SAVING_PCT)}
+              {ru.pro.annualSaving(annualSavingPct(price))}
             </span>
           </div>
           <div className="mt-2 flex items-baseline gap-1.5">
-            <span className="text-3xl font-semibold">{formatRubMinor(PRO_MONTHLY_MINOR)}</span>
+            <span className="text-3xl font-semibold">{formatRubMinor(price.monthlyMinor)}</span>
             <span className="text-sm muted">{ru.pro.perMonth}</span>
           </div>
           <p className="mt-1 text-sm muted">
-            {formatRubMinor(PRO_ANNUAL_MINOR)} {ru.pro.perYear} · {ru.pro.annualEquiv(formatRubMinor(PRO_ANNUAL_MONTHLY_EQUIV_MINOR))}
+            {formatRubMinor(price.annualMinor)} {ru.pro.perYear}
+            {cityLabel ? ` · ${ru.pro.priceForCity(cityLabel)}` : ` · ${ru.pro.priceVaries}`}
           </p>
           <Link href={cta.href} className="btn btn-accent mt-5 w-full py-2.5">{cta.label}</Link>
         </div>

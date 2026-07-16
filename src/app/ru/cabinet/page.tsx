@@ -13,6 +13,9 @@ import { TelegramLinkButton } from '@/components/TelegramLinkButton';
 import { profileCompleteness } from '@/lib/profile-completeness';
 import { ONBOARDING_PHOTOS_MIN } from '@/lib/photos-constants';
 import { DeleteAccountButton } from '@/components/DeleteAccountButton';
+import { subscriptionStatus } from '@/lib/subscription';
+import { PLAN_FEATURES } from '@/lib/pricing';
+import { CabinetProBlock } from '@/components/CabinetProBlock';
 
 export const metadata: Metadata = { title: ru.cabinet.title };
 export const dynamic = 'force-dynamic'; // всегда свежие заявки/статус
@@ -61,6 +64,11 @@ export default async function CabinetPage() {
       : 0;
 
   const me = await db.user.findUnique({ where: { id: session.userId }, select: { tgUserId: true, firstName: true } });
+
+  // PRO-статус (Метрика №1: поверхность оплаты в кабинете)
+  const subStatus = session.role === 'PHOTOGRAPHER' && profile ? await subscriptionStatus(session.userId) : null;
+  const lockedPerks = PLAN_FEATURES.filter((f) => !f.free).map((f) => ru.pro.features[f.key]);
+  const graceUntil = subStatus?.graceEndsAt ? new Intl.DateTimeFormat('ru-RU').format(subStatus.graceEndsAt) : null;
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:py-10">
@@ -112,6 +120,18 @@ export default async function CabinetPage() {
               <span className="text-sm text-accent">{profile.revisionNote}</span>
             )}
           </section>
+
+          {subStatus && (
+            <div className="mt-4">
+              <CabinetProBlock
+                tier={subStatus.tier}
+                isFounding={subStatus.isFounding}
+                graceUntil={graceUntil}
+                proRequested={subStatus.proRequested}
+                lockedPerks={lockedPerks}
+              />
+            </div>
+          )}
 
           <section className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
