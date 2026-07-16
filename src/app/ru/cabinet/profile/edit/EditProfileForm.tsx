@@ -7,6 +7,9 @@ import { describeApiError } from '@/lib/form-errors';
 import { normalizePhone, normalizeUrl } from '@/lib/phone-format';
 
 interface Initial {
+  username: string;
+  citySlug: string;
+  categorySlugs: string[];
   bio: string;
   siteUrl: string;
   whatsapp: string;
@@ -21,11 +24,18 @@ interface Initial {
 
 const LANGS = ['ru', 'en', 'es', 'de', 'fr', 'it', 'zh', 'tr'];
 
-export function EditProfileForm({ initial, avatar }: { initial: Initial; avatar: string | null }) {
+export function EditProfileForm({ initial, avatar, cities, categories }: {
+  initial: Initial; avatar: string | null;
+  cities: { slug: string; name: string }[];
+  categories: { slug: string; name: string }[];
+}) {
   const router = useRouter();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(avatar);
   const [avatarBusy, setAvatarBusy] = useState(false);
   const [avatarErr, setAvatarErr] = useState(false);
+  const [username, setUsername] = useState(initial.username);
+  const [citySlug, setCitySlug] = useState(initial.citySlug);
+  const [cats, setCats] = useState<string[]>(initial.categorySlugs);
   const [bio, setBio] = useState(initial.bio);
   const [siteUrl, setSiteUrl] = useState(initial.siteUrl);
   const [whatsapp, setWhatsapp] = useState(initial.whatsapp);
@@ -45,10 +55,14 @@ export function EditProfileForm({ initial, avatar }: { initial: Initial; avatar:
     setPending(true);
     setError(null);
     setSaved(false);
+    if (cats.length === 0) { setPending(false); setError(ru.onboarding.needCategory); return; }
     const res = await fetch('/api/profile', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        username: username.trim().toLowerCase(),
+        citySlug,
+        categorySlugs: cats,
         bio: bio.trim(),
         siteUrl: siteUrl.trim() ? normalizeUrl(siteUrl.trim()) : '',
         whatsapp: whatsapp.trim() ? normalizePhone(whatsapp.trim()) : '',
@@ -67,7 +81,14 @@ export function EditProfileForm({ initial, avatar }: { initial: Initial; avatar:
       router.refresh();
       return;
     }
-    setError(await describeApiError(res, { fallback: ru.inquiry.errorGeneric }));
+    setError(await describeApiError(res, {
+      codeLabels: {
+        username_taken: ru.adminPhotographers.errUsernameTaken,
+        city_not_found: ru.onboarding.needCategory,
+        category_not_found: ru.onboarding.needCategory,
+      },
+      fallback: ru.inquiry.errorGeneric,
+    }));
   }
 
   async function uploadAvatar(file: File | null) {
@@ -107,6 +128,29 @@ export function EditProfileForm({ initial, avatar }: { initial: Initial; avatar:
       </div>
 
       <div>
+        <div>
+          <label className="field-label">{ru.onboarding.username}</label>
+          <input value={username} onChange={(e) => setUsername(e.target.value)} className="input"
+            pattern="[a-z0-9][a-z0-9\-]{2,29}" />
+          <span className="field-hint">{ru.onboarding.usernameHint}</span>
+        </div>
+        <div>
+          <label className="field-label">{ru.adminPhotographers.city}</label>
+          <select value={citySlug} onChange={(e) => setCitySlug(e.target.value)} className="input">
+            {cities.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="field-label">{ru.adminPhotographers.categories}</label>
+          <div className="mt-1 flex flex-wrap gap-2">
+            {categories.map((c) => (
+              <button type="button" key={c.slug}
+                onClick={() => setCats((prev) => prev.includes(c.slug) ? prev.filter((s) => s !== c.slug) : prev.length < 3 ? [...prev, c.slug] : prev)}
+                className={`chip ${cats.includes(c.slug) ? 'chip-active' : ''}`}>{c.name}</button>
+            ))}
+          </div>
+        </div>
+
         <label className="field-label">{ru.onboarding.bio}</label>
         <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} className="input" maxLength={2000} />
       </div>

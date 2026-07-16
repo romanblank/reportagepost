@@ -105,6 +105,10 @@ export async function POST(req: Request) {
 // Редактирование своей анкеты (MyWed: править можно всегда). Меняем контент-поля;
 // username/город — идентичность/локация, отдельно (пока не редактируются).
 const EditSchema = z.object({
+  // Идентичность/локация анкеты (ранее не редактировались)
+  username: z.string().trim().toLowerCase().regex(/^[a-z0-9][a-z0-9-]{2,29}$/).optional(),
+  citySlug: z.string().trim().optional(),
+  categorySlugs: z.array(z.string().trim()).min(1).max(3).optional(),
   bio: z.string().trim().max(2000).optional(),
   // Паритет с POST (ревью №7): те же правила формата, '' допускается для очистки.
   siteUrl: z.string().trim().url().max(200).refine((u) => /^https?:\/\//i.test(u), 'только http(s)').optional().or(z.literal('')),
@@ -136,7 +140,7 @@ export async function PATCH(req: Request) {
   }
   const d = parsed.data;
 
-  const profile = await db.photographerProfile.findUnique({ where: { userId: session.userId }, select: { id: true } });
+  const profile = await db.photographerProfile.findUnique({ where: { userId: session.userId }, select: { id: true, username: true } });
   if (!profile) return NextResponse.json({ error: 'no_profile' }, { status: 404 });
 
   try {
@@ -151,10 +155,32 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: 'validation', details: { siteUrl: ['только http(s)'] } }, { status: 400 });
   }
 
+  // Идентичность/локация: username (уникальность), город, жанры — валидируем ДО tx
+  let newUsername: string | undefined;
+  if (d.username && d.username !== profile.username) {
+    const taken = await db.photographerProfile.findUnique({ where: { username: d.username } });
+    if (taken) return NextResponse.json({ error: 'username_taken' }, { status: 409 });
+    newUsername = d.username;
+  }
+  let newCityId: string | undefined;
+  if (d.citySlug) {
+    const city = await db.city.findFirst({ where: { slug: d.citySlug } });
+    if (!city) return NextResponse.json({ error: 'city_not_found' }, { status: 400 });
+    newCityId = city.id;
+  }
+  let newCategoryIds: string[] | undefined;
+  if (d.categorySlugs) {
+    const cats = await db.category.findMany({ where: { slug: { in: d.categorySlugs }, active: true } });
+    if (cats.length !== d.categorySlugs.length) return NextResponse.json({ error: 'category_not_found' }, { status: 400 });
+    newCategoryIds = cats.map((c) => c.id);
+  }
+
   await db.$transaction(async (tx) => {
     await tx.photographerProfile.update({
       where: { id: profile.id },
       data: {
+        ...(newUsername ? { username: newUsername } : {}),
+        ...(newCityId ? { cityId: newCityId } : {}),
         bio: d.bio?.trim() || null,
         siteUrl: site || null,
         whatsapp: d.whatsapp?.trim() || null,
@@ -168,6 +194,10 @@ export async function PATCH(req: Request) {
           : {}),
       },
     });
+    if (newCategoryIds) {
+      await tx.profileCategory.deleteMany({ where: { profileId: profile.id } });
+      await tx.profileCategory.createMany({ data: newCategoryIds.map((categoryId) => ({ profileId: profile.id, categoryId })) });
+    }
     if (d.packages) {
       await tx.pricePackage.deleteMany({ where: { profileId: profile.id } });
       await tx.pricePackage.createMany({
@@ -176,5 +206,5 @@ export async function PATCH(req: Request) {
     }
   });
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, username: newUsername ?? profile.username });
 }
