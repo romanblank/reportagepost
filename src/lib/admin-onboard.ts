@@ -82,3 +82,30 @@ export async function createPhotographerByAdmin(
   }
   return result;
 }
+
+// Публикация/снятие анкеты с публикации админом. publish → APPROVED (в каталоге),
+// при этом PENDING-кадры публикуются, а user переводится в ACTIVE. Снятие → DRAFT.
+export async function setProfilePublication(
+  actorUserId: string,
+  profileId: string,
+  publish: boolean,
+): Promise<{ status: 'APPROVED' | 'DRAFT' }> {
+  const profile = await db.photographerProfile.findUnique({ where: { id: profileId }, select: { id: true, userId: true } });
+  if (!profile) throw new DomainError('not_found', 404);
+
+  const status = publish ? 'APPROVED' : 'DRAFT';
+  await db.$transaction(async (tx) => {
+    await tx.photographerProfile.update({ where: { id: profileId }, data: { status } });
+    if (publish) {
+      await tx.photo.updateMany({ where: { profileId, status: 'PENDING' }, data: { status: 'APPROVED', publishedAt: new Date() } });
+      await tx.user.update({ where: { id: profile.userId }, data: { status: 'ACTIVE' } });
+    }
+    await logAudit(tx, actorUserId, publish ? 'profile.publish' : 'profile.unpublish', 'PROFILE', profileId, {});
+  });
+
+  if (publish) {
+    const { recomputeOne } = await import('@/lib/rating');
+    await recomputeOne(profileId);
+  }
+  return { status };
+}

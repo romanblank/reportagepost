@@ -54,3 +54,44 @@ describe.skipIf(!hasDb)('admin-onboard: создание фотографа ад
     await db.user.deleteMany({ where: { id: { in: [...userIds, admin.id] } } });
   });
 });
+
+describe.skipIf(!hasDb)('admin-onboard: публикация/снятие анкеты (БД)', () => {
+  it('publish → APPROVED + PENDING-фото публикуются + user ACTIVE + аудит; unpublish → DRAFT', async () => {
+    const { db } = await import('@/lib/db');
+    const { createPhotographerByAdmin, setProfilePublication } = await import('@/lib/admin-onboard');
+
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const admin = await db.user.create({ data: { role: 'ADMIN', status: 'ACTIVE', firstName: 'А', lastName: 'Д', email: `adm-pub-${stamp}@test.local` } });
+    const cat = await db.category.findFirstOrThrow({ where: { active: true } });
+
+    // черновик + PENDING-кадр
+    const draft = await createPhotographerByAdmin(admin.id, {
+      firstName: 'Пётр', lastName: 'Сидоров', username: `petr-${stamp}`,
+      citySlug: 'moscow', categorySlugs: [cat.slug], publish: false,
+    });
+    const photo = await db.photo.create({
+      data: { profileId: draft.profileId, categoryId: cat.id, storageKey: `k-${stamp}`, width: 800, height: 600, phash: `p-${stamp}`, status: 'PENDING' },
+    });
+
+    // публикация
+    const pub = await setProfilePublication(admin.id, draft.profileId, true);
+    expect(pub.status).toBe('APPROVED');
+    expect((await db.photographerProfile.findUniqueOrThrow({ where: { id: draft.profileId } })).status).toBe('APPROVED');
+    expect((await db.photo.findUniqueOrThrow({ where: { id: photo.id } })).status).toBe('APPROVED');
+    const draftUser = (await db.photographerProfile.findUniqueOrThrow({ where: { id: draft.profileId }, select: { userId: true } })).userId;
+    expect((await db.user.findUniqueOrThrow({ where: { id: draftUser } })).status).toBe('ACTIVE');
+    expect(await db.adminAudit.count({ where: { actorUserId: admin.id, action: 'profile.publish' } })).toBeGreaterThanOrEqual(1);
+
+    // снятие
+    const unp = await setProfilePublication(admin.id, draft.profileId, false);
+    expect(unp.status).toBe('DRAFT');
+    expect((await db.photographerProfile.findUniqueOrThrow({ where: { id: draft.profileId } })).status).toBe('DRAFT');
+
+    // cleanup
+    await db.photo.deleteMany({ where: { profileId: draft.profileId } });
+    await db.adminAudit.deleteMany({ where: { actorUserId: admin.id } });
+    await db.profileCategory.deleteMany({ where: { profileId: draft.profileId } });
+    await db.photographerProfile.deleteMany({ where: { id: draft.profileId } });
+    await db.user.deleteMany({ where: { id: { in: [draftUser, admin.id] } } });
+  });
+});
