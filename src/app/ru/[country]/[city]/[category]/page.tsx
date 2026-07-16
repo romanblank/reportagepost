@@ -35,9 +35,11 @@ async function findCity(params: Params) {
 
 export async function generateMetadata(props: { params: Promise<Params> }): Promise<Metadata> {
   const params = await props.params;
-  if (!validCategory(params.category)) return { title: ru.profile.notFound };
+  // 404 определяем ЗДЕСЬ (до стриминга тела) — иначе force-dynamic флашит 200 и
+  // notFound() в теле даёт soft-404 (урок SSR-стриминга CLAUDE.md).
+  if (!validCategory(params.category)) notFound();
   const city = await findCity(params);
-  if (!city) return { title: ru.profile.notFound };
+  if (!city) notFound();
   const cityName = cityNameRu(city.slug);
   const catName = categoryNameRu(params.category);
   const count = await db.photographerProfile.count({

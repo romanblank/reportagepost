@@ -34,7 +34,9 @@ async function findCity(params: Params) {
 export async function generateMetadata(props: { params: Promise<Params> }): Promise<Metadata> {
   const params = await props.params;
   const city = await findCity(params);
-  if (!city) return { title: ru.profile.notFound };
+  // 404 в generateMetadata (до стриминга тела) — иначе force-dynamic отдаёт soft-404
+  // (200 + not-found UI). Урок SSR-стриминга CLAUDE.md.
+  if (!city) notFound();
   const name = cityNameRu(city.slug);
   const count = await db.photographerProfile.count({
     where: { status: 'APPROVED', cityId: city.id },
