@@ -35,8 +35,8 @@ async function findCity(params: Params) {
 
 export async function generateMetadata(props: { params: Promise<Params> }): Promise<Metadata> {
   const params = await props.params;
-  // 404 определяем ЗДЕСЬ (до стриминга тела) — иначе force-dynamic флашит 200 и
-  // notFound() в теле даёт soft-404 (урок SSR-стриминга CLAUDE.md).
+  // notFound → рендерит not-found UI. ВНИМАНИЕ: на force-dynamic статус остаётся
+  // 200 (soft-404, не решено — см. CLAUDE.md). Реальный 404 к S4 — middleware/иначе.
   if (!validCategory(params.category)) notFound();
   const city = await findCity(params);
   if (!city) notFound();
