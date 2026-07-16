@@ -37,6 +37,7 @@ export default async function ManagePhotographerPage(props: { params: Promise<{ 
         @{profile.username} · {cityNameRu(profile.city.slug)} · {profile.categories.map((c) => categoryNameRu(c.category.slug)).join(' · ')}
       </p>
       <div className="mt-3 flex gap-4 text-sm">
+        <Link href={`/ru/admin/photographers/${profile.id}/edit`} className="underline">{ru.adminPhotographers.editAnketa}</Link>
         <Link href={`/ru/photographer/${profile.username}`} className="underline">{ru.adminPhotographers.viewPage}</Link>
       </div>
 

@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
-import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import { rateLimit } from '@/lib/rate-limit';
+import { DomainError } from '@/lib/errors';
+import { ProfileEditSchema, applyProfileEdit } from '@/lib/profile-edit';
 
 // Онбординг, шаг 1: анкета фотографа (город, категории, цены пакетами, контакты)
 const ProfileSchema = z.object({
@@ -102,43 +103,17 @@ export async function POST(req: Request) {
   );
 }
 
-// Редактирование своей анкеты (MyWed: править можно всегда). Меняем контент-поля;
-// username/город — идентичность/локация, отдельно (пока не редактируются).
-const EditSchema = z.object({
-  // Идентичность/локация анкеты (ранее не редактировались)
-  username: z.string().trim().toLowerCase().regex(/^[a-z0-9][a-z0-9-]{2,29}$/).optional(),
-  citySlug: z.string().trim().optional(),
-  categorySlugs: z.array(z.string().trim()).min(1).max(3).optional(),
-  bio: z.string().trim().max(2000).optional(),
-  // Паритет с POST (ревью №7): те же правила формата, '' допускается для очистки.
-  siteUrl: z.string().trim().url().max(200).refine((u) => /^https?:\/\//i.test(u), 'только http(s)').optional().or(z.literal('')),
-  whatsapp: z.string().trim().regex(/^\+[1-9]\d{7,14}$/, 'E.164').optional().or(z.literal('')),
-  telegram: z.string().trim().regex(/^@?[A-Za-z0-9_]{5,32}$/).optional().or(z.literal('')),
-  experienceYears: z.number().int().min(0).max(70).nullable().optional(),
-  equipment: z.string().trim().max(500).optional(),
-  teamInfo: z.string().trim().max(300).optional(),
-  languages: z.array(z.string().trim().regex(/^[a-z]{2}$/)).max(8).optional(),
-  faq: z
-    .array(z.object({ q: z.string().trim().min(1).max(200), a: z.string().trim().min(1).max(1000) }))
-    .max(10)
-    .optional(),
-  packages: z
-    .array(z.object({ hours: z.number().int().min(1).max(24), priceMinor: z.number().int().min(1), currency: z.literal('RUB') }))
-    .min(1)
-    .max(6)
-    .optional(),
-});
-
+// Редактирование своей анкеты (MyWed: править можно всегда). Логика применения —
+// в @/lib/profile-edit (общая с админ-роутом онбординга).
 export async function PATCH(req: Request) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   if (session.role !== 'PHOTOGRAPHER') return NextResponse.json({ error: 'photographers_only' }, { status: 403 });
 
-  const parsed = EditSchema.safeParse(await req.json().catch(() => null));
+  const parsed = ProfileEditSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: 'validation', details: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
-  const d = parsed.data;
 
   const profile = await db.photographerProfile.findUnique({ where: { userId: session.userId }, select: { id: true, username: true } });
   if (!profile) return NextResponse.json({ error: 'no_profile' }, { status: 404 });
@@ -149,62 +124,11 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
   }
 
-  // siteUrl: только http(s) (guard от javascript:/data: — как в POST)
-  const site = d.siteUrl?.trim();
-  if (site && !/^https?:\/\//i.test(site)) {
-    return NextResponse.json({ error: 'validation', details: { siteUrl: ['только http(s)'] } }, { status: 400 });
+  try {
+    const { username } = await applyProfileEdit(profile.id, profile.username, parsed.data);
+    return NextResponse.json({ ok: true, username });
+  } catch (e) {
+    if (e instanceof DomainError) return NextResponse.json({ error: e.code }, { status: e.status });
+    throw e;
   }
-
-  // Идентичность/локация: username (уникальность), город, жанры — валидируем ДО tx
-  let newUsername: string | undefined;
-  if (d.username && d.username !== profile.username) {
-    const taken = await db.photographerProfile.findUnique({ where: { username: d.username } });
-    if (taken) return NextResponse.json({ error: 'username_taken' }, { status: 409 });
-    newUsername = d.username;
-  }
-  let newCityId: string | undefined;
-  if (d.citySlug) {
-    const city = await db.city.findFirst({ where: { slug: d.citySlug } });
-    if (!city) return NextResponse.json({ error: 'city_not_found' }, { status: 400 });
-    newCityId = city.id;
-  }
-  let newCategoryIds: string[] | undefined;
-  if (d.categorySlugs) {
-    const cats = await db.category.findMany({ where: { slug: { in: d.categorySlugs }, active: true } });
-    if (cats.length !== d.categorySlugs.length) return NextResponse.json({ error: 'category_not_found' }, { status: 400 });
-    newCategoryIds = cats.map((c) => c.id);
-  }
-
-  await db.$transaction(async (tx) => {
-    await tx.photographerProfile.update({
-      where: { id: profile.id },
-      data: {
-        ...(newUsername ? { username: newUsername } : {}),
-        ...(newCityId ? { cityId: newCityId } : {}),
-        bio: d.bio?.trim() || null,
-        siteUrl: site || null,
-        whatsapp: d.whatsapp?.trim() || null,
-        telegram: d.telegram?.trim().replace(/^@/, '') || null,
-        experienceYears: d.experienceYears ?? null,
-        equipment: d.equipment?.trim() || null,
-        teamInfo: d.teamInfo?.trim() || null,
-        ...(d.languages && d.languages.length ? { languages: d.languages } : {}),
-        ...(d.faq !== undefined
-          ? { faq: d.faq.length ? (d.faq as unknown as Prisma.InputJsonValue) : Prisma.DbNull }
-          : {}),
-      },
-    });
-    if (newCategoryIds) {
-      await tx.profileCategory.deleteMany({ where: { profileId: profile.id } });
-      await tx.profileCategory.createMany({ data: newCategoryIds.map((categoryId) => ({ profileId: profile.id, categoryId })) });
-    }
-    if (d.packages) {
-      await tx.pricePackage.deleteMany({ where: { profileId: profile.id } });
-      await tx.pricePackage.createMany({
-        data: d.packages.map((p, i) => ({ profileId: profile.id, hours: p.hours, priceMinor: p.priceMinor, currency: p.currency, sortOrder: i })),
-      });
-    }
-  });
-
-  return NextResponse.json({ ok: true, username: newUsername ?? profile.username });
 }
