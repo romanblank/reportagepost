@@ -26,12 +26,8 @@ describe.skipIf(!hasDb)('messages: диалоги и тред (БД)', () => {
     expect(thread).toHaveLength(1);
     expect((await dialogsFor(b.id))[0].unread).toBe(0);
 
-    // уведомление поставлено в очередь
-    const notif = await db.notification.findFirst({
-      where: { userId: b.id, type: 'notification.message.new' },
-    });
-    expect(notif?.state).toBe('QUEUED');
-
+    // Уведомление о сообщении доставляет api/messages роут (in-app+SSE), не lib
+    // sendMessage (мёртвый enqueue убран, deep-think Eng P1) — здесь его нет.
     await db.notification.deleteMany({ where: { userId: { in: [a.id, b.id] } } });
     await db.message.deleteMany({ where: { senderId: { in: [a.id, b.id] } } });
     await db.user.deleteMany({ where: { id: { in: [a.id, b.id] } } });

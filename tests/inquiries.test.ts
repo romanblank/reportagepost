@@ -52,12 +52,11 @@ describe.skipIf(!hasDb)('inquiries: создание и доставка (БД)'
     // В БД есть минимум один APPROVED фотограф Москвы этой категории (из live-прогонов)
     expect(notified).toBeGreaterThanOrEqual(1);
 
-    const queued = await db.notification.findMany({
-      where: { type: 'notification.inquiry.new', state: 'QUEUED' },
-      orderBy: { createdAt: 'desc' },
-      take: notified,
+    // Новая модель: durable-доставка через notifyInApp (канал IN_APP), не QUEUED
+    const inApp = await db.notification.findMany({
+      where: { type: 'notification.inquiry.new', channel: 'IN_APP' },
     });
-    expect(queued.length).toBe(notified);
+    expect(inApp.length).toBeGreaterThanOrEqual(notified);
 
     // уборка тестовых данных
     await db.notification.deleteMany({ where: { type: 'notification.inquiry.new' } });

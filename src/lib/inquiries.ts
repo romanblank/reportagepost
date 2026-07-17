@@ -1,8 +1,12 @@
 import { db } from '@/lib/db';
-import { enqueueForMany, notifyInApp } from '@/lib/notifications';
+import { notifyInApp } from '@/lib/notifications';
 import { sendEmail } from '@/lib/email';
 import { tgSend } from '@/lib/telegram';
 import { APP_DOMAIN } from '@/lib/constants';
+import { cityNameRu } from '@/lib/geo-data';
+import { categoryNameRu } from '@/lib/category-data';
+import { formatRubMinor } from '@/lib/money';
+import { ru } from '@/i18n/ru';
 
 export interface CreateInquiryInput {
   clientUserId?: string;
@@ -67,33 +71,36 @@ export async function createInquiry(
     select: { userId: true, user: { select: { email: true, tgUserId: true } } },
   });
 
-  const notified = await enqueueForMany(
-    recipients.map((r) => r.userId),
-    'EMAIL',
-    'notification.inquiry.new',
-    { inquiryId: inquiry.id, citySlug: input.citySlug, categorySlug: input.categorySlug ?? null },
-  );
-
-  // In-app уведомления получателям (центр уведомлений + live-счётчик)
+  // Единая модель доставки (deep-think Eng P1): notifyInApp — ДОЛГОВЕЧНАЯ запись
+  // в БД + live-счётчик (её фотограф увидит гарантированно). email/TG — best-effort
+  // фоном (fire-and-forget), чтобы медленный SMTP не подвешивал публичную форму и
+  // не терял лид. Мёртвая очередь QUEUED (никто не дренировал) убрана.
   await Promise.all(
     recipients.map((r) => notifyInApp(r.userId, 'notification.inquiry.new', { citySlug: input.citySlug })),
   );
 
-  // Прямая доставка (email + Telegram) — no-op без конфигурации. Очередь выше
-  // остаётся для аудита/дайджеста. Ждём отправки (мало получателей в бете).
   const link = `https://${APP_DOMAIN}/ru/cabinet`;
-  const subject = 'Новая заявка на съёмку — Reportage Post';
-  const text = `Новая заявка в вашем городе. Открыть в кабинете: ${link}`;
-  await Promise.all(
+  const subject = ru.lifecycle.inquirySubject(cityNameRu(input.citySlug));
+  const text = ru.lifecycle.inquiryBody({
+    city: cityNameRu(input.citySlug),
+    category: input.categorySlug ? categoryNameRu(input.categorySlug) : ru.lifecycle.inquiryNoValue,
+    date: input.eventDate ? input.eventDate.toISOString().slice(0, 10) : ru.lifecycle.inquiryNoValue,
+    budget: input.budgetMinor != null ? formatRubMinor(input.budgetMinor) : ru.lifecycle.inquiryNoValue,
+    excerpt: input.description.slice(0, 160),
+    link,
+  });
+  // fire-and-forget: не ждём — сервер персистентный (не serverless), промисы
+  // доживают после ответа; ошибки глушим (email/tg вторичны к in-app).
+  void Promise.all(
     recipients.flatMap((r) => {
       const jobs: Promise<void>[] = [];
       if (r.user.email) jobs.push(sendEmail(r.user.email, subject, text));
       if (r.user.tgUserId) jobs.push(tgSend(r.user.tgUserId, text));
       return jobs;
     }),
-  );
+  ).catch(() => {});
 
-  return { inquiryId: inquiry.id, notified };
+  return { inquiryId: inquiry.id, notified: recipients.length };
 }
 
 /** Заявки для фотографа: его город, открытые. (PRO-гейт добавится в S5.) */

@@ -1,5 +1,4 @@
 import { db } from '@/lib/db';
-import { enqueueNotification } from '@/lib/notifications';
 
 export class MessageError extends Error {
   constructor(public code: 'recipient_not_found' | 'self_message') {
@@ -7,21 +6,14 @@ export class MessageError extends Error {
   }
 }
 
+// Доставка уведомления получателю (in-app + SSE) — в api/messages роуте. Здесь
+// только создание сообщения (мёртвый enqueue в QUEUED убран, deep-think Eng P1).
 export async function sendMessage(senderId: string, recipientId: string, body: string) {
   if (senderId === recipientId) throw new MessageError('self_message');
   const recipient = await db.user.findUnique({ where: { id: recipientId } });
   if (!recipient || recipient.status === 'BANNED') throw new MessageError('recipient_not_found');
 
-  const message = await db.message.create({
-    data: { senderId, recipientId, body },
-  });
-  await enqueueNotification({
-    userId: recipientId,
-    channel: 'EMAIL',
-    type: 'notification.message.new',
-    payload: { messageId: message.id, senderId },
-  });
-  return message;
+  return db.message.create({ data: { senderId, recipientId, body } });
 }
 
 export interface Dialog {

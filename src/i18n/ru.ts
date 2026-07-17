@@ -335,6 +335,10 @@ export const ru = {
     revisionSubject: 'Редакция вернула страницу с комментарием',
     revisionBody: (reason: string, editUrl: string) =>
       `Спасибо, что показали работы. Пока не публикуем — вот что стоит доработать:\n\n${reason}\n\nПоправьте и отправьте снова — редакция посмотрит повторно.\nОткрыть страницу: ${editUrl}`,
+    inquirySubject: (city: string) => `Новая заявка на съёмку — ${city}`,
+    inquiryBody: (d: { city: string; category: string; date: string; budget: string; excerpt: string; link: string }) =>
+      `Заказчик ищет репортажника в городе ${d.city}.\nСобытие: ${d.category} · Дата: ${d.date} · Бюджет: ${d.budget}\n\n«${d.excerpt}»\n\nОткрыть заявку: ${d.link}`,
+    inquiryNoValue: 'не указано',
   },
   notifications: {
     title: 'Уведомления',
