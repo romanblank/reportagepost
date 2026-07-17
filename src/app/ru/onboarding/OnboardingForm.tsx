@@ -26,6 +26,7 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
   const [editingUsername, setEditingUsername] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
   const [thumbs, setThumbs] = useState<string[]>([]);
+  const [limitHit, setLimitHit] = useState(false); // упор в лимит FREE → апселл PRO
   const thumbsRef = useRef<string[]>([]);
   // Синхронизируем ref в эффекте (не в теле рендера — иначе react-hooks/refs
   // валит lint: доступ к ref во время рендера небезопасен под Concurrent)
@@ -113,8 +114,8 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
         const body = res ? await res.json().catch(() => null) : null;
         const code = body?.error as string | undefined;
         const msg = PHOTO_ERRORS[code ?? ''] ?? body?.message ?? ru.onboarding.uploadFailedGeneric;
+        if (code === 'photo_limit') { setLimitHit(true); break; }
         setError(ru.onboarding.errPhoto(`${file.name}: ${msg}`));
-        if (code === 'photo_limit') break;
       }
       done += 1;
       setUploadProgress({ done, total: list.length });
@@ -148,6 +149,14 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
         <p className="mt-3 text-sm font-medium">{ru.onboarding.uploaded(uploaded, ONBOARDING_PHOTOS_MAX)}</p>
         {remaining > 0 && !uploadProgress && (
           <p className="text-sm opacity-60">{ru.onboarding.needMore(remaining)}</p>
+        )}
+
+        {limitHit && (
+          <div className="mt-4 card border-recognition/40 bg-recognition-soft/30 p-4">
+            <p className="font-medium text-recognition">{ru.onboarding.limitUpsellTitle}</p>
+            <p className="mt-1 text-sm muted">{ru.onboarding.limitUpsellText(ONBOARDING_PHOTOS_MAX)}</p>
+            <Link href="/ru/pro" className="btn btn-accent btn-sm mt-3">{ru.onboarding.limitUpsellCta}</Link>
+          </div>
         )}
 
         {/* Живой прогресс загрузки пачки (skeleton-полоса, не спиннер) */}

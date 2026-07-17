@@ -578,6 +578,9 @@ export const ru = {
     rangeLabel: (from: string, to: string) => `${from} — ${to}`,
   },
   onboarding: {
+    limitUpsellTitle: 'Достигнут лимит бесплатного тарифа',
+    limitUpsellText: (free: number) => `На бесплатном тарифе — до ${free} кадров. PRO снимает лимит (до 300) и открывает фотоистории.`,
+    limitUpsellCta: 'Перейти на PRO',
     title: 'Ваша страница автора',
     lead: 'Заполните страницу и добавьте 15–20 сильных кадров одной темы. Редакция посмотрит работы и примет решение.',
     username: 'Адрес вашей страницы',
