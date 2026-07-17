@@ -126,3 +126,49 @@ export function sessionCookieOptions() {
     maxAge: SESSION_TTL_DAYS * 24 * 60 * 60,
   };
 }
+
+// ─── Яндекс OAuth: CSRF-state + промежуточный профиль (до выбора роли) ────────
+export const YANDEX_STATE_COOKIE = 'rp_yx_state';
+export const YANDEX_PENDING_COOKIE = 'rp_yx_pending';
+
+export interface YandexPending {
+  yandexId: string;
+  email: string | null;
+  firstName: string;
+  lastName: string;
+}
+
+// Подписанный токен с ВЕРИФИЦИРОВАННЫМ у Яндекса профилем — чтобы не доверять
+// клиенту при завершении регистрации (выбор роли). typ:'yandex', 15 мин.
+export async function createYandexPendingToken(p: YandexPending): Promise<string> {
+  return new SignJWT({ typ: 'yandex', ...p })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('15m')
+    .sign(secretKey());
+}
+
+export async function verifyYandexPendingToken(token: string): Promise<YandexPending | null> {
+  try {
+    const { payload } = await jwtVerify(token, secretKey());
+    if (payload.typ !== 'yandex' || typeof payload.yandexId !== 'string') return null;
+    return {
+      yandexId: payload.yandexId,
+      email: (typeof payload.email === 'string' ? payload.email : null),
+      firstName: typeof payload.firstName === 'string' ? payload.firstName : 'Пользователь',
+      lastName: typeof payload.lastName === 'string' ? payload.lastName : '—',
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function shortLivedCookieOptions(maxAgeSec: number) {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
+    path: '/',
+    maxAge: maxAgeSec,
+  };
+}

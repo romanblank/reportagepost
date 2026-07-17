@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ru } from '@/i18n/ru';
 import { describeApiError } from '@/lib/form-errors';
 import { AuthScene } from '@/components/AuthScene';
+import { YandexLoginButton } from '@/components/YandexLoginButton';
 
 // useSearchParams требует Suspense (иначе падает next build — урок Брендоскопа).
 export default function RegisterPage() {
@@ -121,6 +122,7 @@ function RegisterForm() {
             <Link href="/ru/login" className="underline hover:text-ink">{ru.auth.toLogin}</Link>
           </p>
         </form>
+        <YandexLoginButton />
     </AuthScene>
   );
 }

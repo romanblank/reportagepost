@@ -1,6 +1,11 @@
 export const APP_NAME = 'Reportage Post';
 export const APP_DOMAIN = 'reportagepost.com';
 
+// Яндекс OAuth. ClientID/секрет — из env (Lockbox: YANDEX_CLIENT_ID,
+// YANDEX_OAUTH_SECRET). Redirect ДОЛЖЕН совпадать с указанным в приложении Яндекса.
+export const YANDEX_REDIRECT_URI = `https://${APP_DOMAIN}/api/auth/yandex/callback`;
+export const YANDEX_OAUTH_SCOPES = 'login:email login:info';
+
 // Глобальный задел: локали расширяются без переезда URL (/ru/, /en/, …)
 export const DEFAULT_LOCALE = 'ru';
 export const SUPPORTED_LOCALES = ['ru'] as const;

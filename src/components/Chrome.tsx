@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation';
 
 // Хром сайта (шапка/подвал/таб-бар) прячется на auth-роутах — там своя брендовая
 // сцена на весь экран (AuthScene), без маркетингового обрамления.
-const BARE_PREFIXES = ['/ru/login', '/ru/register', '/ru/forgot', '/ru/reset'];
+const BARE_PREFIXES = ['/ru/login', '/ru/register', '/ru/forgot', '/ru/reset', '/ru/auth'];
 
 export function Chrome({
   header,

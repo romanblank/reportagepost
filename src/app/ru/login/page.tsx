@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ru } from '@/i18n/ru';
 import { AuthScene } from '@/components/AuthScene';
+import { YandexLoginButton } from '@/components/YandexLoginButton';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -96,6 +97,7 @@ export default function LoginPage() {
           <Link href="/ru/register" className="underline hover:text-ink">{ru.auth.toRegister}</Link>
         </p>
       </form>
+      <YandexLoginButton />
     </AuthScene>
   );
 }

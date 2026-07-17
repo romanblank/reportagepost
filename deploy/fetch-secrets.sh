@@ -42,6 +42,11 @@ for k in ("SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASSWORD", "SMTP_FROM"):
 # Yandex Vision (AI-премодерация) — авторизация через SA инстанса, нужен лишь folder id.
 if "YC_FOLDER_ID" in entries:
     lines.append(f"YC_FOLDER_ID={entries['YC_FOLDER_ID']}")
+# Яндекс OAuth (вход через Яндекс). ClientID публичный, секрет — приватный.
+if "YANDEX_CLIENT_ID" in entries:
+    lines.append(f"YANDEX_CLIENT_ID={entries['YANDEX_CLIENT_ID']}")
+if "YANDEX_OAUTH_SECRET" in entries:
+    lines.append(f"YANDEX_OAUTH_SECRET={entries['YANDEX_OAUTH_SECRET']}")
 with open(sys.argv[1], "w") as f:
     f.write("\n".join(lines) + "\n")
 print(f"wrote {sys.argv[1]} ({len(lines)} vars)")

@@ -279,6 +279,7 @@ export const ru = {
     toastNetwork: 'Нет связи с сервером.',
     close: 'Закрыть',
     cancel: 'Отмена',
+    loading: 'Секунду…',
   },
   portfolio: {
     title: 'Портфолио',
@@ -662,6 +663,18 @@ export const ru = {
     rolePhotographer: 'Я фотограф',
     roleClient: 'Я заказчик',
     submitRegister: 'Создать профиль',
+    // Вход через Яндекс
+    yandexBtn: 'Войти через Яндекс',
+    yandexOr: 'или',
+    errorYandex: 'Не удалось войти через Яндекс. Попробуйте ещё раз.',
+    // Экран выбора роли (новый пользователь из Яндекса)
+    roleTitle: 'Кто вы на платформе?',
+    roleLead: (name: string) => `${name}, выберите роль — покажем нужное.`,
+    rolePhotographerDesc: 'Витрина работ, признание цеха и прямые заявки на съёмку.',
+    roleClientDesc: 'Поиск и сравнение репортажных фотографов, прямой контакт.',
+    roleSubmit: 'Продолжить',
+    roleExpired: 'Сессия входа истекла. Войдите через Яндекс заново.',
+    roleConsent: 'Регистрируясь, я принимаю',
     errorInvite: 'Код приглашения не подошёл',
     errorEmailTaken: 'Этот email уже зарегистрирован',
     loginTitle: 'Вход',

@@ -39,6 +39,7 @@ model User {
   passwordChangedAt DateTime? // инвалидация старых JWT при смене пароля
   tokenVersion Int        @default(0) // ручной отзыв всех сессий (бан/логаут-везде)
   tgUserId     String?    @unique // Telegram chat_id для уведомлений (S2)
+  yandexId     String?    @unique // Яндекс OAuth: id аккаунта для входа/линковки
   tgLinkCode   String?    @unique // одноразовый код привязки (deep-link /start)
   locale       String     @default("ru")
   inviteCodeId String? // закрытость до S4: кто пригласил
