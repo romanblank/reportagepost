@@ -70,7 +70,7 @@ export async function handleTelegramUpdate(update: TgUpdate): Promise<void> {
   if (text.startsWith('/start')) {
     const code = text.slice('/start'.length).trim();
     if (!code) {
-      await tgSend(chat, 'Откройте привязку в кабинете Reportage Post и нажмите кнопку — я свяжу аккаунт.');
+      await tgSend(chat, 'Откройте привязку в кабинете Репортаж Пост и нажмите кнопку — я свяжу аккаунт.');
       return;
     }
     const user = await db.user.findUnique({ where: { tgLinkCode: code }, select: { id: true } });
@@ -79,7 +79,7 @@ export async function handleTelegramUpdate(update: TgUpdate): Promise<void> {
       return;
     }
     await db.user.update({ where: { id: user.id }, data: { tgUserId: chat, tgLinkCode: null } });
-    await tgSend(chat, 'Готово — уведомления Reportage Post будут приходить сюда. Отвязать: /stop');
+    await tgSend(chat, 'Готово — уведомления Репортаж Пост будут приходить сюда. Отвязать: /stop');
     return;
   }
 

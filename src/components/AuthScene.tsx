@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ru } from '@/i18n/ru';
 import { HERO_SHOTS, heroImageUrl } from '@/lib/hero-images';
+import { BrandLockup } from './BrandLockup';
 
 // Полноэкранная брендовая сцена входа/регистрации: слева репортажный кадр в
 // кино-грейде с манифестом, справа — форма. Без маркетингового хрома (см. Chrome).
@@ -10,8 +11,8 @@ export function AuthScene({ children }: { children: React.ReactNode }) {
     <div className="as-root">
       <aside className="as-visual" style={{ backgroundImage: `url(${heroImageUrl(shot)})` }} aria-hidden="true">
         <div className="as-scrim" />
-        <Link href="/" className="as-brand as-brand-light">
-          <span className="as-dot" />Reportage Post
+        <Link href="/" className="as-brand as-brand-light" aria-label={ru.nav.brand}>
+          <BrandLockup className="as-logo" />
         </Link>
         <div className="as-manifest">
           <p className="as-kicker">{ru.footer.tagline}</p>
@@ -20,8 +21,8 @@ export function AuthScene({ children }: { children: React.ReactNode }) {
       </aside>
 
       <main className="as-form">
-        <Link href="/" className="as-brand as-brand-dark">
-          <span className="as-dot" />Reportage Post
+        <Link href="/" className="as-brand as-brand-dark" aria-label={ru.nav.brand}>
+          <BrandLockup className="as-logo" />
         </Link>
         <div className="as-inner">{children}</div>
       </main>
@@ -34,11 +35,10 @@ export function AuthScene({ children }: { children: React.ReactNode }) {
         @media (min-width: 900px) { .as-visual { display: block; } }
         .as-scrim { position: absolute; inset: 0; background:
           linear-gradient(to top, rgba(10,10,11,.85), rgba(10,10,11,.15) 55%, rgba(10,10,11,.5)); }
-        .as-brand { position: relative; z-index: 2; display: inline-flex; align-items: center; gap: 9px;
-          font-weight: 700; font-size: 16px; letter-spacing: -.01em; text-decoration: none; }
-        .as-dot { width: 8px; height: 8px; border-radius: 999px; background: var(--accent); }
+        .as-brand { position: relative; z-index: 2; display: inline-flex; align-items: center;
+          text-decoration: none; }
+        .as-logo { display: block; height: 34px; }
         .as-brand-light { position: absolute; top: 30px; left: 34px; color: #fff; }
-        .as-brand-light .as-dot { box-shadow: 0 0 12px var(--accent); }
         .as-manifest { position: absolute; z-index: 2; left: 34px; right: 34px; bottom: 34px; }
         .as-kicker { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; font-weight: 600; color: var(--recognition-hi); margin: 0 0 14px; }
         .as-title { font-family: var(--font-cormorant), Georgia, serif; font-weight: 600; color: #fff;

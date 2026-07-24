@@ -4,6 +4,7 @@ import { unreadNotificationCount } from '@/lib/notifications';
 import { ru } from '@/i18n/ru';
 import { CATALOG_ROOT, cabinetHrefFor } from '@/lib/nav';
 import { LogoutButton } from './LogoutButton';
+import { BrandLockup } from './BrandLockup';
 
 // Session-aware шапка (аудит: продукт был недостижим без ручного ввода URL).
 // Серверный компонент — знает роль и город фотографа для «умных» ссылок.
@@ -19,9 +20,8 @@ export async function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-line/70 bg-paper/80 backdrop-blur-md">
       <nav className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-3.5">
-        <Link href="/" className="flex items-center gap-1.5 text-[15px] font-semibold tracking-tight">
-          <span className="inline-block h-2 w-2 rounded-full bg-accent" />
-          {ru.nav.brand}
+        <Link href="/" aria-label={ru.nav.brand} className="flex items-center text-ink">
+          <BrandLockup className="block h-6 sm:h-7" />
         </Link>
         <div className="hidden items-center gap-5 sm:flex">
           <Link href={catalogHref} className={linkCls}>{ru.nav.catalog}</Link>

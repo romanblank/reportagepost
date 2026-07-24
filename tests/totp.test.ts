@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { base32Encode, base32Decode, totpCode, verifyTotp, otpauthUri } from '@/lib/totp';
+import { APP_NAME } from '@/lib/constants';
 
 // Эталонный секрет RFC 6238 (Appendix B): ASCII "12345678901234567890"
 const SECRET = base32Encode(Buffer.from('12345678901234567890'));
@@ -33,6 +34,8 @@ describe('totp: RFC 6238 (чистые функции, без env)', () => {
     const uri = otpauthUri(SECRET, 'user@test.local');
     expect(uri).toContain('otpauth://totp/');
     expect(uri).toContain(`secret=${SECRET}`);
-    expect(uri).toContain('issuer=Reportage+Post');
+    // issuer кодируется как application/x-www-form-urlencoded (пробел → '+')
+    const encIssuer = encodeURIComponent(APP_NAME).replace(/%20/g, '+');
+    expect(uri).toContain(`issuer=${encIssuer}`);
   });
 });

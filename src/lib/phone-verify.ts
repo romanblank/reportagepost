@@ -32,7 +32,7 @@ export async function startPhoneVerification(userId: string, phone: string): Pro
   await db.phoneVerification.deleteMany({ where: { userId } });
   await db.phoneVerification.create({ data: { userId, phone, codeHash, expiresAt } });
 
-  await smsProvider.send(phone, `Reportage Post: код подтверждения ${code}`);
+  await smsProvider.send(phone, `Репортаж Пост: код подтверждения ${code}`);
 }
 
 /**

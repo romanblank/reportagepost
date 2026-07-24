@@ -83,7 +83,7 @@ export function verifyTotp(secretB32: string, code: string, atMs = Date.now(), w
 }
 
 /** otpauth://-URI для QR / ручного ввода в приложение-аутентификатор. */
-export function otpauthUri(secretB32: string, account: string, issuer = 'Reportage Post'): string {
+export function otpauthUri(secretB32: string, account: string, issuer = 'Репортаж Пост'): string {
   const label = encodeURIComponent(`${issuer}:${account}`);
   const params = new URLSearchParams({
     secret: secretB32,

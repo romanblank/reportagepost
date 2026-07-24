@@ -41,7 +41,7 @@ export function POST(req: Request) {
       // Telegram-уведомление (если привязан). Не блокируем ответ — fire-and-forget.
       void notifyTelegram(
         parsed.data.recipientId,
-        `Новое сообщение на Reportage Post. Открыть: https://${APP_DOMAIN}/ru/messages`,
+        `Новое сообщение на Репортаж Пост. Открыть: https://${APP_DOMAIN}/ru/messages`,
       );
       return NextResponse.json({ messageId: message.id }, { status: 201 });
     } catch (e) {

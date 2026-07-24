@@ -1,4 +1,4 @@
-export const APP_NAME = 'Reportage Post';
+export const APP_NAME = 'Репортаж Пост';
 export const APP_DOMAIN = 'reportagepost.com';
 
 // Яндекс OAuth. ClientID/секрет — из env (Lockbox: YANDEX_CLIENT_ID,
