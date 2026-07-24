@@ -77,7 +77,12 @@ export async function grantFoundingPro(userId: string, citySlug: string, now: Da
       graceEndsAt,
     },
   });
+  // Денормализованный приоритет в каталоге (MyWed: PRO платит за позицию)
+  await db.photographerProfile.updateMany({ where: { userId }, data: { proRank: PRO_RANK } });
 }
+
+// Базовый приоритет активного PRO в каталоге (место под будущие уровни PRO+).
+export const PRO_RANK = 100;
 
 // Зафиксировать заявку фотографа на подключение PRO (закрытая бета: оператор
 // активирует вручную). Маркер REQUESTED в cityTier на FREE-записи — до появления

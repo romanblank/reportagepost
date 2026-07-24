@@ -20,6 +20,7 @@ import { ReviewSection } from '@/components/ReviewSection';
 import { reviewsForProfile } from '@/lib/reviews';
 import { VerifyButton } from '@/components/VerifyButton';
 import { parseFaq } from '@/lib/faq';
+import { isPro as isProUser } from '@/lib/subscription';
 
 // dynamic: страница показывает состояние лайков/подписки текущего пользователя
 export const dynamic = 'force-dynamic';
@@ -73,7 +74,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
   const session = await getSession();
   // Все независимые запросы — одним Promise.all (ревью №7: было 4 сериализованных
   // round-trip'а на каждый force-dynamic заход).
-  const [favoritedRow, likes, myLikes, following, followers, rankAbove, moreInCity, reviews, alreadyReviewedRow] = await Promise.all([
+  const [favoritedRow, likes, myLikes, following, followers, rankAbove, moreInCity, reviews, alreadyReviewedRow, followingCount, photographerIsPro] = await Promise.all([
     session
       ? db.favoritePhotographer.findUnique({
           where: { userId_profileId: { userId: session.userId, profileId: profile.id } },
@@ -118,6 +119,9 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
           select: { id: true },
         })
       : Promise.resolve(null),
+    // подписки фотографа (парити MyWed: счётчик «подписки»)
+    db.follow.count({ where: { followerId: profile.userId } }),
+    isProUser(profile.userId), // PRO-бейдж в шапке (директива №3)
   ]);
   const favorited = Boolean(favoritedRow);
   const alreadyReviewed = Boolean(alreadyReviewedRow);
@@ -155,7 +159,11 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
             <h1 className="t-h1 flex flex-wrap items-center gap-2">
               <span>{profile.user.firstName} {profile.user.lastName}</span>
               {profile.verified && <VerifiedBadge label={ru.profile.verifiedHint} size={22} />}
+              {photographerIsPro && (
+                <span className="rounded-sm bg-recognition-soft px-1.5 py-0.5 text-xs font-semibold text-recognition align-middle">{ru.profile.proBadge}</span>
+              )}
             </h1>
+            <p className="mt-0.5 text-sm muted">@{profile.username}</p>
             <p className="mt-1.5 text-sm muted">
               {cityNameRu(profile.city.slug)} · {profile.categories.map((c) => categoryNameRu(c.category.slug)).join(' · ')}
             </p>
@@ -165,6 +173,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
             <div className="mt-4 flex flex-wrap items-baseline gap-x-7 gap-y-2">
               <span className="flex items-baseline gap-1.5"><b className="tnum text-lg font-semibold">{cityRank}</b><span className="t-caption muted">{ru.profile.statCityRank}</span></span>
               <span className="flex items-baseline gap-1.5"><b className="tnum text-lg font-semibold">{followers}</b><span className="t-caption muted">{ru.profile.statFollowers}</span></span>
+              <span className="flex items-baseline gap-1.5"><b className="tnum text-lg font-semibold">{followingCount}</b><span className="t-caption muted">{ru.profile.statFollowing}</span></span>
               <span className="flex items-baseline gap-1.5"><b className="tnum text-lg font-semibold">{profile.photos.length}</b><span className="t-caption muted">{ru.profile.statPhotos}</span></span>
             </div>
           </div>
@@ -194,11 +203,17 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
           </dl>
         )}
         {!isSelf && (
-          <div className="mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-            <MessageButton userId={profile.userId} />
-            <FollowButton userId={profile.userId} initialFollowing={Boolean(following)} authed={Boolean(session)} />
-            <FavoriteButton userId={profile.userId} initialFavorited={favorited} authed={Boolean(session)} />
-          </div>
+          <>
+            <Link href={`/ru/inquiry?photographer=${profile.username}`}
+              className="btn btn-accent mt-4 w-full py-2.5 sm:w-auto sm:px-8">
+              {ru.profile.sendInquiry}
+            </Link>
+            <div className="mt-2 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+              <MessageButton userId={profile.userId} />
+              <FollowButton userId={profile.userId} initialFollowing={Boolean(following)} authed={Boolean(session)} />
+              <FavoriteButton userId={profile.userId} initialFavorited={favorited} authed={Boolean(session)} />
+            </div>
+          </>
         )}
         {(profile.whatsapp || profile.telegram || profile.siteUrl) && (
           <div className="mt-3 flex flex-wrap gap-2 text-sm">

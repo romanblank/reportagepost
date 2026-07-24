@@ -10,7 +10,9 @@ interface Option {
   nameRu: string;
 }
 
-export function InquiryForm({ cities, categories }: { cities: Option[]; categories: Option[] }) {
+interface Prefill { citySlug?: string; categorySlug?: string; photographerName?: string }
+
+export function InquiryForm({ cities, categories, prefill }: { cities: Option[]; categories: Option[]; prefill?: Prefill }) {
   const [pending, setPending] = useState(false);
   const [sent, setSent] = useState<{ notified: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -61,6 +63,11 @@ export function InquiryForm({ cities, categories }: { cities: Option[]; categori
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-3">
+      {prefill?.photographerName && (
+        <p className="card border-recognition/40 bg-recognition-soft/30 p-3 text-sm">
+          {ru.inquiry.forPhotographer(prefill.photographerName)}
+        </p>
+      )}
       <label className="text-sm">
         {ru.inquiry.contactName}
         <input name="contactName" required minLength={2} className="input" />
@@ -79,7 +86,7 @@ export function InquiryForm({ cities, categories }: { cities: Option[]; categori
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="text-sm">
           {ru.inquiry.city}
-          <select name="citySlug" required className="input">
+          <select name="citySlug" required className="input" defaultValue={prefill?.citySlug ?? ''}>
             {cities.map((c) => (
               <option key={c.slug} value={c.slug}>{c.nameRu}</option>
             ))}
@@ -87,7 +94,7 @@ export function InquiryForm({ cities, categories }: { cities: Option[]; categori
         </label>
         <label className="text-sm">
           {ru.inquiry.category}
-          <select name="categorySlug" className="input">
+          <select name="categorySlug" className="input" defaultValue={prefill?.categorySlug ?? ''}>
             <option value="">{ru.inquiry.categoryAny}</option>
             {categories.map((c) => (
               <option key={c.slug} value={c.slug}>{c.nameRu}</option>

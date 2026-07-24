@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ru } from '@/i18n/ru';
 import { HERO_SHOTS, heroImageUrl } from '@/lib/hero-images';
+import { HeroSearch } from '@/components/HeroSearch';
 
 // Живой герой главной: полноэкранные репортажные кадры плавно перетекают с
 // кино-зумом (Ken Burns). Единый грейд (grayscale/contrast/brightness) + скрим
@@ -48,9 +49,10 @@ export function HeroWallpaper() {
           ))}
         </h1>
         <p className="hw-lede">{ru.landing.heroLead}</p>
+        <div className="hw-search"><HeroSearch /></div>
         <div className="hw-cta">
-          <Link href="/ru/register" className="btn btn-accent btn-lg">{ru.landing.registerCta}</Link>
-          <Link href="/ru/login" className="hw-ghost">{ru.landing.loginCta}</Link>
+          <span className="hw-nudge">{ru.landing.heroPhotographerNudge}</span>
+          <Link href="/ru/register" className="hw-ghost">{ru.landing.heroPhotographerCta}</Link>
         </div>
         <p className="hw-note">{ru.landing.closedNote}</p>
       </div>
@@ -103,10 +105,15 @@ export function HeroWallpaper() {
           max-width: 44ch; opacity: 0; transform: translateY(12px);
           animation: hwRise .7s .95s cubic-bezier(.16,1,.3,1) forwards;
         }
-        .hw-cta {
-          margin: 32px 0 0; display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
-          opacity: 0; transform: translateY(12px); animation: hwRise .7s 1.1s cubic-bezier(.16,1,.3,1) forwards;
+        .hw-search {
+          margin: 30px 0 0; opacity: 0; transform: translateY(12px);
+          animation: hwRise .7s 1.05s cubic-bezier(.16,1,.3,1) forwards;
         }
+        .hw-cta {
+          margin: 18px 0 0; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+          opacity: 0; transform: translateY(12px); animation: hwRise .7s 1.25s cubic-bezier(.16,1,.3,1) forwards;
+        }
+        .hw-nudge { color: #b9b9c0; font-size: 15px; }
         .hw-ghost {
           color: #fff; font-weight: 500; font-size: 15px; padding: 13px 22px; border-radius: 12px;
           border: 1px solid rgba(255,255,255,.28); transition: background .25s, border-color .25s;

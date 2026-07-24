@@ -203,6 +203,11 @@ model PhotographerProfile {
   // Денормализованный рейтинг для сортировки каталога (пересчёт фоном).
   // v1: полнота профиля + свежесть; v2 (S2): взвешенные лайки со сгоранием.
   ratingScore Int              @default(0)
+  // Денормализованный приоритет PRO в каталоге (MyWed-модель: PRO платит за
+  // ПОЗИЦИЮ). 0 = FREE; >0 = активный PRO. Ставится при активации PRO, сортировка
+  // каталога [proRank desc, ratingScore desc]. Экспирация (grace/trial) —
+  // реконсилятором (founding grandfathered не истекает).
+  proRank     Int              @default(0)
   createdAt   DateTime         @default(now())
 
   user       User              @relation(fields: [userId], references: [id])
@@ -216,7 +221,7 @@ model PhotographerProfile {
   favoritedBy FavoritePhotographer[]
   reviews    Review[]
 
-  @@index([cityId, status, ratingScore(sort: Desc)])
+  @@index([cityId, status, proRank(sort: Desc), ratingScore(sort: Desc)])
 }
 
 model ProfileCategory {

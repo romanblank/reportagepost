@@ -76,14 +76,18 @@ export interface PlanFeature {
   free: boolean;
 }
 
+// Разворот 2026-07-24 (MyWed-модель): заявки/контакты ОТКРЫТЫ ВСЕМ (как MyWed) —
+// на холодном каталоге лид-гейт продаёт пустоту. PRO монетизирует ПОЗИЦИЮ в
+// каталоге + СТАТУС (бейдж/«Признание») + ЛИМИТЫ, а не доступ к лидам. Приоритет
+// по пулу заявок включим позже, когда пойдёт реальный клиентский спрос.
 export const PLAN_FEATURES: PlanFeature[] = [
   { key: 'page', free: true }, // публичная страница + профиль в каталоге
   { key: 'portfolioBasic', free: true }, // портфолио до FREE_PORTFOLIO_LIMIT
+  { key: 'inquiries', free: true }, // приём заявок от заказчиков — открыто всем
+  { key: 'priority', free: false }, // приоритет (позиция) в каталоге и поиске
   { key: 'recognition', free: false }, // бейдж PRO и участие в «Признании»
   { key: 'portfolioUnlimited', free: false }, // портфолио без ограничений + фотоистории
   { key: 'richProfile', free: false }, // пакеты цен, FAQ, оборудование, команда
-  { key: 'priority', free: false }, // приоритет в каталоге и поиске
-  { key: 'inquiries', free: false }, // полный доступ к заявкам заказчиков
   { key: 'analytics', free: false }, // статистика просмотров и сохранений
   { key: 'fastReview', free: false }, // приоритетное рассмотрение
 ];

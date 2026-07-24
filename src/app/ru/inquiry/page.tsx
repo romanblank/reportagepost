@@ -1,16 +1,36 @@
 import type { Metadata } from 'next';
+import { db } from '@/lib/db';
 import { ru } from '@/i18n/ru';
 import { RU_CITIES } from '@/lib/geo-data';
 import { CATEGORIES } from '@/lib/category-data';
 import { InquiryForm } from './InquiryForm';
 
 export const metadata: Metadata = { title: ru.inquiry.title };
+export const dynamic = 'force-dynamic'; // читает ?photographer + БД
 
-export default function InquiryPage() {
+export default async function InquiryPage(props: { searchParams: Promise<{ photographer?: string }> }) {
+  const { photographer } = await props.searchParams;
+
   // Города посева первыми, остальные по алфавиту
   const cities = [...RU_CITIES]
     .sort((a, b) => Number(b.active ?? false) - Number(a.active ?? false) || a.nameRu.localeCompare(b.nameRu, 'ru'))
     .map((c) => ({ slug: c.slug, nameRu: c.nameRu }));
+
+  // Префилл из профиля фотографа (кнопка «Отправить заявку»)
+  let prefill: { citySlug?: string; categorySlug?: string; photographerName?: string } | undefined;
+  if (photographer) {
+    const p = await db.photographerProfile.findFirst({
+      where: { username: photographer, status: 'APPROVED' },
+      include: { user: true, city: true, categories: { include: { category: true } } },
+    });
+    if (p) {
+      prefill = {
+        citySlug: p.city.slug,
+        categorySlug: p.categories[0]?.category.slug,
+        photographerName: `${p.user.firstName} ${p.user.lastName}`,
+      };
+    }
+  }
 
   return (
     <main className="mx-auto w-full max-w-xl flex-1 px-4 py-6 sm:py-10">
@@ -20,6 +40,7 @@ export default function InquiryPage() {
         <InquiryForm
           cities={cities}
           categories={CATEGORIES.map((c) => ({ slug: c.slug, nameRu: c.nameRu }))}
+          prefill={prefill}
         />
       </div>
     </main>

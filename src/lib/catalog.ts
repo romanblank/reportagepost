@@ -86,7 +86,8 @@ export async function catalogForCity(filters: CatalogFilters): Promise<CatalogPa
 
   const rows = await db.photographerProfile.findMany({
     where,
-    orderBy: [{ ratingScore: 'desc' }, { id: 'asc' }],
+    // PRO-приоритет первым (MyWed-модель: PRO платит за позицию), затем рейтинг
+    orderBy: [{ proRank: 'desc' }, { ratingScore: 'desc' }, { id: 'asc' }],
     skip: (page - 1) * CATALOG_PAGE_SIZE,
     take: CATALOG_PAGE_SIZE + 1, // +1 для hasNext
     include: {
