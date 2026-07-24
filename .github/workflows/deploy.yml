@@ -86,6 +86,19 @@ jobs:
           envs: IMAGE,GHCR_TOKEN,GHCR_USER
           script_stop: true
           script: |
+            # ВОССТАНОВЛЕНИЕ ПРИ ПЕРЕПОЛНЕНИИ ДИСКА (инцидент 2026-07-24: диск 30GB
+            # переполнился Docker-образами/логами → прод лёг). Освобождаем место
+            # ПЕРВЫМ делом, ДО записи конфигов/секретов (иначе script_stop оборвёт
+            # на full-disk). Файловые операции (без docker) первыми — освобождают
+            # место, чтобы docker-демон ожил, затем docker prune.
+            echo "=== disk before ==="; df -h / || true
+            sudo journalctl --vacuum-size=80M 2>/dev/null || true
+            sudo find /var/lib/docker/containers -name '*-json.log' -exec truncate -s 0 {} \; 2>/dev/null || true
+            sudo find /var/log -type f -name '*.gz' -delete 2>/dev/null || true
+            sudo apt-get clean 2>/dev/null || true
+            docker system prune -af 2>/dev/null || true
+            docker builder prune -af 2>/dev/null || true
+            echo "=== disk after cleanup ==="; df -h / || true
             sudo mkdir -p /opt/reportagepost && sudo chown rp:rp /opt/reportagepost
             cp /home/rp/deploy-staging/* /opt/reportagepost/
             cd /opt/reportagepost
