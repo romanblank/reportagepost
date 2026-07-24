@@ -109,15 +109,28 @@ jobs:
             # .previous-deploy для отката (паттерн Verifi)
             [ -f .deploy.env ] && cp .deploy.env .previous-deploy || true
             echo "IMAGE=$IMAGE" > .deploy.env
-            # Диск 30GB: чистим неиспользуемые образы ДО pull (инцидент 2026-07-13:
-            # no space left; откат при нужде перекачает образ из ghcr)
-            docker image prune -af >/dev/null 2>&1 || true
             docker pull "$IMAGE"
             IMAGE="$IMAGE" docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
             # health-check с ожиданием (миграции на старте)
             for i in $(seq 1 20); do
               sleep 6
-              if curl -sf http://127.0.0.1:3000/health >/dev/null; then echo "HEALTH OK"; exit 0; fi
+              if curl -sf http://127.0.0.1:3000/health >/dev/null; then
+                echo "HEALTH OK"
+                # КОРЕНЬ ИНЦИДЕНТА 2026-07-24: prune раньше шёл ДО up (заменяемый образ
+                # был «в использовании» → не удалялся) + exit 0 сразу. За 17 деплоев
+                # образы Next.js (~1.5ГБ) накопились → диск забит. ФИКС: чистим образы
+                # ПОСЛЕ успешного up — на диске остаётся только рабочий (откат re-pull'ит).
+                docker image prune -af >/dev/null 2>&1 || true
+                # Диагностика диска → в бакет (Actions-логи агенту недоступны, PAT 403)
+                { echo "== df =="; df -h /; echo; echo "== docker system df =="; docker system df; \
+                  echo; echo "== du (top dirs) =="; sudo du -sh /var/lib/docker /var/log /var/log/journal /opt/reportagepost 2>/dev/null; \
+                  echo; echo "== docker images =="; docker images --format '{{.Repository}}:{{.Tag}} {{.Size}}'; } > /tmp/diskdiag.txt 2>&1 || true
+                S3ID=$(grep '^S3_ACCESS_KEY_ID=' .env.prod | cut -d= -f2-); S3KEY=$(grep '^S3_SECRET_ACCESS_KEY=' .env.prod | cut -d= -f2-)
+                S3EP=$(grep '^S3_ENDPOINT=' .env.prod | cut -d= -f2-); S3B=$(grep '^S3_BUCKET=' .env.prod | cut -d= -f2-)
+                docker run --rm -v /tmp:/w -e AWS_ACCESS_KEY_ID="$S3ID" -e AWS_SECRET_ACCESS_KEY="$S3KEY" \
+                  amazon/aws-cli --endpoint-url "$S3EP" s3 cp /w/diskdiag.txt "s3://$S3B/_diag/diskdiag.txt" >/dev/null 2>&1 || true
+                exit 0
+              fi
             done
             # АВТО-ОТКАТ (deep-think Ops P0): при провале health поднимаем прошлый
             # образ из .previous-deploy, чтобы прод не остался на битом. Безопасно,

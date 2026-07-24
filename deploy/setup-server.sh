@@ -60,4 +60,20 @@ fi
 WD
 sudo chmod +x /usr/local/bin/rp-watchdog.sh
 echo '*/5 * * * * root /usr/local/bin/rp-watchdog.sh >/dev/null 2>&1' | sudo tee /etc/cron.d/rp-watchdog >/dev/null
+
+# ── Прививка от переполнения диска (инцидент 2026-07-24) ──────────────────────
+# Корень был в деплое (образы не чистились после подмены — фикс в deploy.yml).
+# Здесь — belt-and-suspenders, чтобы диск не забился НИКОГДА:
+# 1) systemd-журнал — жёсткий кап (по умолчанию мог расти до 10% FS)
+sudo mkdir -p /etc/systemd/journald.conf.d
+printf '[Journal]\nSystemMaxUse=200M\nMaxRetentionSec=7day\n' | sudo tee /etc/systemd/journald.conf.d/rp-cap.conf >/dev/null
+sudo systemctl restart systemd-journald 2>/dev/null || true
+# 2) docker-логи по умолчанию (даже если у сервиса нет logging в compose)
+sudo mkdir -p /etc/docker
+printf '{"log-driver":"json-file","log-opts":{"max-size":"10m","max-file":"3"}}\n' | sudo tee /etc/docker/daemon.json >/dev/null
+# (docker не рестартим в setup — избежать downtime; compose уже имеет logging;
+#  daemon.json применится при следующем штатном рестарте демона)
+# 3) еженедельная авто-чистка (cron) — на случай долгого простоя без деплоев
+printf '0 4 * * 0 root docker system prune -af >/dev/null 2>&1; journalctl --vacuum-size=100M >/dev/null 2>&1; sudo apt-get clean >/dev/null 2>&1\n' | sudo tee /etc/cron.d/rp-diskclean >/dev/null
+
 echo "setup-server: ok"
