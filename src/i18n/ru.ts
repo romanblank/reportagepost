@@ -188,7 +188,6 @@ export const ru = {
     statFollowers: 'подписчиков',
     statFollowing: 'подписки',
     statPhotos: 'фото',
-    proBadge: 'PRO',
     sendInquiry: 'Отправить заявку',
     contactsTitle: 'Контакты',
     cityLabel: 'Город',
