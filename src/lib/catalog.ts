@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
-import { activeTier, type Tier } from '@/lib/subscription';
+import { activeTier, ELITE_RANK, type Tier } from '@/lib/subscription';
 
 // Каталог: одобренные фотографы города с фильтрами.
 // Ранжирование: MERIT-first (ratingScore) — подписка лишь мягкий tiebreaker, не
@@ -149,16 +149,16 @@ export async function catalogForCity(filters: CatalogFilters): Promise<CatalogPa
   return { cards, page, hasNext };
 }
 
-// «Рекомендуемые»: активные подписчики города (Elite → Prime). Буст-видимость
-// подписки БЕЗ сдвига основного merit-списка (soft-hybrid). proRank>0 — быстрый
-// префильтр, точный статус — по activeTier (денорм может отставать от экспирации).
+// «Открыты для новых заказов»: полка — перк ТОЛЬКО Active+ (ELITE). Буст-видимость
+// БЕЗ сдвига основного merit-списка (soft-hybrid). proRank>=ELITE_RANK — префильтр,
+// точный статус — по activeTier (денорм может отставать от экспирации).
 export async function recommendedForCity(citySlug: string, limit = 6): Promise<CatalogCard[]> {
   const rows = await db.photographerProfile.findMany({
-    where: { status: 'APPROVED', city: { slug: citySlug }, proRank: { gt: 0 } },
-    orderBy: [{ proRank: 'desc' }, { ratingScore: 'desc' }, { id: 'asc' }],
+    where: { status: 'APPROVED', city: { slug: citySlug }, proRank: { gte: ELITE_RANK } },
+    orderBy: [{ ratingScore: 'desc' }, { id: 'asc' }],
     take: limit * 2, // запас под фильтр активных
     include: CATALOG_INCLUDE,
   });
-  const active = rows.filter((p) => activeTier(p.user.subscription) !== 'FREE').slice(0, limit);
+  const active = rows.filter((p) => activeTier(p.user.subscription) === 'ELITE').slice(0, limit);
   return toCards(active);
 }

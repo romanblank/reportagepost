@@ -16,7 +16,8 @@ export default async function ModerationPage() {
 
   const profiles = await db.photographerProfile.findMany({
     where: { status: 'PENDING' },
-    orderBy: { createdAt: 'asc' },
+    // Правки Active/Active+ — в первую очередь (перк подписки), затем по дате.
+    orderBy: [{ proRank: 'desc' }, { createdAt: 'asc' }],
     include: {
       user: true,
       city: true,

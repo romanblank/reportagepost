@@ -90,14 +90,32 @@ export async function freshPhotos(limit = 60): Promise<FeedPhoto[]> {
   }));
 }
 
+// «Находки редакции»: квота 80/20 — 80% слотов подписчикам (Active/Active+),
+// 20% кураторским merit (любой уровень). Editorial НЕ становится pay-to-play:
+// пятая часть всегда за качеством вне подписки. Недобор группы добираем другой
+// (без пустых слотов). Порядок — по дате отметки редакции.
+const EDITORS_SUB_SHARE = 0.8;
+
 export async function editorsChoice(limit = 100): Promise<FeedPhoto[]> {
-  const photos = await db.photo.findMany({
+  const pool = await db.photo.findMany({
     where: { status: 'APPROVED', editorsChoiceAt: { not: null } },
     orderBy: { editorsChoiceAt: 'desc' },
-    take: limit,
+    take: Math.max(limit * 4, 48), // запас под квоту
     include: { profile: { include: { user: { select: { firstName: true, lastName: true } } } } },
   });
-  return photos.map((p) => ({
+
+  const subscribed = pool.filter((p) => p.profile.proRank > 0);
+  const curated = pool.filter((p) => p.profile.proRank === 0);
+  const subQuota = Math.round(limit * EDITORS_SUB_SHARE);
+
+  let picked = [...subscribed.slice(0, subQuota), ...curated.slice(0, limit - subQuota)];
+  if (picked.length < limit) {
+    const used = new Set(picked.map((p) => p.id));
+    picked = [...picked, ...pool.filter((p) => !used.has(p.id)).slice(0, limit - picked.length)];
+  }
+  picked.sort((a, b) => (b.editorsChoiceAt?.getTime() ?? 0) - (a.editorsChoiceAt?.getTime() ?? 0));
+
+  return picked.map((p) => ({
     photoId: p.id,
     storageKey: p.storageKey,
     width: p.width,

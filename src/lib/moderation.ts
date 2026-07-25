@@ -18,7 +18,9 @@ export interface QueueItem {
 export async function moderationQueue(): Promise<QueueItem[]> {
   const profiles = await db.photographerProfile.findMany({
     where: { status: 'PENDING' },
-    orderBy: { createdAt: 'asc' }, // старые заявки первыми
+    // Правки Active/Active+ — в первую очередь (перк подписки): proRank desc,
+    // затем старые заявки первыми. Онбординг ещё FREE (proRank 0) → по дате.
+    orderBy: [{ proRank: 'desc' }, { createdAt: 'asc' }],
     include: {
       user: true,
       city: true,

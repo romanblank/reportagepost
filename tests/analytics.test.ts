@@ -36,13 +36,18 @@ describe.skipIf(!hasDb)('analytics: статистика + трекинг про
     expect(stats.reviews).toBe(1);
     expect(stats.likes).toBe(0);
 
-    // «Рекомендуемые»: без подписки НЕ в полке; после founding-гранта — в полке
+    // Полка «Открыты для заказов» — перк ТОЛЬКО Active+ (ELITE).
     const recBefore = await recommendedForCity('moscow', 50);
     expect(recBefore.some((c) => c.username === `an-${stamp}`)).toBe(false);
+    // PRIME (Active) — в полку НЕ попадает
     await grantFoundingSub(owner.id, 'moscow', 'PRIME');
-    const recAfter = await recommendedForCity('moscow', 50);
-    expect(recAfter.some((c) => c.username === `an-${stamp}`)).toBe(true);
-    expect(recAfter.find((c) => c.username === `an-${stamp}`)?.tier).toBe('PRIME');
+    const recPrime = await recommendedForCity('moscow', 50);
+    expect(recPrime.some((c) => c.username === `an-${stamp}`)).toBe(false);
+    // ELITE (Active+) — в полке
+    await grantFoundingSub(owner.id, 'moscow', 'ELITE');
+    const recElite = await recommendedForCity('moscow', 50);
+    expect(recElite.some((c) => c.username === `an-${stamp}`)).toBe(true);
+    expect(recElite.find((c) => c.username === `an-${stamp}`)?.tier).toBe('ELITE');
 
     // cleanup (FK-порядок)
     await db.activityEvent.deleteMany({ where: { OR: [{ targetId: profile.id }, { actorUserId: { in: [owner.id, viewer.id] } }] } });
