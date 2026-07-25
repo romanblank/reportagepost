@@ -135,6 +135,7 @@ export default async function CabinetPage() {
                 graceUntil={graceUntil}
                 proRequested={subStatus.proRequested}
                 lockedPerks={lockedPerks}
+                teaser={profile ? { saves: profile._count.favoritedBy, reviews: profile._count.reviews } : undefined}
               />
             </div>
           )}

@@ -11,9 +11,10 @@ interface Props {
   graceUntil: string | null; // отформатированная дата или null
   proRequested: boolean;
   lockedPerks: string[]; // подписи выгод подписки (золотом)
+  teaser?: { saves: number; reviews: number }; // хук для FREE: их скрытые метрики
 }
 
-export function CabinetProBlock({ tier, isFounding, graceUntil, proRequested, lockedPerks }: Props) {
+export function CabinetProBlock({ tier, isFounding, graceUntil, proRequested, lockedPerks, teaser }: Props) {
   const { toast } = useToast();
   const [requested, setRequested] = useState(proRequested);
   const [busy, setBusy] = useState(false);
@@ -36,6 +37,9 @@ export function CabinetProBlock({ tier, isFounding, graceUntil, proRequested, lo
         <p className="mt-1 font-medium">{ru.cabinet.proOnPro}</p>
         {isFounding && <p className="mt-0.5 text-sm text-recognition">{ru.cabinet.proFounding}</p>}
         {graceUntil && <p className="mt-0.5 text-sm muted">{ru.cabinet.proGraceUntil(graceUntil)}</p>}
+        {tier === 'PRIME' && (
+          <Link href="/ru/pro" className="mt-2 inline-block text-sm text-recognition underline">{ru.cabinet.upsellElite}</Link>
+        )}
       </section>
     );
   }
@@ -44,6 +48,9 @@ export function CabinetProBlock({ tier, isFounding, graceUntil, proRequested, lo
     <section className="card p-4">
       <p className="t-caption muted">{ru.cabinet.proTitle}</p>
       <p className="mt-1 font-medium">{ru.cabinet.proOnFree}</p>
+      {teaser && (teaser.saves > 0 || teaser.reviews > 0) && (
+        <p className="mt-2 text-sm text-recognition">{ru.cabinet.proTeaser(teaser.saves, teaser.reviews)}</p>
+      )}
       <p className="mt-3 text-sm muted">{ru.cabinet.proLockedLead}</p>
       <ul className="mt-1.5 flex flex-col gap-1.5 text-sm">
         {lockedPerks.map((perk) => (
