@@ -149,6 +149,7 @@ export const ru = {
     nextPage: 'Дальше',
     recommendedTitle: 'Открыты для новых заказов',
     allInCity: 'Все авторы',
+    cardSaves: (n: number) => `${n} в избранном`,
     visitingTitle: 'Приезжают в город',
     travelFrom: (city: string) => `Выезд из: ${city}`,
     travelDates: (from: string, to: string) => `${from} — ${to}`,

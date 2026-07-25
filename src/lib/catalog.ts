@@ -36,8 +36,8 @@ export interface CatalogCard {
   minPackage: { hours: number; priceMinor: number; currency: string } | null;
   coverKey: string | null; // обложка каталога (выбранная или лучший кадр)
   photoKeys: string[]; // до 6 превью (запас под hover-полосу)
-  ratingAvg: number; // средняя оценка отзывов (0 если нет)
-  ratingCount: number;
+  recommendCount: number; // отзывы rating≥4 & verified — публичный положительный сигнал (не звезда)
+  saveCount: number; // в избранном у заказчиков
   score: number;
   tier: Tier; // FREE/PRIME/ELITE — бейдж подписки (FREE не показывается)
 }
@@ -74,6 +74,7 @@ const CATALOG_INCLUDE = {
   categories: { include: { category: true } },
   packages: { orderBy: { sortOrder: 'asc' } },
   photos: { where: { status: 'APPROVED' }, orderBy: { publishedAt: 'desc' }, take: 6 },
+  _count: { select: { favoritedBy: true } },
 } satisfies Prisma.PhotographerProfileInclude;
 
 type CatalogRow = Prisma.PhotographerProfileGetPayload<{ include: typeof CATALOG_INCLUDE }>;
@@ -81,15 +82,16 @@ type CatalogRow = Prisma.PhotographerProfileGetPayload<{ include: typeof CATALOG
 // Строки профилей → карточки (+ агрегат отзывов одним запросом). Общая сборка
 // для основного списка и полки «Рекомендуемые».
 async function toCards(shown: CatalogRow[]): Promise<CatalogCard[]> {
-  const revAgg = shown.length
+  // Публичный положительный сигнал вместо среднего 1–5: число рекомендаций
+  // (отзывы rating≥4 & verified & VISIBLE). Низкие оценки в публичный сигнал не идут.
+  const recAgg = shown.length
     ? await db.review.groupBy({
         by: ['profileId'],
-        where: { profileId: { in: shown.map((p) => p.id) }, status: 'VISIBLE' },
-        _avg: { rating: true },
+        where: { profileId: { in: shown.map((p) => p.id) }, status: 'VISIBLE', rating: { gte: 4 }, verified: true },
         _count: true,
       })
     : [];
-  const revMap = new Map(revAgg.map((r) => [r.profileId, { avg: r._avg.rating ?? 0, count: r._count }]));
+  const recMap = new Map(recAgg.map((r) => [r.profileId, r._count]));
 
   return shown.map((p) => ({
     username: p.username,
@@ -107,8 +109,8 @@ async function toCards(shown: CatalogRow[]): Promise<CatalogCard[]> {
       p.photos[0]?.storageKey ||
       null,
     photoKeys: p.photos.map((ph) => ph.storageKey),
-    ratingAvg: revMap.get(p.id)?.avg ?? 0,
-    ratingCount: revMap.get(p.id)?.count ?? 0,
+    recommendCount: recMap.get(p.id) ?? 0,
+    saveCount: p._count.favoritedBy,
     score: p.ratingScore,
     tier: activeTier(p.user.subscription),
   } satisfies CatalogCard));

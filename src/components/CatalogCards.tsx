@@ -5,7 +5,6 @@ import { formatRubMinor } from '@/lib/money';
 import { CATEGORIES, categoryNameRu } from '@/lib/category-data';
 import { ru } from '@/i18n/ru';
 import { Avatar } from '@/components/ui/Avatar';
-import { Rating } from '@/components/ui/Rating';
 import { VerifiedBadge, TierBadge } from '@/components/ui/Badge';
 
 // Галерейная сетка карточек каталога. Общая для города и город×категория (SEO),
@@ -42,9 +41,11 @@ export function CatalogCards({ cards, cityName }: { cards: CatalogCard[]; cityNa
                   {card.verified && <VerifiedBadge label={ru.profile.verified} size={15} />}
                   {card.tier !== 'FREE' && <TierBadge tier={card.tier} label={ru.pro.tierName[card.tier]} />}
                 </div>
-                <div className="mt-1 flex items-center gap-2">
-                  {card.ratingCount > 0 && <Rating value={card.ratingAvg} showCount={false} size="sm" />}
+                <div className="mt-1 flex items-center gap-1.5">
                   <span className="t-caption truncate muted">{catNames.join(' · ')}</span>
+                  {card.saveCount > 0 && (
+                    <span className="t-caption shrink-0 tnum muted">· {ru.catalog.cardSaves(card.saveCount)}</span>
+                  )}
                 </div>
               </div>
             </Link>
