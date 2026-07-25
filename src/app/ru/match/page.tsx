@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { matchPhotographers, parseBriefText, type Brief } from '@/lib/matching';
+import { matchPhotographers, parseBriefText, type Brief, type Match } from '@/lib/matching';
 import { RU_CITIES, cityNameRu } from '@/lib/geo-data';
 import { CATEGORIES, categoryNameRu } from '@/lib/category-data';
 import { webVariantUrl } from '@/lib/photos';
@@ -30,7 +30,8 @@ export default async function MatchPage(props: {
   const submitted = Boolean(sp.city || sp.text);
 
   let brief: Brief | null = null;
-  let matches: Awaited<ReturnType<typeof matchPhotographers>> = [];
+  let matches: Match[] = [];
+  let relaxed = false;
 
   if (submitted) {
     // ИИ разбирает свободный текст, явные поля формы имеют приоритет (guard в matching)
@@ -41,7 +42,9 @@ export default async function MatchPage(props: {
     const budgetRub = Number(sp.budget) > 0 ? Number(sp.budget) : undefined;
     const maxBudgetMinor = budgetRub ? budgetRub * 100 : parsed.maxBudgetMinor;
     brief = { citySlug, categorySlug, date, maxBudgetMinor, text: sp.text };
-    matches = await matchPhotographers(brief);
+    const res = await matchPhotographers(brief);
+    matches = res.matches;
+    relaxed = res.relaxed;
   }
 
   return (
@@ -107,6 +110,7 @@ export default async function MatchPage(props: {
           ) : (
             <>
               <h2 className="t-h3">{ru.match.resultsTitle(matches.length)}</h2>
+              {relaxed && <p className="mt-1.5 text-sm text-recognition">{ru.match.relaxedNote}</p>}
               <ul className="mt-5 flex flex-col gap-4">
                 {matches.map(({ card, reason }) => (
                   <li key={card.username} className="group flex gap-4 rounded-media border border-line p-3 transition hover:border-line-2 sm:p-4">

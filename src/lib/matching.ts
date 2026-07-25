@@ -77,15 +77,37 @@ export interface Match {
   reason: string;
 }
 
-/** Подбор авторов под бриф: структурный матч по каталогу + человекочитаемое обоснование. */
-export async function matchPhotographers(brief: Brief, limit = 6): Promise<Match[]> {
-  const { cards } = await catalogForCity({
-    citySlug: brief.citySlug,
-    categorySlug: brief.categorySlug,
-    availableOn: brief.date,
-    maxPricePerHourMinor: brief.maxBudgetMinor,
+export interface MatchResult {
+  matches: Match[];
+  relaxed: boolean; // точных под все условия не нашлось — показаны близкие
+}
+
+/**
+ * Подбор авторов под бриф: структурный матч + обоснование. Если точных нет —
+ * умный фолбэк: смягчаем условия (сначала бюджет, потом жанр) и показываем близких.
+ */
+export async function matchPhotographers(brief: Brief, limit = 6): Promise<MatchResult> {
+  const run = (f: Parameters<typeof catalogForCity>[0]) => catalogForCity(f);
+
+  let { cards } = await run({
+    citySlug: brief.citySlug, categorySlug: brief.categorySlug,
+    availableOn: brief.date, maxPricePerHourMinor: brief.maxBudgetMinor,
   });
-  return cards.slice(0, limit).map((card) => ({ card, reason: buildReason(brief, card) }));
+  let relaxed = false;
+
+  if (cards.length === 0 && brief.maxBudgetMinor) {
+    ({ cards } = await run({ citySlug: brief.citySlug, categorySlug: brief.categorySlug, availableOn: brief.date }));
+    if (cards.length > 0) relaxed = true;
+  }
+  if (cards.length === 0 && (brief.categorySlug || brief.date)) {
+    ({ cards } = await run({ citySlug: brief.citySlug }));
+    if (cards.length > 0) relaxed = true;
+  }
+
+  return {
+    matches: cards.slice(0, limit).map((card) => ({ card, reason: buildReason(brief, card) })),
+    relaxed,
+  };
 }
 
 /** Обоснование подбора из фактов карточки (детерминированно, честно). */
