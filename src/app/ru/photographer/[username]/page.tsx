@@ -7,8 +7,6 @@ import { webVariantUrl, thumbVariantUrl } from '@/lib/photos';
 import Link from 'next/link';
 import { formatRubMinor } from '@/lib/money';
 import { ru } from '@/i18n/ru';
-import { Avatar } from '@/components/ui/Avatar';
-import { VerifiedBadge, TierBadge } from '@/components/ui/Badge';
 import { getSession } from '@/lib/auth';
 import { FavoriteButton, FollowButton, MessageButton } from '@/components/EngagementButtons';
 import { PortfolioGallery } from '@/components/PortfolioGallery';
@@ -23,6 +21,7 @@ import { tierOf } from '@/lib/subscription';
 import { ProfileViewBeacon } from '@/components/ProfileViewBeacon';
 import { shootStats, hasShotWith } from '@/lib/shoots';
 import { ConfirmShootButton } from '@/components/ConfirmShootButton';
+import { ProfileHero } from '@/components/ProfileHero';
 
 // dynamic: страница показывает состояние лайков/подписки текущего пользователя
 export const dynamic = 'force-dynamic';
@@ -135,8 +134,15 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
 
   const absUrl = (u: string) => (u.startsWith('http') ? u : `${BASE_URL}${u}`);
 
+  // Обложка героя = кадр «выбор редакции» или первый в портфолио
+  const coverPhoto = profile.photos.find((p) => p.editorsChoiceAt) ?? profile.photos[0];
+  const minPkg = profile.packages[0];
+  const heroFacts: string[] = [];
+  if (shoots.count > 0) heroFacts.push(`${shoots.count} ${ru.profile.shootsLabel}`);
+  if (shoots.returning > 0) heroFacts.push(`${shoots.returning} ${ru.profile.returningLabel}`);
+
   return (
-    <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-5 sm:py-10">
+    <main className="flex-1">
       {!isSelf && <ProfileViewBeacon profileId={profile.id} />}
       <JsonLd
         data={personLd({
@@ -149,65 +155,32 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
           bio: profile.bio,
         })}
       />
-      <header className="border-b border-line pb-5 sm:pb-8">
-        {/* Шапка профиля: аватар + имя + ряд статистики (app-подача как в Instagram) */}
-        {/* Разворот: аватар + имя антиквой + категории; статы — инлайн-строкой, не «плавающие боксы» */}
-        <div className="flex items-start gap-5 sm:gap-6">
-          <Avatar avatarKey={profile.avatarKey} firstName={profile.user.firstName}
-            lastName={profile.user.lastName} size={104} />
-          <div className="min-w-0 flex-1">
-            <h1 className="t-h1 flex flex-wrap items-center gap-2">
-              <span>{profile.user.firstName} {profile.user.lastName}</span>
-              {profile.verified && <VerifiedBadge label={ru.profile.verifiedHint} size={22} />}
-              {photographerTier !== 'FREE' && (
-                <TierBadge tier={photographerTier} label={ru.pro.tierName[photographerTier]} />
-              )}
-            </h1>
-            <p className="mt-0.5 text-sm muted">@{profile.username}</p>
-            <p className="mt-1.5 text-sm muted">
-              {cityNameRu(profile.city.slug)} · {profile.categories.map((c) => categoryNameRu(c.category.slug)).join(' · ')}
-            </p>
-            {session?.role === 'ADMIN' && (
-              <div className="mt-2"><VerifyButton profileId={profile.id} verified={profile.verified} /></div>
-            )}
-            <div className="mt-4 flex flex-wrap items-baseline gap-x-7 gap-y-2">
-              <span className="flex items-baseline gap-1.5"><b className="tnum text-lg font-semibold">{followers}</b><span className="t-caption muted">{ru.profile.statFollowers}</span></span>
-              <span className="flex items-baseline gap-1.5"><b className="tnum text-lg font-semibold">{followingCount}</b><span className="t-caption muted">{ru.profile.statFollowing}</span></span>
-              <span className="flex items-baseline gap-1.5"><b className="tnum text-lg font-semibold">{profile.photos.length}</b><span className="t-caption muted">{ru.profile.statPhotos}</span></span>
-              {shoots.count > 0 && (
-                <span className="flex items-baseline gap-1.5"><b className="tnum text-lg font-semibold text-recognition">{shoots.count}</b><span className="t-caption muted">{ru.profile.shootsLabel}</span></span>
-              )}
-              {shoots.returning > 0 && (
-                <span className="flex items-baseline gap-1.5"><b className="tnum text-lg font-semibold">{shoots.returning}</b><span className="t-caption muted">{ru.profile.returningLabel}</span></span>
-              )}
-            </div>
-          </div>
-        </div>
-        {onlineText && <p className="mt-0.5 text-xs muted">{onlineText}</p>}
-        {profile.bio && <p className="mt-3 max-w-2xl text-[15px] leading-relaxed">{profile.bio}</p>}
-        {(profile.experienceYears != null || profile.languages.length > 0 || profile.equipment || profile.teamInfo) && (
-          <dl className="mt-4 grid max-w-2xl grid-cols-1 gap-x-8 gap-y-1.5 text-sm sm:grid-cols-2">
-            {profile.experienceYears != null && (
-              <div className="flex gap-2"><dt className="muted">{ru.profile.experienceLabel}:</dt><dd>{ru.profile.experienceYears(profile.experienceYears)}</dd></div>
-            )}
-            {profile.languages.length > 0 && (
-              <div className="flex gap-2"><dt className="muted">{ru.profile.languagesLabel}:</dt><dd>{profile.languages.map((l) => ru.profile.langName[l] ?? l).join(', ')}</dd></div>
-            )}
-            {profile.equipment && (
-              <div className="flex gap-2"><dt className="muted">{ru.profile.equipmentLabel}:</dt><dd>{profile.equipment}</dd></div>
-            )}
-            {profile.teamInfo && (
-              <div className="flex gap-2"><dt className="muted">{ru.profile.teamLabel}:</dt><dd>{profile.teamInfo}</dd></div>
-            )}
-          </dl>
-        )}
+
+      <ProfileHero
+        coverSrc={coverPhoto ? webVariantUrl(coverPhoto.storageKey) : null}
+        avatarKey={profile.avatarKey}
+        firstName={profile.user.firstName}
+        lastName={profile.user.lastName}
+        username={profile.username}
+        cityName={cityNameRu(profile.city.slug)}
+        categories={profile.categories.map((c) => categoryNameRu(c.category.slug))}
+        verified={profile.verified}
+        verifiedHint={ru.profile.verifiedHint}
+        tier={photographerTier}
+        tierLabel={photographerTier !== 'FREE' ? ru.pro.tierName[photographerTier] : ''}
+        photosCount={profile.photos.length}
+        photosLabel={ru.profile.statPhotos}
+        facts={heroFacts}
+        onlineText={onlineText}
+      />
+
+      <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:py-7">
+        {/* Панель действий — сразу под героем (конверсия впереди) */}
         {!isSelf && (
-          <>
-            <Link href={`/ru/inquiry?photographer=${profile.username}`}
-              className="btn btn-accent mt-4 w-full py-2.5 sm:w-auto sm:px-8">
-              {ru.profile.sendInquiry}
-            </Link>
-            <div className="mt-2 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+          <div className="flex flex-col gap-4 border-b border-line pb-6 sm:flex-row sm:items-center sm:justify-between">
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+              <Link href={`/ru/inquiry?photographer=${profile.username}`}
+                className="btn btn-accent col-span-2 py-2.5 sm:col-span-1 sm:px-7">{ru.profile.sendInquiry}</Link>
               <MessageButton userId={profile.userId} />
               <FollowButton userId={profile.userId} initialFollowing={Boolean(following)} authed={Boolean(session)} />
               <FavoriteButton userId={profile.userId} initialFavorited={favorited} authed={Boolean(session)} />
@@ -215,27 +188,65 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
                 <ConfirmShootButton profileId={profile.id} initialConfirmed={iShotWith} authed={Boolean(session)} />
               )}
             </div>
-          </>
-        )}
-        {(profile.whatsapp || profile.telegram || profile.siteUrl) && (
-          <div className="mt-3 flex flex-wrap gap-2 text-sm">
-            {profile.whatsapp && (
-              <a href={`https://wa.me/${profile.whatsapp.replace(/[^\d]/g, '')}`} target="_blank" rel="noreferrer"
-                className="rounded-full border border-line px-3 py-1.5 transition hover:bg-surface-2">WhatsApp</a>
-            )}
-            {profile.telegram && (
-              <a href={`https://t.me/${profile.telegram.replace(/^@/, '')}`} target="_blank" rel="noreferrer"
-                className="rounded-full border border-line px-3 py-1.5 transition hover:bg-surface-2">Telegram</a>
-            )}
-            {profile.siteUrl && /^https?:\/\//i.test(profile.siteUrl) && (
-              <a href={profile.siteUrl} target="_blank" rel="noreferrer"
-                className="rounded-full border border-line px-3 py-1.5 transition hover:bg-surface-2">{ru.profile.site}</a>
+            {minPkg && (
+              <div className="flex shrink-0 items-baseline gap-2 sm:flex-col sm:items-end sm:gap-0.5">
+                <span className="t-caption muted">{ru.profile.packageHours(minPkg.hours)}</span>
+                <span className="tnum text-xl font-semibold">{formatRubMinor(minPkg.priceMinor)}</span>
+              </div>
             )}
           </div>
         )}
-      </header>
+        {session?.role === 'ADMIN' && (
+          <div className="mt-4"><VerifyButton profileId={profile.id} verified={profile.verified} /></div>
+        )}
 
-      {profile.packages.length > 0 && (
+        {/* Соц-статы + контакты */}
+        <div className="mt-5 flex flex-wrap items-center gap-x-7 gap-y-3">
+          <span className="flex items-baseline gap-1.5"><b className="tnum text-lg font-semibold">{followers}</b><span className="t-caption muted">{ru.profile.statFollowers}</span></span>
+          <span className="flex items-baseline gap-1.5"><b className="tnum text-lg font-semibold">{followingCount}</b><span className="t-caption muted">{ru.profile.statFollowing}</span></span>
+          {(profile.whatsapp || profile.telegram || profile.siteUrl) && (
+            <div className="flex flex-wrap gap-2 text-sm sm:ml-auto">
+              {profile.whatsapp && (
+                <a href={`https://wa.me/${profile.whatsapp.replace(/[^\d]/g, '')}`} target="_blank" rel="noreferrer"
+                  className="rounded-full border border-line px-3 py-1.5 transition hover:bg-surface-2">WhatsApp</a>
+              )}
+              {profile.telegram && (
+                <a href={`https://t.me/${profile.telegram.replace(/^@/, '')}`} target="_blank" rel="noreferrer"
+                  className="rounded-full border border-line px-3 py-1.5 transition hover:bg-surface-2">Telegram</a>
+              )}
+              {profile.siteUrl && /^https?:\/\//i.test(profile.siteUrl) && (
+                <a href={profile.siteUrl} target="_blank" rel="noreferrer"
+                  className="rounded-full border border-line px-3 py-1.5 transition hover:bg-surface-2">{ru.profile.site}</a>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* О фотографе */}
+        {(profile.bio || profile.experienceYears != null || profile.languages.length > 0 || profile.equipment || profile.teamInfo) && (
+          <section className="mt-6">
+            {profile.bio && <p className="max-w-2xl text-[15px] leading-relaxed">{profile.bio}</p>}
+            {(profile.experienceYears != null || profile.languages.length > 0 || profile.equipment || profile.teamInfo) && (
+              <dl className="mt-4 grid max-w-2xl grid-cols-1 gap-x-8 gap-y-1.5 text-sm sm:grid-cols-2">
+                {profile.experienceYears != null && (
+                  <div className="flex gap-2"><dt className="muted">{ru.profile.experienceLabel}:</dt><dd>{ru.profile.experienceYears(profile.experienceYears)}</dd></div>
+                )}
+                {profile.languages.length > 0 && (
+                  <div className="flex gap-2"><dt className="muted">{ru.profile.languagesLabel}:</dt><dd>{profile.languages.map((l) => ru.profile.langName[l] ?? l).join(', ')}</dd></div>
+                )}
+                {profile.equipment && (
+                  <div className="flex gap-2"><dt className="muted">{ru.profile.equipmentLabel}:</dt><dd>{profile.equipment}</dd></div>
+                )}
+                {profile.teamInfo && (
+                  <div className="flex gap-2"><dt className="muted">{ru.profile.teamLabel}:</dt><dd>{profile.teamInfo}</dd></div>
+                )}
+              </dl>
+            )}
+          </section>
+        )}
+
+      {/* Полный прайс — только если пакетов больше одного (entry-цена уже в панели действий) */}
+      {profile.packages.length > 1 && (
         <section className="mt-8">
           <h2 className="t-caption muted">{ru.profile.pricesTitle}</h2>
           <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -349,6 +360,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
           </ul>
         </section>
       )}
+      </div>
     </main>
   );
 }
