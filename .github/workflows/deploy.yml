@@ -99,6 +99,14 @@ jobs:
             docker system prune -af 2>/dev/null || true
             docker builder prune -af 2>/dev/null || true
             echo "=== disk after cleanup ==="; df -h / || true
+            # ФС могла не вырасти до 60ГБ-диска после resize (нужны growpart+resize2fs) —
+            # тогда деплои падают на нехватке места, а cleanup это не лечит. Растим ФС
+            # под диск, идемпотентно и безопасно (no-op если уже выросла).
+            sudo apt-get install -y cloud-guest-utils 2>/dev/null || true
+            ROOTDEV=$(findmnt -n -o SOURCE / 2>/dev/null); DISKN=$(lsblk -no PKNAME "$ROOTDEV" 2>/dev/null | head -1); PARTN=$(echo "$ROOTDEV" | grep -oE '[0-9]+$')
+            [ -n "$DISKN" ] && [ -n "$PARTN" ] && sudo growpart "/dev/$DISKN" "$PARTN" 2>/dev/null || true
+            sudo resize2fs "$ROOTDEV" 2>/dev/null || true
+            echo "=== disk after growpart ==="; df -h / || true
             sudo mkdir -p /opt/reportagepost && sudo chown rp:rp /opt/reportagepost
             cp /home/rp/deploy-staging/* /opt/reportagepost/
             cd /opt/reportagepost
@@ -106,6 +114,13 @@ jobs:
             ./setup-server.sh
             ./fetch-secrets.sh
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+            # S3-хелпер для диагностики (Actions-логи агенту недоступны, PAT 403 —
+            # но S3 он читает через yc). Ранний слив состояния диска ДО pull.
+            S3ID=$(grep '^S3_ACCESS_KEY_ID=' .env.prod | cut -d= -f2-); S3KEY=$(grep '^S3_SECRET_ACCESS_KEY=' .env.prod | cut -d= -f2-)
+            S3EP=$(grep '^S3_ENDPOINT=' .env.prod | cut -d= -f2-); S3B=$(grep '^S3_BUCKET=' .env.prod | cut -d= -f2-)
+            s3put() { docker run --rm -v /tmp:/w -e AWS_ACCESS_KEY_ID="$S3ID" -e AWS_SECRET_ACCESS_KEY="$S3KEY" amazon/aws-cli --endpoint-url "$S3EP" s3 cp "/w/$1" "s3://$S3B/_diag/$2" >/dev/null 2>&1 || true; }
+            { echo "== SHA ${IMAGE##*:} =="; echo "== df =="; df -h /; echo; echo "== lsblk =="; lsblk 2>/dev/null; echo; echo "== docker system df =="; docker system df; } > /tmp/predeploy.txt 2>&1 || true
+            s3put predeploy.txt predeploy.txt
             # .previous-deploy для отката (паттерн Verifi)
             [ -f .deploy.env ] && cp .deploy.env .previous-deploy || true
             echo "IMAGE=$IMAGE" > .deploy.env
@@ -135,7 +150,9 @@ jobs:
             # АВТО-ОТКАТ (deep-think Ops P0): при провале health поднимаем прошлый
             # образ из .previous-deploy, чтобы прод не остался на битом. Безопасно,
             # т.к. миграции — expand-contract (аддитивны, совместимы с прошлым образом).
-            echo "HEALTH FAILED — авто-откат на .previous-deploy"
+            echo "HEALTH FAILED — сбор логов в S3 + авто-откат на .previous-deploy"
+            { echo "== SHA ${IMAGE##*:} =="; echo "== df =="; df -h /; echo; echo "== docker ps -a =="; docker ps -a; echo; echo "== docker compose logs (tail) =="; IMAGE="$IMAGE" docker compose --env-file .env.prod -f docker-compose.prod.yml logs --tail 100 2>&1; } > /tmp/healthfail.txt 2>&1 || true
+            s3put healthfail.txt healthfail.txt
             if [ -f .previous-deploy ]; then
               PREV_IMAGE=$(grep -oE 'IMAGE=.*' .previous-deploy | cut -d= -f2-)
               if [ -n "$PREV_IMAGE" ]; then
