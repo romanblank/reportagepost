@@ -100,7 +100,7 @@ export default async function PhotoFeedPage(props: {
             ))}
           </div>
           {/* Десктоп: masonry-сетка */}
-          <div className="mt-6 hidden columns-2 gap-3 sm:block md:columns-3 lg:columns-4">
+          <div className="reveal-on-scroll mt-6 hidden columns-2 gap-3 sm:block md:columns-3 lg:columns-4">
             {photos.map((p) => (
               <Link key={p.photoId} href={`/ru/photographer/${p.username}`} className="group mb-3 block break-inside-avoid">
                 <div className="relative overflow-hidden rounded-media">

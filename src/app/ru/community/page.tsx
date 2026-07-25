@@ -40,7 +40,7 @@ export default async function CommunityPage() {
       </div>
 
       {valued.length > 0 && (
-        <section className="mt-8">
+        <section className="reveal-on-scroll mt-8">
           <h2 className="t-h3">{ru.dashboard.valuedTitle}</h2>
           <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {valued.map((p) => (
@@ -66,7 +66,7 @@ export default async function CommunityPage() {
       )}
 
       {recent.length > 0 && (
-        <section className="mt-8">
+        <section className="reveal-on-scroll mt-8">
           <h2 className="text-lg font-medium">{ru.dashboard.recentTitle}</h2>
           <ul className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {recent.map((p) => (
@@ -87,7 +87,7 @@ export default async function CommunityPage() {
       )}
 
       {best.length > 0 && (
-        <section className="mt-8">
+        <section className="reveal-on-scroll mt-8">
           <h2 className="text-lg font-medium">{ru.dashboard.bestWeekTitle}</h2>
           <div className="mt-3 columns-2 gap-2 md:columns-3 lg:columns-4">
             {best.map((p) => (
