@@ -4,6 +4,7 @@ import { DomainError } from '@/lib/errors';
 import { rateLimit } from '@/lib/rate-limit';
 import { recomputeOne } from '@/lib/rating';
 import { notifyInApp } from '@/lib/notifications';
+import { hasShotWith } from '@/lib/shoots';
 
 // Отзывы клиентов о фотографах (паритет MyWed). Оценка 1–5 + текст, один отзыв на
 // пару клиент↔фотограф, guard текста (антиспам/контакты — общение через платформу),
@@ -41,20 +42,14 @@ export async function addReview(authorUserId: string, profileId: string, rating:
 
   await rateLimit(`review:user:${authorUserId}`, 5, 3600); // 5/час на пользователя
 
-  // verified, если между клиентом и фотографом есть реальное взаимодействие (сообщение)
-  const interacted = await db.message.count({
-    where: {
-      OR: [
-        { senderId: authorUserId, recipientId: profile.userId },
-        { senderId: profile.userId, recipientId: authorUserId },
-      ],
-    },
-  });
+  // verified — по РЕАЛЬНОЙ съёмке (подтверждённой заказчиком), а не по сообщению.
+  // Честный якорь доброжелательной системы: отзыв «проверен» = съёмка была.
+  const verified = await hasShotWith(authorUserId, profileId);
 
   let created;
   try {
     created = await db.review.create({
-      data: { authorUserId, profileId, rating, body, verified: interacted > 0 },
+      data: { authorUserId, profileId, rating, body, verified },
     });
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {

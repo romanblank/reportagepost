@@ -21,6 +21,8 @@ import { VerifyButton } from '@/components/VerifyButton';
 import { parseFaq } from '@/lib/faq';
 import { tierOf } from '@/lib/subscription';
 import { ProfileViewBeacon } from '@/components/ProfileViewBeacon';
+import { shootStats, hasShotWith } from '@/lib/shoots';
+import { ConfirmShootButton } from '@/components/ConfirmShootButton';
 
 // dynamic: страница показывает состояние лайков/подписки текущего пользователя
 export const dynamic = 'force-dynamic';
@@ -74,7 +76,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
   const session = await getSession();
   // Все независимые запросы — одним Promise.all (ревью №7: было 4 сериализованных
   // round-trip'а на каждый force-dynamic заход).
-  const [favoritedRow, likes, myLikes, following, followers, moreInCity, reviews, alreadyReviewedRow, followingCount, photographerTier] = await Promise.all([
+  const [favoritedRow, likes, myLikes, following, followers, moreInCity, reviews, alreadyReviewedRow, followingCount, photographerTier, shoots, iShotWith] = await Promise.all([
     session
       ? db.favoritePhotographer.findUnique({
           where: { userId_profileId: { userId: session.userId, profileId: profile.id } },
@@ -118,6 +120,8 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
     // подписки фотографа (парити MyWed: счётчик «подписки»)
     db.follow.count({ where: { followerId: profile.userId } }),
     tierOf(profile.userId), // бейдж уровня (Prime/Elite) в шапке
+    shootStats(profile.id), // факты «снимали вместе» (доброжелательная система)
+    session ? hasShotWith(session.userId, profile.id) : Promise.resolve(false),
   ]);
   const favorited = Boolean(favoritedRow);
   const alreadyReviewed = Boolean(alreadyReviewedRow);
@@ -170,6 +174,12 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
               <span className="flex items-baseline gap-1.5"><b className="tnum text-lg font-semibold">{followers}</b><span className="t-caption muted">{ru.profile.statFollowers}</span></span>
               <span className="flex items-baseline gap-1.5"><b className="tnum text-lg font-semibold">{followingCount}</b><span className="t-caption muted">{ru.profile.statFollowing}</span></span>
               <span className="flex items-baseline gap-1.5"><b className="tnum text-lg font-semibold">{profile.photos.length}</b><span className="t-caption muted">{ru.profile.statPhotos}</span></span>
+              {shoots.count > 0 && (
+                <span className="flex items-baseline gap-1.5"><b className="tnum text-lg font-semibold text-recognition">{shoots.count}</b><span className="t-caption muted">{ru.profile.shootsLabel}</span></span>
+              )}
+              {shoots.returning > 0 && (
+                <span className="flex items-baseline gap-1.5"><b className="tnum text-lg font-semibold">{shoots.returning}</b><span className="t-caption muted">{ru.profile.returningLabel}</span></span>
+              )}
             </div>
           </div>
         </div>
@@ -201,6 +211,9 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
               <MessageButton userId={profile.userId} />
               <FollowButton userId={profile.userId} initialFollowing={Boolean(following)} authed={Boolean(session)} />
               <FavoriteButton userId={profile.userId} initialFavorited={favorited} authed={Boolean(session)} />
+              {(!session || session.role === 'CLIENT') && (
+                <ConfirmShootButton profileId={profile.id} initialConfirmed={iShotWith} authed={Boolean(session)} />
+              )}
             </div>
           </>
         )}
