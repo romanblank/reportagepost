@@ -21,6 +21,7 @@ import { reviewsForProfile } from '@/lib/reviews';
 import { VerifyButton } from '@/components/VerifyButton';
 import { parseFaq } from '@/lib/faq';
 import { tierOf } from '@/lib/subscription';
+import { ProfileViewBeacon } from '@/components/ProfileViewBeacon';
 
 // dynamic: страница показывает состояние лайков/подписки текущего пользователя
 export const dynamic = 'force-dynamic';
@@ -138,6 +139,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
 
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-5 sm:py-10">
+      {!isSelf && <ProfileViewBeacon profileId={profile.id} />}
       <JsonLd
         data={personLd({
           firstName: profile.user.firstName,

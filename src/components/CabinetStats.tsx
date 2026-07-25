@@ -5,6 +5,7 @@ import type { PhotographerStats } from '@/lib/analytics';
 // чистое отображение. Elite видит тренд за 30 дней.
 export function CabinetStats({ stats, tier }: { stats: PhotographerStats; tier: 'PRIME' | 'ELITE' }) {
   const items = [
+    { label: ru.cabinet.statViews, value: stats.views },
     { label: ru.cabinet.statSaves, value: stats.saves },
     { label: ru.cabinet.statFollowers, value: stats.followers },
     { label: ru.cabinet.statLikes, value: stats.likes },
@@ -16,7 +17,7 @@ export function CabinetStats({ stats, tier }: { stats: PhotographerStats; tier: 
         <p className="t-caption text-recognition">{ru.cabinet.statsTitle}</p>
         <span className="rounded-sm bg-recognition-soft px-2 py-0.5 text-xs font-medium text-recognition">{ru.pro.tierName[tier]}</span>
       </div>
-      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {items.map((it) => (
           <div key={it.label} className="rounded-lg bg-surface-2 p-3">
             <p className="tnum text-2xl font-semibold">{it.value}</p>
@@ -24,8 +25,8 @@ export function CabinetStats({ stats, tier }: { stats: PhotographerStats; tier: 
           </div>
         ))}
       </div>
-      {tier === 'ELITE' && stats.saves30d > 0 && (
-        <p className="mt-3 text-sm text-recognition">{ru.cabinet.statSaves30d(stats.saves30d)}</p>
+      {tier === 'ELITE' && (stats.views30d > 0 || stats.saves30d > 0) && (
+        <p className="mt-3 text-sm text-recognition">{ru.cabinet.statTrend30d(stats.views30d, stats.saves30d)}</p>
       )}
     </section>
   );
