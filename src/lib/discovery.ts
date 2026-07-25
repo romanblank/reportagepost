@@ -1,7 +1,38 @@
 import { db } from '@/lib/db';
 import { CATEGORIES } from '@/lib/category-data';
 
-// Discovery-слой главной: превью по категориям (MyWed-подача «выбери жанр»).
+// Discovery-слой главной: превью по категориям (MyWed-подача «выбери жанр»),
+// свежие репортажи (серии — премиум-контент).
+
+export interface StoryCard {
+  id: string;
+  title: string;
+  coverKey: string | null;
+  blurData: string | null;
+  username: string;
+  authorName: string;
+}
+
+/** Свежие опубликованные репортажи (серии) для витрины главной. */
+export async function freshStories(limit = 6): Promise<StoryCard[]> {
+  const stories = await db.story.findMany({
+    where: { status: 'APPROVED' },
+    orderBy: { publishedAt: 'desc' },
+    take: limit,
+    include: {
+      profile: { include: { user: { select: { firstName: true, lastName: true } } } },
+      photos: { where: { status: 'APPROVED' }, orderBy: [{ sortOrder: 'asc' }, { publishedAt: 'desc' }], take: 1 },
+    },
+  });
+  return stories.map((s) => ({
+    id: s.id,
+    title: s.title,
+    coverKey: s.photos[0]?.storageKey ?? null,
+    blurData: s.photos[0]?.blurhash ?? null,
+    username: s.profile.username,
+    authorName: `${s.profile.user.firstName} ${s.profile.user.lastName}`.trim(),
+  }));
+}
 
 export interface CategoryPreview {
   slug: string;

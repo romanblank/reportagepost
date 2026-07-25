@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { webVariantUrl } from '@/lib/photos';
 import type { FeedPhoto } from '@/lib/feeds';
+import type { StoryCard } from '@/lib/discovery';
 
 // Переиспользуемые проекции ленты (сериализуемые данные — RSC-совместимо).
 
@@ -23,6 +24,32 @@ export function FeedMasonry({ photos }: { photos: FeedPhoto[] }) {
         </Link>
       ))}
     </div>
+  );
+}
+
+/** Карточки репортажей (серии) — обложка + заголовок + автор. */
+export function StoryCards({ stories }: { stories: StoryCard[] }) {
+  return (
+    <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {stories.map((s) => (
+        <li key={s.id}>
+          <Link href={`/ru/story/${s.id}`} className="group block">
+            <div className="relative overflow-hidden rounded-media bg-surface-2">
+              {s.coverKey ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={webVariantUrl(s.coverKey)} alt={s.title} loading="lazy"
+                  className="aspect-video w-full bg-cover bg-center object-cover transition duration-500 group-hover:scale-[1.03]"
+                  style={s.blurData ? { backgroundImage: `url(${s.blurData})` } : undefined} />
+              ) : (
+                <div className="aspect-video w-full" />
+              )}
+            </div>
+            <h3 className="mt-2 font-medium leading-tight">{s.title}</h3>
+            <p className="t-caption muted">{s.authorName}</p>
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }
 

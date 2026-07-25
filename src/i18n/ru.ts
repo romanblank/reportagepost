@@ -114,6 +114,7 @@ export const ru = {
     discoverCategories: 'Жанры репортажа',
     discoverEditors: 'Выбор редакции',
     discoverWeek: 'Лучшее за неделю',
+    discoverStories: 'Свежие репортажи',
     seeAll: 'Все',
     categoryWorks: (n: number) => `${n} ${n % 10 === 1 && n % 100 !== 11 ? 'работа' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 'работы' : 'работ'}`,
     communityTitle: 'Сообщество',

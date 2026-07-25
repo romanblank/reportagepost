@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { ru } from "@/i18n/ru";
 import { editorsChoice, bestOfWeek, freshPhotos } from "@/lib/feeds";
-import { categoryPreviews } from "@/lib/discovery";
+import { categoryPreviews, freshStories } from "@/lib/discovery";
 import { communityStats } from "@/lib/widgets";
 import { webVariantUrl } from "@/lib/photos";
 import { db } from "@/lib/db";
 import { LandingHero } from "@/components/LandingHero";
-import { FeedMasonry, FeedRow } from "@/components/FeedGallery";
+import { FeedMasonry, FeedRow, StoryCards } from "@/components/FeedGallery";
 
 // force-dynamic: главная тянет ленты из БД (урок: static-страница с запросом
 // падает на пререндере в Docker-билде без DATABASE_URL).
@@ -15,10 +15,11 @@ export const dynamic = "force-dynamic";
 // Discovery-главная (модель MyWed): герой-поиск → жанры → выбор редакции →
 // лучшее недели → свежее → сообщество. Пустые ленты честно скрываются.
 export default async function Home() {
-  const [editors, week, fresh, cats, stats, photographers, photos] = await Promise.all([
+  const [editors, week, fresh, stories, cats, stats, photographers, photos] = await Promise.all([
     editorsChoice(9),
     bestOfWeek(12),
     freshPhotos(16),
+    freshStories(6),
     categoryPreviews(),
     communityStats(),
     db.photographerProfile.count({ where: { status: "APPROVED" } }),
@@ -82,6 +83,13 @@ export default async function Home() {
         <section className="mx-auto w-full max-w-6xl px-4 pb-12 sm:pb-14">
           <SectionHeader title={ru.landing.recentWork} href="/ru/photo?tab=fresh" />
           <div className="mt-4"><FeedMasonry photos={fresh} /></div>
+        </section>
+      )}
+
+      {stories.length > 0 && (
+        <section className="mx-auto w-full max-w-6xl px-4 pb-12 sm:pb-14">
+          <SectionHeader title={ru.landing.discoverStories} />
+          <div className="mt-4"><StoryCards stories={stories} /></div>
         </section>
       )}
 
