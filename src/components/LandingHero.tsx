@@ -35,6 +35,10 @@ export function LandingHero({ photographers, photos, backdropSrc }: {
         <div className="mx-auto mt-8">
           <HeroSearch />
         </div>
+        <p className="mt-3 t-caption text-white/70">
+          {ru.landing.matchNudge}{' '}
+          <Link href="/ru/match" className="text-recognition-hi underline underline-offset-2">{ru.landing.matchNudgeCta}</Link>
+        </p>
 
         <nav className="mt-5 flex flex-wrap justify-center gap-2">
           {CATEGORIES.map((c) => (

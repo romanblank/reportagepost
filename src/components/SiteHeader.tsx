@@ -25,6 +25,7 @@ export async function SiteHeader() {
         </Link>
         <div className="hidden items-center gap-5 sm:flex">
           <Link href={catalogHref} className={linkCls}>{ru.nav.catalog}</Link>
+          <Link href="/ru/match" className={linkCls}>{ru.nav.match}</Link>
           <Link href="/ru/photo" className={linkCls}>{ru.nav.feed}</Link>
           <Link href="/ru/community" className={linkCls}>{ru.nav.community}</Link>
           <Link href="/ru/pro" className={`${linkCls} text-recognition`}>{ru.pro.navLabel}</Link>
