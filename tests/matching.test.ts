@@ -1,6 +1,35 @@
-import { describe, expect, it } from 'vitest';
-import { guardParsed, buildReason, parseBriefHeuristic } from '@/lib/matching';
+import { describe, expect, it, vi } from 'vitest';
+import { guardParsed, buildReason, parseBriefHeuristic, parseBriefText } from '@/lib/matching';
+import { llmComplete } from '@/lib/ai-gpt';
 import type { CatalogCard } from '@/lib/catalog';
+
+vi.mock('@/lib/ai-gpt', () => ({ llmComplete: vi.fn() }));
+
+describe('matching.parseBriefText — гибрид эвристика + LLM-фолбэк', () => {
+  it('ясный бриф — LLM НЕ вызывается (эвристика нашла всё)', async () => {
+    vi.mocked(llmComplete).mockClear();
+    const p = await parseBriefText('концерт в москве');
+    expect(p.citySlug).toBe('moscow');
+    expect(p.categorySlug).toBe('concerts-festivals');
+    expect(llmComplete).not.toHaveBeenCalled();
+  });
+
+  it('пробел жанра → LLM заполняет; город из эвристики приоритетен', async () => {
+    vi.mocked(llmComplete).mockClear();
+    // «файтинг» нет в словаре → жанр пуст → зовём LLM; LLM «ошибается» с городом
+    vi.mocked(llmComplete).mockResolvedValue('{"city":"Казань","category":"спорт","budgetRub":null}');
+    const p = await parseBriefText('в москве нужен на файтинг-ивент');
+    expect(llmComplete).toHaveBeenCalledTimes(1);
+    expect(p.citySlug).toBe('moscow'); // эвристика приоритетна
+    expect(p.categorySlug).toBe('sports'); // из LLM, провалидировано guard'ом
+  });
+
+  it('LLM недоступен (null) → чистая эвристика, не падаем', async () => {
+    vi.mocked(llmComplete).mockResolvedValue(null);
+    const p = await parseBriefText('съёмка непонятночего');
+    expect(p).toEqual({});
+  });
+});
 
 // Эвристический разбор брифа — без внешнего ИИ (город/жанр/бюджет из словаря).
 describe('matching.parseBriefHeuristic — разбор без ИИ', () => {

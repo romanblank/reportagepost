@@ -23,6 +23,9 @@ export async function llmComplete(system: string, user: string): Promise<string 
         model,
         temperature: 0.1,
         max_tokens: 300,
+        // JSON-режим (Mistral/DeepSeek/OpenAI/OpenRouter). Провайдер без поддержки
+        // вернёт ошибку → тихий фолбэк к эвристике (не крэш). Guard всё равно валидирует.
+        response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: system },
           { role: 'user', content: user },
