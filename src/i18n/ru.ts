@@ -495,6 +495,11 @@ export const ru = {
     newInquiry: 'Новая заявка',
     inquiryStatusOpen: 'Открыта',
     inquiryStatusClosed: 'Закрыта',
+    // Съёмки заказчика — петля признания (подтверждённая съёмка → отзыв)
+    shootsTitle: 'Ваши съёмки',
+    shotTogether: (n: number) => `Снимали вместе ${n} ${n % 10 === 1 && n % 100 !== 11 ? 'раз' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 'раза' : 'раз'}`,
+    leaveReview: 'Оставить отзыв',
+    reviewed: 'Отзыв оставлен',
   },
   cabinet: {
     title: 'Кабинет',

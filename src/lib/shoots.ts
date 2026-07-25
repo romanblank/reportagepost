@@ -44,3 +44,48 @@ export async function shootStats(profileId: string): Promise<ShootStats> {
 export async function hasShotWith(clientUserId: string, profileId: string): Promise<boolean> {
   return (await db.shootConfirmation.count({ where: { clientUserId, profileId } })) > 0;
 }
+
+export interface ClientShoot {
+  profileId: string;
+  username: string;
+  firstName: string;
+  lastName: string;
+  avatarKey: string | null;
+  count: number;
+  reviewed: boolean; // оставил ли заказчик отзыв этому автору
+}
+
+/** Съёмки заказчика (кабинет): по авторам + отметка «отзыв оставлен» — петля признания. */
+export async function shootsByClient(clientUserId: string): Promise<ClientShoot[]> {
+  const grouped = await db.shootConfirmation.groupBy({
+    by: ['profileId'],
+    where: { clientUserId },
+    _count: true,
+  });
+  if (grouped.length === 0) return [];
+  const profileIds = grouped.map((g) => g.profileId);
+  const [profiles, reviews] = await Promise.all([
+    db.photographerProfile.findMany({
+      where: { id: { in: profileIds }, status: 'APPROVED' },
+      select: { id: true, username: true, avatarKey: true, user: { select: { firstName: true, lastName: true } } },
+    }),
+    db.review.findMany({ where: { authorUserId: clientUserId, profileId: { in: profileIds } }, select: { profileId: true } }),
+  ]);
+  const byId = new Map(profiles.map((p) => [p.id, p]));
+  const reviewed = new Set(reviews.map((r) => r.profileId));
+  return grouped
+    .map((g) => {
+      const p = byId.get(g.profileId);
+      if (!p) return null;
+      return {
+        profileId: g.profileId,
+        username: p.username,
+        firstName: p.user.firstName,
+        lastName: p.user.lastName,
+        avatarKey: p.avatarKey,
+        count: g._count,
+        reviewed: reviewed.has(g.profileId),
+      } satisfies ClientShoot;
+    })
+    .filter((x): x is ClientShoot => x !== null);
+}

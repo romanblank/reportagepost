@@ -3,11 +3,13 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 import { favoritesFor, inquiriesByClient } from '@/lib/favorites';
+import { shootsByClient } from '@/lib/shoots';
 import { cityNameRu } from '@/lib/geo-data';
 import { categoryNameRu } from '@/lib/category-data';
 import { thumbVariantUrl } from '@/lib/photos';
 import { formatRubMinor } from '@/lib/money';
 import { ru } from '@/i18n/ru';
+import { Avatar } from '@/components/ui/Avatar';
 import { LogoutButton } from '@/components/LogoutButton';
 import { DeleteAccountButton } from '@/components/DeleteAccountButton';
 
@@ -18,9 +20,10 @@ export default async function ClientCabinetPage() {
   const session = await getSession();
   if (!session) redirect('/ru/login');
 
-  const [favorites, inquiries] = await Promise.all([
+  const [favorites, inquiries, shoots] = await Promise.all([
     favoritesFor(session.userId),
     inquiriesByClient(session.userId),
+    shootsByClient(session.userId),
   ]);
 
   return (
@@ -56,6 +59,32 @@ export default async function ClientCabinetPage() {
           </ul>
         )}
       </section>
+
+      {shoots.length > 0 && (
+        <section className="mt-8">
+          <h2 className="text-lg font-medium">{ru.clientCabinet.shootsTitle}</h2>
+          <ul className="mt-3 flex flex-col gap-2.5">
+            {shoots.map((s) => (
+              <li key={s.profileId} className="card flex items-center gap-3 p-3">
+                <Avatar avatarKey={s.avatarKey} firstName={s.firstName} lastName={s.lastName} size={40} />
+                <div className="min-w-0 flex-1">
+                  <Link href={`/ru/photographer/${s.username}`} className="font-medium hover:underline">
+                    {s.firstName} {s.lastName}
+                  </Link>
+                  <p className="text-xs muted">{ru.clientCabinet.shotTogether(s.count)}</p>
+                </div>
+                {s.reviewed ? (
+                  <span className="t-caption shrink-0 text-recognition">{ru.clientCabinet.reviewed}</span>
+                ) : (
+                  <Link href={`/ru/photographer/${s.username}#reviews`} className="btn btn-outline btn-sm shrink-0">
+                    {ru.clientCabinet.leaveReview}
+                  </Link>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="mt-8">
         <h2 className="text-lg font-medium">{ru.clientCabinet.myInquiriesTitle}</h2>
