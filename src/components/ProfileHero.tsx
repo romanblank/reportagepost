@@ -53,7 +53,7 @@ export function ProfileHero({
       <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/45" />
 
       <div className="absolute inset-x-0 bottom-0">
-        <div className="mx-auto flex max-w-5xl items-end gap-4 px-4 pb-6 sm:gap-5 sm:pb-8">
+        <div className="anim-rise mx-auto flex max-w-5xl items-end gap-4 px-4 pb-6 sm:gap-5 sm:pb-8">
           <Avatar avatarKey={avatarKey} firstName={firstName} lastName={lastName} size={88}
             className="shrink-0 ring-2 ring-white/80 ring-offset-2 ring-offset-black/20" />
           <div className="min-w-0 flex-1 pb-1">

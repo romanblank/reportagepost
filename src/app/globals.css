@@ -248,3 +248,14 @@ body {
 
   .muted { color: var(--muted); }
 }
+
+/* Анимации — премиум-мотион (лайтбокс, появления). Уважают reduced-motion. */
+@keyframes lb-fade { from { opacity: 0 } to { opacity: 1 } }
+@keyframes lb-zoom { from { opacity: 0; transform: scale(0.94) } to { opacity: 1; transform: scale(1) } }
+@keyframes rise-in { from { opacity: 0; transform: translateY(14px) } to { opacity: 1; transform: none } }
+.anim-lb-fade { animation: lb-fade 0.22s ease-out both; }
+.anim-lb-zoom { animation: lb-zoom 0.34s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.anim-rise { animation: rise-in 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .anim-lb-fade, .anim-lb-zoom, .anim-rise { animation: none; }
+}

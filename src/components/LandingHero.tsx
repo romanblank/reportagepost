@@ -24,7 +24,7 @@ export function LandingHero({ photographers, photos, backdropSrc }: {
       {/* Скрим — читаемость поверх любого кадра */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/60 to-black/80" />
 
-      <div className="relative mx-auto w-full max-w-2xl px-4 py-16 sm:py-24">
+      <div className="anim-rise relative mx-auto w-full max-w-2xl px-4 py-16 sm:py-24">
         <p className="t-caption text-recognition-hi">{ru.landing.kicker}</p>
         <h1 className="mt-4 text-balance text-4xl font-semibold leading-[1.05] text-white drop-shadow-sm sm:text-6xl"
           style={{ fontFamily: 'var(--font-cormorant), Georgia, serif' }}>
