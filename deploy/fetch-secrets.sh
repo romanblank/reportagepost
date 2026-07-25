@@ -47,6 +47,12 @@ if "YANDEX_CLIENT_ID" in entries:
     lines.append(f"YANDEX_CLIENT_ID={entries['YANDEX_CLIENT_ID']}")
 if "YANDEX_OAUTH_SECRET" in entries:
     lines.append(f"YANDEX_OAUTH_SECRET={entries['YANDEX_OAUTH_SECRET']}")
+# AI-подбор: LLM-фолбэк (Mistral, НЕ Яндекс). Активен при ключе в Lockbox.
+# URL/MODEL — дефолт на Mistral; оператор может переопределить, положив их в Lockbox.
+if entries.get("LLM_API_KEY"):
+    lines.append(f"LLM_API_KEY={entries['LLM_API_KEY']}")
+    lines.append(f"LLM_API_URL={entries.get('LLM_API_URL') or 'https://api.mistral.ai/v1/chat/completions'}")
+    lines.append(f"LLM_MODEL={entries.get('LLM_MODEL') or 'mistral-small-latest'}")
 with open(sys.argv[1], "w") as f:
     f.write("\n".join(lines) + "\n")
 print(f"wrote {sys.argv[1]} ({len(lines)} vars)")
