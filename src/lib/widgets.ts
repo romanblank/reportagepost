@@ -18,23 +18,25 @@ export async function communityStats(): Promise<CommunityStats> {
   return { photographers, photos, cities, stories };
 }
 
-export interface TopRatedItem {
+export interface ValuedItem {
   username: string;
   firstName: string;
   lastName: string;
   avatarKey: string | null;
-  ratingAvg: number;
-  ratingCount: number;
+  recommendCount: number; // рекомендации = отзывы rating≥4 & verified
 }
 
-/** Топ фотографов по отзывам (виджет доверия, MyWed). Только VISIBLE-отзывы. */
-export async function topRatedPhotographers(limit = 6): Promise<TopRatedItem[]> {
+/**
+ * Фотографы, которых ценят заказчики (доброжелательный инвариант 2026-07-25):
+ * порядок по РЕКОМЕНДАЦИЯМ (отзывы rating≥4 + verified по реальной съёмке),
+ * НЕ по среднему баллу и без публичного ранга. Низкие оценки публично не топят.
+ */
+export async function valuedPhotographers(limit = 6): Promise<ValuedItem[]> {
   const agg = await db.review.groupBy({
     by: ['profileId'],
-    where: { status: 'VISIBLE' },
-    _avg: { rating: true },
+    where: { status: 'VISIBLE', rating: { gte: 4 }, verified: true },
     _count: true,
-    orderBy: [{ _avg: { rating: 'desc' } }, { _count: { profileId: 'desc' } }],
+    orderBy: { _count: { profileId: 'desc' } },
     take: limit,
   });
   if (agg.length === 0) return [];
@@ -52,11 +54,10 @@ export async function topRatedPhotographers(limit = 6): Promise<TopRatedItem[]> 
         firstName: p.user.firstName,
         lastName: p.user.lastName,
         avatarKey: p.avatarKey,
-        ratingAvg: a._avg.rating ?? 0,
-        ratingCount: a._count,
+        recommendCount: a._count,
       };
     })
-    .filter((x): x is TopRatedItem => x !== null);
+    .filter((x): x is ValuedItem => x !== null);
 }
 
 /** Недавно присоединившиеся одобренные фотографы (виджет «новые в сообществе»). */

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { communityStats, recentPhotographers, topRatedPhotographers } from '@/lib/widgets';
+import { communityStats, recentPhotographers, valuedPhotographers } from '@/lib/widgets';
 import { bestOfWeek } from '@/lib/feeds';
 import { cityNameRu } from '@/lib/geo-data';
 import { webVariantUrl, thumbVariantUrl, avatarUrl } from '@/lib/photos';
@@ -12,11 +12,11 @@ export const metadata: Metadata = { title: ru.dashboard.title };
 export const dynamic = 'force-dynamic';
 
 export default async function CommunityPage() {
-  const [stats, recent, best, topRated] = await Promise.all([
+  const [stats, recent, best, valued] = await Promise.all([
     communityStats(),
     recentPhotographers(),
     bestOfWeek(12),
-    topRatedPhotographers(),
+    valuedPhotographers(),
   ]);
 
   const tiles = [
@@ -39,11 +39,11 @@ export default async function CommunityPage() {
         ))}
       </div>
 
-      {topRated.length > 0 && (
+      {valued.length > 0 && (
         <section className="mt-8">
-          <h2 className="t-h3">{ru.dashboard.topRatedTitle}</h2>
+          <h2 className="t-h3">{ru.dashboard.valuedTitle}</h2>
           <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {topRated.map((p) => (
+            {valued.map((p) => (
               <li key={p.username}>
                 <Link href={`/ru/photographer/${p.username}`} className="flex items-center gap-3 card p-3">
                   {p.avatarKey ? (
@@ -56,7 +56,7 @@ export default async function CommunityPage() {
                   )}
                   <span className="min-w-0">
                     <span className="block truncate font-medium">{p.firstName} {p.lastName}</span>
-                    <span className="text-sm muted">{ru.reviews.count(p.ratingCount)}</span>
+                    <span className="text-sm muted">{ru.dashboard.recommendCount(p.recommendCount)}</span>
                   </span>
                 </Link>
               </li>

@@ -110,6 +110,13 @@ export const ru = {
     statWorks: 'работ',
     closedNote: 'Регистрация для фотографов открыта. Платформа в закрытой бете — публичный запуск впереди.',
     recentWork: 'Свежие работы',
+    // Discovery-секции главной
+    discoverCategories: 'Жанры репортажа',
+    discoverEditors: 'Выбор редакции',
+    discoverWeek: 'Лучшее за неделю',
+    seeAll: 'Все',
+    categoryWorks: (n: number) => `${n} ${n % 10 === 1 && n % 100 !== 11 ? 'работа' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 'работы' : 'работ'}`,
+    communityTitle: 'Сообщество',
     registerCta: 'Создать профиль',
     loginCta: 'Войти',
     forPhotographers: 'Фотографам',
@@ -348,7 +355,8 @@ export const ru = {
     statCities: 'Городов',
     statStories: 'Серий',
     recentTitle: 'Новые в сообществе',
-    topRatedTitle: 'Признательность заказчиков',
+    valuedTitle: 'Заказчики рекомендуют',
+    recommendCount: (n: number) => `${n} ${n % 10 === 1 && n % 100 !== 11 ? 'рекомендация' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 'рекомендации' : 'рекомендаций'}`,
     bestWeekTitle: 'Лучшее за неделю',
   },
   lifecycle: {
