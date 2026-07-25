@@ -22,6 +22,7 @@ import { ProfileViewBeacon } from '@/components/ProfileViewBeacon';
 import { shootStats, hasShotWith } from '@/lib/shoots';
 import { ConfirmShootButton } from '@/components/ConfirmShootButton';
 import { ProfileHero } from '@/components/ProfileHero';
+import { ShareButton } from '@/components/ShareButton';
 
 // dynamic: страница показывает состояние лайков/подписки текущего пользователя
 export const dynamic = 'force-dynamic';
@@ -64,7 +65,26 @@ export async function generateMetadata(props: {
   const profile = await findProfile(username);
   if (!profile) return { title: ru.profile.notFound };
   const title = `${profile.user.firstName} ${profile.user.lastName} — ${ru.catalog.title(cityNameRu(profile.city.slug))}`;
-  return { title, description: profile.bio ?? title };
+  const description = profile.bio ?? title;
+  // Страница-как-сайт: при шеринге ссылки — превью с лучшим кадром автора
+  const cover = profile.photos.find((p) => p.editorsChoiceAt) ?? profile.photos[0];
+  // S3 даёт полный https-URL, LocalDisk — /files/…; префикс BASE_URL только для относительных
+  const rawCover = cover ? webVariantUrl(cover.storageKey) : undefined;
+  const ogImage = rawCover ? (rawCover.startsWith('http') ? rawCover : `${BASE_URL}${rawCover}`) : undefined;
+  const url = `${BASE_URL}/ru/photographer/${profile.username}`;
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      type: 'profile', url, title, description, siteName: 'Репортаж Пост',
+      images: ogImage ? [{ url: ogImage, width: cover!.width, height: cover!.height }] : undefined,
+    },
+    twitter: {
+      card: ogImage ? 'summary_large_image' : 'summary',
+      title, description, images: ogImage ? [ogImage] : undefined,
+    },
+  };
 }
 
 export default async function ProfilePage(props: { params: Promise<{ username: string }> }) {
@@ -204,8 +224,10 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
         <div className="mt-5 flex flex-wrap items-center gap-x-7 gap-y-3">
           <span className="flex items-baseline gap-1.5"><b className="tnum text-lg font-semibold">{followers}</b><span className="t-caption muted">{ru.profile.statFollowers}</span></span>
           <span className="flex items-baseline gap-1.5"><b className="tnum text-lg font-semibold">{followingCount}</b><span className="t-caption muted">{ru.profile.statFollowing}</span></span>
-          {(profile.whatsapp || profile.telegram || profile.siteUrl) && (
-            <div className="flex flex-wrap gap-2 text-sm sm:ml-auto">
+          <div className="flex flex-wrap items-center gap-2 text-sm sm:ml-auto">
+            <ShareButton path={`/ru/photographer/${profile.username}`} title={`${profile.user.firstName} ${profile.user.lastName}`} />
+            {(profile.whatsapp || profile.telegram || profile.siteUrl) && (
+              <>
               {profile.whatsapp && (
                 <a href={`https://wa.me/${profile.whatsapp.replace(/[^\d]/g, '')}`} target="_blank" rel="noreferrer"
                   className="rounded-full border border-line px-3 py-1.5 transition hover:bg-surface-2">WhatsApp</a>
@@ -218,8 +240,9 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
                 <a href={profile.siteUrl} target="_blank" rel="noreferrer"
                   className="rounded-full border border-line px-3 py-1.5 transition hover:bg-surface-2">{ru.profile.site}</a>
               )}
-            </div>
-          )}
+              </>
+            )}
+          </div>
         </div>
 
         {/* О фотографе */}

@@ -204,6 +204,8 @@ export const ru = {
     statFollowing: 'подписки',
     statPhotos: 'фото',
     sendInquiry: 'Написать автору',
+    share: 'Поделиться',
+    linkCopied: 'Ссылка скопирована',
     contactsTitle: 'Контакты',
     cityLabel: 'Город',
     // Подтверждённые съёмки — честные факты доверия (доброжелательная система)
