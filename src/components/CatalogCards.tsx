@@ -11,26 +11,29 @@ import { VerifiedBadge, TierBadge } from '@/components/ui/Badge';
 // чтобы верстка/alt не расходились. alt осмысленный (SEO — половина модели).
 export function CatalogCards({ cards, cityName }: { cards: CatalogCard[]; cityName: string }) {
   return (
-    <ul className="mt-6 grid grid-cols-1 gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+    <ul className="reveal-on-scroll mt-6 grid grid-cols-1 gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
       {cards.map((card) => {
         const catNames = card.categories.map((slug) => categoryNameRu(slug));
         const alt = `Репортажная съёмка — ${card.firstName} ${card.lastName}, ${cityName}`;
         return (
           <li key={card.username} className="group">
             <Link href={`/ru/photographer/${card.username}`} className="block">
-              <div className="relative overflow-hidden rounded-media bg-surface-2">
+              <div className="relative overflow-hidden rounded-media bg-surface-2 transition-shadow duration-300 group-hover:shadow-[0_14px_36px_-10px_rgba(0,0,0,0.28)]">
                 {card.coverKey ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={webVariantUrl(card.coverKey)} alt={alt} loading="lazy"
-                    className="aspect-[4/5] w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
+                    className="aspect-[4/5] w-full object-cover transition duration-[600ms] ease-out group-hover:scale-[1.04]" />
                 ) : (
                   <div className="grid aspect-[4/5] w-full place-items-center">
                     <Avatar avatarKey={card.avatarKey} firstName={card.firstName} lastName={card.lastName} size={72} />
                   </div>
                 )}
                 {card.minPackage && (
-                  <span className="tnum absolute bottom-2 right-2 rounded-sm bg-paper/85 px-2 py-1 text-xs font-medium backdrop-blur-sm">
-                    {ru.catalog.packageLabel(card.minPackage.hours, formatRubMinor(card.minPackage.priceMinor))}
+                  // Цена на элегантном скриме снизу кадра (не «белая пилюля»)
+                  <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-end bg-gradient-to-t from-black/55 via-black/10 to-transparent px-3 pb-2.5 pt-10">
+                    <span className="tnum text-xs font-semibold text-white drop-shadow-sm">
+                      {ru.catalog.packageLabel(card.minPackage.hours, formatRubMinor(card.minPackage.priceMinor))}
+                    </span>
                   </span>
                 )}
               </div>
