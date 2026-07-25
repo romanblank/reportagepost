@@ -1,18 +1,20 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireAdmin } from '@/lib/admin';
-import { grantFoundingPro, isPro } from '@/lib/subscription';
+import { grantFoundingSub, tierOf } from '@/lib/subscription';
 import { logAudit } from '@/lib/audit';
 import { handleRoute, jsonError } from '@/lib/errors';
 
-// Выдать фотографу бесплатный бета-PRO основателя (grace 90 дней + founding-цена
-// закреплена навсегда). Закрытая бета: ручная активация оператором вместо checkout
-// (реальная оплата ждёт фискализацию 54-ФЗ).
-export function POST(_req: Request, ctx: { params: Promise<{ id: string }> }) {
+// Выдать фотографу founding-подписку (grace 90 дней + founding-цена закреплена).
+// Уровень — из ?tier=PRIME|ELITE (по умолчанию PRIME). Закрытая бета: ручная
+// активация оператором вместо checkout (реальная оплата ждёт 54-ФЗ). Позволяет
+// апгрейд/даунгрейд между уровнями.
+export function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   return handleRoute(async () => {
     const admin = await requireAdmin();
     if (!admin) return jsonError('forbidden', 403);
     const { id } = await ctx.params;
+    const tier = new URL(req.url).searchParams.get('tier') === 'ELITE' ? 'ELITE' : 'PRIME';
 
     const profile = await db.photographerProfile.findUnique({
       where: { id },
@@ -20,11 +22,11 @@ export function POST(_req: Request, ctx: { params: Promise<{ id: string }> }) {
     });
     if (!profile) return jsonError('not_found', 404);
 
-    if (await isPro(profile.userId)) return NextResponse.json({ ok: true, alreadyPro: true });
+    if ((await tierOf(profile.userId)) === tier) return NextResponse.json({ ok: true, tier, alreadyAt: true });
 
-    await grantFoundingPro(profile.userId, profile.city.slug);
-    await logAudit(db, admin.userId, 'subscription.grant_founding_pro', 'USER', profile.userId, { profileId: id });
+    await grantFoundingSub(profile.userId, profile.city.slug, tier);
+    await logAudit(db, admin.userId, 'subscription.grant_founding', 'USER', profile.userId, { profileId: id, tier });
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, tier });
   });
 }

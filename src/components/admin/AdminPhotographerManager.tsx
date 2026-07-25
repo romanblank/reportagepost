@@ -5,28 +5,29 @@ import { ru } from '@/i18n/ru';
 import { useToast } from '@/components/ui/Toast';
 
 interface Photo { id: string; thumb: string }
+type SubTier = 'FREE' | 'PRIME' | 'ELITE';
 interface Props {
   profileId: string;
   initialStatus: 'DRAFT' | 'PENDING' | 'NEEDS_REVISION' | 'APPROVED' | 'REJECTED';
   categories: { slug: string; name: string }[];
   initialPhotos: Photo[];
-  initialIsPro: boolean;
+  initialTier: SubTier;
 }
 
-export function AdminPhotographerManager({ profileId, initialStatus, categories, initialPhotos, initialIsPro }: Props) {
+export function AdminPhotographerManager({ profileId, initialStatus, categories, initialPhotos, initialTier }: Props) {
   const { toast } = useToast();
   const [status, setStatus] = useState(initialStatus);
   const [photos, setPhotos] = useState(initialPhotos);
   const [cat, setCat] = useState(categories[0]?.slug ?? '');
-  const [isPro, setIsPro] = useState(initialIsPro);
+  const [tier, setTier] = useState<SubTier>(initialTier);
   const [busy, setBusy] = useState(false);
 
-  async function grantPro() {
+  async function grant(t: 'PRIME' | 'ELITE') {
     setBusy(true);
-    const res = await fetch(`/api/admin/photographers/${profileId}/grant-pro`, { method: 'POST' }).catch(() => null);
+    const res = await fetch(`/api/admin/photographers/${profileId}/grant-pro?tier=${t}`, { method: 'POST' }).catch(() => null);
     setBusy(false);
     if (!res?.ok) return toast(ru.ui.toastError, 'danger');
-    setIsPro(true);
+    setTier(t);
   }
 
   async function togglePublish() {
@@ -77,11 +78,17 @@ export function AdminPhotographerManager({ profileId, initialStatus, categories,
           className={`btn btn-sm ${status === 'APPROVED' ? 'btn-outline' : 'btn-accent'}`}>
           {status === 'APPROVED' ? ru.adminPhotographers.unpublish : ru.adminPhotographers.toPublish}
         </button>
-        {isPro ? (
-          <span className="rounded-sm bg-recognition-soft px-2 py-0.5 text-xs font-medium text-recognition">{ru.adminPhotographers.grantedPro}</span>
-        ) : (
-          <button type="button" onClick={grantPro} disabled={busy} className="btn btn-outline btn-sm">
-            {ru.adminPhotographers.grantPro}
+        <span className={`rounded-sm px-2 py-0.5 text-xs font-medium ${tier === 'FREE' ? 'bg-surface-2 muted' : 'bg-recognition-soft text-recognition'}`}>
+          {tier === 'FREE' ? ru.adminPhotographers.tierFree : ru.pro.tierName[tier]}
+        </span>
+        {tier !== 'PRIME' && (
+          <button type="button" onClick={() => grant('PRIME')} disabled={busy} className="btn btn-outline btn-sm">
+            {ru.adminPhotographers.grantPrime}
+          </button>
+        )}
+        {tier !== 'ELITE' && (
+          <button type="button" onClick={() => grant('ELITE')} disabled={busy} className="btn btn-outline btn-sm">
+            {ru.adminPhotographers.grantElite}
           </button>
         )}
       </div>

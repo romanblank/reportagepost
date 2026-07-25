@@ -1,9 +1,11 @@
+import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { activeTier, type Tier } from '@/lib/subscription';
 
 // Каталог: одобренные фотографы города с фильтрами.
 // Ранжирование: MERIT-first (ratingScore) — подписка лишь мягкий tiebreaker, не
-// pay-for-position (разворот 2026-07-25: синергия, не классовость).
+// pay-for-position (разворот 2026-07-25: синергия, не классовость). Буст-видимость
+// подписки — отдельной полкой «Рекомендуемые» (recommendedForCity).
 
 export interface CatalogFilters {
   citySlug: string;
@@ -66,49 +68,19 @@ export function completenessScore(input: {
   return score; // максимум 100
 }
 
-export async function catalogForCity(filters: CatalogFilters): Promise<CatalogPage> {
-  const page = Math.max(1, filters.page ?? 1);
+// Единый include + производный тип строки — одна форма данных для карточек.
+const CATALOG_INCLUDE = {
+  user: { include: { subscription: true } },
+  categories: { include: { category: true } },
+  packages: { orderBy: { sortOrder: 'asc' } },
+  photos: { where: { status: 'APPROVED' }, orderBy: { publishedAt: 'desc' }, take: 6 },
+} satisfies Prisma.PhotographerProfileInclude;
 
-  // Все фильтры — в where (аудит P1-1): БД отбирает и сортирует по индексу
-  // [cityId, status, ratingScore desc], в память тянем ровно страницу.
-  const where = {
-    status: 'APPROVED' as const,
-    city: { slug: filters.citySlug },
-    ...(filters.categorySlug
-      ? { categories: { some: { category: { slug: filters.categorySlug } } } }
-      : {}),
-    ...(filters.availableOn ? { busyDates: { none: { date: filters.availableOn } } } : {}),
-    // «цена за час ≤ X»: хотя бы один пакет с priceMinor/hours ≤ порога.
-    // hours ограничены [1..24], поэтому priceMinor ≤ X*hours покрывает условие
-    // консервативно; точную проверку делаем ниже на выбранной странице.
-    ...(filters.maxPricePerHourMinor != null
-      ? { packages: { some: { priceMinor: { lte: filters.maxPricePerHourMinor * 24 } } } }
-      : {}),
-  };
+type CatalogRow = Prisma.PhotographerProfileGetPayload<{ include: typeof CATALOG_INCLUDE }>;
 
-  const rows = await db.photographerProfile.findMany({
-    where,
-    // MERIT-first: рейтинг (заслуги) первым, подписка (proRank) — лишь мягкий
-    // tiebreaker при равном рейтинге. НЕ pay-for-position.
-    orderBy: [{ ratingScore: 'desc' }, { proRank: 'desc' }, { id: 'asc' }],
-    skip: (page - 1) * CATALOG_PAGE_SIZE,
-    take: CATALOG_PAGE_SIZE + 1, // +1 для hasNext
-    include: {
-      user: { include: { subscription: true } },
-      categories: { include: { category: true } },
-      packages: { orderBy: { sortOrder: 'asc' } },
-      photos: {
-        where: { status: 'APPROVED' },
-        orderBy: { publishedAt: 'desc' },
-        take: 6,
-      },
-    },
-  });
-
-  const hasNext = rows.length > CATALOG_PAGE_SIZE;
-  const shown = rows.slice(0, CATALOG_PAGE_SIZE);
-
-  // Агрегат отзывов для показанных профилей (соц-доказательство в выдаче, MyWed)
+// Строки профилей → карточки (+ агрегат отзывов одним запросом). Общая сборка
+// для основного списка и полки «Рекомендуемые».
+async function toCards(shown: CatalogRow[]): Promise<CatalogCard[]> {
   const revAgg = shown.length
     ? await db.review.groupBy({
         by: ['profileId'],
@@ -119,7 +91,7 @@ export async function catalogForCity(filters: CatalogFilters): Promise<CatalogPa
     : [];
   const revMap = new Map(revAgg.map((r) => [r.profileId, { avg: r._avg.rating ?? 0, count: r._count }]));
 
-  const cards = shown.map((p) => ({
+  return shown.map((p) => ({
     username: p.username,
     verified: p.verified,
     avatarKey: p.avatarKey,
@@ -140,6 +112,47 @@ export async function catalogForCity(filters: CatalogFilters): Promise<CatalogPa
     score: p.ratingScore,
     tier: activeTier(p.user.subscription),
   } satisfies CatalogCard));
+}
 
+export async function catalogForCity(filters: CatalogFilters): Promise<CatalogPage> {
+  const page = Math.max(1, filters.page ?? 1);
+
+  const where = {
+    status: 'APPROVED' as const,
+    city: { slug: filters.citySlug },
+    ...(filters.categorySlug
+      ? { categories: { some: { category: { slug: filters.categorySlug } } } }
+      : {}),
+    ...(filters.availableOn ? { busyDates: { none: { date: filters.availableOn } } } : {}),
+    ...(filters.maxPricePerHourMinor != null
+      ? { packages: { some: { priceMinor: { lte: filters.maxPricePerHourMinor * 24 } } } }
+      : {}),
+  };
+
+  const rows = await db.photographerProfile.findMany({
+    where,
+    // MERIT-first: рейтинг первым, подписка (proRank) — лишь мягкий tiebreaker.
+    orderBy: [{ ratingScore: 'desc' }, { proRank: 'desc' }, { id: 'asc' }],
+    skip: (page - 1) * CATALOG_PAGE_SIZE,
+    take: CATALOG_PAGE_SIZE + 1, // +1 для hasNext
+    include: CATALOG_INCLUDE,
+  });
+
+  const hasNext = rows.length > CATALOG_PAGE_SIZE;
+  const cards = await toCards(rows.slice(0, CATALOG_PAGE_SIZE));
   return { cards, page, hasNext };
+}
+
+// «Рекомендуемые»: активные подписчики города (Elite → Prime). Буст-видимость
+// подписки БЕЗ сдвига основного merit-списка (soft-hybrid). proRank>0 — быстрый
+// префильтр, точный статус — по activeTier (денорм может отставать от экспирации).
+export async function recommendedForCity(citySlug: string, limit = 6): Promise<CatalogCard[]> {
+  const rows = await db.photographerProfile.findMany({
+    where: { status: 'APPROVED', city: { slug: citySlug }, proRank: { gt: 0 } },
+    orderBy: [{ proRank: 'desc' }, { ratingScore: 'desc' }, { id: 'asc' }],
+    take: limit * 2, // запас под фильтр активных
+    include: CATALOG_INCLUDE,
+  });
+  const active = rows.filter((p) => activeTier(p.user.subscription) !== 'FREE').slice(0, limit);
+  return toCards(active);
 }

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { db } from '@/lib/db';
-import { catalogForCity } from '@/lib/catalog';
+import { catalogForCity, recommendedForCity } from '@/lib/catalog';
 import { visitingCity } from '@/lib/travel';
 import { cityNameRu } from '@/lib/geo-data';
 import { CATEGORIES } from '@/lib/category-data';
@@ -69,6 +69,12 @@ export default async function CatalogPage(props: {
     citySlug: city.slug, categorySlug, availableOn, page,
     maxPricePerHourMinor: maxPriceRub ? maxPriceRub * 100 : undefined,
   });
+  // «Рекомендуемые» (буст-видимость подписки, soft-hybrid) — только на 1-й
+  // странице без фильтров; из основного merit-списка их исключаем (без дублей).
+  const showRecommended = page === 1 && !categorySlug && !availableOn && !maxPriceRub;
+  const recommended = showRecommended ? await recommendedForCity(city.slug) : [];
+  const recSet = new Set(recommended.map((c) => c.username));
+  const mainCards = recommended.length ? cards.filter((c) => !recSet.has(c.username)) : cards;
   // Приезжие фотографы — только на первой странице, под фильтром
   const visiting = page === 1 ? await visitingCity(city.slug, availableOn) : [];
   const cityName = cityNameRu(city.slug);
@@ -90,7 +96,14 @@ export default async function CatalogPage(props: {
       {/* Категории → path-роуты /ru/{country}/{city}/{category} (SEO-перелинковка) */}
       <CategoryLinks countrySlug={params.country} citySlug={params.city} activeCategory={categorySlug} />
 
-      <form method="get" className="mt-4 flex flex-wrap items-end gap-3">
+      {recommended.length > 0 && (
+        <section className="mt-6">
+          <h2 className="flex items-center gap-2 text-lg font-medium text-recognition">{ru.catalog.recommendedTitle}</h2>
+          <CatalogCards cards={recommended} cityName={cityName} />
+        </section>
+      )}
+
+      <form method="get" className="mt-6 flex flex-wrap items-end gap-3">
         {categorySlug && <input type="hidden" name="category" value={categorySlug} />}
         <label className="text-sm">
           <span className="field-hint mt-0">{ru.catalog.availableOn}</span>
@@ -135,7 +148,7 @@ export default async function CatalogPage(props: {
         </section>
       )}
 
-      {cards.length === 0 && visiting.length === 0 ? (
+      {mainCards.length === 0 && recommended.length === 0 && visiting.length === 0 ? (
         <EmptyState
           icon={<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" /></svg>}
           title={ru.catalog.empty}
@@ -145,8 +158,11 @@ export default async function CatalogPage(props: {
             { href: '/ru/inquiry', label: ru.catalog.emptyInquiry, variant: 'outline' },
           ]}
         />
-      ) : cards.length === 0 ? null : (
-        <CatalogCards cards={cards} cityName={cityName} />
+      ) : mainCards.length === 0 ? null : (
+        <>
+          {recommended.length > 0 && <h2 className="mt-8 text-lg font-medium">{ru.catalog.allInCity}</h2>}
+          <CatalogCards cards={mainCards} cityName={cityName} />
+        </>
       )}
 
       {(page > 1 || hasNext) && (
