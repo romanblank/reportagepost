@@ -1,45 +1,39 @@
-// YandexGPT за абстракцией (та же IAM-авторизация инстанса, что Vision).
-// Активен при YC_FOLDER_ID + роли ai.languageModels.user у SA VM. Иначе null —
-// фича деградирует к структурному подбору (провайдер за абстракцией, no-op паттерн).
+// LLM за абстракцией — OpenAI-СОВМЕСТИМЫЙ, НЕ Яндекс. Работает с любым провайдером
+// через env: DeepSeek (api.deepseek.com, дёшево, доступен из РФ), self-hosted
+// (Ollama/vLLM), OpenRouter, Groq. no-op без конфига → фича деградирует к эвристике.
+//   LLM_API_URL   — эндпоинт /chat/completions
+//   LLM_API_KEY   — Bearer (опционально для self-hosted)
+//   LLM_MODEL     — имя модели (deepseek-chat, qwen2.5, …)
+// ВАЖНО: вывод модели ВСЕГДА валидируется guard'ом ПОСЛЕ (правило проекта) —
+// здесь только транспорт, вердикт модели напрямую не применяется.
 
-async function iamToken(): Promise<string | null> {
+export async function llmComplete(system: string, user: string): Promise<string | null> {
+  const url = process.env.LLM_API_URL;
+  const model = process.env.LLM_MODEL;
+  if (!url || !model) return null;
+  const key = process.env.LLM_API_KEY;
   try {
-    const res = await fetch(
-      'http://169.254.169.254/computeMetadata/v1/instance/service-accounts/default/token',
-      { headers: { 'Metadata-Flavor': 'Google' } },
-    );
-    const data = await res.json();
-    return (data as { access_token?: string })?.access_token ?? null;
-  } catch {
-    return null;
-  }
-}
-
-/** Одиночный вызов YandexGPT. Возвращает текст ответа или null (провайдер выключен/ошибка). */
-export async function yandexGpt(system: string, user: string): Promise<string | null> {
-  const folderId = process.env.YC_FOLDER_ID;
-  if (!folderId) return null;
-  const token = await iamToken();
-  if (!token) return null;
-  try {
-    const res = await fetch('https://llm.api.cloud.yandex.net/foundationModels/v1/completion', {
+    const res = await fetch(url, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(key ? { Authorization: `Bearer ${key}` } : {}),
+      },
       body: JSON.stringify({
-        modelUri: `gpt://${folderId}/yandexgpt-lite/latest`,
-        completionOptions: { temperature: 0.2, maxTokens: 500, stream: false },
+        model,
+        temperature: 0.1,
+        max_tokens: 300,
         messages: [
-          { role: 'system', text: system },
-          { role: 'user', text: user },
+          { role: 'system', content: system },
+          { role: 'user', content: user },
         ],
       }),
+      signal: AbortSignal.timeout(6000), // подбор не должен ждать LLM дольше 6с
     });
     if (!res.ok) return null;
-    const data = (await res.json()) as {
-      result?: { alternatives?: { message?: { text?: string } }[] };
-    };
-    return data?.result?.alternatives?.[0]?.message?.text ?? null;
+    const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+    return data?.choices?.[0]?.message?.content ?? null;
   } catch {
-    return null; // ошибки не глотаем молча в проде — но фича вторична, фолбэк к структуре
+    return null; // фича вторична — тихий фолбэк к эвристике (не глотаем в критичных путях)
   }
 }

@@ -2,6 +2,7 @@ import { catalogForCity, type CatalogCard } from '@/lib/catalog';
 import { RU_CITIES } from '@/lib/geo-data';
 import { CATEGORIES, categoryNameRu } from '@/lib/category-data';
 import { cityNameRu } from '@/lib/geo-data';
+import { llmComplete } from '@/lib/ai-gpt';
 import { ru } from '@/i18n/ru';
 
 // Подбор авторов под задачу. Свободный бриф разбирается ЭВРИСТИКОЙ (ключевые
@@ -79,9 +80,29 @@ export function parseBriefHeuristic(text: string): ParsedBrief {
   return out;
 }
 
-/** Совместимость с прежним API (эвристика; async-обёртка). */
+const LLM_SYSTEM =
+  'Ты помощник каталога событийных фотографов. Извлеки из запроса строго JSON вида ' +
+  '{"city":"<город или null>","category":"<деловые события|корпоративы|концерты и фестивали|спорт|частные события|город и уличный репортаж|null>","budgetRub":<число или null>}. ' +
+  'category выбери ближайшую по смыслу из списка. Только JSON, без пояснений.';
+
+/**
+ * Гибрид: эвристика первой (быстро/бесплатно), LLM-фолбэк ТОЛЬКО если эвристика
+ * не нашла город или жанр (покрывает опечатки/сленг/необычные формулировки).
+ * LLM — не Яндекс (OpenAI-совместимый, env), вывод валидируется guard'ом,
+ * эвристика приоритетна для найденного. Без LLM-конфига → чистая эвристика.
+ */
 export async function parseBriefText(text: string): Promise<ParsedBrief> {
-  return parseBriefHeuristic(text);
+  const heur = parseBriefHeuristic(text);
+  if (heur.citySlug && heur.categorySlug) return heur; // ясный бриф — LLM не нужен
+
+  const raw = await llmComplete(LLM_SYSTEM, text.trim());
+  if (!raw) return heur;
+  const llm = guardParsed(raw); // валидация вывода модели против справочников
+  return {
+    citySlug: heur.citySlug ?? llm.citySlug,
+    categorySlug: heur.categorySlug ?? llm.categorySlug,
+    maxBudgetMinor: heur.maxBudgetMinor ?? llm.maxBudgetMinor,
+  };
 }
 
 /** Чистый guard разбора LLM (тестируем без сети). */
