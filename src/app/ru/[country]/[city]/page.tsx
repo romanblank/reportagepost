@@ -100,14 +100,9 @@ export default async function CatalogPage(props: {
       {/* Категории → path-роуты /ru/{country}/{city}/{category} (SEO-перелинковка) */}
       <CategoryLinks countrySlug={params.country} citySlug={params.city} activeCategory={categorySlug} />
 
-      {recommended.length > 0 && (
-        <section className="mt-6">
-          <h2 className="flex items-center gap-2 text-lg font-medium text-recognition">{ru.catalog.recommendedTitle}</h2>
-          <CatalogCards cards={recommended} cityName={cityName} />
-        </section>
-      )}
-
-      <form method="get" className="mt-6 flex flex-wrap items-end gap-3">
+      {/* Фильтр (дата/цена) — компактной панелью сразу под категориями: применяется
+          ко всему каталогу, поэтому у верха, а не в середине страницы. */}
+      <form method="get" className="mt-4 flex flex-wrap items-end gap-3 rounded-media border border-line bg-surface p-3 sm:p-4">
         {categorySlug && <input type="hidden" name="category" value={categorySlug} />}
         <label className="text-sm">
           <span className="field-hint mt-0">{ru.catalog.availableOn}</span>
@@ -120,6 +115,13 @@ export default async function CatalogPage(props: {
         </label>
         <button type="submit" className="btn btn-outline px-4 py-2.5">{ru.catalog.applyDate}</button>
       </form>
+
+      {recommended.length > 0 && (
+        <section className="mt-7">
+          <h2 className="flex items-center gap-2 text-lg font-medium text-recognition">{ru.catalog.recommendedTitle}</h2>
+          <CatalogCards cards={recommended} cityName={cityName} />
+        </section>
+      )}
 
       {visiting.length > 0 && (
         <section className="mt-6">
