@@ -2,26 +2,31 @@ import Link from "next/link";
 import { ru } from "@/i18n/ru";
 import { freshPhotos } from "@/lib/feeds";
 import { webVariantUrl } from "@/lib/photos";
-import { HeroWallpaper } from "@/components/HeroWallpaper";
+import { db } from "@/lib/db";
+import { LandingHero } from "@/components/LandingHero";
 
 // force-dynamic: лендинг тянет свежие работы из БД (урок: static-страница с
 // запросом падает на пререндере в Docker-билде без DATABASE_URL).
 export const dynamic = "force-dynamic";
 
-// Лендинг (закрытая бета: доступ по приглашениям). Editorial-подача + живая лента.
+// Лендинг (закрытая бета). MyWed-направление: светлый поиск-первый герой → фото.
 export default async function Home() {
-  const recent = await freshPhotos(12);
+  const [recent, photographers, photos] = await Promise.all([
+    freshPhotos(12),
+    db.photographerProfile.count({ where: { status: "APPROVED" } }),
+    db.photo.count({ where: { status: "APPROVED" } }),
+  ]);
   return (
     <main className="flex-1">
-      <HeroWallpaper />
+      <LandingHero photographers={photographers} photos={photos} />
 
       {recent.length > 0 && (
-        <section className="mx-auto w-full max-w-6xl px-4 pb-16">
+        <section className="mx-auto w-full max-w-6xl px-4 py-14">
           <h2 className="t-caption muted">{ru.landing.recentWork}</h2>
           <div className="mt-3 columns-2 gap-2 sm:columns-3 md:columns-4">
             {recent.map((p) => (
               <Link key={p.photoId} href={`/ru/photographer/${p.username}`} className="group mb-2 block break-inside-avoid">
-                <div className="overflow-hidden rounded-media">
+                <div className="overflow-hidden rounded-media bg-surface-2">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={webVariantUrl(p.storageKey)} alt="" loading="lazy" width={p.width} height={p.height}
                     className="w-full transition duration-300 group-hover:scale-[1.02]" />

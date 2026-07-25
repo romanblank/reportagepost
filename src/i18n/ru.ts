@@ -106,6 +106,8 @@ export const ru = {
     heroSearchCta: 'Найти',
     heroPhotographerNudge: 'Вы фотограф?',
     heroPhotographerCta: 'Создать профиль',
+    statAuthors: 'авторов',
+    statWorks: 'работ',
     closedNote: 'Регистрация для фотографов открыта. Платформа в закрытой бете — публичный запуск впереди.',
     recentWork: 'Свежие работы',
     registerCta: 'Создать профиль',
