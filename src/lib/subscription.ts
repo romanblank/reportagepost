@@ -77,7 +77,10 @@ export async function grantFoundingSub(
 ): Promise<void> {
   const price = priceForCity(citySlug, tier);
   const founding = foundingPrice(price);
-  const graceEndsAt = new Date(now.getTime() + BETA_GRACE_DAYS * 24 * 60 * 60 * 1000);
+  const existing = await db.subscription.findUnique({ where: { userId }, select: { graceEndsAt: true } });
+  // При смене уровня НЕ продлеваем бесплатное окно — сохраняем исходный grace
+  // (цену перезакрепляем по новому уровню: Elit-founding дороже Prime-founding).
+  const graceEndsAt = existing?.graceEndsAt ?? new Date(now.getTime() + BETA_GRACE_DAYS * 24 * 60 * 60 * 1000);
   const data = {
     tier,
     grandfathered: true,

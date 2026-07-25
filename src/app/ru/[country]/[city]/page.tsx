@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { db } from '@/lib/db';
-import { catalogForCity, recommendedForCity } from '@/lib/catalog';
+import { catalogForCity, recommendedForCity, type CatalogCard } from '@/lib/catalog';
 import { visitingCity } from '@/lib/travel';
 import { cityNameRu } from '@/lib/geo-data';
 import { CATEGORIES } from '@/lib/category-data';
@@ -65,33 +65,37 @@ export default async function CatalogPage(props: {
   const maxPriceRub = Number(searchParams.maxPrice) > 0 ? Number(searchParams.maxPrice) : undefined;
   const page = Math.max(1, Number(searchParams.page) || 1);
 
-  const { cards, hasNext } = await catalogForCity({
-    citySlug: city.slug, categorySlug, availableOn, page,
-    maxPricePerHourMinor: maxPriceRub ? maxPriceRub * 100 : undefined,
-  });
   // «Рекомендуемые» (буст-видимость подписки, soft-hybrid) — только на 1-й
-  // странице без фильтров; из основного merit-списка их исключаем (без дублей).
+  // странице без фильтров. Все запросы страницы — параллельно (force-dynamic).
   const showRecommended = page === 1 && !categorySlug && !availableOn && !maxPriceRub;
-  const recommended = showRecommended ? await recommendedForCity(city.slug) : [];
+  const [{ cards, hasNext }, recommended, visiting] = await Promise.all([
+    catalogForCity({
+      citySlug: city.slug, categorySlug, availableOn, page,
+      maxPricePerHourMinor: maxPriceRub ? maxPriceRub * 100 : undefined,
+    }),
+    showRecommended ? recommendedForCity(city.slug) : Promise.resolve([] as CatalogCard[]),
+    page === 1 ? visitingCity(city.slug, availableOn) : Promise.resolve([]),
+  ]);
+  // Полку исключаем из основного merit-списка (без дублей); shown — всё показанное
+  // на странице (для счётчика и JSON-LD).
   const recSet = new Set(recommended.map((c) => c.username));
   const mainCards = recommended.length ? cards.filter((c) => !recSet.has(c.username)) : cards;
-  // Приезжие фотографы — только на первой странице, под фильтром
-  const visiting = page === 1 ? await visitingCity(city.slug, availableOn) : [];
+  const shown = [...recommended, ...mainCards];
   const cityName = cityNameRu(city.slug);
   const basePath = `/ru/${params.country}/${params.city}`;
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:py-10">
-      {cards.length > 0 && (
+      {shown.length > 0 && (
         <JsonLd
           data={catalogItemListLd(
             ru.catalog.title(cityName),
-            cards.map((c) => ({ username: c.username, name: `${c.firstName} ${c.lastName}` })),
+            shown.map((c) => ({ username: c.username, name: `${c.firstName} ${c.lastName}` })),
           )}
         />
       )}
       <h1 className="t-h1">{ru.catalog.title(cityName)}</h1>
-      <p className="mt-1.5 text-sm muted">{ru.catalog.photographersCount(cards.length)}</p>
+      <p className="mt-1.5 text-sm muted">{ru.catalog.photographersCount(shown.length)}</p>
 
       {/* Категории → path-роуты /ru/{country}/{city}/{category} (SEO-перелинковка) */}
       <CategoryLinks countrySlug={params.country} citySlug={params.city} activeCategory={categorySlug} />
