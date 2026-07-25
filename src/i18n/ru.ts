@@ -254,6 +254,8 @@ export const ru = {
     emptyCta: 'Оставить заявку',
     write: 'Написать',
     aiHint: 'Свободный текст разбирает ИИ — можно писать как есть.',
+    understood: 'Ищем',
+    budgetChip: (s: string) => `до ${s}/час`,
   },
   reviews: {
     title: 'Признательность заказчиков',

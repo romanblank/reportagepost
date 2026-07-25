@@ -90,6 +90,15 @@ export default async function MatchPage(props: {
 
       {submitted && brief && (
         <section className="mt-9">
+          {/* Распознанный бриф — прозрачность (что ИИ понял из свободного текста) */}
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <span className="t-caption muted">{ru.match.understood}:</span>
+            <span className="rounded-full bg-surface-2 px-3 py-1 font-medium">{cityNameRu(brief.citySlug)}</span>
+            {brief.categorySlug && <span className="rounded-full bg-surface-2 px-3 py-1 font-medium">{categoryNameRu(brief.categorySlug)}</span>}
+            {brief.maxBudgetMinor && <span className="rounded-full bg-surface-2 px-3 py-1 font-medium tnum">{ru.match.budgetChip(formatRubMinor(brief.maxBudgetMinor))}</span>}
+            {brief.date && <span className="rounded-full bg-surface-2 px-3 py-1 font-medium tnum">{brief.date.toISOString().slice(0, 10)}</span>}
+          </div>
+          <div className="mt-6">
           {matches.length === 0 ? (
             <div className="rounded-media border border-dashed border-line-2 p-8 text-center">
               <p className="muted">{ru.match.empty}</p>
@@ -135,6 +144,7 @@ export default async function MatchPage(props: {
               </ul>
             </>
           )}
+          </div>
         </section>
       )}
     </main>
