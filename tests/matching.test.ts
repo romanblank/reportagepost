@@ -1,6 +1,40 @@
 import { describe, expect, it } from 'vitest';
-import { guardParsed, buildReason } from '@/lib/matching';
+import { guardParsed, buildReason, parseBriefHeuristic } from '@/lib/matching';
 import type { CatalogCard } from '@/lib/catalog';
+
+// Эвристический разбор брифа — без внешнего ИИ (город/жанр/бюджет из словаря).
+describe('matching.parseBriefHeuristic — разбор без ИИ', () => {
+  it('техно-фестиваль в Петербурге, до 40к', () => {
+    const p = parseBriefHeuristic('Нужен на техно-фестиваль в Петербурге, бюджет до 40к, ночь');
+    expect(p.citySlug).toBe('saint-petersburg');
+    expect(p.categorySlug).toBe('concerts-festivals');
+    expect(p.maxBudgetMinor).toBe(4_000_000);
+  });
+
+  it('конференция в Москве до 30 000 ₽', () => {
+    const p = parseBriefHeuristic('конференция в москве, бюджет 30 000 ₽');
+    expect(p.citySlug).toBe('moscow');
+    expect(p.categorySlug).toBe('business-events');
+    expect(p.maxBudgetMinor).toBe(3_000_000);
+  });
+
+  it('короткие формы «мск» + жанр спорт', () => {
+    const p = parseBriefHeuristic('мск, нужен на спортивный турнир');
+    expect(p.citySlug).toBe('moscow');
+    expect(p.categorySlug).toBe('sports');
+  });
+
+  it('только жанр, без города/бюджета', () => {
+    const p = parseBriefHeuristic('фотограф на свадьбу');
+    expect(p.categorySlug).toBe('private-events');
+    expect(p.citySlug).toBeUndefined();
+    expect(p.maxBudgetMinor).toBeUndefined();
+  });
+
+  it('пустой/короткий — {}', () => {
+    expect(parseBriefHeuristic('  ')).toEqual({});
+  });
+});
 
 // Guard разбора LLM (правило: вывод модели валидируется, не применяется напрямую).
 describe('matching.guardParsed — валидация вывода LLM', () => {

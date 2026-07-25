@@ -2,14 +2,13 @@ import { catalogForCity, type CatalogCard } from '@/lib/catalog';
 import { RU_CITIES } from '@/lib/geo-data';
 import { CATEGORIES, categoryNameRu } from '@/lib/category-data';
 import { cityNameRu } from '@/lib/geo-data';
-import { yandexGpt } from '@/lib/ai-gpt';
 import { ru } from '@/i18n/ru';
 
-// Подбор авторов под задачу. AI (YandexGPT) разбирает свободный бриф в структуру,
-// затем ДЕТЕРМИНИРОВАННЫЙ матч по каталогу (город/жанр/бюджет/дата/merit). Guard
-// после LLM обязателен (правило проекта): вывод модели валидируется против
-// известных городов/категорий и не применяется напрямую. Без ключей — работает
-// по полям формы (структурный подбор), AI-слой просто выключен.
+// Подбор авторов под задачу. Свободный бриф разбирается ЭВРИСТИКОЙ (ключевые
+// слова + синонимы поверх фиксированного словаря: 60 городов, 6 жанров, бюджет) —
+// без внешнего ИИ: бесплатно, мгновенно, работает с RU-сервера, ноль зависимостей.
+// Затем ДЕТЕРМИНИРОВАННЫЙ матч по каталогу. LLM (см. ai-gpt.ts) — опциональный
+// апгрейд на потом (не Яндекс), если эвристики перестанет хватать.
 
 export interface Brief {
   citySlug: string;
@@ -25,17 +24,64 @@ export interface ParsedBrief {
   maxBudgetMinor?: number;
 }
 
-/** Разбор свободного брифа LLM → структура. Guard: валидируем против справочников. */
+// Короткие формы городов-якорей (полное имя матчится общим проходом ниже).
+const CITY_ALIASES: Record<string, string[]> = {
+  moscow: ['москв', 'мск', 'в мск'],
+  'saint-petersburg': ['петербург', 'питер', 'спб', 'петербурге'],
+};
+
+// Синонимы жанров (стем-фрагменты, регистр уже понижен).
+const CATEGORY_KEYWORDS: Record<string, string[]> = {
+  'business-events': ['конференц', 'форум', 'делов', 'бизнес', 'презентац', 'саммит', 'митап', 'нетворк', 'пленар'],
+  corporate: ['корпоратив', 'тимбилдинг', 'день компании', 'новогодн корпор'],
+  'concerts-festivals': ['концерт', 'фестивал', 'рейв', 'шоу', 'выступлен', 'гастрол', 'опенэйр', 'open air', 'техно', 'рок', 'электрон'],
+  sports: ['спорт', 'матч', 'турнир', 'соревнован', 'забег', 'марафон', 'гонк', 'чемпионат', 'единоборств', 'фитнес'],
+  'private-events': ['свадьб', 'юбилей', 'день рожден', 'днюх', 'частн', 'вечеринк', 'крестин', 'выпускн', 'помолвк', 'семейн'],
+  'street-city': ['улич', 'стрит', 'город и', 'репортаж с улиц', 'прогулк по город'],
+};
+
+/** Бюджет в рублях из брифа: «40к», «40 тыс», «до 40000», «бюджет 30 000 ₽». */
+function parseBudgetRub(t: string): number | undefined {
+  // «к»/«тыс» не перед буквой (\b не знает кириллицу в JS — используем lookahead)
+  let m = t.match(/(\d+)\s*(?:к|тыс)(?![а-яёa-z])/i);
+  if (m) { const n = Number(m[1]) * 1000; if (n >= 1000 && n < 10_000_000) return n; }
+  m = t.match(/(?:до|бюджет|₽|руб)\D{0,8}(\d[\d\s]{2,})/) ?? t.match(/(\d[\d\s]{3,})\s*(?:₽|руб|р\.)/);
+  if (m) { const n = Number(m[1].replace(/\s/g, '')); if (n >= 1000 && n < 10_000_000) return n; }
+  return undefined;
+}
+
+/** Эвристический разбор свободного брифа → структура. Без внешнего ИИ. */
+export function parseBriefHeuristic(text: string): ParsedBrief {
+  const t = text.trim().toLowerCase();
+  if (t.length < 3) return {};
+  const out: ParsedBrief = {};
+
+  // город: сначала короткие формы якорей, затем полное имя любого города
+  for (const [slug, aliases] of Object.entries(CITY_ALIASES)) {
+    if (aliases.some((a) => t.includes(a))) { out.citySlug = slug; break; }
+  }
+  if (!out.citySlug) {
+    const city = RU_CITIES.find((c) => c.nameRu.length >= 4 && t.includes(c.nameRu.toLowerCase()));
+    if (city) out.citySlug = city.slug;
+  }
+
+  // жанр: первый по количеству совпавших ключевых слов
+  let best: { slug: string; hits: number } | null = null;
+  for (const [slug, kws] of Object.entries(CATEGORY_KEYWORDS)) {
+    const hits = kws.filter((k) => t.includes(k)).length;
+    if (hits > 0 && (!best || hits > best.hits)) best = { slug, hits };
+  }
+  if (best) out.categorySlug = best.slug;
+
+  const budget = parseBudgetRub(t);
+  if (budget) out.maxBudgetMinor = budget * 100;
+
+  return out;
+}
+
+/** Совместимость с прежним API (эвристика; async-обёртка). */
 export async function parseBriefText(text: string): Promise<ParsedBrief> {
-  const trimmed = text.trim();
-  if (trimmed.length < 4) return {};
-  const system =
-    'Ты помощник каталога событийных фотографов. Извлеки из запроса JSON строго вида ' +
-    '{"city": "<город или null>", "category": "<деловые события|корпоративы|концерты и фестивали|спорт|частные события|город и уличный репортаж|null>", "budgetRub": <число или null>}. ' +
-    'Только JSON, без пояснений.';
-  const raw = await yandexGpt(system, trimmed);
-  if (!raw) return {};
-  return guardParsed(raw);
+  return parseBriefHeuristic(text);
 }
 
 /** Чистый guard разбора LLM (тестируем без сети). */
