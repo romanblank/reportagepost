@@ -59,6 +59,7 @@ model User {
   likes         Like[]
   comments      Comment[]
   reviews       Review[]
+  shootConfirmations ShootConfirmation[]
   follows       Follow[]             @relation("follower")
   followedBy    Follow[]             @relation("followee")
   inquiries     Inquiry[]
@@ -220,6 +221,7 @@ model PhotographerProfile {
   travelPlans TravelPlan[]
   favoritedBy FavoritePhotographer[]
   reviews    Review[]
+  shootConfirmations ShootConfirmation[]
 
   @@index([cityId, status, ratingScore(sort: Desc), proRank(sort: Desc)])
 }
@@ -389,6 +391,25 @@ model Like {
 
   @@unique([userId, photoId])
   @@unique([userId, storyId])
+}
+
+// Подтверждённая съёмка: заказчик отметил, что съёмка с автором состоялась.
+// Честный якорь доверия (доброжелательная система 2026-07-25): даёт факты
+// «снимали вместе N раз» и «клиенты возвращаются», и делает отзыв verified по
+// РЕАЛЬНОЙ съёмке, а не по любому сообщению (фикс red-team).
+model ShootConfirmation {
+  id           String    @id @default(cuid())
+  clientUserId String    // заказчик, подтвердивший съёмку
+  profileId    String    // фотограф (профиль)
+  eventDate    DateTime? // когда была съёмка (опционально)
+  createdAt    DateTime  @default(now())
+
+  client  User                @relation(fields: [clientUserId], references: [id])
+  profile PhotographerProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  // Без unique: повторные съёмки с тем же заказчиком = «клиенты возвращаются».
+  @@index([profileId, createdAt])
+  @@index([clientUserId, profileId])
 }
 
 model Review {
