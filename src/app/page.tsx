@@ -44,21 +44,27 @@ export default async function Home() {
           {cats.map((c) => (
             <li key={c.slug}>
               <Link href={`/ru/russia/moscow/${c.slug}`}
-                className="group relative block overflow-hidden rounded-media bg-surface-2">
+                className="group relative block overflow-hidden rounded-media border border-line bg-surface-2 transition hover:border-line-2">
                 {c.coverKey ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={webVariantUrl(c.coverKey)} alt={c.nameRu} loading="lazy"
-                    className="aspect-[3/2] w-full bg-cover bg-center object-cover transition duration-500 group-hover:scale-[1.04]"
-                    style={c.blurData ? { backgroundImage: `url(${c.blurData})` } : undefined} />
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={webVariantUrl(c.coverKey)} alt={c.nameRu} loading="lazy"
+                      className="aspect-[3/2] w-full bg-cover bg-center object-cover transition duration-500 group-hover:scale-[1.04]"
+                      style={c.blurData ? { backgroundImage: `url(${c.blurData})` } : undefined} />
+                    <span className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/70 via-black/10 to-transparent p-3">
+                      <span className="font-medium leading-tight text-white">{c.nameRu}</span>
+                      {c.photoCount > 0 && (
+                        <span className="mt-0.5 text-xs text-white/75">{ru.landing.categoryWorks(c.photoCount)}</span>
+                      )}
+                    </span>
+                  </>
                 ) : (
-                  <div className="aspect-[3/2] w-full" />
+                  // Пустой жанр (бета): чистая тайл-подача, без фейк-градиента
+                  <div className="flex aspect-[3/2] w-full flex-col justify-end p-3">
+                    <span className="font-medium leading-tight">{c.nameRu}</span>
+                    <span className="mt-0.5 text-xs text-muted-2 transition group-hover:text-recognition">{ru.landing.categoryExplore}</span>
+                  </div>
                 )}
-                <span className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/70 via-black/10 to-transparent p-3">
-                  <span className="font-medium leading-tight text-white">{c.nameRu}</span>
-                  {c.photoCount > 0 && (
-                    <span className="mt-0.5 text-xs text-white/75">{ru.landing.categoryWorks(c.photoCount)}</span>
-                  )}
-                </span>
               </Link>
             </li>
           ))}
