@@ -259,3 +259,14 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .anim-lb-fade, .anim-lb-zoom, .anim-rise { animation: none; }
 }
+
+/* Скролл-ревил — нативный CSS view-timeline (без JS). Неподдержка → контент виден. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal-on-scroll {
+      animation: rise-in linear both;
+      animation-timeline: view();
+      animation-range: entry 5% entry 32%;
+    }
+  }
+}

@@ -41,7 +41,7 @@ export default async function Home() {
         backdropSrc={heroBackdrop ? webVariantUrl(heroBackdrop.storageKey) : null} />
 
       {/* Жанры репортажа — навигационные карточки (всегда, даже пустые: показывают охват) */}
-      <section className="mx-auto w-full max-w-6xl px-4 py-12 sm:py-14">
+      <section className="reveal-on-scroll mx-auto w-full max-w-6xl px-4 py-12 sm:py-14">
         <SectionHeader title={ru.landing.discoverCategories} />
         <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
           {cats.map((c) => (
@@ -75,28 +75,28 @@ export default async function Home() {
       </section>
 
       {editors.length > 0 && (
-        <section className="mx-auto w-full max-w-6xl px-4 pb-12 sm:pb-14">
+        <section className="reveal-on-scroll mx-auto w-full max-w-6xl px-4 pb-12 sm:pb-14">
           <SectionHeader title={ru.landing.discoverEditors} href="/ru/photo?tab=editors" />
           <div className="mt-4"><FeedRow photos={editors} /></div>
         </section>
       )}
 
       {week.length > 0 && (
-        <section className="mx-auto w-full max-w-6xl px-4 pb-12 sm:pb-14">
+        <section className="reveal-on-scroll mx-auto w-full max-w-6xl px-4 pb-12 sm:pb-14">
           <SectionHeader title={ru.landing.discoverWeek} href="/ru/photo?tab=week" />
           <div className="mt-4"><FeedMasonry photos={week} /></div>
         </section>
       )}
 
       {fresh.length > 0 && (
-        <section className="mx-auto w-full max-w-6xl px-4 pb-12 sm:pb-14">
+        <section className="reveal-on-scroll mx-auto w-full max-w-6xl px-4 pb-12 sm:pb-14">
           <SectionHeader title={ru.landing.recentWork} href="/ru/photo?tab=fresh" />
           <div className="mt-4"><FeedMasonry photos={fresh} /></div>
         </section>
       )}
 
       {stories.length > 0 && (
-        <section className="mx-auto w-full max-w-6xl px-4 pb-12 sm:pb-14">
+        <section className="reveal-on-scroll mx-auto w-full max-w-6xl px-4 pb-12 sm:pb-14">
           <SectionHeader title={ru.landing.discoverStories} />
           <div className="mt-4"><StoryCards stories={stories} /></div>
         </section>
