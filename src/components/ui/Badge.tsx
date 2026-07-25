@@ -30,6 +30,24 @@ export function ProBadge({ label }: { label: string }) {
   );
 }
 
+// Бейдж подписки: Prime — контур латунью, Elite — заливка латунью со звездой.
+// Показывается ТОЛЬКО для подписки (FREE — без отметок, как на MyWed).
+export function TierBadge({ tier, label }: { tier: 'PRIME' | 'ELITE'; label: string }) {
+  if (tier === 'ELITE') {
+    return (
+      <span className="t-caption inline-flex items-center gap-1 rounded-sm bg-recognition px-2 py-0.5 font-medium text-recognition-ink">
+        <Icon name="star-filled" size={11} />
+        {label}
+      </span>
+    );
+  }
+  return (
+    <span className="t-caption inline-flex items-center rounded-sm border border-recognition px-2 py-0.5 text-recognition">
+      {label}
+    </span>
+  );
+}
+
 type StatusKind = 'pending' | 'approved' | 'rejected';
 const STATUS_CLASS: Record<StatusKind, string> = {
   pending: 'bg-warning-soft text-warning',

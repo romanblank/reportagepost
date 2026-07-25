@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   priceForCity, cityTierOf, annualSavingPct, foundingPrice, portfolioLimit,
-  FREE_PORTFOLIO_LIMIT, PRO_PORTFOLIO_LIMIT, FOUNDING_DISCOUNT_PCT,
+  FREE_PORTFOLIO_LIMIT, PRIME_PORTFOLIO_LIMIT, ELITE_PORTFOLIO_LIMIT, FOUNDING_DISCOUNT_PCT,
 } from '@/lib/pricing';
 
 describe('pricing — цены по городам (чистая математика)', () => {
@@ -24,11 +24,24 @@ describe('pricing — цены по городам (чистая математ�
     expect(b.monthlyMinor).toBeGreaterThan(c.monthlyMinor);
   });
 
-  it('годовая скидка ~17%', () => {
+  it('Elite ≈ 2× Prime по городам', () => {
     for (const slug of ['moscow', 'kazan', 'tula']) {
-      const p = priceForCity(slug);
-      expect(annualSavingPct(p)).toBe(17);
-      expect(p.annualMinor).toBe(p.monthlyMinor * 10); // год = 10×месяц
+      const prime = priceForCity(slug, 'PRIME');
+      const elite = priceForCity(slug, 'ELITE');
+      expect(elite.monthlyMinor).toBeGreaterThan(prime.monthlyMinor);
+      expect(elite.plan).toBe('ELITE');
+      expect(prime.plan).toBe('PRIME');
+    }
+    expect(priceForCity('moscow', 'ELITE').monthlyMinor).toBe(189_000); // 1 890 ₽
+  });
+
+  it('годовая скидка ~17% (оба уровня)', () => {
+    for (const slug of ['moscow', 'kazan', 'tula']) {
+      for (const plan of ['PRIME', 'ELITE'] as const) {
+        const p = priceForCity(slug, plan);
+        expect(annualSavingPct(p)).toBe(17);
+        expect(p.annualMinor).toBe(p.monthlyMinor * 10); // год = 10×месяц
+      }
     }
   });
 
@@ -41,9 +54,11 @@ describe('pricing — цены по городам (чистая математ�
     expect(f.monthlyMinor % 1000).toBe(0);
   });
 
-  it('лимит портфолио по тарифу', () => {
+  it('лимит портфолио по уровню (FREE < PRIME ≤ ELITE)', () => {
     expect(portfolioLimit('FREE')).toBe(FREE_PORTFOLIO_LIMIT);
-    expect(portfolioLimit('PRO')).toBe(PRO_PORTFOLIO_LIMIT);
-    expect(PRO_PORTFOLIO_LIMIT).toBeGreaterThan(FREE_PORTFOLIO_LIMIT);
+    expect(portfolioLimit('PRIME')).toBe(PRIME_PORTFOLIO_LIMIT);
+    expect(portfolioLimit('ELITE')).toBe(ELITE_PORTFOLIO_LIMIT);
+    expect(PRIME_PORTFOLIO_LIMIT).toBeGreaterThan(FREE_PORTFOLIO_LIMIT);
+    expect(ELITE_PORTFOLIO_LIMIT).toBeGreaterThanOrEqual(PRIME_PORTFOLIO_LIMIT);
   });
 });

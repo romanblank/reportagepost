@@ -1,8 +1,9 @@
 import { db } from '@/lib/db';
+import { activeTier, type Tier } from '@/lib/subscription';
 
 // Каталог: одобренные фотографы города с фильтрами.
-// Ранжирование v1 (ADR-план): полнота профиля + свежесть публикаций.
-// v2 (S2) заменит формулу на взвешенные лайки поверх ActivityEvent.
+// Ранжирование: MERIT-first (ratingScore) — подписка лишь мягкий tiebreaker, не
+// pay-for-position (разворот 2026-07-25: синергия, не классовость).
 
 export interface CatalogFilters {
   citySlug: string;
@@ -36,6 +37,7 @@ export interface CatalogCard {
   ratingAvg: number; // средняя оценка отзывов (0 если нет)
   ratingCount: number;
   score: number;
+  tier: Tier; // FREE/PRIME/ELITE — бейдж подписки (FREE не показывается)
 }
 
 export function completenessScore(input: {
@@ -86,12 +88,13 @@ export async function catalogForCity(filters: CatalogFilters): Promise<CatalogPa
 
   const rows = await db.photographerProfile.findMany({
     where,
-    // PRO-приоритет первым (MyWed-модель: PRO платит за позицию), затем рейтинг
-    orderBy: [{ proRank: 'desc' }, { ratingScore: 'desc' }, { id: 'asc' }],
+    // MERIT-first: рейтинг (заслуги) первым, подписка (proRank) — лишь мягкий
+    // tiebreaker при равном рейтинге. НЕ pay-for-position.
+    orderBy: [{ ratingScore: 'desc' }, { proRank: 'desc' }, { id: 'asc' }],
     skip: (page - 1) * CATALOG_PAGE_SIZE,
     take: CATALOG_PAGE_SIZE + 1, // +1 для hasNext
     include: {
-      user: true,
+      user: { include: { subscription: true } },
       categories: { include: { category: true } },
       packages: { orderBy: { sortOrder: 'asc' } },
       photos: {
@@ -135,6 +138,7 @@ export async function catalogForCity(filters: CatalogFilters): Promise<CatalogPa
     ratingAvg: revMap.get(p.id)?.avg ?? 0,
     ratingCount: revMap.get(p.id)?.count ?? 0,
     score: p.ratingScore,
+    tier: activeTier(p.user.subscription),
   } satisfies CatalogCard));
 
   return { cards, page, hasNext };

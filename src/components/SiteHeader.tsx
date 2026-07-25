@@ -27,7 +27,7 @@ export async function SiteHeader() {
           <Link href={catalogHref} className={linkCls}>{ru.nav.catalog}</Link>
           <Link href="/ru/photo" className={linkCls}>{ru.nav.feed}</Link>
           <Link href="/ru/community" className={linkCls}>{ru.nav.community}</Link>
-          <Link href="/ru/pro" className={`${linkCls} text-recognition`}>{ru.pro.planPro}</Link>
+          <Link href="/ru/pro" className={`${linkCls} text-recognition`}>{ru.pro.navLabel}</Link>
           {session && <Link href="/ru/messages" className={linkCls}>{ru.nav.messages}</Link>}
         </div>
         {session && (

@@ -6,7 +6,7 @@ import { CATEGORIES, categoryNameRu } from '@/lib/category-data';
 import { ru } from '@/i18n/ru';
 import { Avatar } from '@/components/ui/Avatar';
 import { Rating } from '@/components/ui/Rating';
-import { VerifiedBadge } from '@/components/ui/Badge';
+import { VerifiedBadge, TierBadge } from '@/components/ui/Badge';
 
 // Галерейная сетка карточек каталога. Общая для города и город×категория (SEO),
 // чтобы верстка/alt не расходились. alt осмысленный (SEO — половина модели).
@@ -40,6 +40,7 @@ export function CatalogCards({ cards, cityName }: { cards: CatalogCard[]; cityNa
                   <Avatar avatarKey={card.avatarKey} firstName={card.firstName} lastName={card.lastName} size={24} />
                   <span className="t-small truncate font-medium">{card.firstName} {card.lastName}</span>
                   {card.verified && <VerifiedBadge label={ru.profile.verified} size={15} />}
+                  {card.tier !== 'FREE' && <TierBadge tier={card.tier} label={ru.pro.tierName[card.tier]} />}
                 </div>
                 <div className="mt-1 flex items-center gap-2">
                   {card.ratingCount > 0 && <Rating value={card.ratingAvg} showCount={false} size="sm" />}

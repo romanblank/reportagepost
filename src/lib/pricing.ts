@@ -4,10 +4,12 @@
 // строится на СТАТУСЕ (бейдж/Признание/безлимит/founding), заявки — вторичный
 // перк (заработает с ростом клиентского спроса). Годовая = ~10×месяц (−17%).
 
-export type PlanTier = 'FREE' | 'PRO';
+export type PlanTier = 'FREE' | 'PRIME' | 'ELITE';
+export type PaidTier = 'PRIME' | 'ELITE';
 export type CityTier = 'A' | 'B' | 'C';
 
 export interface CityPrice {
+  plan: PaidTier;
   cityTier: CityTier;
   monthlyMinor: number;
   annualMinor: number;
@@ -22,10 +24,18 @@ const TIER_B_CITIES = new Set([
   'volgograd', 'krasnodar',
 ]);
 
-const PRICE_BY_TIER: Record<CityTier, { monthlyMinor: number; annualMinor: number }> = {
-  A: { monthlyMinor: 99_000, annualMinor: 990_000 }, // 990 ₽ / 9 900 ₽
-  B: { monthlyMinor: 69_000, annualMinor: 690_000 }, // 690 ₽ / 6 900 ₽
-  C: { monthlyMinor: 49_000, annualMinor: 490_000 }, // 490 ₽ / 4 900 ₽
+// Цены: платный уровень × город. Elite ≈ 2× Prime. Годовая ≈ 10×месяц (−17%).
+const PRICE: Record<PaidTier, Record<CityTier, { monthlyMinor: number; annualMinor: number }>> = {
+  PRIME: {
+    A: { monthlyMinor: 99_000, annualMinor: 990_000 }, // 990 ₽ / 9 900 ₽
+    B: { monthlyMinor: 69_000, annualMinor: 690_000 }, // 690 ₽ / 6 900 ₽
+    C: { monthlyMinor: 49_000, annualMinor: 490_000 }, // 490 ₽ / 4 900 ₽
+  },
+  ELITE: {
+    A: { monthlyMinor: 189_000, annualMinor: 1_890_000 }, // 1 890 ₽ / 18 900 ₽
+    B: { monthlyMinor: 129_000, annualMinor: 1_290_000 }, // 1 290 ₽ / 12 900 ₽
+    C: { monthlyMinor: 89_000, annualMinor: 890_000 }, //   890 ₽ /  8 900 ₽
+  },
 };
 
 export function cityTierOf(citySlug: string | null | undefined): CityTier {
@@ -34,9 +44,9 @@ export function cityTierOf(citySlug: string | null | undefined): CityTier {
   return 'C';
 }
 
-export function priceForCity(citySlug: string | null | undefined): CityPrice {
+export function priceForCity(citySlug: string | null | undefined, plan: PaidTier = 'PRIME'): CityPrice {
   const cityTier = cityTierOf(citySlug);
-  return { cityTier, ...PRICE_BY_TIER[cityTier] };
+  return { plan, cityTier, ...PRICE[plan][cityTier] };
 }
 
 // Экономия годовой оплаты в % (для витрины). Одинакова по тарифам (~17%).
@@ -53,19 +63,23 @@ export const TRIAL_DAYS = 14; // пробный PRO по клику (без ка
 export function foundingPrice(p: CityPrice): CityPrice {
   const k = (100 - FOUNDING_DISCOUNT_PCT) / 100;
   return {
+    plan: p.plan,
     cityTier: p.cityTier,
     monthlyMinor: Math.round((p.monthlyMinor * k) / 1000) * 1000,
     annualMinor: Math.round((p.annualMinor * k) / 1000) * 1000,
   };
 }
 
-// Лимиты портфолио (численная граница FREE/PRO). Черновик — оператор утверждает.
-export const FREE_PORTFOLIO_LIMIT = 20; // кадров в портфолио на FREE
-export const PRO_PORTFOLIO_LIMIT = 300; // «без ограничений» PRO — с разумным потолком против злоупотреблений
-export const FREE_STORIES_ALLOWED = false; // фотоистории — только PRO
+// Лимиты портфолио по уровню. Черновик — оператор утверждает.
+export const FREE_PORTFOLIO_LIMIT = 20; // кадров на FREE
+export const PRIME_PORTFOLIO_LIMIT = 300; // «без ограничений» Prime — разумный потолок против злоупотреблений
+export const ELITE_PORTFOLIO_LIMIT = 1000; // Elite — расширенный потолок
+export const FREE_STORIES_ALLOWED = false; // фотоистории — только подписка
 
 export function portfolioLimit(tier: PlanTier): number {
-  return tier === 'PRO' ? PRO_PORTFOLIO_LIMIT : FREE_PORTFOLIO_LIMIT;
+  if (tier === 'ELITE') return ELITE_PORTFOLIO_LIMIT;
+  if (tier === 'PRIME') return PRIME_PORTFOLIO_LIMIT;
+  return FREE_PORTFOLIO_LIMIT;
 }
 
 // Матрица тарифов для витрины. Порядок = порядок в сравнении. Статус-первый оффер:
@@ -73,21 +87,31 @@ export function portfolioLimit(tier: PlanTier): number {
 // ниже. Ключи фич → i18n (ru.pro.features).
 export interface PlanFeature {
   key: string;
-  free: boolean;
+  minTier: PlanTier; // минимальный уровень, с которого фича доступна
 }
 
-// Разворот 2026-07-24 (MyWed-модель): заявки/контакты ОТКРЫТЫ ВСЕМ (как MyWed) —
-// на холодном каталоге лид-гейт продаёт пустоту. PRO монетизирует ПОЗИЦИЮ в
-// каталоге + СТАТУС (бейдж/«Признание») + ЛИМИТЫ, а не доступ к лидам. Приоритет
-// по пулу заявок включим позже, когда пойдёт реальный клиентский спрос.
+const TIER_ORDER: Record<PlanTier, number> = { FREE: 0, PRIME: 1, ELITE: 2 };
+
+// Доступна ли фича на данном уровне (уровень ≥ минимального).
+export function featureInTier(f: PlanFeature, tier: PlanTier): boolean {
+  return TIER_ORDER[tier] >= TIER_ORDER[f.minTier];
+}
+
+// Разворот 2026-07-25 (синергия, не классовость): каталог ранжируется MERIT, а
+// НЕ платной позицией. Подписка даёт ИНСТРУМЕНТЫ и УЧАСТИЕ, а не место над
+// коллегами. Заявки/контакты открыты всем (как MyWed). Prime — полный
+// инструментарий мастерской + вход в «Признание»; Elite — усиление участия
+// (рекомендуемые/редподборки), расширенная аналитика, ранний доступ.
 export const PLAN_FEATURES: PlanFeature[] = [
-  { key: 'page', free: true }, // публичная страница + профиль в каталоге
-  { key: 'portfolioBasic', free: true }, // портфолио до FREE_PORTFOLIO_LIMIT
-  { key: 'inquiries', free: true }, // приём заявок от заказчиков — открыто всем
-  { key: 'priority', free: false }, // приоритет (позиция) в каталоге и поиске
-  { key: 'recognition', free: false }, // бейдж PRO и участие в «Признании»
-  { key: 'portfolioUnlimited', free: false }, // портфолио без ограничений + фотоистории
-  { key: 'richProfile', free: false }, // пакеты цен, FAQ, оборудование, команда
-  { key: 'analytics', free: false }, // статистика просмотров и сохранений
-  { key: 'fastReview', free: false }, // приоритетное рассмотрение
+  { key: 'page', minTier: 'FREE' }, // публичная страница + профиль в каталоге
+  { key: 'inquiries', minTier: 'FREE' }, // приём заявок от заказчиков — открыто всем
+  { key: 'portfolioBasic', minTier: 'FREE' }, // портфолио до FREE_PORTFOLIO_LIMIT
+  { key: 'portfolioUnlimited', minTier: 'PRIME' }, // портфолио без границ + фотоистории
+  { key: 'richProfile', minTier: 'PRIME' }, // пакеты цен, FAQ, оборудование, команда
+  { key: 'recognition', minTier: 'PRIME' }, // бейдж + участие в «Признании»
+  { key: 'analytics', minTier: 'PRIME' }, // статистика просмотров и сохранений
+  { key: 'fastReview', minTier: 'PRIME' }, // приоритетное рассмотрение изменений
+  { key: 'recommended', minTier: 'ELITE' }, // ротация в «Рекомендуемых» + приоритет редподборок
+  { key: 'analyticsPlus', minTier: 'ELITE' }, // кто смотрел/сохранял, тренды
+  { key: 'earlyAccess', minTier: 'ELITE' }, // ранний доступ к фичам + персональный онбординг
 ];

@@ -15,7 +15,7 @@ export function SiteFooter() {
           </span>
           <Link href={CATALOG_ROOT} className={linkCls}>{ru.nav.catalog}</Link>
           <Link href="/ru/community" className={linkCls}>{ru.nav.community}</Link>
-          <Link href="/ru/pro" className={linkCls}>{ru.pro.planPro}</Link>
+          <Link href="/ru/pro" className={linkCls}>{ru.pro.navLabel}</Link>
           <Link href="/ru/legal/privacy" className={linkCls}>{ru.footer.privacy}</Link>
           <Link href="/ru/legal/offer" className={linkCls}>{ru.footer.offer}</Link>
         </div>

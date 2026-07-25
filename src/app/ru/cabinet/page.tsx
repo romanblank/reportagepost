@@ -67,7 +67,7 @@ export default async function CabinetPage() {
 
   // PRO-статус (Метрика №1: поверхность оплаты в кабинете)
   const subStatus = session.role === 'PHOTOGRAPHER' && profile ? await subscriptionStatus(session.userId) : null;
-  const lockedPerks = PLAN_FEATURES.filter((f) => !f.free).map((f) => ru.pro.features[f.key]);
+  const lockedPerks = PLAN_FEATURES.filter((f) => f.minTier !== 'FREE').map((f) => ru.pro.features[f.key]);
   const graceUntil = subStatus?.graceEndsAt ? new Intl.DateTimeFormat('ru-RU').format(subStatus.graceEndsAt) : null;
 
   return (

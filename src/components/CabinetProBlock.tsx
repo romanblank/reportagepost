@@ -6,11 +6,11 @@ import { ru } from '@/i18n/ru';
 import { useToast } from '@/components/ui/Toast';
 
 interface Props {
-  tier: 'FREE' | 'PRO';
+  tier: 'FREE' | 'PRIME' | 'ELITE';
   isFounding: boolean;
   graceUntil: string | null; // отформатированная дата или null
   proRequested: boolean;
-  lockedPerks: string[]; // подписи PRO-выгод (золотом)
+  lockedPerks: string[]; // подписи выгод подписки (золотом)
 }
 
 export function CabinetProBlock({ tier, isFounding, graceUntil, proRequested, lockedPerks }: Props) {
@@ -26,12 +26,12 @@ export function CabinetProBlock({ tier, isFounding, graceUntil, proRequested, lo
     setRequested(true);
   }
 
-  if (tier === 'PRO') {
+  if (tier !== 'FREE') {
     return (
       <section className="card border-recognition/40 bg-recognition-soft/30 p-4">
         <div className="flex items-center justify-between gap-3">
           <p className="t-caption text-recognition">{ru.cabinet.proTitle}</p>
-          <span className="rounded-sm bg-recognition-soft px-2 py-0.5 text-xs font-medium text-recognition">PRO</span>
+          <span className="rounded-sm bg-recognition-soft px-2 py-0.5 text-xs font-medium text-recognition">{ru.pro.tierName[tier]}</span>
         </div>
         <p className="mt-1 font-medium">{ru.cabinet.proOnPro}</p>
         {isFounding && <p className="mt-0.5 text-sm text-recognition">{ru.cabinet.proFounding}</p>}

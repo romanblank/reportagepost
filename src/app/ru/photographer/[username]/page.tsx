@@ -9,7 +9,7 @@ import { formatRubMinor } from '@/lib/money';
 import { ru } from '@/i18n/ru';
 import { Avatar } from '@/components/ui/Avatar';
 import { Rating } from '@/components/ui/Rating';
-import { VerifiedBadge } from '@/components/ui/Badge';
+import { VerifiedBadge, TierBadge } from '@/components/ui/Badge';
 import { getSession } from '@/lib/auth';
 import { FavoriteButton, FollowButton, MessageButton } from '@/components/EngagementButtons';
 import { PortfolioGallery } from '@/components/PortfolioGallery';
@@ -20,7 +20,7 @@ import { ReviewSection } from '@/components/ReviewSection';
 import { reviewsForProfile } from '@/lib/reviews';
 import { VerifyButton } from '@/components/VerifyButton';
 import { parseFaq } from '@/lib/faq';
-import { isPro as isProUser } from '@/lib/subscription';
+import { tierOf } from '@/lib/subscription';
 
 // dynamic: страница показывает состояние лайков/подписки текущего пользователя
 export const dynamic = 'force-dynamic';
@@ -74,7 +74,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
   const session = await getSession();
   // Все независимые запросы — одним Promise.all (ревью №7: было 4 сериализованных
   // round-trip'а на каждый force-dynamic заход).
-  const [favoritedRow, likes, myLikes, following, followers, rankAbove, moreInCity, reviews, alreadyReviewedRow, followingCount, photographerIsPro] = await Promise.all([
+  const [favoritedRow, likes, myLikes, following, followers, rankAbove, moreInCity, reviews, alreadyReviewedRow, followingCount, photographerTier] = await Promise.all([
     session
       ? db.favoritePhotographer.findUnique({
           where: { userId_profileId: { userId: session.userId, profileId: profile.id } },
@@ -121,7 +121,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
       : Promise.resolve(null),
     // подписки фотографа (парити MyWed: счётчик «подписки»)
     db.follow.count({ where: { followerId: profile.userId } }),
-    isProUser(profile.userId), // PRO-бейдж в шапке (директива №3)
+    tierOf(profile.userId), // бейдж уровня (Prime/Elite) в шапке
   ]);
   const favorited = Boolean(favoritedRow);
   const alreadyReviewed = Boolean(alreadyReviewedRow);
@@ -159,8 +159,8 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
             <h1 className="t-h1 flex flex-wrap items-center gap-2">
               <span>{profile.user.firstName} {profile.user.lastName}</span>
               {profile.verified && <VerifiedBadge label={ru.profile.verifiedHint} size={22} />}
-              {photographerIsPro && (
-                <span className="rounded-sm bg-recognition-soft px-1.5 py-0.5 text-xs font-semibold text-recognition align-middle">{ru.profile.proBadge}</span>
+              {photographerTier !== 'FREE' && (
+                <TierBadge tier={photographerTier} label={ru.pro.tierName[photographerTier]} />
               )}
             </h1>
             <p className="mt-0.5 text-sm muted">@{profile.username}</p>
