@@ -160,6 +160,9 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
   const heroFacts: string[] = [];
   if (shoots.count > 0) heroFacts.push(`${shoots.count} ${ru.profile.shootsLabel}`);
   if (shoots.returning > 0) heroFacts.push(`${shoots.returning} ${ru.profile.returningLabel}`);
+  // Расширенная страница (пакеты цен, оборудование, команда, FAQ) — перк Active/Active+.
+  // На FREE публично не показываем (заказчик пишет напрямую, цену уточняет в диалоге).
+  const isPaid = photographerTier !== 'FREE';
 
   return (
     <main className="flex-1">
@@ -208,7 +211,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
                 <ConfirmShootButton profileId={profile.id} initialConfirmed={iShotWith} authed={Boolean(session)} />
               )}
             </div>
-            {minPkg && (
+            {isPaid && minPkg && (
               <div className="flex shrink-0 items-baseline gap-2 sm:flex-col sm:items-end sm:gap-0.5">
                 <span className="t-caption muted">{ru.profile.packageHours(minPkg.hours)}</span>
                 <span className="tnum text-xl font-semibold">{formatRubMinor(minPkg.priceMinor)}</span>
@@ -245,11 +248,11 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
           </div>
         </div>
 
-        {/* О фотографе */}
-        {(profile.bio || profile.experienceYears != null || profile.languages.length > 0 || profile.equipment || profile.teamInfo) && (
+        {/* О фотографе. Оборудование/команда — расширенные поля (Active), гейтим. */}
+        {(profile.bio || profile.experienceYears != null || profile.languages.length > 0 || (isPaid && (profile.equipment || profile.teamInfo))) && (
           <section className="mt-6">
             {profile.bio && <p className="max-w-2xl text-[15px] leading-relaxed">{profile.bio}</p>}
-            {(profile.experienceYears != null || profile.languages.length > 0 || profile.equipment || profile.teamInfo) && (
+            {(profile.experienceYears != null || profile.languages.length > 0 || (isPaid && (profile.equipment || profile.teamInfo))) && (
               <dl className="mt-4 grid max-w-2xl grid-cols-1 gap-x-8 gap-y-1.5 text-sm sm:grid-cols-2">
                 {profile.experienceYears != null && (
                   <div className="flex gap-2"><dt className="muted">{ru.profile.experienceLabel}:</dt><dd>{ru.profile.experienceYears(profile.experienceYears)}</dd></div>
@@ -257,10 +260,10 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
                 {profile.languages.length > 0 && (
                   <div className="flex gap-2"><dt className="muted">{ru.profile.languagesLabel}:</dt><dd>{profile.languages.map((l) => ru.profile.langName[l] ?? l).join(', ')}</dd></div>
                 )}
-                {profile.equipment && (
+                {isPaid && profile.equipment && (
                   <div className="flex gap-2"><dt className="muted">{ru.profile.equipmentLabel}:</dt><dd>{profile.equipment}</dd></div>
                 )}
-                {profile.teamInfo && (
+                {isPaid && profile.teamInfo && (
                   <div className="flex gap-2"><dt className="muted">{ru.profile.teamLabel}:</dt><dd>{profile.teamInfo}</dd></div>
                 )}
               </dl>
@@ -268,8 +271,8 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
           </section>
         )}
 
-      {/* Полный прайс — только если пакетов больше одного (entry-цена уже в панели действий) */}
-      {profile.packages.length > 1 && (
+      {/* Полный прайс — перк Active (пакеты цен). На FREE публично скрыт. */}
+      {isPaid && profile.packages.length > 1 && (
         <section className="mt-8">
           <h2 className="t-caption muted">{ru.profile.pricesTitle}</h2>
           <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -323,7 +326,8 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
         />
       </section>
 
-      {faq.length > 0 && (
+      {/* FAQ — перк Active. На FREE публично скрыт. */}
+      {isPaid && faq.length > 0 && (
         <section className="mt-10 border-t border-line pt-6">
           <h2 className="text-lg font-medium">{ru.profile.faqTitle}</h2>
           <dl className="mt-4 flex flex-col gap-4">

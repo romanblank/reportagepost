@@ -38,6 +38,7 @@ describe.skipIf(!hasDb)('E2E: полный цикл фотографа и зак
       await db.photographerProfile.delete({ where: { id: pid } }).catch(() => {});
     }
     for (const uid of ids.users) {
+      await db.subscription.deleteMany({ where: { userId: uid } });
       await db.activityEvent.deleteMany({ where: { actorUserId: uid } });
       await db.inquiry.deleteMany({ where: { clientUserId: uid } });
       await db.notification.deleteMany({ where: { userId: uid } });
@@ -112,7 +113,9 @@ describe.skipIf(!hasDb)('E2E: полный цикл фотографа и зак
     const photo = await db.photo.findFirstOrThrow({ where: { profileId: profile.id } });
     expect((await togglePhotoLike(client.id, photo.id)).liked).toBe(true);
 
-    // 7. Серия → модерация → опубликована
+    // 7. Серия → модерация → опубликована (серии — перк Active, грантим подписку)
+    const { grantFoundingSub } = await import('@/lib/subscription');
+    await grantFoundingSub(photographer.id, 'moscow', 'PRIME');
     const storyPhotos = await db.photo.findMany({ where: { profileId: profile.id }, take: 6, select: { id: true } });
     const { storyId } = await createStory(photographer.id, { title: 'Фестиваль лета', categorySlug: 'concerts-festivals', photoIds: storyPhotos.map((p) => p.id) });
     await approveStory(storyId);

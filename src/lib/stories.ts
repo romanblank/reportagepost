@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { DomainError } from '@/lib/errors';
 import { likeWeightFor } from '@/lib/rating';
+import { tierOf } from '@/lib/subscription';
 
 // Серии/истории (модель MyWed): репортаж с одного события — подборка одобренных
 // фото фотографа. Публикация серии проходит модерацию отдельно.
@@ -17,6 +18,9 @@ export async function createStory(
 ): Promise<{ storyId: string }> {
   const profile = await db.photographerProfile.findUnique({ where: { userId } });
   if (!profile || profile.status !== 'APPROVED') throw new DomainError('profile_not_approved', 403);
+
+  // Серии — перк подписки Active/Active+ (обещано в «портфолио без ограничений и серии»).
+  if ((await tierOf(userId)) === 'FREE') throw new DomainError('stories_require_active', 403);
 
   if (input.photoIds.length < STORY_MIN_PHOTOS || input.photoIds.length > STORY_MAX_PHOTOS) {
     throw new DomainError('photo_count', 400);

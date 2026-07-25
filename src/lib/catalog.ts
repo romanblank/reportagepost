@@ -133,8 +133,12 @@ export async function catalogForCity(filters: CatalogFilters): Promise<CatalogPa
 
   const rows = await db.photographerProfile.findMany({
     where,
-    // MERIT-first: рейтинг первым, подписка (proRank) — лишь мягкий tiebreaker.
-    orderBy: [{ ratingScore: 'desc' }, { proRank: 'desc' }, { id: 'asc' }],
+    // MERIT-ONLY: порядок основной выдачи НЕ зависит от подписки (антиклассизм-
+    // инвариант). proRank убран — он давал платным верх при равном ratingScore
+    // (а на молодом каталоге он у всех ≈ равен). Буст подписки живёт ТОЛЬКО в
+    // отдельной полке recommendedForCity. Tiebreaker — детерминированный id
+    // (стабильная пагинация; не деньги). Ротацию равного merit — отдельным пунктом.
+    orderBy: [{ ratingScore: 'desc' }, { id: 'asc' }],
     skip: (page - 1) * CATALOG_PAGE_SIZE,
     take: CATALOG_PAGE_SIZE + 1, // +1 для hasNext
     include: CATALOG_INCLUDE,

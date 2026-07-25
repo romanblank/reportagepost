@@ -7,6 +7,7 @@ describe.skipIf(!hasDb)('stories: создание, модерация, лайк
   it('серия из своих фото → approve → лайк с событием', async () => {
     const { db } = await import('@/lib/db');
     const { createStory, approveStory, toggleStoryLike, STORY_MIN_PHOTOS } = await import('@/lib/stories');
+    const { grantFoundingSub } = await import('@/lib/subscription');
     const { DomainError } = await import('@/lib/errors');
 
     const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
@@ -20,7 +21,13 @@ describe.skipIf(!hasDb)('stories: создание, модерация, лайк
       ),
     );
 
-    // мало фото — отказ
+    // FREE — серии недоступны (перк Active)
+    await expect(createStory(owner.id, { title: 'Ф', categorySlug: 'concerts-festivals', photoIds: photos.map((p) => p.id) })).rejects.toThrow('stories_require_active');
+
+    // грант Active — серии открываются
+    await grantFoundingSub(owner.id, 'moscow', 'PRIME');
+
+    // мало фото — отказ (уже Active, проверяем валидацию кол-ва)
     await expect(createStory(owner.id, { title: 'Мало', categorySlug: 'concerts-festivals', photoIds: [photos[0].id] })).rejects.toThrow(DomainError);
 
     const { storyId } = await createStory(owner.id, {
@@ -48,6 +55,7 @@ describe.skipIf(!hasDb)('stories: создание, модерация, лайк
     await db.like.deleteMany({ where: { storyId } });
     await db.photo.deleteMany({ where: { profileId: profile.id } });
     await db.story.delete({ where: { id: storyId } });
+    await db.subscription.deleteMany({ where: { userId: owner.id } });
     await db.photographerProfile.delete({ where: { id: profile.id } });
     await db.user.deleteMany({ where: { id: { in: [owner.id, liker.id] } } });
   });
