@@ -1,0 +1,32 @@
+import { ru } from '@/i18n/ru';
+import type { PhotographerStats } from '@/lib/analytics';
+
+// Дашборд статистики для подписчиков (ценность Prime/Elite). Серверный компонент,
+// чистое отображение. Elite видит тренд за 30 дней.
+export function CabinetStats({ stats, tier }: { stats: PhotographerStats; tier: 'PRIME' | 'ELITE' }) {
+  const items = [
+    { label: ru.cabinet.statSaves, value: stats.saves },
+    { label: ru.cabinet.statFollowers, value: stats.followers },
+    { label: ru.cabinet.statLikes, value: stats.likes },
+    { label: ru.cabinet.statReviews, value: stats.reviews },
+  ];
+  return (
+    <section className="card p-4">
+      <div className="flex items-center justify-between">
+        <p className="t-caption text-recognition">{ru.cabinet.statsTitle}</p>
+        <span className="rounded-sm bg-recognition-soft px-2 py-0.5 text-xs font-medium text-recognition">{ru.pro.tierName[tier]}</span>
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {items.map((it) => (
+          <div key={it.label} className="rounded-lg bg-surface-2 p-3">
+            <p className="tnum text-2xl font-semibold">{it.value}</p>
+            <p className="mt-0.5 text-xs muted">{it.label}</p>
+          </div>
+        ))}
+      </div>
+      {tier === 'ELITE' && stats.saves30d > 0 && (
+        <p className="mt-3 text-sm text-recognition">{ru.cabinet.statSaves30d(stats.saves30d)}</p>
+      )}
+    </section>
+  );
+}

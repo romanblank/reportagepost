@@ -16,6 +16,8 @@ import { DeleteAccountButton } from '@/components/DeleteAccountButton';
 import { subscriptionStatus } from '@/lib/subscription';
 import { PLAN_FEATURES } from '@/lib/pricing';
 import { CabinetProBlock } from '@/components/CabinetProBlock';
+import { photographerStats } from '@/lib/analytics';
+import { CabinetStats } from '@/components/CabinetStats';
 
 export const metadata: Metadata = { title: ru.cabinet.title };
 export const dynamic = 'force-dynamic'; // всегда свежие заявки/статус
@@ -69,6 +71,10 @@ export default async function CabinetPage() {
   const subStatus = session.role === 'PHOTOGRAPHER' && profile ? await subscriptionStatus(session.userId) : null;
   const lockedPerks = PLAN_FEATURES.filter((f) => f.minTier !== 'FREE').map((f) => ru.pro.features[f.key]);
   const graceUntil = subStatus?.graceEndsAt ? new Intl.DateTimeFormat('ru-RU').format(subStatus.graceEndsAt) : null;
+  // Статистика — ценность подписки (только для активных Prime/Elite)
+  const stats = subStatus && subStatus.tier !== 'FREE' && profile
+    ? await photographerStats(session.userId, profile.id)
+    : null;
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:py-10">
@@ -130,6 +136,12 @@ export default async function CabinetPage() {
                 proRequested={subStatus.proRequested}
                 lockedPerks={lockedPerks}
               />
+            </div>
+          )}
+
+          {stats && subStatus && subStatus.tier !== 'FREE' && (
+            <div className="mt-4">
+              <CabinetStats stats={stats} tier={subStatus.tier} />
             </div>
           )}
 
