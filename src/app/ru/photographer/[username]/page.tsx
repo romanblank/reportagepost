@@ -8,7 +8,6 @@ import Link from 'next/link';
 import { formatRubMinor } from '@/lib/money';
 import { ru } from '@/i18n/ru';
 import { Avatar } from '@/components/ui/Avatar';
-import { Rating } from '@/components/ui/Rating';
 import { VerifiedBadge, TierBadge } from '@/components/ui/Badge';
 import { getSession } from '@/lib/auth';
 import { FavoriteButton, FollowButton, MessageButton } from '@/components/EngagementButtons';
@@ -75,7 +74,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
   const session = await getSession();
   // Все независимые запросы — одним Promise.all (ревью №7: было 4 сериализованных
   // round-trip'а на каждый force-dynamic заход).
-  const [favoritedRow, likes, myLikes, following, followers, rankAbove, moreInCity, reviews, alreadyReviewedRow, followingCount, photographerTier] = await Promise.all([
+  const [favoritedRow, likes, myLikes, following, followers, moreInCity, reviews, alreadyReviewedRow, followingCount, photographerTier] = await Promise.all([
     session
       ? db.favoritePhotographer.findUnique({
           where: { userId_profileId: { userId: session.userId, profileId: profile.id } },
@@ -98,10 +97,6 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
         })
       : Promise.resolve(null),
     db.follow.count({ where: { followeeId: profile.userId } }),
-    // Место в городе: сколько одобренных профилей города с рейтингом выше
-    db.photographerProfile.count({
-      where: { status: 'APPROVED', cityId: profile.cityId, ratingScore: { gt: profile.ratingScore } },
-    }),
     // «Ещё в этом городе» — кросс-линки для находимости (работает на текущих данных)
     db.photographerProfile.findMany({
       where: { status: 'APPROVED', cityId: profile.cityId, id: { not: profile.id } },
@@ -129,7 +124,6 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
   const likeCount = new Map(likes.map((l) => [l.photoId, l._count]));
   const likedSet = new Set(myLikes.map((l) => l.photoId));
   const isSelf = session?.userId === profile.userId;
-  const cityRank = rankAbove + 1;
   const lastSeen = profile.user.lastSeenAt;
   const onlineText = relativeOnline(lastSeen);
   const faq = parseFaq(profile.faq);
@@ -173,7 +167,6 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
               <div className="mt-2"><VerifyButton profileId={profile.id} verified={profile.verified} /></div>
             )}
             <div className="mt-4 flex flex-wrap items-baseline gap-x-7 gap-y-2">
-              <span className="flex items-baseline gap-1.5"><b className="tnum text-lg font-semibold">{cityRank}</b><span className="t-caption muted">{ru.profile.statCityRank}</span></span>
               <span className="flex items-baseline gap-1.5"><b className="tnum text-lg font-semibold">{followers}</b><span className="t-caption muted">{ru.profile.statFollowers}</span></span>
               <span className="flex items-baseline gap-1.5"><b className="tnum text-lg font-semibold">{followingCount}</b><span className="t-caption muted">{ru.profile.statFollowing}</span></span>
               <span className="flex items-baseline gap-1.5"><b className="tnum text-lg font-semibold">{profile.photos.length}</b><span className="t-caption muted">{ru.profile.statPhotos}</span></span>
@@ -181,12 +174,6 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
           </div>
         </div>
         {onlineText && <p className="mt-0.5 text-xs muted">{onlineText}</p>}
-        {reviews.aggregate.count > 0 && (
-          <div className="mt-1.5 flex items-center gap-2">
-            <Rating value={reviews.aggregate.avg} size="lg" showCount={false} />
-            <span className="text-sm muted">{ru.reviews.count(reviews.aggregate.count)}</span>
-          </div>
-        )}
         {profile.bio && <p className="mt-3 max-w-2xl text-[15px] leading-relaxed">{profile.bio}</p>}
         {(profile.experienceYears != null || profile.languages.length > 0 || profile.equipment || profile.teamInfo) && (
           <dl className="mt-4 grid max-w-2xl grid-cols-1 gap-x-8 gap-y-1.5 text-sm sm:grid-cols-2">

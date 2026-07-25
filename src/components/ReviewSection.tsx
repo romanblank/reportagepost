@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { ru } from '@/i18n/ru';
 import { describeApiError } from '@/lib/form-errors';
-import { Rating } from '@/components/ui/Rating';
 
 export interface ReviewItem {
   id: string;
@@ -24,10 +23,6 @@ interface Me {
   isOwner: boolean;
   isAdmin: boolean;
   alreadyReviewed: boolean;
-}
-
-function Stars({ n }: { n: number }) {
-  return <Rating value={n} showCount={false} />;
 }
 
 export function ReviewSection({
@@ -95,10 +90,7 @@ export function ReviewSection({
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h2 className="text-lg font-medium">{ru.reviews.title}</h2>
         {aggregate.count > 0 && (
-          <span className="text-sm">
-            <Stars n={Math.round(aggregate.avg)} />{' '}
-            <span className="muted">{ru.reviews.summary(aggregate.count)}</span>
-          </span>
+          <span className="text-sm muted">{ru.reviews.summary(aggregate.count)}</span>
         )}
       </div>
 
@@ -138,7 +130,6 @@ export function ReviewSection({
           {items.map((r) => (
             <li key={r.id} className="text-sm">
               <div className="flex flex-wrap items-center gap-2">
-                <Stars n={r.rating} />
                 <span className="font-medium">{r.authorName || '—'}</span>
                 {r.verified && (
                   <span className="rounded-full bg-surface-2 px-2 py-0.5 text-xs muted">{ru.reviews.verified}</span>

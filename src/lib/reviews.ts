@@ -116,18 +116,18 @@ export async function reviewsForProfile(
   profileId: string,
   limit = 50,
 ): Promise<{ items: ReviewView[]; aggregate: ReviewAggregate }> {
+  // Публично — только положительные отзывы (rating≥4): «Признательность заказчиков».
+  // Низкие оценки (≤3) собираются и кормят внутренний порядок/дашборд автора, но
+  // публично не топят (доброжелательная система, 2026-07-25). Среднее не выводим.
+  const pub = { profileId, status: 'VISIBLE' as const, rating: { gte: 4 } };
   const [rows, agg] = await Promise.all([
     db.review.findMany({
-      where: { profileId, status: 'VISIBLE' },
+      where: pub,
       orderBy: [{ verified: 'desc' }, { createdAt: 'desc' }],
       take: limit,
       include: { author: { select: { firstName: true, lastName: true } } },
     }),
-    db.review.aggregate({
-      where: { profileId, status: 'VISIBLE' },
-      _avg: { rating: true },
-      _count: true,
-    }),
+    db.review.aggregate({ where: pub, _avg: { rating: true }, _count: true }),
   ]);
   return {
     items: rows.map((r) => ({
