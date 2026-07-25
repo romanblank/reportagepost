@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Cormorant, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ru } from "@/i18n/ru";
-import { DEFAULT_LOCALE, PUBLIC_LAUNCH } from "@/lib/constants";
+import { DEFAULT_LOCALE, PUBLIC_LAUNCH, APP_DOMAIN } from "@/lib/constants";
 import { SiteHeader } from "@/components/SiteHeader";
 import { getSession } from "@/lib/auth";
 import { cabinetHrefFor } from "@/lib/nav";
@@ -34,6 +34,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  // Абсолютная база для OG/twitter-картинок (иначе резолвятся относительно
+  // localhost и соц-превью бренда ломаются).
+  metadataBase: new URL(`https://${APP_DOMAIN}`),
   title: ru.meta.title,
   description: ru.meta.description,
   // Инвариант закрытости до S4: meta-noindex как третий эшелон (robots.txt +
