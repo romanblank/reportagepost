@@ -34,6 +34,7 @@ jobs:
       - run: npx prisma migrate deploy && npx prisma generate
       - run: npm run db:seed
       - run: npm test
+      - run: npm run e2e # e2e-батарея (S2-критерий): полный цикл + петля доверия на чистом PG
       - run: npm run build
 
   build-push:
