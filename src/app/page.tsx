@@ -33,9 +33,12 @@ export default async function Home() {
     { label: ru.dashboard.statStories, value: stats.stories },
   ].filter((t) => t.value > 0);
 
+  const heroBackdrop = editors[0] ?? week[0] ?? fresh[0];
+
   return (
     <main className="flex-1">
-      <LandingHero photographers={photographers} photos={photos} />
+      <LandingHero photographers={photographers} photos={photos}
+        backdropSrc={heroBackdrop ? webVariantUrl(heroBackdrop.storageKey) : null} />
 
       {/* Жанры репортажа — навигационные карточки (всегда, даже пустые: показывают охват) */}
       <section className="mx-auto w-full max-w-6xl px-4 py-12 sm:py-14">
