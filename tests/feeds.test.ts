@@ -32,6 +32,41 @@ describe.skipIf(!hasDb)('feeds: подписки и рекомендации (Б
     await db.user.deleteMany({ where: { id: { in: [author.id, follower.id] } } });
   });
 
+  it('находки редакции: квота 80/20 — 80% подписчики, 20% кураторские merit', async () => {
+    const { db } = await import('@/lib/db');
+    const { editorsChoice } = await import('@/lib/feeds');
+    const { grantFoundingSub } = await import('@/lib/subscription');
+
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const city = await db.city.findFirstOrThrow({ where: { slug: 'moscow' } });
+    const cat = await db.category.findFirstOrThrow({ where: { slug: 'sports' } });
+    const uids: string[] = [];
+    const subUsernames = new Set<string>();
+
+    // helper: фотограф + 1 editor's-choice фото (самое свежее — вверху пула)
+    const mk = async (tag: string, subscribed: boolean, i: number) => {
+      const u = await db.user.create({ data: { role: 'PHOTOGRAPHER', status: 'ACTIVE', firstName: tag, lastName: 'Q', email: `ec-${tag}-${stamp}@test.local` } });
+      uids.push(u.id);
+      const uname = `ec-${tag}-${stamp}`;
+      const p = await db.photographerProfile.create({ data: { userId: u.id, username: uname, cityId: city.id, status: 'APPROVED' } });
+      await db.photo.create({ data: { profileId: p.id, categoryId: cat.id, storageKey: `photos/${uname}/original.jpg`, width: 2400, height: 1600, status: 'APPROVED', publishedAt: new Date(), editorsChoiceAt: new Date(Date.now() + 3_600_000 - i * 1000) } });
+      if (subscribed) { await grantFoundingSub(u.id, 'moscow', 'PRIME'); subUsernames.add(uname); }
+    };
+    // 5 подписчиков + 2 кураторских; editorsChoiceAt в будущем → наш пул наверху
+    for (let i = 0; i < 5; i++) await mk(`sub${i}`, true, i);
+    for (let i = 0; i < 2; i++) await mk(`cur${i}`, false, 10 + i);
+
+    const res = await editorsChoice(5);
+    const fromSub = res.filter((r) => subUsernames.has(r.username)).length;
+    expect(res).toHaveLength(5);
+    expect(fromSub).toBe(4); // round(5*0.8)=4 слота подписчикам, 1 — кураторский
+
+    await db.photo.deleteMany({ where: { profile: { userId: { in: uids } } } });
+    await db.subscription.deleteMany({ where: { userId: { in: uids } } });
+    await db.photographerProfile.deleteMany({ where: { userId: { in: uids } } });
+    await db.user.deleteMany({ where: { id: { in: uids } } });
+  });
+
   it('лучшее недели: ранжирует по текущим лайкам в окне; лайк вне окна недели не в счёте', async () => {
     const { db } = await import('@/lib/db');
     const { bestOfWeek, bestOfYear } = await import('@/lib/feeds');

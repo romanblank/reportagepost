@@ -248,6 +248,15 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
           </div>
         </div>
 
+        {/* Владельцу-FREE — почему часть его страницы скрыта + апгрейд */}
+        {isSelf && !isPaid && (
+          <Link href="/ru/pro"
+            className="mt-5 flex items-center justify-between gap-3 rounded-media border border-recognition/40 bg-recognition-soft/30 px-4 py-3 text-sm transition hover:border-recognition/70">
+            <span className="muted">{ru.profile.freeOwnerHint}</span>
+            <span className="shrink-0 font-medium text-recognition">{ru.profile.freeOwnerCta} →</span>
+          </Link>
+        )}
+
         {/* О фотографе. Оборудование/команда — расширенные поля (Active), гейтим. */}
         {(profile.bio || profile.experienceYears != null || profile.languages.length > 0 || (isPaid && (profile.equipment || profile.teamInfo))) && (
           <section className="mt-6">
