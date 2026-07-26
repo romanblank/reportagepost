@@ -167,7 +167,10 @@ export default async function CabinetPage() {
                 { href: '/ru/cabinet/profile/edit', title: ru.editProfile.title, desc: ru.cabinet.tileEditDesc },
                 { href: '/ru/cabinet/portfolio', title: ru.cabinet.portfolioLink, desc: ru.cabinet.tilePortfolioDesc },
                 ...(profile.status === 'APPROVED'
-                  ? [{ href: '/ru/cabinet/availability', title: ru.cabinet.availabilityLink, desc: ru.cabinet.tileAvailabilityDesc }]
+                  ? [
+                      { href: '/ru/cabinet/stories', title: ru.cabinetStories.tileTitle, desc: ru.cabinetStories.tileDesc },
+                      { href: '/ru/cabinet/availability', title: ru.cabinet.availabilityLink, desc: ru.cabinet.tileAvailabilityDesc },
+                    ]
                   : []),
                 { href: '/ru/cabinet/settings', title: ru.cabinet.settingsLink, desc: ru.cabinet.tileSettingsDesc },
               ].map((t) => (
