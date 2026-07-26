@@ -12,8 +12,11 @@ describe.skipIf(!hasDb)('availability: календарь занятости (Б
 
     const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
     const spb = await db.city.findFirstOrThrow({ where: { slug: 'saint-petersburg' } });
+    const cat = await db.category.findFirstOrThrow({ where: { slug: 'concerts-festivals' } });
     const owner = await db.user.create({ data: { role: 'PHOTOGRAPHER', status: 'ACTIVE', firstName: 'А', lastName: 'В', email: `avail-${stamp}@test.local` } });
     const profile = await db.photographerProfile.create({ data: { userId: owner.id, username: `avail-${stamp}`, cityId: spb.id, status: 'APPROVED' } });
+    // ≥1 фото — иначе каталог фильтрует пустой профиль (планка качества)
+    await db.photo.create({ data: { profileId: profile.id, categoryId: cat.id, storageKey: `photos/avail-${stamp}/original.jpg`, width: 2400, height: 1600, status: 'APPROVED', publishedAt: new Date() } });
 
     const day = '2026-12-24';
     // toggle → занят
@@ -33,6 +36,7 @@ describe.skipIf(!hasDb)('availability: календарь занятости (Б
     await expect(toggleBusyDate(owner.id, 'not-a-date')).rejects.toThrow(DomainError);
 
     await db.busyDate.deleteMany({ where: { profileId: profile.id } });
+    await db.photo.deleteMany({ where: { profileId: profile.id } });
     await db.photographerProfile.delete({ where: { id: profile.id } });
     await db.user.delete({ where: { id: owner.id } });
   });

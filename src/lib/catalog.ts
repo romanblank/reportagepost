@@ -123,6 +123,9 @@ export async function catalogForCity(filters: CatalogFilters): Promise<CatalogPa
   const where = {
     status: 'APPROVED' as const,
     city: { slug: filters.citySlug },
+    // Планка качества: в выдачу — только авторы с готовой работой (пустая карточка
+    // без портфолио бьёт по первому впечатлению). Ниже — та же гарантия для полки.
+    photos: { some: { status: 'APPROVED' as const } },
     ...(filters.categorySlug
       ? { categories: { some: { category: { slug: filters.categorySlug } } } }
       : {}),
@@ -155,7 +158,7 @@ export async function catalogForCity(filters: CatalogFilters): Promise<CatalogPa
 // точный статус — по activeTier (денорм может отставать от экспирации).
 export async function recommendedForCity(citySlug: string, limit = 6): Promise<CatalogCard[]> {
   const rows = await db.photographerProfile.findMany({
-    where: { status: 'APPROVED', city: { slug: citySlug }, proRank: { gte: ELITE_RANK } },
+    where: { status: 'APPROVED', city: { slug: citySlug }, proRank: { gte: ELITE_RANK }, photos: { some: { status: 'APPROVED' } } },
     orderBy: [{ ratingScore: 'desc' }, { id: 'asc' }],
     take: limit * 2, // запас под фильтр активных
     include: CATALOG_INCLUDE,

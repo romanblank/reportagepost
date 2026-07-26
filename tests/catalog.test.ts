@@ -11,6 +11,7 @@ describe.skipIf(!hasDb)('catalog: инвариант — подписка не �
   afterAll(async () => {
     const { db } = await import('@/lib/db');
     await db.subscription.deleteMany({ where: { userId: { in: ids } } });
+    await db.photo.deleteMany({ where: { profile: { userId: { in: ids } } } });
     await db.profileCategory.deleteMany({ where: { profile: { userId: { in: ids } } } });
     await db.photographerProfile.deleteMany({ where: { userId: { in: ids } } });
     await db.user.deleteMany({ where: { id: { in: ids } } });
@@ -23,11 +24,14 @@ describe.skipIf(!hasDb)('catalog: инвариант — подписка не �
 
     const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
     const city = await db.city.findFirstOrThrow({ where: { slug: 'moscow' } });
-    // Оба — равный ВЫСОКИЙ ratingScore (гарантированно на 1-й странице, вверху, tie)
+    const cat = await db.category.findFirstOrThrow({ where: { slug: 'concerts-festivals' } });
+    // Оба — равный ВЫСОКИЙ ratingScore (гарантированно на 1-й странице, вверху, tie).
+    // С фото — иначе каталог фильтрует пустые профили (планка качества).
     const mk = async (n: string) => {
       const u = await db.user.create({ data: { role: 'PHOTOGRAPHER', status: 'ACTIVE', firstName: n, lastName: 'Инв', email: `inv-${n}-${stamp}@test.local` } });
       ids.push(u.id);
       const p = await db.photographerProfile.create({ data: { userId: u.id, username: `inv-${n}-${stamp}`, cityId: city.id, status: 'APPROVED', ratingScore: 9_000_000 } });
+      await db.photo.create({ data: { profileId: p.id, categoryId: cat.id, storageKey: `photos/inv-${n}-${stamp}/original.jpg`, width: 2400, height: 1600, status: 'APPROVED', publishedAt: new Date() } });
       return p.username;
     };
     const ua = await mk('a');
@@ -42,6 +46,20 @@ describe.skipIf(!hasDb)('catalog: инвариант — подписка не �
     const after = orderOf((await catalogForCity({ citySlug: 'moscow' })).cards);
 
     expect(after).toEqual(before); // порядок НЕ изменился — подписка не двигает merit
+  });
+
+  it('профиль без одобренных фото НЕ попадает в каталог (планка качества)', async () => {
+    const { db } = await import('@/lib/db');
+    const { catalogForCity } = await import('@/lib/catalog');
+
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const city = await db.city.findFirstOrThrow({ where: { slug: 'moscow' } });
+    const u = await db.user.create({ data: { role: 'PHOTOGRAPHER', status: 'ACTIVE', firstName: 'Пустой', lastName: 'Кат', email: `inv-empty-${stamp}@test.local` } });
+    ids.push(u.id);
+    const p = await db.photographerProfile.create({ data: { userId: u.id, username: `inv-empty-${stamp}`, cityId: city.id, status: 'APPROVED', ratingScore: 9_500_000 } });
+
+    const usernames = (await catalogForCity({ citySlug: 'moscow' })).cards.map((c) => c.username);
+    expect(usernames).not.toContain(p.username); // пустой профиль скрыт, несмотря на высокий merit
   });
 });
 

@@ -15,6 +15,9 @@ describe.skipIf(!hasDb)('analytics: статистика + трекинг про
     const owner = await db.user.create({ data: { role: 'PHOTOGRAPHER', status: 'ACTIVE', firstName: 'А', lastName: 'Н', email: `an-${stamp}@test.local` } });
     const viewer = await db.user.create({ data: { role: 'CLIENT', status: 'ACTIVE', firstName: 'К', lastName: 'Л', email: `kl-${stamp}@test.local` } });
     const profile = await db.photographerProfile.create({ data: { userId: owner.id, username: `an-${stamp}`, cityId: city.id, status: 'APPROVED' } });
+    const cat = await db.category.findFirstOrThrow({ where: { slug: 'concerts-festivals' } });
+    // ≥1 фото — иначе полка recommendedForCity фильтрует пустой профиль (планка качества)
+    await db.photo.create({ data: { profileId: profile.id, categoryId: cat.id, storageKey: `photos/an-${stamp}/original.jpg`, width: 2400, height: 1600, status: 'APPROVED', publishedAt: new Date() } });
 
     // просмотры: аноним + авторизованный → views растёт; дедуп по актору
     await recordProfileView(profile.id, null);
@@ -55,6 +58,7 @@ describe.skipIf(!hasDb)('analytics: статистика + трекинг про
     await db.follow.deleteMany({ where: { OR: [{ followeeId: owner.id }, { followerId: viewer.id }] } });
     await db.favoritePhotographer.deleteMany({ where: { profileId: profile.id } });
     await db.subscription.deleteMany({ where: { userId: owner.id } });
+    await db.photo.deleteMany({ where: { profileId: profile.id } });
     await db.photographerProfile.delete({ where: { id: profile.id } });
     await db.user.deleteMany({ where: { id: { in: [owner.id, viewer.id] } } });
   });
