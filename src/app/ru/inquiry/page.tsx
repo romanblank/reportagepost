@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { db } from '@/lib/db';
 import { ru } from '@/i18n/ru';
+import { getSession } from '@/lib/auth';
 import { RU_CITIES } from '@/lib/geo-data';
 import { CATEGORIES } from '@/lib/category-data';
 import { InquiryForm } from './InquiryForm';
@@ -10,6 +11,14 @@ export const dynamic = 'force-dynamic'; // читает ?photographer + БД
 
 export default async function InquiryPage(props: { searchParams: Promise<{ photographer?: string }> }) {
   const { photographer } = await props.searchParams;
+
+  // Префилл контактов залогиненного заказчика — меньше трения на конверсионной форме
+  const session = await getSession();
+  const contact = session
+    ? await db.user
+        .findUnique({ where: { id: session.userId }, select: { firstName: true, lastName: true, email: true } })
+        .then((u) => (u ? { name: `${u.firstName} ${u.lastName}`.trim(), email: u.email ?? undefined } : undefined))
+    : undefined;
 
   // Города посева первыми, остальные по алфавиту
   const cities = [...RU_CITIES]
@@ -41,6 +50,7 @@ export default async function InquiryPage(props: { searchParams: Promise<{ photo
           cities={cities}
           categories={CATEGORIES.map((c) => ({ slug: c.slug, nameRu: c.nameRu }))}
           prefill={prefill}
+          contact={contact}
         />
       </div>
     </main>

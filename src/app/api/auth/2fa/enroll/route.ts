@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { getSession } from '@/lib/auth';
 import { beginEnroll, confirmEnroll, disable } from '@/lib/two-factor';
 import { handleRoute, jsonError } from '@/lib/errors';
+import { rateLimit } from '@/lib/rate-limit';
 
 // Управление 2FA из кабинета (аутентифицированный пользователь).
 // POST без body — начать подключение (вернёт секрет+URI).
@@ -23,6 +24,9 @@ export function POST(req: Request) {
       return NextResponse.json(await beginEnroll(session.userId));
     }
     if (!code) return jsonError('code_required', 400);
+    // Анти-брутфорс TOTP-кода при confirm/disable (как в 2fa/verify): при угоне
+    // сессии нельзя перебирать 6 цифр без лимита, чтобы снять/переустановить 2FA.
+    await rateLimit(`2fa-manage:${session.userId}`, 8, 300);
     if (action === 'confirm') {
       return NextResponse.json({ recoveryCodes: await confirmEnroll(session.userId, code) });
     }

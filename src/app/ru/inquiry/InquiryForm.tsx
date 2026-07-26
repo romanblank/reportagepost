@@ -11,8 +11,9 @@ interface Option {
 }
 
 interface Prefill { citySlug?: string; categorySlug?: string; photographerName?: string }
+interface ContactPrefill { name?: string; email?: string }
 
-export function InquiryForm({ cities, categories, prefill }: { cities: Option[]; categories: Option[]; prefill?: Prefill }) {
+export function InquiryForm({ cities, categories, prefill, contact }: { cities: Option[]; categories: Option[]; prefill?: Prefill; contact?: ContactPrefill }) {
   const [pending, setPending] = useState(false);
   const [sent, setSent] = useState<{ notified: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +71,7 @@ export function InquiryForm({ cities, categories, prefill }: { cities: Option[];
       )}
       <label className="text-sm">
         {ru.inquiry.contactName}
-        <input name="contactName" required minLength={2} className="input" />
+        <input name="contactName" required minLength={2} defaultValue={contact?.name ?? ''} className="input" />
       </label>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="text-sm">
@@ -79,7 +80,7 @@ export function InquiryForm({ cities, categories, prefill }: { cities: Option[];
         </label>
         <label className="text-sm">
           {ru.inquiry.contactEmail}
-          <input name="contactEmail" type="email" className="input" />
+          <input name="contactEmail" type="email" defaultValue={contact?.email ?? ''} className="input" />
         </label>
       </div>
       <p className="text-xs muted">{ru.inquiry.contactHint}</p>
