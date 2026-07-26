@@ -27,7 +27,7 @@ export default async function MatchPage(props: {
   searchParams: Promise<{ text?: string; city?: string; category?: string; date?: string; budget?: string }>;
 }) {
   const sp = await props.searchParams;
-  const submitted = Boolean(sp.city || sp.text);
+  const submitted = Boolean(sp.text || sp.city || sp.category || sp.budget || sp.date);
 
   let brief: Brief | null = null;
   let matches: Match[] = [];
@@ -64,7 +64,8 @@ export default async function MatchPage(props: {
         <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <label className="text-sm">
             <span className="field-hint mt-0">{ru.match.cityLabel}</span>
-            <select name="city" defaultValue={validCity(sp.city) ?? 'moscow'} className="input mt-1 w-full">
+            <select name="city" defaultValue={validCity(sp.city) ?? ''} className="input mt-1 w-full">
+              <option value="">{ru.match.cityAny}</option>
               {CITIES.map((c) => <option key={c.slug} value={c.slug}>{c.nameRu}</option>)}
             </select>
           </label>

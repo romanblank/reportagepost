@@ -274,6 +274,7 @@ export const ru = {
     textLabel: 'Что за событие?',
     textPlaceholder: 'Например: техно-фестиваль в Петербурге, две сцены, ночь, нужен драйв и живые эмоции. Бюджет до 40 000 ₽.',
     cityLabel: 'Город',
+    cityAny: 'Любой город',
     categoryLabel: 'Жанр',
     categoryAny: 'Любой жанр',
     dateLabel: 'Дата',
