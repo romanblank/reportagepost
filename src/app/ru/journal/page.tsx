@@ -41,7 +41,7 @@ export default async function JournalPage() {
       ) : (
         <>
           {featured && (
-            <section className="reveal-on-scroll mt-9">
+            <section className="mt-9">
               <h2 className="t-caption text-recognition">{ru.journal.featuredTitle}</h2>
               <Link href={`/ru/photographer/${featured.username}`}
                 className="group relative mt-3 block overflow-hidden rounded-media bg-ink">
@@ -63,21 +63,21 @@ export default async function JournalPage() {
           )}
 
           {editorsRest.length > 0 && (
-            <section className="reveal-on-scroll mt-12">
+            <section className="mt-12">
               <h2 className="t-h3">{ru.journal.editorsTitle}</h2>
               <div className="mt-4"><FeedMasonry photos={editorsRest} /></div>
             </section>
           )}
 
           {stories.length > 0 && (
-            <section className="reveal-on-scroll mt-12">
+            <section className="mt-12">
               <h2 className="t-h3">{ru.journal.storiesTitle}</h2>
               <div className="mt-4"><StoryCards stories={stories} /></div>
             </section>
           )}
 
           {newcomers.length > 0 && (
-            <section className="reveal-on-scroll mt-12">
+            <section className="mt-12">
               <h2 className="t-h3">{ru.journal.newNamesTitle}</h2>
               <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                 {newcomers.map((p) => (

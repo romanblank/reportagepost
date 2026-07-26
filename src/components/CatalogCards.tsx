@@ -11,7 +11,7 @@ import { VerifiedBadge, TierBadge } from '@/components/ui/Badge';
 // чтобы верстка/alt не расходились. alt осмысленный (SEO — половина модели).
 export function CatalogCards({ cards, cityName }: { cards: CatalogCard[]; cityName: string }) {
   return (
-    <ul className="reveal-on-scroll mt-6 grid grid-cols-1 gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+    <ul className="mt-6 grid grid-cols-1 gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
       {cards.map((card) => {
         const catNames = card.categories.map((slug) => categoryNameRu(slug));
         const alt = `Репортажная съёмка — ${card.firstName} ${card.lastName}, ${cityName}`;
