@@ -552,6 +552,7 @@ export const ru = {
   },
   admin: {
     moderationTitle: 'Модерация заявок',
+    storiesQueue: 'Серии на модерации',
     empty: 'Очередь пуста.',
     photosCount: (n: number) => `Фото: ${n}`,
     approve: 'Одобрить',
