@@ -7,6 +7,12 @@ const PUBLIC_LAUNCH = false;
 
 const nextConfig: NextConfig = {
   output: "standalone", // компактный Docker-образ
+  async redirects() {
+    // Голый локаль-корень /ru не имеет своей страницы (главная на /) → раньше 404.
+    // Ведём на главную, чтобы естественный URL не падал. Точный source — sub-роуты
+    // /ru/* (каталог, лента, профили…) НЕ затрагиваются.
+    return [{ source: "/ru", destination: "/", permanent: false }];
+  },
   async headers() {
     if (PUBLIC_LAUNCH) return [];
     return [
