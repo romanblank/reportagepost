@@ -48,6 +48,7 @@ function RegisterForm() {
 
     if (res?.status === 201) {
       router.push('/ru/cabinet');
+      router.refresh(); // обновить серверный layout (шапку) под новую сессию
       return;
     }
     setError(await describeApiError(res, {

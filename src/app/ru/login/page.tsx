@@ -30,6 +30,7 @@ export default function LoginPage() {
       const data = await res.json().catch(() => ({}));
       if (data?.twoFactor) { setTwoFactor(true); return; }
       router.push('/ru/cabinet');
+      router.refresh(); // обновить серверный layout (шапку) под новую сессию
       return;
     }
     if (res?.status === 401) setError(ru.auth.errorInvalid);
@@ -49,7 +50,7 @@ export default function LoginPage() {
       body: JSON.stringify({ code }),
     }).catch(() => null);
     setPending(false);
-    if (res?.ok) { router.push('/ru/cabinet'); return; }
+    if (res?.ok) { router.push('/ru/cabinet'); router.refresh(); return; }
     setError(ru.auth.twoFa.badCode);
   }
 
