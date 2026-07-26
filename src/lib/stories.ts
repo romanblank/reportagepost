@@ -82,7 +82,7 @@ export async function toggleStoryLike(userId: string, storyId: string): Promise<
   return { liked: true };
 }
 
-/** Одобрение серии редакцией: публикует + событие STORY_PUBLISH. */
+/** Одобрение серии редакцией: публикует + событие STORY_PUBLISH + уведомление. */
 export async function approveStory(storyId: string): Promise<void> {
   const story = await db.story.findUnique({ where: { id: storyId }, include: { profile: true } });
   if (!story) throw new DomainError('story_not_found', 404);
@@ -92,8 +92,16 @@ export async function approveStory(storyId: string): Promise<void> {
       data: { actorUserId: story.profile.userId, type: 'STORY_PUBLISH', targetType: 'STORY', targetId: storyId },
     }),
   ]);
+  const { notifyInApp } = await import('@/lib/notifications');
+  await notifyInApp(story.profile.userId, 'notification.story.approved', { storyId }).catch(() => {});
 }
 
 export async function rejectStory(storyId: string, reason: string): Promise<void> {
-  await db.story.update({ where: { id: storyId }, data: { status: 'REJECTED', rejectReason: reason } });
+  const story = await db.story.update({
+    where: { id: storyId },
+    data: { status: 'REJECTED', rejectReason: reason },
+    select: { profile: { select: { userId: true } } },
+  });
+  const { notifyInApp } = await import('@/lib/notifications');
+  await notifyInApp(story.profile.userId, 'notification.story.rejected', { storyId }).catch(() => {});
 }

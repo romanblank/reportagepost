@@ -458,6 +458,8 @@ export const ru = {
       'notification.pro.requested': 'Фотограф запросил подключение PRO',
       'notification.comment.new': 'Новый комментарий к вашей работе',
       'notification.photo.editors_choice': 'Ваш кадр — в «Выборе редакции»',
+      'notification.story.approved': 'Ваша серия опубликована',
+      'notification.story.rejected': 'Редакция вернула серию с комментарием',
     } as Record<string, string>,
   },
   messages: {

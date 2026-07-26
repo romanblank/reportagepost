@@ -54,6 +54,7 @@ describe.skipIf(!hasDb)('stories: создание, модерация, лайк
     await db.activityEvent.deleteMany({ where: { OR: [{ targetId: storyId }, { actorUserId: owner.id }] } });
     await db.like.deleteMany({ where: { storyId } });
     await db.photo.deleteMany({ where: { profileId: profile.id } });
+    await db.notification.deleteMany({ where: { userId: { in: [owner.id, liker.id] } } });
     await db.story.delete({ where: { id: storyId } });
     await db.subscription.deleteMany({ where: { userId: owner.id } });
     await db.photographerProfile.delete({ where: { id: profile.id } });
