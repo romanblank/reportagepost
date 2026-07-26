@@ -25,6 +25,30 @@ export interface ParsedBrief {
   maxBudgetMinor?: number;
 }
 
+/** Сырые поля формы подбора (строки из searchParams). */
+export interface RawBriefFields {
+  city?: string;
+  category?: string;
+  date?: string;
+  budget?: string;
+}
+
+/**
+ * Сводит явные поля формы и распознанный из свободного текста бриф в единый Brief.
+ * Приоритет: явный выбор в форме > текст > дефолт. Пустой селект («Любой город»)
+ * НЕ затирает город, распознанный из текста (иначе ломается обещание «поймём сами»).
+ */
+export function resolveBrief(raw: RawBriefFields, parsed: ParsedBrief, text?: string): Brief {
+  const explicitCity = raw.city && RU_CITIES.some((c) => c.slug === raw.city) ? raw.city : undefined;
+  const explicitCat = raw.category && CATEGORIES.some((c) => c.slug === raw.category) ? raw.category : undefined;
+  const citySlug = explicitCity ?? parsed.citySlug ?? 'moscow';
+  const categorySlug = explicitCat ?? parsed.categorySlug;
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(raw.date ?? '') ? new Date(`${raw.date}T00:00:00Z`) : undefined;
+  const budgetRub = Number(raw.budget) > 0 ? Number(raw.budget) : undefined;
+  const maxBudgetMinor = budgetRub ? budgetRub * 100 : parsed.maxBudgetMinor;
+  return { citySlug, categorySlug, date, maxBudgetMinor, text };
+}
+
 // Короткие формы городов-якорей (полное имя матчится общим проходом ниже).
 const CITY_ALIASES: Record<string, string[]> = {
   moscow: ['москв', 'мск', 'в мск'],

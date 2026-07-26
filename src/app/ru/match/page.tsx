@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { matchPhotographers, parseBriefText, type Brief, type Match } from '@/lib/matching';
+import { matchPhotographers, parseBriefText, resolveBrief, type Brief, type Match } from '@/lib/matching';
 import { RU_CITIES, cityNameRu } from '@/lib/geo-data';
 import { CATEGORIES, categoryNameRu } from '@/lib/category-data';
 import { webVariantUrl } from '@/lib/photos';
@@ -36,12 +36,7 @@ export default async function MatchPage(props: {
   if (submitted) {
     // ИИ разбирает свободный текст, явные поля формы имеют приоритет (guard в matching)
     const parsed = sp.text ? await parseBriefText(sp.text) : {};
-    const citySlug = validCity(sp.city) ?? parsed.citySlug ?? 'moscow';
-    const categorySlug = validCat(sp.category) ?? parsed.categorySlug;
-    const date = /^\d{4}-\d{2}-\d{2}$/.test(sp.date ?? '') ? new Date(`${sp.date}T00:00:00Z`) : undefined;
-    const budgetRub = Number(sp.budget) > 0 ? Number(sp.budget) : undefined;
-    const maxBudgetMinor = budgetRub ? budgetRub * 100 : parsed.maxBudgetMinor;
-    brief = { citySlug, categorySlug, date, maxBudgetMinor, text: sp.text };
+    brief = resolveBrief(sp, parsed, sp.text);
     const res = await matchPhotographers(brief);
     matches = res.matches;
     relaxed = res.relaxed;

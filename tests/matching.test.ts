@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { guardParsed, buildReason, parseBriefHeuristic, parseBriefText } from '@/lib/matching';
+import { guardParsed, buildReason, parseBriefHeuristic, parseBriefText, resolveBrief } from '@/lib/matching';
 import { llmComplete } from '@/lib/ai-gpt';
 import type { CatalogCard } from '@/lib/catalog';
 
@@ -103,5 +103,46 @@ describe('matching.buildReason — честное обоснование из ф
     expect(r).toContain('дату');
     expect(r).toContain('бюджет');
     expect(r[0]).toBe(r[0].toUpperCase());
+  });
+});
+
+describe('matching.resolveBrief — примирение формы и свободного текста', () => {
+  it('пустой селект города НЕ затирает город из текста (баг дифференциатора)', () => {
+    const b = resolveBrief({ city: '' }, { citySlug: 'yekaterinburg' }, 'концерт в екатеринбурге');
+    expect(b.citySlug).toBe('yekaterinburg');
+  });
+
+  it('явный выбор города в форме побеждает текст', () => {
+    const b = resolveBrief({ city: 'moscow' }, { citySlug: 'yekaterinburg' });
+    expect(b.citySlug).toBe('moscow');
+  });
+
+  it('невалидный slug города игнорируется, решает текст', () => {
+    const b = resolveBrief({ city: 'atlantis' }, { citySlug: 'kazan' });
+    expect(b.citySlug).toBe('kazan');
+  });
+
+  it('дефолт — moscow, когда ни формы, ни текста', () => {
+    expect(resolveBrief({}, {}).citySlug).toBe('moscow');
+  });
+
+  it('явный жанр побеждает, пустой — берётся из текста', () => {
+    expect(resolveBrief({ category: 'sports' }, { categorySlug: 'concerts-festivals' }).categorySlug).toBe('sports');
+    expect(resolveBrief({ category: '' }, { categorySlug: 'concerts-festivals' }).categorySlug).toBe('concerts-festivals');
+  });
+
+  it('явный бюджет (₽) переводится в минорные и перебивает распознанный', () => {
+    const b = resolveBrief({ budget: '4000' }, { maxBudgetMinor: 9_999_00 });
+    expect(b.maxBudgetMinor).toBe(400_000);
+  });
+
+  it('распознанный бюджет используется при пустом поле', () => {
+    expect(resolveBrief({ budget: '' }, { maxBudgetMinor: 400_000 }).maxBudgetMinor).toBe(400_000);
+    expect(resolveBrief({ budget: '0' }, {}).maxBudgetMinor).toBeUndefined();
+  });
+
+  it('валидная дата ISO парсится в UTC, мусор игнорируется', () => {
+    expect(resolveBrief({ date: '2026-08-01' }, {}).date?.toISOString().slice(0, 10)).toBe('2026-08-01');
+    expect(resolveBrief({ date: 'завтра' }, {}).date).toBeUndefined();
   });
 });
