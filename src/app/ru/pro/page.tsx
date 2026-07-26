@@ -125,7 +125,7 @@ export default async function ProPage() {
         </div>
       </section>
 
-      <p className="mt-8 max-w-2xl text-xs text-muted/70">{ru.pro.betaNote}</p>
+      <p className="mt-8 max-w-2xl text-xs text-muted">{ru.pro.betaNote}</p>
     </main>
   );
 }

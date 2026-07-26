@@ -19,8 +19,8 @@ export function SiteFooter() {
           <Link href="/ru/legal/privacy" className={linkCls}>{ru.footer.privacy}</Link>
           <Link href="/ru/legal/offer" className={linkCls}>{ru.footer.offer}</Link>
         </div>
-        <p className="text-xs text-muted/70">{ru.footer.tagline}</p>
-        <p className="text-[11px] text-muted/60">{ru.footer.metaDisclaimer}</p>
+        <p className="text-xs text-muted">{ru.footer.tagline}</p>
+        <p className="text-[11px] text-muted">{ru.footer.metaDisclaimer}</p>
       </div>
     </footer>
   );
