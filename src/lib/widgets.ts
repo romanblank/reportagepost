@@ -63,7 +63,9 @@ export async function valuedPhotographers(limit = 6): Promise<ValuedItem[]> {
 /** Недавно присоединившиеся одобренные фотографы (виджет «новые в сообществе»). */
 export async function recentPhotographers(limit = 6) {
   const profiles = await db.photographerProfile.findMany({
-    where: { status: 'APPROVED' },
+    // «Новые имена» показываем только с готовой работой — пустой профиль бьёт по
+    // первому впечатлению (планка качества). Нужно ≥1 одобренное фото.
+    where: { status: 'APPROVED', photos: { some: { status: 'APPROVED' } } },
     orderBy: { createdAt: 'desc' },
     take: limit,
     include: {
