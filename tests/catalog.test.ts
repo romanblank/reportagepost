@@ -11,6 +11,7 @@ describe.skipIf(!hasDb)('catalog: инвариант — подписка не �
   afterAll(async () => {
     const { db } = await import('@/lib/db');
     await db.subscription.deleteMany({ where: { userId: { in: ids } } });
+    await db.pricePackage.deleteMany({ where: { profile: { userId: { in: ids } } } });
     await db.photo.deleteMany({ where: { profile: { userId: { in: ids } } } });
     await db.profileCategory.deleteMany({ where: { profile: { userId: { in: ids } } } });
     await db.photographerProfile.deleteMany({ where: { userId: { in: ids } } });
@@ -60,6 +61,28 @@ describe.skipIf(!hasDb)('catalog: инвариант — подписка не �
 
     const usernames = (await catalogForCity({ citySlug: 'moscow' })).cards.map((c) => c.username);
     expect(usernames).not.toContain(p.username); // пустой профиль скрыт, несмотря на высокий merit
+  });
+
+  it('фильтр бюджета — по total цене пакета (без ×24)', async () => {
+    const { db } = await import('@/lib/db');
+    const { catalogForCity } = await import('@/lib/catalog');
+
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const city = await db.city.findFirstOrThrow({ where: { slug: 'moscow' } });
+    const cat = await db.category.findFirstOrThrow({ where: { slug: 'concerts-festivals' } });
+    // Профиль с пакетом 3ч за 15 000 ₽ (1 500 000 минор)
+    const u = await db.user.create({ data: { role: 'PHOTOGRAPHER', status: 'ACTIVE', firstName: 'Цен', lastName: 'Ник', email: `price-${stamp}@test.local` } });
+    ids.push(u.id);
+    const p = await db.photographerProfile.create({ data: { userId: u.id, username: `price-${stamp}`, cityId: city.id, status: 'APPROVED', ratingScore: 9_400_000 } });
+    await db.photo.create({ data: { profileId: p.id, categoryId: cat.id, storageKey: `photos/price-${stamp}/o.jpg`, width: 2400, height: 1600, status: 'APPROVED', publishedAt: new Date() } });
+    await db.pricePackage.create({ data: { profileId: p.id, hours: 3, priceMinor: 1_500_000, currency: 'RUB' } });
+
+    const inFor = async (rub: number) =>
+      (await catalogForCity({ citySlug: 'moscow', maxPackagePriceMinor: rub * 100 })).cards.some((c) => c.username === p.username);
+    // Бюджет 20 000 ₽ (> 15 000) — пакет проходит; 10 000 ₽ (< 15 000) — отсекается.
+    // Раньше ×24 (15000 ≤ 10000·24) ложно пропускал дешёвый фильтр.
+    expect(await inFor(20_000)).toBe(true);
+    expect(await inFor(10_000)).toBe(false);
   });
 });
 

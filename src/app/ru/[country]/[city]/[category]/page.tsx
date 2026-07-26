@@ -69,7 +69,7 @@ export default async function CityCategoryPage(props: {
 
   const { cards, hasNext } = await catalogForCity({
     citySlug: city.slug, categorySlug: params.category, availableOn, page,
-    maxPricePerHourMinor: maxPriceRub ? maxPriceRub * 100 : undefined,
+    maxPackagePriceMinor: maxPriceRub ? maxPriceRub * 100 : undefined,
   });
 
   const cityName = cityNameRu(city.slug);

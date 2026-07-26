@@ -158,7 +158,7 @@ export const ru = {
     perHourFrom: (price: string) => `от ${price}/час`,
     packageLabel: (hours: number, price: string) => `${hours} ч — ${price}`,
     availableOn: 'Свободен на дату',
-    maxPrice: 'Цена до, ₽/час',
+    maxPrice: 'Бюджет до, ₽',
     applyDate: 'Показать',
     prevPage: 'Назад',
     nextPage: 'Дальше',

@@ -71,7 +71,7 @@ export default async function CatalogPage(props: {
   const [{ cards, hasNext }, recommended, visiting] = await Promise.all([
     catalogForCity({
       citySlug: city.slug, categorySlug, availableOn, page,
-      maxPricePerHourMinor: maxPriceRub ? maxPriceRub * 100 : undefined,
+      maxPackagePriceMinor: maxPriceRub ? maxPriceRub * 100 : undefined,
     }),
     showRecommended ? recommendedForCity(city.slug) : Promise.resolve([] as CatalogCard[]),
     page === 1 ? visitingCity(city.slug, availableOn) : Promise.resolve([]),
@@ -111,7 +111,7 @@ export default async function CatalogPage(props: {
         <label className="text-sm">
           <span className="field-hint mt-0">{ru.catalog.maxPrice}</span>
           <input type="number" name="maxPrice" min={0} step={1} inputMode="numeric"
-            defaultValue={searchParams.maxPrice ?? ''} placeholder="₽/час" className="input mt-1 w-32" />
+            defaultValue={searchParams.maxPrice ?? ''} placeholder="₽" className="input mt-1 w-32" />
         </label>
         <button type="submit" className="btn btn-outline px-4 py-2.5">{ru.catalog.applyDate}</button>
       </form>

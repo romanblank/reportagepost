@@ -199,7 +199,7 @@ export async function matchPhotographers(brief: Brief, limit = 6): Promise<Match
 
   let { cards } = await run({
     citySlug: brief.citySlug, categorySlug: brief.categorySlug,
-    availableOn: brief.date, maxPricePerHourMinor: brief.maxBudgetMinor,
+    availableOn: brief.date, maxPackagePriceMinor: brief.maxBudgetMinor,
   });
   let relaxed = false;
 

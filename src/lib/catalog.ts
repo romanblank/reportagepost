@@ -10,7 +10,10 @@ import { activeTier, ELITE_RANK, type Tier } from '@/lib/subscription';
 export interface CatalogFilters {
   citySlug: string;
   categorySlug?: string;
-  maxPricePerHourMinor?: number;
+  /** Потолок цены пакета (total, minor units). Семантика — как в matching (бюджет
+   *  на событие), едина по проекту. Раньше поле трактовалось как ₽/час с хардкод-×24
+   *  → неверная фильтрация; выправлено на честный total (аудит 2026-07-26). */
+  maxPackagePriceMinor?: number;
   /** «Свободен на дату» (UTC-полночь): исключает занятых в этот день. */
   availableOn?: Date;
   /** Пагинация (аудит P1-1): страница на PAGE_SIZE карточек. */
@@ -63,7 +66,8 @@ export function completenessScore(input: {
   if (input.lastPublishedAt) {
     const now = input.now ?? new Date();
     const days = (now.getTime() - input.lastPublishedAt.getTime()) / 86_400_000;
-    score += Math.max(0, Math.round(15 * (1 - days / 90)));
+    // Кламп обоих концов: будущий publishedAt (clock skew) не должен превысить кап 15.
+    score += Math.min(15, Math.max(0, Math.round(15 * (1 - days / 90))));
   }
   return score; // максимум 100
 }
@@ -130,8 +134,8 @@ export async function catalogForCity(filters: CatalogFilters): Promise<CatalogPa
       ? { categories: { some: { category: { slug: filters.categorySlug } } } }
       : {}),
     ...(filters.availableOn ? { busyDates: { none: { date: filters.availableOn } } } : {}),
-    ...(filters.maxPricePerHourMinor != null
-      ? { packages: { some: { priceMinor: { lte: filters.maxPricePerHourMinor * 24 } } } }
+    ...(filters.maxPackagePriceMinor != null
+      ? { packages: { some: { priceMinor: { lte: filters.maxPackagePriceMinor } } } }
       : {}),
   };
 
