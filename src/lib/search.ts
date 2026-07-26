@@ -28,6 +28,7 @@ export async function searchPhotographers(query: string, limit = 24): Promise<Se
   const profiles = await db.photographerProfile.findMany({
     where: {
       status: 'APPROVED',
+      photos: { some: { status: 'APPROVED' } }, // планка: в поиске только с готовой работой (как каталог)
       OR: [
         { username: { contains: q, mode: 'insensitive' } },
         { user: { firstName: { contains: q, mode: 'insensitive' } } },
