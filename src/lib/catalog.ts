@@ -101,7 +101,8 @@ async function toCards(shown: CatalogRow[]): Promise<CatalogCard[]> {
     lastName: p.user.lastName,
     bio: p.bio,
     categories: p.categories.map((c) => c.category.slug),
-    minPackage: p.packages[0]
+    // Цена — перк Active (пакеты цен). На FREE в карточке не показываем (как на профиле).
+    minPackage: activeTier(p.user.subscription) !== 'FREE' && p.packages[0]
       ? { hours: p.packages[0].hours, priceMinor: p.packages[0].priceMinor, currency: p.packages[0].currency }
       : null,
     coverKey:
