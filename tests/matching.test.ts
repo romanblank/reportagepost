@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { guardParsed, buildReason, parseBriefHeuristic, parseBriefText, resolveBrief } from '@/lib/matching';
+import { guardParsed, buildReason, parseBriefHeuristic, parseBriefText, resolveBrief, MAX_BUDGET_RUB } from '@/lib/matching';
 import { llmComplete } from '@/lib/ai-gpt';
 import type { CatalogCard } from '@/lib/catalog';
 
@@ -28,6 +28,14 @@ describe('matching.parseBriefText — гибрид эвристика + LLM-фо
     vi.mocked(llmComplete).mockResolvedValue(null);
     const p = await parseBriefText('съёмка непонятночего');
     expect(p).toEqual({});
+  });
+
+  it('allowLlm:false (rate-limit) → LLM НЕ вызывается, только эвристика', async () => {
+    vi.mocked(llmComplete).mockClear();
+    const p = await parseBriefText('в москве на непонятный ивент', { allowLlm: false });
+    expect(llmComplete).not.toHaveBeenCalled();
+    expect(p.citySlug).toBe('moscow'); // эвристика нашла город
+    expect(p.categorySlug).toBeUndefined(); // жанр не распознан, LLM не звали
   });
 });
 
@@ -144,5 +152,17 @@ describe('matching.resolveBrief — примирение формы и своб�
   it('валидная дата ISO парсится в UTC, мусор игнорируется', () => {
     expect(resolveBrief({ date: '2026-08-01' }, {}).date?.toISOString().slice(0, 10)).toBe('2026-08-01');
     expect(resolveBrief({ date: 'завтра' }, {}).date).toBeUndefined();
+  });
+
+  it('несуществующая календарная дата (30 февраля) отбрасывается', () => {
+    expect(resolveBrief({ date: '2026-02-30' }, {}).date).toBeUndefined();
+    expect(resolveBrief({ date: '2026-13-45' }, {}).date).toBeUndefined();
+  });
+
+  it('бюджет ограничен потолком (защита от переполнения Int)', () => {
+    const b = resolveBrief({ budget: '999999999' }, {});
+    expect(b.maxBudgetMinor).toBe(MAX_BUDGET_RUB * 100);
+    // разумный бюджет проходит как есть
+    expect(resolveBrief({ budget: '4000' }, {}).maxBudgetMinor).toBe(400_000);
   });
 });

@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { matchPhotographers, parseBriefText, resolveBrief, type Brief, type Match } from '@/lib/matching';
+import { headers } from 'next/headers';
+import { matchPhotographers, parseBriefText, parseBriefHeuristic, resolveBrief, MAX_BRIEF_LEN, type Brief, type Match } from '@/lib/matching';
+import { rateLimit } from '@/lib/rate-limit';
 import { RU_CITIES, cityNameRu } from '@/lib/geo-data';
 import { CATEGORIES, categoryNameRu } from '@/lib/category-data';
 import { webVariantUrl } from '@/lib/photos';
@@ -35,8 +37,23 @@ export default async function MatchPage(props: {
 
   if (submitted) {
     // ИИ разбирает свободный текст, явные поля формы имеют приоритет (guard в matching)
-    const parsed = sp.text ? await parseBriefText(sp.text) : {};
-    brief = resolveBrief(sp, parsed, sp.text);
+    const text = (sp.text ?? '').slice(0, MAX_BRIEF_LEN); // кап входа (анти-абьюз)
+    // LLM зовём только если эвристика не нашла город+жанр И не превышен лимит по IP
+    // (публичный эндпоинт, платный внешний LLM → защита от амплификации затрат).
+    let allowLlm = true;
+    if (text) {
+      const pre = parseBriefHeuristic(text);
+      if (!pre.citySlug || !pre.categorySlug) {
+        const ip = (await headers()).get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+        try {
+          await rateLimit(`match-llm:${ip}`, 20, 3600); // 20 LLM-разборов/час на IP
+        } catch {
+          allowLlm = false; // лимит → мягкая деградация до чистой эвристики
+        }
+      }
+    }
+    const parsed = text ? await parseBriefText(text, { allowLlm }) : {};
+    brief = resolveBrief(sp, parsed, text);
     const res = await matchPhotographers(brief);
     matches = res.matches;
     relaxed = res.relaxed;
@@ -53,7 +70,7 @@ export default async function MatchPage(props: {
       <form method="get" className="mt-8 rounded-media border border-line bg-surface p-4 sm:p-5">
         <label className="block">
           <span className="field-hint mt-0">{ru.match.textLabel}</span>
-          <textarea name="text" rows={3} defaultValue={sp.text ?? ''} placeholder={ru.match.textPlaceholder}
+          <textarea name="text" rows={3} maxLength={MAX_BRIEF_LEN} defaultValue={sp.text ?? ''} placeholder={ru.match.textPlaceholder}
             className="input mt-1 w-full resize-y" />
         </label>
         <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

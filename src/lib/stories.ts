@@ -7,8 +7,8 @@ import { tierOf } from '@/lib/subscription';
 // Серии/истории (модель MyWed): репортаж с одного события — подборка одобренных
 // фото фотографа. Публикация серии проходит модерацию отдельно.
 
-export const STORY_MIN_PHOTOS = 5;
-export const STORY_MAX_PHOTOS = 60;
+export { STORY_MIN_PHOTOS, STORY_MAX_PHOTOS } from '@/lib/stories-constants';
+import { STORY_MIN_PHOTOS, STORY_MAX_PHOTOS } from '@/lib/stories-constants';
 // Кап незакрытых заявок на модерацию (аудит P3: анти-спам очереди редакции)
 export const MAX_PENDING_STORIES = 5;
 
@@ -86,6 +86,7 @@ export async function toggleStoryLike(userId: string, storyId: string): Promise<
 export async function approveStory(storyId: string): Promise<void> {
   const story = await db.story.findUnique({ where: { id: storyId }, include: { profile: true } });
   if (!story) throw new DomainError('story_not_found', 404);
+  if (story.status !== 'PENDING') return; // идемпотентность: уже обработана — без дубль-событий
   await db.$transaction([
     db.story.update({ where: { id: storyId }, data: { status: 'APPROVED', publishedAt: new Date() } }),
     db.activityEvent.create({
@@ -97,6 +98,9 @@ export async function approveStory(storyId: string): Promise<void> {
 }
 
 export async function rejectStory(storyId: string, reason: string): Promise<void> {
+  const existing = await db.story.findUnique({ where: { id: storyId }, select: { status: true } });
+  if (!existing) throw new DomainError('story_not_found', 404);
+  if (existing.status !== 'PENDING') return; // идемпотентность: уже обработана — no-op
   const story = await db.story.update({
     where: { id: storyId },
     data: { status: 'REJECTED', rejectReason: reason },

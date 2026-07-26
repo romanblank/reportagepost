@@ -48,6 +48,16 @@ describe.skipIf(!hasDb)('stories: создание, модерация, лайк
     const pub = await db.activityEvent.findFirst({ where: { type: 'STORY_PUBLISH', targetId: storyId } });
     expect(pub).toBeTruthy();
 
+    // идемпотентность: повторный approve не плодит событий/уведомлений (guard status)
+    const { rejectStory } = await import('@/lib/stories');
+    await approveStory(storyId);
+    expect(await db.activityEvent.count({ where: { type: 'STORY_PUBLISH', targetId: storyId } })).toBe(1);
+    // reject уже APPROVED-серии — no-op (не топит опубликованную)
+    await rejectStory(storyId, 'поздний отказ не должен применяться');
+    expect((await db.story.findUniqueOrThrow({ where: { id: storyId } })).status).toBe('APPROVED');
+    // reject несуществующей — story_not_found
+    await expect(rejectStory('no-such-story-id', 'причина отказа')).rejects.toThrow(DomainError);
+
     expect((await toggleStoryLike(liker.id, storyId)).liked).toBe(true);
     expect(await db.like.count({ where: { storyId } })).toBe(1);
 

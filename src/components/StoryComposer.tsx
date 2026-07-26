@@ -4,15 +4,13 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ru } from '@/i18n/ru';
 import { CATEGORIES } from '@/lib/category-data';
+import { STORY_MIN_PHOTOS as MIN, STORY_MAX_PHOTOS as MAX } from '@/lib/stories-constants';
 import { useToast } from '@/components/ui/Toast';
 
 export interface ComposerPhoto {
   id: string;
   thumb: string;
 }
-
-const MIN = 5;
-const MAX = 60;
 
 // Сборка серии (репортаж с одного события) из одобренных кадров портфолио.
 // Перк Active. Отправка → модерация редакции.
@@ -87,7 +85,7 @@ export function StoryComposer({ photos }: { photos: ComposerPhoto[] }) {
 
       <p className="mt-4 field-hint">{ru.cabinetStories.pickLabel(selected.size, MIN)}</p>
       <ul className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-5">
-        {photos.map((p, i) => {
+        {photos.map((p) => {
           const on = selected.has(p.id);
           const order = on ? [...selected].indexOf(p.id) + 1 : null;
           return (

@@ -25,6 +25,14 @@ export interface ParsedBrief {
   maxBudgetMinor?: number;
 }
 
+// Кап длины свободного текста брифа: защита от раздувания входа в LLM/эвристику
+// (анти-абьюз). Типичный бриф — 1-2 предложения; 500 символов с запасом.
+export const MAX_BRIEF_LEN = 500;
+
+// Потолок бюджета ₽/час: реальные ставки — десятки тысяч; 500 000 с запасом.
+// Гарантирует, что budgetRub*100*24 (сравнение в catalogForCity) влезает в Int (int4).
+export const MAX_BUDGET_RUB = 500_000;
+
 /** Сырые поля формы подбора (строки из searchParams). */
 export interface RawBriefFields {
   city?: string;
@@ -43,8 +51,16 @@ export function resolveBrief(raw: RawBriefFields, parsed: ParsedBrief, text?: st
   const explicitCat = raw.category && CATEGORIES.some((c) => c.slug === raw.category) ? raw.category : undefined;
   const citySlug = explicitCity ?? parsed.citySlug ?? 'moscow';
   const categorySlug = explicitCat ?? parsed.categorySlug;
-  const date = /^\d{4}-\d{2}-\d{2}$/.test(raw.date ?? '') ? new Date(`${raw.date}T00:00:00Z`) : undefined;
-  const budgetRub = Number(raw.budget) > 0 ? Number(raw.budget) : undefined;
+  // Дата: regex + round-trip проверка (JS переносит 2026-02-30 на март, а не
+  // Invalid Date — сверяем компоненты, чтобы отбросить несуществующие даты).
+  let date: Date | undefined;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw.date ?? '')) {
+    const [y, m, dd] = raw.date!.split('-').map(Number);
+    const d = new Date(Date.UTC(y, m - 1, dd));
+    if (d.getUTCFullYear() === y && d.getUTCMonth() === m - 1 && d.getUTCDate() === dd) date = d;
+  }
+  // Бюджет: >0 и с потолком (защита от переполнения Int при *100*24 в каталоге).
+  const budgetRub = Number(raw.budget) > 0 ? Math.min(Number(raw.budget), MAX_BUDGET_RUB) : undefined;
   const maxBudgetMinor = budgetRub ? budgetRub * 100 : parsed.maxBudgetMinor;
   return { citySlug, categorySlug, date, maxBudgetMinor, text };
 }
@@ -115,9 +131,10 @@ const LLM_SYSTEM =
  * LLM — не Яндекс (OpenAI-совместимый, env), вывод валидируется guard'ом,
  * эвристика приоритетна для найденного. Без LLM-конфига → чистая эвристика.
  */
-export async function parseBriefText(text: string): Promise<ParsedBrief> {
+export async function parseBriefText(text: string, opts?: { allowLlm?: boolean }): Promise<ParsedBrief> {
   const heur = parseBriefHeuristic(text);
   if (heur.citySlug && heur.categorySlug) return heur; // ясный бриф — LLM не нужен
+  if (opts?.allowLlm === false) return heur; // rate-limit/анти-абьюз: без платного LLM
 
   const raw = await llmComplete(LLM_SYSTEM, text.trim());
   if (!raw) return heur;
@@ -206,15 +223,15 @@ export function buildReason(brief: Brief, card: CatalogCard): string {
   const bits: string[] = [];
   const cats = card.categories.map(categoryNameRu);
   if (brief.categorySlug && card.categories.includes(brief.categorySlug)) {
-    bits.push(`снимает «${categoryNameRu(brief.categorySlug)}»`);
+    bits.push(ru.match.reasonShoots(categoryNameRu(brief.categorySlug)));
   } else if (cats.length) {
-    bits.push(`снимает «${cats[0]}»`);
+    bits.push(ru.match.reasonShoots(cats[0]));
   }
-  bits.push(`в городе ${cityNameRu(brief.citySlug)}`);
+  bits.push(ru.match.reasonInCity(cityNameRu(brief.citySlug)));
   if (card.recommendCount > 0) bits.push(ru.dashboard.recommendCount(card.recommendCount).toLowerCase());
-  if (brief.date) bits.push('свободен на вашу дату');
+  if (brief.date) bits.push(ru.match.reasonFreeOnDate);
   if (brief.maxBudgetMinor && card.minPackage && card.minPackage.priceMinor <= brief.maxBudgetMinor) {
-    bits.push('в рамках бюджета');
+    bits.push(ru.match.reasonWithinBudget);
   }
   const s = bits.join(' · ');
   return s.charAt(0).toUpperCase() + s.slice(1);
