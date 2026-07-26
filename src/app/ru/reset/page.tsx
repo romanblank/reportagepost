@@ -49,8 +49,8 @@ function ResetForm() {
           <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4">
             <p className="text-sm muted">{ru.auth.pwreset.resetLead}</p>
             <div>
-              <label className="field-label">{ru.auth.pwreset.newPassword}</label>
-              <input name="password" type="password" required minLength={10} autoComplete="new-password" className="input" />
+              <label htmlFor="reset-password" className="field-label">{ru.auth.pwreset.newPassword}</label>
+              <input id="reset-password" name="password" type="password" required minLength={10} autoComplete="new-password" className="input" />
               <span className="field-hint">Минимум 10 символов</span>
             </div>
             {error && <p role="alert" className="text-sm text-danger">{error}</p>}

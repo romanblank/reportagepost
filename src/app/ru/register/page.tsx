@@ -75,27 +75,27 @@ function RegisterForm() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="field-label">{ru.auth.firstName}</label>
-              <input name="firstName" required minLength={2} maxLength={60} autoComplete="given-name" className="input" />
+              <label htmlFor="reg-firstName" className="field-label">{ru.auth.firstName}</label>
+              <input id="reg-firstName" name="firstName" required minLength={2} maxLength={60} autoComplete="given-name" className="input" />
             </div>
             <div>
-              <label className="field-label">{ru.auth.lastName}</label>
-              <input name="lastName" required minLength={2} maxLength={60} autoComplete="family-name" className="input" />
+              <label htmlFor="reg-lastName" className="field-label">{ru.auth.lastName}</label>
+              <input id="reg-lastName" name="lastName" required minLength={2} maxLength={60} autoComplete="family-name" className="input" />
             </div>
           </div>
           <div>
-            <label className="field-label">{ru.auth.email}</label>
-            <input name="email" type="email" required autoComplete="email" className="input" />
+            <label htmlFor="reg-email" className="field-label">{ru.auth.email}</label>
+            <input id="reg-email" name="email" type="email" required autoComplete="email" className="input" />
           </div>
           <div>
-            <label className="field-label">{ru.auth.password}</label>
-            <input name="password" type="password" required minLength={10} autoComplete="new-password" className="input" />
+            <label htmlFor="reg-password" className="field-label">{ru.auth.password}</label>
+            <input id="reg-password" name="password" type="password" required minLength={10} autoComplete="new-password" className="input" />
             <span className="field-hint">Минимум 10 символов</span>
           </div>
           {showInvite ? (
             <div>
-              <label className="field-label">{ru.auth.inviteCode}</label>
-              <input name="inviteCode" defaultValue={invitePrefill} className="input" />
+              <label htmlFor="reg-inviteCode" className="field-label">{ru.auth.inviteCode}</label>
+              <input id="reg-inviteCode" name="inviteCode" defaultValue={invitePrefill} className="input" />
             </div>
           ) : (
             <button type="button" onClick={() => setShowInvite(true)}

@@ -206,7 +206,7 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
   return (
     <form onSubmit={submitProfile} className="flex flex-col gap-5">
       <div>
-        <label className="field-label">{ru.onboarding.username}</label>
+        <label htmlFor="onb-username" className="field-label">{ru.onboarding.username}</label>
         {!editingUsername ? (
           <div className="flex items-center justify-between gap-2 rounded-xl border border-line bg-surface-2 px-3.5 py-2.5 text-sm">
             <span className="truncate muted">{ru.onboarding.usernamePreview(username)}</span>
@@ -215,6 +215,7 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
           </div>
         ) : (
           <input
+            id="onb-username"
             name="username"
             required
             autoFocus
@@ -227,8 +228,8 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
         <span className="field-hint">{ru.onboarding.usernameAutoHint}</span>
       </div>
       <div>
-        <label className="field-label">{ru.onboarding.city}</label>
-        <select name="citySlug" required className="input">
+        <label htmlFor="onb-city" className="field-label">{ru.onboarding.city}</label>
+        <select id="onb-city" name="citySlug" required className="input">
           {cities.map((c) => <option key={c.slug} value={c.slug}>{c.nameRu}</option>)}
         </select>
       </div>
@@ -247,16 +248,16 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
         </div>
       </fieldset>
       <div>
-        <label className="field-label">{ru.onboarding.bio}</label>
-        <textarea name="bio" rows={3} className="input" />
+        <label htmlFor="onb-bio" className="field-label">{ru.onboarding.bio}</label>
+        <textarea id="onb-bio" name="bio" rows={3} className="input" />
         <span className="field-hint">{ru.onboarding.bioHint}</span>
       </div>
       <div>
         <span className="field-hint mt-0 mb-2 block">{ru.onboarding.richnessHint}</span>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="field-label">{ru.onboarding.experience}</label>
-            <input name="experienceYears" type="number" min={0} max={70} step={1} inputMode="numeric" className="input w-28" />
+            <label htmlFor="onb-experience" className="field-label">{ru.onboarding.experience}</label>
+            <input id="onb-experience" name="experienceYears" type="number" min={0} max={70} step={1} inputMode="numeric" className="input w-28" />
           </div>
           <div>
             <span className="field-label">{ru.onboarding.languages}</span>
@@ -270,21 +271,21 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
               ))}
             </div>
           </div>
-          <div><label className="field-label">{ru.onboarding.equipment}</label>
-            <input name="equipment" maxLength={500} placeholder={ru.onboarding.equipmentPlaceholder} className="input" /></div>
-          <div><label className="field-label">{ru.onboarding.team}</label>
-            <input name="teamInfo" maxLength={300} placeholder={ru.onboarding.teamPlaceholder} className="input" /></div>
+          <div><label htmlFor="onb-equipment" className="field-label">{ru.onboarding.equipment}</label>
+            <input id="onb-equipment" name="equipment" maxLength={500} placeholder={ru.onboarding.equipmentPlaceholder} className="input" /></div>
+          <div><label htmlFor="onb-team" className="field-label">{ru.onboarding.team}</label>
+            <input id="onb-team" name="teamInfo" maxLength={300} placeholder={ru.onboarding.teamPlaceholder} className="input" /></div>
         </div>
       </div>
       <div>
         <span className="field-hint mt-0 mb-2 block">{ru.onboarding.contactsHint}</span>
         <div className="grid gap-4 sm:grid-cols-3">
-          <div><label className="field-label">{ru.onboarding.siteUrl}</label>
-            <input name="siteUrl" type="url" className="input" /></div>
-          <div><label className="field-label">{ru.onboarding.whatsapp}</label>
-            <input name="whatsapp" type="tel" inputMode="tel" autoComplete="tel" placeholder="+7 900 000-00-00" className="input" /></div>
-          <div><label className="field-label">{ru.onboarding.telegram}</label>
-            <input name="telegram" placeholder="@username" className="input" /></div>
+          <div><label htmlFor="onb-siteUrl" className="field-label">{ru.onboarding.siteUrl}</label>
+            <input id="onb-siteUrl" name="siteUrl" type="url" className="input" /></div>
+          <div><label htmlFor="onb-whatsapp" className="field-label">{ru.onboarding.whatsapp}</label>
+            <input id="onb-whatsapp" name="whatsapp" type="tel" inputMode="tel" autoComplete="tel" placeholder="+7 900 000-00-00" className="input" /></div>
+          <div><label htmlFor="onb-telegram" className="field-label">{ru.onboarding.telegram}</label>
+            <input id="onb-telegram" name="telegram" placeholder="@username" className="input" /></div>
         </div>
       </div>
       <fieldset>

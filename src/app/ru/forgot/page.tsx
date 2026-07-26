@@ -34,8 +34,8 @@ export default function ForgotPage() {
           <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4">
             <p className="text-sm muted">{ru.auth.pwreset.forgotLead}</p>
             <div>
-              <label className="field-label">{ru.auth.email}</label>
-              <input name="email" type="email" required autoComplete="email" className="input" />
+              <label htmlFor="forgot-email" className="field-label">{ru.auth.email}</label>
+              <input id="forgot-email" name="email" type="email" required autoComplete="email" className="input" />
             </div>
             <button type="submit" disabled={pending} className="btn btn-accent mt-1">{ru.auth.pwreset.forgotSubmit}</button>
             <Link href="/ru/login" className="self-start text-sm underline muted hover:text-ink">{ru.auth.pwreset.backToLogin}</Link>
