@@ -1,6 +1,29 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import 'dotenv/config';
-import { telegramConfigured, notifyTelegram } from '@/lib/telegram';
+import { telegramConfigured, notifyTelegram, tgSend } from '@/lib/telegram';
+
+describe('telegram: plain-text (анти HTML-инъекция, аудит 2026-07-28)', () => {
+  it('tgSend НЕ шлёт parse_mode → пользовательский текст не парсится как HTML', async () => {
+    const prev = process.env.TELEGRAM_BOT_TOKEN;
+    process.env.TELEGRAM_BOT_TOKEN = 'test-token';
+    let body: { parse_mode?: string; text?: string } | null = null;
+    const fetchMock = vi.fn(async (_url: string, opts: { body: string }) => {
+      body = JSON.parse(opts.body);
+      return { ok: true } as Response;
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      await tgSend('123', 'заявка <a href="evil">клик</a> & <b>x</b>');
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(body!.parse_mode).toBeUndefined(); // нет HTML-режима — инъекция невозможна
+      expect(body!.text).toContain('<a href="evil">'); // текст как есть, не интерпретируется
+    } finally {
+      vi.unstubAllGlobals();
+      if (prev !== undefined) process.env.TELEGRAM_BOT_TOKEN = prev;
+      else delete process.env.TELEGRAM_BOT_TOKEN;
+    }
+  });
+});
 
 describe('telegram: no-op без токена', () => {
   it('telegramConfigured=false и notifyTelegram не бросает без ключа', async () => {
