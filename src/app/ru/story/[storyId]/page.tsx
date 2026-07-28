@@ -15,7 +15,9 @@ export const dynamic = 'force-dynamic';
 
 async function findStory(storyId: string) {
   return db.story.findFirst({
-    where: { id: storyId, status: 'APPROVED' },
+    // Серия публична только у публичного (APPROVED) автора — иначе прямая ссылка
+    // открывала бы контент снятого с публикации профиля (консистентно с дискавери).
+    where: { id: storyId, status: 'APPROVED', profile: { status: 'APPROVED' } },
     include: {
       profile: { include: { user: true } },
       photos: { where: { status: 'APPROVED' }, orderBy: { uploadedAt: 'asc' } },
