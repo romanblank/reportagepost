@@ -1,5 +1,5 @@
 // Регенерация ДЕМО-плейсхолдеров футажа: тот же радиальный градиент по категории,
-// но подпись «ФУТАЖ · Категория» — МЕЛКО и аккуратно внизу кадра (а не на пол-экрана).
+// но подпись «СТОК · Категория» — МЕЛКО и аккуратно внизу кадра (а не на пол-экрана).
 // Только локальные .uploads (демо). Запуск: node scripts/gen-futazh-placeholders.mjs [dir]
 import sharp from 'sharp';
 import { readdirSync, existsSync } from 'node:fs';
@@ -28,7 +28,7 @@ function svg(w, h, cat) {
   // подпись масштабируется от ширины; небольшая, внизу слева
   const fs = Math.max(11, Math.round(w * 0.026));
   const pad = Math.round(w * 0.045);
-  const label = `ФУТАЖ · ${cat.ru.toUpperCase()}`;
+  const label = `СТОК · ${cat.ru.toUpperCase()}`;
   return Buffer.from(
     `<svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">
   <defs>

@@ -1,5 +1,5 @@
 // Единый чистый стиль ДЕМО-плейсхолдеров для ВСЕХ фото (не только футаж): радиальный
-// градиент по категории + мелкая подпись «ФУТАЖ · Категория» внизу. Категория берётся
+// градиент по категории + мелкая подпись «СТОК · Категория» внизу. Категория берётся
 // из БД (UUID-папки её не кодируют). Только локальные .uploads. Реального контента нет
 // (S3=амбассадор), поэтому перегенерация безопасна. Запуск: npx tsx scripts/gen-demo-placeholders.ts
 import 'dotenv/config';
@@ -25,7 +25,7 @@ const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 function svg(w: number, h: number, cat: { ru: string; glow: string; mid: string }): Buffer {
   const fs = Math.max(11, Math.round(w * 0.026));
   const pad = Math.round(w * 0.045);
-  const label = `ФУТАЖ · ${cat.ru.toUpperCase()}`;
+  const label = `СТОК · ${cat.ru.toUpperCase()}`;
   return Buffer.from(
     `<svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">
   <defs><radialGradient id="g" cx="50%" cy="42%" r="78%">
