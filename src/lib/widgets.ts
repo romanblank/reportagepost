@@ -9,11 +9,13 @@ export interface CommunityStats {
 }
 
 export async function communityStats(): Promise<CommunityStats> {
+  // Публичная витрина считает только контент публичных (APPROVED) профилей —
+  // работы снятых с публикации авторов не должны раздувать «N работ».
   const [photographers, photos, cities, stories] = await Promise.all([
     db.photographerProfile.count({ where: { status: 'APPROVED' } }),
-    db.photo.count({ where: { status: 'APPROVED' } }),
+    db.photo.count({ where: { status: 'APPROVED', profile: { status: 'APPROVED' } } }),
     db.city.count({ where: { active: true } }),
-    db.story.count({ where: { status: 'APPROVED' } }),
+    db.story.count({ where: { status: 'APPROVED', profile: { status: 'APPROVED' } } }),
   ]);
   return { photographers, photos, cities, stories };
 }
