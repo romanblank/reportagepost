@@ -18,7 +18,10 @@ export async function tgSend(chatId: string, text: string): Promise<void> {
     await fetch(`${API}/bot${token}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML', disable_web_page_preview: true }),
+      // БЕЗ parse_mode: сообщения — plain text (email-версия тоже plain). HTML-режим
+      // допускал инъекцию ссылок/подделку через пользовательский excerpt заявки и
+      // молчаливую потерю уведомления на невалидном HTML (аудит 2026-07-28, P2).
+      body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }),
     });
   } catch {
     // сеть/Telegram недоступны — уведомление теряем, поток не рушим
