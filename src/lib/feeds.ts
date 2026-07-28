@@ -40,7 +40,7 @@ async function bestOfWindow(sinceDays: number, limit: number): Promise<FeedPhoto
   if (top.length === 0) return [];
 
   const photos = await db.photo.findMany({
-    where: { id: { in: top.map(([id]) => id) }, status: 'APPROVED' },
+    where: { id: { in: top.map(([id]) => id) }, status: 'APPROVED', profile: { status: 'APPROVED' } },
     include: { profile: { include: { user: { select: { firstName: true, lastName: true } } } } },
   });
   const byId = new Map(photos.map((p) => [p.id, p]));
@@ -71,7 +71,7 @@ export const bestOfYear = (limit = 100) => bestOfWindow(365, limit);
 /** Свежее: фолбэк для пустых лент на малых данных (честно, без пустых страниц). */
 export async function freshPhotos(limit = 60): Promise<FeedPhoto[]> {
   const photos = await db.photo.findMany({
-    where: { status: 'APPROVED' },
+    where: { status: 'APPROVED', profile: { status: 'APPROVED' } },
     orderBy: { publishedAt: 'desc' },
     take: limit,
     include: { profile: { include: { user: { select: { firstName: true, lastName: true } } } } },
@@ -98,7 +98,7 @@ const EDITORS_SUB_SHARE = 0.8;
 
 export async function editorsChoice(limit = 100): Promise<FeedPhoto[]> {
   const pool = await db.photo.findMany({
-    where: { status: 'APPROVED', editorsChoiceAt: { not: null } },
+    where: { status: 'APPROVED', editorsChoiceAt: { not: null }, profile: { status: 'APPROVED' } },
     orderBy: { editorsChoiceAt: 'desc' },
     take: Math.max(limit * 4, 48), // запас под квоту
     include: { profile: { include: { user: { select: { firstName: true, lastName: true } } } } },
@@ -140,7 +140,7 @@ export async function followingFeed(userId: string, limit = 60): Promise<FeedPho
   const photos = await db.photo.findMany({
     where: {
       status: 'APPROVED',
-      profile: { userId: { in: follows.map((f) => f.followeeId) } },
+      profile: { status: 'APPROVED', userId: { in: follows.map((f) => f.followeeId) } },
     },
     orderBy: { publishedAt: 'desc' },
     take: limit,
@@ -179,7 +179,7 @@ export async function recommendedFeed(userId: string, limit = 60): Promise<{ pho
     // Сначала id фото нужных категорий (аудит P1-3: не агрегируем весь журнал
     // платформы — только события по интересующим фото)
     const catPhotos = await db.photo.findMany({
-      where: { status: 'APPROVED', categoryId: { in: catIds } },
+      where: { status: 'APPROVED', categoryId: { in: catIds }, profile: { status: 'APPROVED' } },
       select: { id: true },
       take: 5000,
     });
@@ -196,7 +196,7 @@ export async function recommendedFeed(userId: string, limit = 60): Promise<{ pho
     }
     const topIds = [...scores.entries()].filter(([, s]) => s > 0).sort((a, b) => b[1] - a[1]).slice(0, limit).map(([id]) => id);
     const candidates = await db.photo.findMany({
-      where: { status: 'APPROVED', id: { in: topIds } },
+      where: { status: 'APPROVED', id: { in: topIds }, profile: { status: 'APPROVED' } },
       include: { profile: { include: { user: { select: { firstName: true, lastName: true } } } } },
     });
     if (candidates.length > 0) {

@@ -16,7 +16,9 @@ export interface StoryCard {
 /** Свежие опубликованные репортажи (серии) для витрины главной. */
 export async function freshStories(limit = 6): Promise<StoryCard[]> {
   const stories = await db.story.findMany({
-    where: { status: 'APPROVED' },
+    // Только серии публичных (APPROVED) авторов — статус профиля не каскадит на
+    // серию, иначе контент снятого с публикации автора всплыл бы на главной.
+    where: { status: 'APPROVED', profile: { status: 'APPROVED' } },
     orderBy: { publishedAt: 'desc' },
     take: limit,
     include: {
@@ -47,10 +49,13 @@ export async function categoryPreviews(): Promise<CategoryPreview[]> {
   const cats = await db.category.findMany({ select: { id: true, slug: true } });
   const idToSlug = new Map(cats.map((c) => [c.id, c.slug]));
 
+  // Только фото публичных (APPROVED) авторов — обложки/счётчики жанров не должны
+  // включать контент снятых с публикации профилей.
+  const publicPhoto = { status: 'APPROVED' as const, profile: { status: 'APPROVED' as const } };
   const [counts, recent] = await Promise.all([
-    db.photo.groupBy({ by: ['categoryId'], where: { status: 'APPROVED' }, _count: true }),
+    db.photo.groupBy({ by: ['categoryId'], where: publicPhoto, _count: true }),
     db.photo.findMany({
-      where: { status: 'APPROVED' },
+      where: publicPhoto,
       orderBy: [{ editorsChoiceAt: 'desc' }, { publishedAt: 'desc' }],
       take: 300,
       select: { storageKey: true, blurhash: true, categoryId: true },

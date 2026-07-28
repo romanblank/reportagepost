@@ -102,4 +102,32 @@ describe.skipIf(!hasDb)('feeds: подписки и рекомендации (Б
     await db.photographerProfile.delete({ where: { id: profile.id } });
     await db.user.deleteMany({ where: { id: { in: [author.id, l1, l2] } } });
   });
+
+  it('фото/серия непубличного профиля НЕ всплывают в лентах/дискавери (аудит 2026-07-28)', async () => {
+    const { db } = await import('@/lib/db');
+    const { freshPhotos } = await import('@/lib/feeds');
+    const { freshStories } = await import('@/lib/discovery');
+
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const city = await db.city.findFirstOrThrow({ where: { slug: 'moscow' } });
+    const cat = await db.category.findFirstOrThrow({ where: { slug: 'concerts-festivals' } });
+    // Профиль СНЯТ С ПУБЛИКАЦИИ (NEEDS_REVISION), но контент APPROVED
+    const u = await db.user.create({ data: { role: 'PHOTOGRAPHER', status: 'ACTIVE', firstName: 'Скрыт', lastName: 'Ый', email: `hidden-${stamp}@test.local` } });
+    const p = await db.photographerProfile.create({ data: { userId: u.id, username: `hidden-${stamp}`, cityId: city.id, status: 'NEEDS_REVISION' } });
+    const photo = await db.photo.create({ data: { profileId: p.id, categoryId: cat.id, storageKey: `photos/hidden-${stamp}/o.jpg`, width: 2400, height: 1600, status: 'APPROVED', publishedAt: new Date() } });
+    const story = await db.story.create({ data: { profileId: p.id, categoryId: cat.id, title: 'Скрытая серия', status: 'APPROVED', publishedAt: new Date(), coverPhotoId: photo.id, photos: { connect: [{ id: photo.id }] } } });
+
+    expect((await freshPhotos(200)).some((x) => x.photoId === photo.id)).toBe(false);
+    expect((await freshStories(50)).some((x) => x.id === story.id)).toBe(false);
+
+    // публикуем профиль → контент появляется
+    await db.photographerProfile.update({ where: { id: p.id }, data: { status: 'APPROVED' } });
+    expect((await freshPhotos(200)).some((x) => x.photoId === photo.id)).toBe(true);
+    expect((await freshStories(50)).some((x) => x.id === story.id)).toBe(true);
+
+    await db.story.delete({ where: { id: story.id } });
+    await db.photo.delete({ where: { id: photo.id } });
+    await db.photographerProfile.delete({ where: { id: p.id } });
+    await db.user.delete({ where: { id: u.id } });
+  });
 });
