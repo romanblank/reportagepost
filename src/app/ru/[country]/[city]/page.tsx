@@ -49,7 +49,7 @@ export async function generateMetadata(props: { params: Promise<Params> }): Prom
 
 export default async function CatalogPage(props: {
   params: Promise<Params>;
-  searchParams: Promise<{ category?: string; date?: string; page?: string; maxPrice?: string }>;
+  searchParams: Promise<{ category?: string; date?: string; page?: string; maxPrice?: string; format?: string }>;
 }) {
   const params = await props.params;
   const searchParams = await props.searchParams;
@@ -63,14 +63,15 @@ export default async function CatalogPage(props: {
     ? new Date(`${searchParams.date}T00:00:00Z`)
     : undefined;
   const maxPriceRub = Number(searchParams.maxPrice) > 0 ? Number(searchParams.maxPrice) : undefined;
+  const videoOnly = searchParams.format === 'video';
   const page = Math.max(1, Number(searchParams.page) || 1);
 
   // «Рекомендуемые» (буст-видимость подписки, soft-hybrid) — только на 1-й
   // странице без фильтров. Все запросы страницы — параллельно (force-dynamic).
-  const showRecommended = page === 1 && !categorySlug && !availableOn && !maxPriceRub;
+  const showRecommended = page === 1 && !categorySlug && !availableOn && !maxPriceRub && !videoOnly;
   const [{ cards, hasNext }, recommended, visiting] = await Promise.all([
     catalogForCity({
-      citySlug: city.slug, categorySlug, availableOn, page,
+      citySlug: city.slug, categorySlug, availableOn, page, videoOnly,
       maxPackagePriceMinor: maxPriceRub ? maxPriceRub * 100 : undefined,
     }),
     showRecommended ? recommendedForCity(city.slug) : Promise.resolve([] as CatalogCard[]),
@@ -85,7 +86,7 @@ export default async function CatalogPage(props: {
   const basePath = `/ru/${params.country}/${params.city}`;
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:py-10">
+    <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:py-10">
       {shown.length > 0 && (
         <JsonLd
           data={catalogItemListLd(
@@ -94,28 +95,47 @@ export default async function CatalogPage(props: {
           )}
         />
       )}
-      <h1 className="t-h1">{ru.catalog.title(cityName)}</h1>
-      <p className="mt-1.5 text-sm muted">{ru.catalog.photographersCount(shown.length)}</p>
+      <header className="border-b border-line pb-5">
+        <h1 className="t-h1">{ru.catalog.title(cityName)}</h1>
+        <p className="mt-1.5 text-sm muted">{ru.catalog.photographersCount(shown.length)}</p>
+      </header>
 
-      {/* Категории → path-роуты /ru/{country}/{city}/{category} (SEO-перелинковка) */}
-      <CategoryLinks countrySlug={params.country} citySlug={params.city} activeCategory={categorySlug} />
+      <div className="mt-6 grid items-start gap-8 lg:grid-cols-[248px_1fr]">
+        {/* Боковая панель фильтров (каталог v9) */}
+        <aside className="space-y-6 rounded-lg border border-line bg-surface p-4 lg:sticky lg:top-20">
+          <div>
+            <h2 className="t-caption mb-2 muted">{ru.catalog.filterGenre}</h2>
+            {/* Категории → path-роуты (SEO-перелинковка), вертикальным списком */}
+            <CategoryLinks countrySlug={params.country} citySlug={params.city} activeCategory={categorySlug} vertical />
+          </div>
+          <div className="border-t border-line pt-4">
+            <h2 className="t-caption mb-2 muted">{ru.catalog.filterFormat}</h2>
+            <div className="flex gap-2">
+              <Link href={pageHref(basePath, categorySlug, searchParams.date, searchParams.maxPrice, 1)}
+                className={`chip flex-1 justify-center ${!videoOnly ? 'chip-active' : ''}`}>{ru.catalog.formatAll}</Link>
+              <Link href={pageHref(basePath, categorySlug, searchParams.date, searchParams.maxPrice, 1, 'video')}
+                className={`chip flex-1 justify-center ${videoOnly ? 'chip-active' : ''}`}>{ru.catalog.formatVideo}</Link>
+            </div>
+          </div>
+          {/* Фильтр даты/цены — применяется ко всему каталогу */}
+          <form method="get" className="space-y-3 border-t border-line pt-4">
+            {categorySlug && <input type="hidden" name="category" value={categorySlug} />}
+            {videoOnly && <input type="hidden" name="format" value="video" />}
+            <label className="block text-sm">
+              <span className="field-hint mt-0">{ru.catalog.availableOn}</span>
+              <input type="date" name="date" defaultValue={searchParams.date ?? ''} className="input mt-1 w-full" />
+            </label>
+            <label className="block text-sm">
+              <span className="field-hint mt-0">{ru.catalog.maxPrice}</span>
+              <input type="number" name="maxPrice" min={0} step={1} inputMode="numeric"
+                defaultValue={searchParams.maxPrice ?? ''} placeholder="₽" className="input mt-1 w-full" />
+            </label>
+            <button type="submit" className="btn btn-outline w-full">{ru.catalog.applyDate}</button>
+          </form>
+        </aside>
 
-      {/* Фильтр (дата/цена) — компактной панелью сразу под категориями: применяется
-          ко всему каталогу, поэтому у верха, а не в середине страницы. */}
-      <form method="get" className="mt-4 flex flex-wrap items-end gap-3 rounded-media border border-line bg-surface p-3 sm:p-4">
-        {categorySlug && <input type="hidden" name="category" value={categorySlug} />}
-        <label className="text-sm">
-          <span className="field-hint mt-0">{ru.catalog.availableOn}</span>
-          <input type="date" name="date" defaultValue={searchParams.date ?? ''} className="input mt-1 w-auto" />
-        </label>
-        <label className="text-sm">
-          <span className="field-hint mt-0">{ru.catalog.maxPrice}</span>
-          <input type="number" name="maxPrice" min={0} step={1} inputMode="numeric"
-            defaultValue={searchParams.maxPrice ?? ''} placeholder="₽" className="input mt-1 w-32" />
-        </label>
-        <button type="submit" className="btn btn-outline px-4 py-2.5">{ru.catalog.applyDate}</button>
-      </form>
-
+        {/* Результаты */}
+        <div className="min-w-0">
       {recommended.length > 0 && (
         <section className="mt-7">
           <h2 className="flex items-center gap-2 text-lg font-medium text-recognition">{ru.catalog.recommendedTitle}</h2>
@@ -174,24 +194,27 @@ export default async function CatalogPage(props: {
       {(page > 1 || hasNext) && (
         <nav className="mt-8 flex justify-between text-sm">
           {page > 1 ? (
-            <Link href={pageHref(basePath, categorySlug, searchParams.date, searchParams.maxPrice, page - 1)}
+            <Link href={pageHref(basePath, categorySlug, searchParams.date, searchParams.maxPrice, page - 1, videoOnly ? 'video' : undefined)}
               className="btn btn-outline">← {ru.catalog.prevPage}</Link>
           ) : <span />}
           {hasNext ? (
-            <Link href={pageHref(basePath, categorySlug, searchParams.date, searchParams.maxPrice, page + 1)}
+            <Link href={pageHref(basePath, categorySlug, searchParams.date, searchParams.maxPrice, page + 1, videoOnly ? 'video' : undefined)}
               className="btn btn-outline">{ru.catalog.nextPage} →</Link>
           ) : <span />}
         </nav>
       )}
+        </div>
+      </div>
     </main>
   );
 }
 
-function pageHref(base: string, category?: string, date?: string, maxPrice?: string, page?: number): string {
+function pageHref(base: string, category?: string, date?: string, maxPrice?: string, page?: number, format?: string): string {
   const q = new URLSearchParams();
   if (category) q.set('category', category);
   if (date) q.set('date', date);
   if (maxPrice) q.set('maxPrice', maxPrice);
+  if (format) q.set('format', format);
   if (page && page > 1) q.set('page', String(page));
   const s = q.toString();
   return s ? `${base}?${s}` : base;

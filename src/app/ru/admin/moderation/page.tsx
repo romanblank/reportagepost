@@ -41,7 +41,10 @@ export default async function ModerationPage() {
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 sm:py-10">
-      <h1 className="t-h1">{ru.admin.moderationTitle}</h1>
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="t-h1">{ru.admin.moderationTitle}</h1>
+        <a href="/api/admin/export" download className="btn btn-outline btn-sm shrink-0">{ru.admin.exportCsv}</a>
+      </div>
       {profiles.length === 0 ? (
         <p className="mt-4 opacity-60">{ru.admin.empty}</p>
       ) : (

@@ -28,6 +28,11 @@ export function CatalogCards({ cards, cityName }: { cards: CatalogCard[]; cityNa
                     <Avatar avatarKey={card.avatarKey} firstName={card.firstName} lastName={card.lastName} size={72} />
                   </div>
                 )}
+                {card.doesVideo && (
+                  <span className="absolute right-2.5 top-2.5 rounded-md border border-line bg-surface/75 px-2 py-1 text-[11px] backdrop-blur-sm">
+                    {ru.profile.formatsPhotoVideo}
+                  </span>
+                )}
                 {card.minPackage && (
                   // Цена на элегантном скриме снизу кадра (не «белая пилюля»)
                   <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-end bg-gradient-to-t from-black/55 via-black/10 to-transparent px-3 pb-2.5 pt-10">
@@ -59,11 +64,26 @@ export function CatalogCards({ cards, cityName }: { cards: CatalogCard[]; cityNa
   );
 }
 
-// Строка ссылок «город × категория» — внутренняя перелинковка для SEO.
+// Ссылки «город × категория» — внутренняя перелинковка для SEO.
+// vertical — режим боковой панели фильтров (каталог v9); иначе горизонтальная строка чипов.
 export function CategoryLinks({
-  countrySlug, citySlug, activeCategory,
-}: { countrySlug: string; citySlug: string; activeCategory?: string }) {
+  countrySlug, citySlug, activeCategory, vertical = false,
+}: { countrySlug: string; citySlug: string; activeCategory?: string; vertical?: boolean }) {
   const base = `/ru/${countrySlug}/${citySlug}`;
+  if (vertical) {
+    const item = (href: string, label: string, active: boolean) => (
+      <Link key={href} href={href}
+        className={`block rounded-md px-3 py-2 text-sm transition ${active ? 'bg-surface-2 font-medium text-accent' : 'muted hover:bg-surface-2 hover:text-ink'}`}>
+        {label}
+      </Link>
+    );
+    return (
+      <nav className="flex flex-col gap-0.5">
+        {item(base, ru.catalog.allCategories, !activeCategory)}
+        {CATEGORIES.map((c) => item(`${base}/${c.slug}`, c.nameRu, activeCategory === c.slug))}
+      </nav>
+    );
+  }
   return (
     <nav className="mt-5 -mx-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0">
       <Link href={base} className={`chip shrink-0 ${!activeCategory ? 'chip-active' : ''}`}>

@@ -17,6 +17,8 @@ import { ReviewSection } from '@/components/ReviewSection';
 import { reviewsForProfile } from '@/lib/reviews';
 import { VerifyButton } from '@/components/VerifyButton';
 import { parseFaq } from '@/lib/faq';
+import { parseShowreels } from '@/lib/showreel';
+import { storage } from '@/lib/storage';
 import { tierOf } from '@/lib/subscription';
 import { ProfileViewBeacon } from '@/components/ProfileViewBeacon';
 import { shootStats, hasShotWith } from '@/lib/shoots';
@@ -49,6 +51,7 @@ async function findProfile(username: string) {
       categories: { include: { category: true } },
       packages: { orderBy: { sortOrder: 'asc' } },
       photos: { where: { status: 'APPROVED' }, orderBy: [{ sortOrder: 'asc' }, { publishedAt: 'desc' }], take: 60 },
+      videos: { where: { status: 'APPROVED' }, orderBy: { sortOrder: 'asc' } },
       stories: {
         where: { status: 'APPROVED' },
         orderBy: { publishedAt: 'desc' },
@@ -154,6 +157,8 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
 
   const absUrl = (u: string) => (u.startsWith('http') ? u : `${BASE_URL}${u}`);
 
+  // Шоурилы — безопасные embed'ы известных провайдеров (whitelist).
+  const showreels = parseShowreels(profile.showreelUrls);
   // Обложка героя = кадр «выбор редакции» или первый в портфолио
   const coverPhoto = profile.photos.find((p) => p.editorsChoiceAt) ?? profile.photos[0];
   const minPkg = profile.packages[0];
@@ -185,6 +190,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
         firstName={profile.user.firstName}
         lastName={profile.user.lastName}
         username={profile.username}
+        role={profile.doesVideo ? ru.profile.roleBoth : ru.profile.rolePhotographer}
         cityName={cityNameRu(profile.city.slug)}
         categories={profile.categories.map((c) => categoryNameRu(c.category.slug))}
         verified={profile.verified}
@@ -269,7 +275,19 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
                 {profile.languages.length > 0 && (
                   <div className="flex gap-2"><dt className="muted">{ru.profile.languagesLabel}:</dt><dd>{profile.languages.map((l) => ru.profile.langName[l] ?? l).join(', ')}</dd></div>
                 )}
-                {isPaid && profile.equipment && (
+                {profile.doesVideo && (
+                  <div className="flex gap-2"><dt className="muted">{ru.profile.formatsLabel}:</dt><dd>{ru.profile.formatsPhotoVideo}</dd></div>
+                )}
+                {isPaid && profile.cameras.length > 0 && (
+                  <div className="flex gap-2"><dt className="muted">{ru.profile.camerasLabel}:</dt><dd>{profile.cameras.join(', ')}</dd></div>
+                )}
+                {isPaid && profile.lenses.length > 0 && (
+                  <div className="flex gap-2"><dt className="muted">{ru.profile.lensesLabel}:</dt><dd>{profile.lenses.join(', ')}</dd></div>
+                )}
+                {isPaid && profile.lighting.length > 0 && (
+                  <div className="flex gap-2"><dt className="muted">{ru.profile.lightingLabel}:</dt><dd>{profile.lighting.join(', ')}</dd></div>
+                )}
+                {isPaid && profile.equipment && profile.cameras.length === 0 && profile.lenses.length === 0 && profile.lighting.length === 0 && (
                   <div className="flex gap-2"><dt className="muted">{ru.profile.equipmentLabel}:</dt><dd>{profile.equipment}</dd></div>
                 )}
                 {isPaid && profile.teamInfo && (
@@ -312,6 +330,27 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
               </li>
             ))}
           </ul>
+        </section>
+      )}
+
+      {(showreels.length > 0 || profile.videos.length > 0) && (
+        <section className="mt-10">
+          <h2 className="t-caption muted">{ru.profile.videoTitle}</h2>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            {/* Загруженные видео (нативный плеер, Range-раздача) */}
+            {profile.videos.map((v) => (
+              <video key={v.id} src={storage.publicUrl(v.storageKey)} controls preload="metadata"
+                className="aspect-video w-full rounded-media border border-line bg-black" />
+            ))}
+            {/* Шоурилы по ссылке (безопасный embed известных провайдеров) */}
+            {showreels.map((s) => (
+              <div key={s.embedUrl} className="relative overflow-hidden rounded-media border border-line bg-black" style={{ aspectRatio: '16 / 9' }}>
+                <iframe src={s.embedUrl} title={ru.profile.videoTitle} loading="lazy"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen className="absolute inset-0 h-full w-full" />
+              </div>
+            ))}
+          </div>
         </section>
       )}
 

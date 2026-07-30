@@ -44,7 +44,7 @@ export default async function JournalPage() {
             <section className="mt-9">
               <h2 className="t-caption text-recognition">{ru.journal.featuredTitle}</h2>
               <Link href={`/ru/photographer/${featured.username}`}
-                className="group relative mt-3 block overflow-hidden rounded-media bg-ink">
+                className="group relative mt-3 block overflow-hidden rounded-media bg-surface-2">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={webVariantUrl(featured.storageKey)} alt="" loading="eager"
                   className="max-h-[68vh] w-full object-cover transition duration-700 group-hover:scale-[1.02]" />

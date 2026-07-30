@@ -1,27 +1,31 @@
 import Link from "next/link";
 import { ru } from "@/i18n/ru";
-import { editorsChoice, bestOfWeek, freshPhotos } from "@/lib/feeds";
+import { bestOfWeek, freshPhotos } from "@/lib/feeds";
 import { categoryPreviews, freshStories } from "@/lib/discovery";
-import { communityStats } from "@/lib/widgets";
+import { communityStats, recentPhotographers } from "@/lib/widgets";
+import { cityNameRu } from "@/lib/geo-data";
 import { webVariantUrl } from "@/lib/photos";
+import { Avatar } from "@/components/ui/Avatar";
 import { db } from "@/lib/db";
 import { LandingHero } from "@/components/LandingHero";
-import { FeedMasonry, FeedRow, StoryCards } from "@/components/FeedGallery";
+import { FeedMasonry, StoryCards } from "@/components/FeedGallery";
 
 // force-dynamic: главная тянет ленты из БД (урок: static-страница с запросом
 // падает на пререндере в Docker-билде без DATABASE_URL).
 export const dynamic = "force-dynamic";
 
-// Discovery-главная (модель MyWed): герой-поиск → жанры → выбор редакции →
-// лучшее недели → свежее → сообщество. Пустые ленты честно скрываются.
+// Discovery-главная (модель MyWed, v9): герой-поиск+«кадр недели» → жанры →
+// что набирает отклик → свежее → репортажи → сообщество. Всё алгоритмически
+// (по отклику/свежести), без «выбора редакции» — меньше ручной модерации.
+// Пустые ленты честно скрываются.
 export default async function Home() {
-  const [editors, week, fresh, stories, cats, stats, photographers, photos] = await Promise.all([
-    editorsChoice(9),
+  const [week, fresh, stories, cats, stats, newAuthors, photographers, photos] = await Promise.all([
     bestOfWeek(12),
     freshPhotos(16),
     freshStories(6),
     categoryPreviews(),
     communityStats(),
+    recentPhotographers(4),
     db.photographerProfile.count({ where: { status: "APPROVED" } }),
     db.photo.count({ where: { status: "APPROVED" } }),
   ]);
@@ -33,15 +37,25 @@ export default async function Home() {
     { label: ru.dashboard.statStories, value: stats.stories },
   ].filter((t) => t.value > 0);
 
-  const heroBackdrop = editors[0] ?? week[0] ?? fresh[0];
+  // Featured «Кадр недели» — алгоритмически: топ по отклику за неделю (не выбор
+  // редакции). Фон героя — тот же кадр приглушённо.
+  const heroFeatured = week[0] ?? fresh[0];
+  const featured = heroFeatured
+    ? {
+        src: webVariantUrl(heroFeatured.storageKey),
+        name: `${heroFeatured.firstName} ${heroFeatured.lastName}`.trim(),
+        href: `/ru/photographer/${heroFeatured.username}`,
+      }
+    : null;
 
   return (
     <main className="flex-1">
       <LandingHero photographers={photographers} photos={photos}
-        backdropSrc={heroBackdrop ? webVariantUrl(heroBackdrop.storageKey) : null} />
+        backdropSrc={heroFeatured ? webVariantUrl(heroFeatured.storageKey) : null}
+        featured={featured} />
 
       {/* Жанры репортажа — навигационные карточки (всегда, даже пустые: показывают охват) */}
-      <section className="mx-auto w-full max-w-6xl px-4 py-12 sm:py-14">
+      <section className="mx-auto w-full max-w-7xl px-4 py-12 sm:py-14">
         <SectionHeader title={ru.landing.discoverCategories} />
         <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
           {cats.map((c) => (
@@ -74,36 +88,64 @@ export default async function Home() {
         </ul>
       </section>
 
-      {editors.length > 0 && (
-        <section className="mx-auto w-full max-w-6xl px-4 pb-12 sm:pb-14">
-          <SectionHeader title={ru.landing.discoverEditors} href="/ru/photo?tab=editors" />
-          <div className="mt-4"><FeedRow photos={editors} /></div>
-        </section>
-      )}
-
       {week.length > 0 && (
-        <section className="mx-auto w-full max-w-6xl px-4 pb-12 sm:pb-14">
+        <section className="mx-auto w-full max-w-7xl px-4 pb-12 sm:pb-14">
           <SectionHeader title={ru.landing.discoverWeek} href="/ru/photo?tab=week" />
           <div className="mt-4"><FeedMasonry photos={week} /></div>
         </section>
       )}
 
       {fresh.length > 0 && (
-        <section className="mx-auto w-full max-w-6xl px-4 pb-12 sm:pb-14">
+        <section className="mx-auto w-full max-w-7xl px-4 pb-12 sm:pb-14">
           <SectionHeader title={ru.landing.recentWork} href="/ru/photo?tab=fresh" />
           <div className="mt-4"><FeedMasonry photos={fresh} /></div>
         </section>
       )}
 
       {stories.length > 0 && (
-        <section className="mx-auto w-full max-w-6xl px-4 pb-12 sm:pb-14">
+        <section className="mx-auto w-full max-w-7xl px-4 pb-12 sm:pb-14">
           <SectionHeader title={ru.landing.discoverStories} />
           <div className="mt-4"><StoryCards stories={stories} /></div>
         </section>
       )}
 
+      {/* Новые авторы — автоматически по дате прихода (без курирования) */}
+      {newAuthors.length > 0 && (
+        <section className="mx-auto w-full max-w-7xl px-4 pb-12 sm:pb-14">
+          <SectionHeader title={ru.landing.newAuthorsTitle} href="/ru/community" />
+          <ul className="mt-4 grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-4">
+            {newAuthors.map((a) => (
+              <li key={a.username} className="group">
+                <Link href={`/ru/photographer/${a.username}`} className="block">
+                  <div className="relative overflow-hidden rounded-media bg-surface-2">
+                    {a.photos[0] ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={webVariantUrl(a.photos[0].storageKey)}
+                        alt={`${a.user.firstName} ${a.user.lastName}`} loading="lazy"
+                        className="aspect-[3/4] w-full object-cover transition duration-500 group-hover:scale-[1.04]" />
+                    ) : (
+                      <div className="grid aspect-[3/4] w-full place-items-center">
+                        <Avatar avatarKey={a.avatarKey} firstName={a.user.firstName} lastName={a.user.lastName} size={64} />
+                      </div>
+                    )}
+                    <span className="absolute left-2.5 top-2.5 rounded-full border border-line bg-surface/70 px-2.5 py-1 text-[11px] backdrop-blur-sm"
+                      style={{ color: "var(--verified)" }}>
+                      {ru.landing.newAuthorBadge}
+                    </span>
+                  </div>
+                  <div className="mt-3">
+                    <div className="t-small truncate font-medium">{a.user.firstName} {a.user.lastName}</div>
+                    {a.city && <div className="t-caption mt-0.5 truncate muted">{cityNameRu(a.city.slug)}</div>}
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {statTiles.length > 0 && (
-        <section className="mx-auto w-full max-w-6xl px-4 pb-14">
+        <section className="mx-auto w-full max-w-7xl px-4 pb-14">
           <div className="flex flex-wrap gap-x-12 gap-y-4 border-y border-line py-6">
             {statTiles.map((t) => (
               <Link key={t.label} href="/ru/community" className="group">
@@ -115,14 +157,39 @@ export default async function Home() {
         </section>
       )}
 
-      <section className="mx-auto grid w-full max-w-4xl gap-x-12 gap-y-8 px-4 pb-16 sm:grid-cols-2">
-        <div className="border-t border-line-2 pt-5">
-          <h2 className="t-h3">{ru.landing.forPhotographers}</h2>
-          <p className="t-body mt-2.5 max-w-prose muted">{ru.landing.forPhotographersText}</p>
+      {/* Для фотографов — ценность подписки Active/Active+ (антиклассизм-инвариант) */}
+      <section className="border-y border-line bg-surface">
+        <div className="mx-auto grid w-full max-w-7xl items-center gap-12 px-4 py-16 lg:grid-cols-2">
+          <div>
+            <p className="t-caption text-accent">{ru.landing.photographerBandEyebrow}</p>
+            <h2 className="t-h2 mt-4 max-w-[16ch]">{ru.landing.photographerBandTitle}</h2>
+            <p className="t-body mt-4 max-w-prose muted">{ru.landing.photographerBandText}</p>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <Link href="/ru/register" className="btn btn-accent btn-lg">{ru.landing.photographerBandJoin}</Link>
+              <Link href="/ru/pro" className="btn btn-outline btn-lg">{ru.landing.photographerBandPricing}</Link>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {[
+              { t: ru.landing.perkPageTitle, d: ru.landing.perkPageText },
+              { t: ru.landing.perkAnalyticsTitle, d: ru.landing.perkAnalyticsText },
+              { t: ru.landing.perkShelfTitle, d: ru.landing.perkShelfText },
+              { t: ru.landing.perkInquiriesTitle, d: ru.landing.perkInquiriesText },
+            ].map((p) => (
+              <div key={p.t} className="rounded-lg border border-line bg-surface-2 p-5">
+                <div className="font-medium">{p.t}</div>
+                <p className="t-small mt-1.5 muted">{p.d}</p>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="border-t border-line-2 pt-5">
+      </section>
+
+      {/* Заказчикам — краткая ценность */}
+      <section className="mx-auto w-full max-w-7xl px-4 py-16">
+        <div className="max-w-prose border-t border-line-2 pt-5">
           <h2 className="t-h3">{ru.landing.forClients}</h2>
-          <p className="t-body mt-2.5 max-w-prose muted">{ru.landing.forClientsText}</p>
+          <p className="t-body mt-2.5 muted">{ru.landing.forClientsText}</p>
         </div>
       </section>
 
