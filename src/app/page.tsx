@@ -1,22 +1,23 @@
 import Link from "next/link";
 import { ru } from "@/i18n/ru";
-import { editorsChoice, bestOfWeek, freshPhotos } from "@/lib/feeds";
+import { bestOfWeek, freshPhotos } from "@/lib/feeds";
 import { categoryPreviews, freshStories } from "@/lib/discovery";
 import { communityStats } from "@/lib/widgets";
 import { webVariantUrl } from "@/lib/photos";
 import { db } from "@/lib/db";
 import { LandingHero } from "@/components/LandingHero";
-import { FeedMasonry, FeedRow, StoryCards } from "@/components/FeedGallery";
+import { FeedMasonry, StoryCards } from "@/components/FeedGallery";
 
 // force-dynamic: главная тянет ленты из БД (урок: static-страница с запросом
 // падает на пререндере в Docker-билде без DATABASE_URL).
 export const dynamic = "force-dynamic";
 
-// Discovery-главная (модель MyWed): герой-поиск → жанры → выбор редакции →
-// лучшее недели → свежее → сообщество. Пустые ленты честно скрываются.
+// Discovery-главная (модель MyWed, v9): герой-поиск+«кадр недели» → жанры →
+// что набирает отклик → свежее → репортажи → сообщество. Всё алгоритмически
+// (по отклику/свежести), без «выбора редакции» — меньше ручной модерации.
+// Пустые ленты честно скрываются.
 export default async function Home() {
-  const [editors, week, fresh, stories, cats, stats, photographers, photos] = await Promise.all([
-    editorsChoice(9),
+  const [week, fresh, stories, cats, stats, photographers, photos] = await Promise.all([
     bestOfWeek(12),
     freshPhotos(16),
     freshStories(6),
@@ -33,15 +34,25 @@ export default async function Home() {
     { label: ru.dashboard.statStories, value: stats.stories },
   ].filter((t) => t.value > 0);
 
-  const heroBackdrop = editors[0] ?? week[0] ?? fresh[0];
+  // Featured «Кадр недели» — алгоритмически: топ по отклику за неделю (не выбор
+  // редакции). Фон героя — тот же кадр приглушённо.
+  const heroFeatured = week[0] ?? fresh[0];
+  const featured = heroFeatured
+    ? {
+        src: webVariantUrl(heroFeatured.storageKey),
+        name: `${heroFeatured.firstName} ${heroFeatured.lastName}`.trim(),
+        href: `/ru/photographer/${heroFeatured.username}`,
+      }
+    : null;
 
   return (
     <main className="flex-1">
       <LandingHero photographers={photographers} photos={photos}
-        backdropSrc={heroBackdrop ? webVariantUrl(heroBackdrop.storageKey) : null} />
+        backdropSrc={heroFeatured ? webVariantUrl(heroFeatured.storageKey) : null}
+        featured={featured} />
 
       {/* Жанры репортажа — навигационные карточки (всегда, даже пустые: показывают охват) */}
-      <section className="mx-auto w-full max-w-6xl px-4 py-12 sm:py-14">
+      <section className="mx-auto w-full max-w-7xl px-4 py-12 sm:py-14">
         <SectionHeader title={ru.landing.discoverCategories} />
         <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
           {cats.map((c) => (
@@ -74,36 +85,29 @@ export default async function Home() {
         </ul>
       </section>
 
-      {editors.length > 0 && (
-        <section className="mx-auto w-full max-w-6xl px-4 pb-12 sm:pb-14">
-          <SectionHeader title={ru.landing.discoverEditors} href="/ru/photo?tab=editors" />
-          <div className="mt-4"><FeedRow photos={editors} /></div>
-        </section>
-      )}
-
       {week.length > 0 && (
-        <section className="mx-auto w-full max-w-6xl px-4 pb-12 sm:pb-14">
+        <section className="mx-auto w-full max-w-7xl px-4 pb-12 sm:pb-14">
           <SectionHeader title={ru.landing.discoverWeek} href="/ru/photo?tab=week" />
           <div className="mt-4"><FeedMasonry photos={week} /></div>
         </section>
       )}
 
       {fresh.length > 0 && (
-        <section className="mx-auto w-full max-w-6xl px-4 pb-12 sm:pb-14">
+        <section className="mx-auto w-full max-w-7xl px-4 pb-12 sm:pb-14">
           <SectionHeader title={ru.landing.recentWork} href="/ru/photo?tab=fresh" />
           <div className="mt-4"><FeedMasonry photos={fresh} /></div>
         </section>
       )}
 
       {stories.length > 0 && (
-        <section className="mx-auto w-full max-w-6xl px-4 pb-12 sm:pb-14">
+        <section className="mx-auto w-full max-w-7xl px-4 pb-12 sm:pb-14">
           <SectionHeader title={ru.landing.discoverStories} />
           <div className="mt-4"><StoryCards stories={stories} /></div>
         </section>
       )}
 
       {statTiles.length > 0 && (
-        <section className="mx-auto w-full max-w-6xl px-4 pb-14">
+        <section className="mx-auto w-full max-w-7xl px-4 pb-14">
           <div className="flex flex-wrap gap-x-12 gap-y-4 border-y border-line py-6">
             {statTiles.map((t) => (
               <Link key={t.label} href="/ru/community" className="group">

@@ -52,3 +52,7 @@ next-env.d.ts
 
 # локальное хранилище загрузок (dev)
 .uploads/
+.design-preview/
+.agents/
+.claude/skills/
+skills-lock.json

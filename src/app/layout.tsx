@@ -52,10 +52,8 @@ export const metadata: Metadata = {
 
 // Тема-зависимый цвет тулбара + viewport (Next 16: отдельный экспорт)
 export const viewport: Viewport = {
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#fbfbfc' },
-    { media: '(prefers-color-scheme: dark)', color: '#0b0b0d' },
-  ],
+  // Публичка — тёмный дефолт «золотой час» (v9). Тулбар под сумеречный грунт.
+  themeColor: '#0f1218',
 };
 
 export default async function RootLayout({

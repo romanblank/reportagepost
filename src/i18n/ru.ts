@@ -110,6 +110,10 @@ export const ru = {
     heroPhotographerCta: 'Создать профиль',
     statAuthors: 'авторов',
     statWorks: 'работ',
+    // Featured-карточка в герое (алгоритмическая — по отклику, не выбор редакции)
+    featuredBadge: 'Кадр недели',
+    featuredShotBy: 'Снял',
+    featuredViewShot: 'Смотреть работу',
     closedNote: 'Регистрация для фотографов открыта. Платформа в закрытой бете — публичный запуск впереди.',
     recentWork: 'Свежие работы',
     // Discovery-секции главной
