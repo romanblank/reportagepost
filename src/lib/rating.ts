@@ -20,13 +20,14 @@ export function decayFactor(ageMs: number): number {
   return Math.pow(0.5, ageDays / HALF_LIFE_DAYS);
 }
 
-/** Вклад текущих фото-лайков профиля с затуханием, в милли-баллах. */
-export async function engagementMilli(profileId: string, now = new Date()): Promise<number> {
-  const photos = await db.photo.findMany({
-    where: { profileId, status: 'APPROVED' },
-    select: { id: true },
-  });
-  if (photos.length === 0) return 0;
+/** Вклад текущих фото-лайков профиля с затуханием, в милли-баллах. Если id
+ *  одобренных фото уже загружены (scoreOne) — передать их, чтобы не запрашивать
+ *  повторно (аудит перф 2026-07-30). */
+export async function engagementMilli(profileId: string, now = new Date(), photoIds?: string[]): Promise<number> {
+  const ids =
+    photoIds ??
+    (await db.photo.findMany({ where: { profileId, status: 'APPROVED' }, select: { id: true } })).map((p) => p.id);
+  if (ids.length === 0) return 0;
 
   // Считаем по МАТЕРИАЛИЗОВАННЫМ лайкам (таблица Like), а НЕ переигрывая журнал
   // PHOTO_LIKE/PHOTO_UNLIKE (волна аудита №6, глубинный баг): анлайк удаляет
@@ -37,7 +38,7 @@ export async function engagementMilli(profileId: string, now = new Date()): Prom
   // от своего createdAt. Окно 5×полураспад (~300 дней): вклад старше <1%.
   const since = new Date(now.getTime() - 5 * HALF_LIFE_DAYS * 86_400_000);
   const likes = await db.like.findMany({
-    where: { photoId: { in: photos.map((p) => p.id) }, createdAt: { gte: since } },
+    where: { photoId: { in: ids }, createdAt: { gte: since } },
     select: { weightMilli: true, createdAt: true },
   });
 
@@ -53,8 +54,8 @@ type ProfileForRating = Prisma.PhotographerProfileGetPayload<{
 }>;
 
 async function scoreOne(p: ProfileForRating, now: Date): Promise<number> {
-  const engagement = await engagementMilli(p.id, now);
   const approvedPhotos = p.photos.filter((ph) => ph.status === 'APPROVED');
+  const engagement = await engagementMilli(p.id, now, approvedPhotos.map((ph) => ph.id));
   const lastPublishedAt = approvedPhotos
     .map((ph) => ph.publishedAt)
     .filter((d): d is Date => d !== null)
@@ -102,11 +103,15 @@ export async function recomputeRatings(now = new Date()): Promise<number> {
     where: { status: 'APPROVED' },
     include: { packages: true, photos: true },
   });
-  for (const p of profiles) {
-    await db.photographerProfile.update({
-      where: { id: p.id },
-      data: { ratingScore: await scoreOne(p, now) },
-    });
+  // Батчами (не строго последовательно) — джоб не растягивается линейно с ростом
+  // каталога (аудит перф 2026-07-30). Кап конкуренции бережёт пул соединений.
+  const CHUNK = 25;
+  for (let i = 0; i < profiles.length; i += CHUNK) {
+    await Promise.all(
+      profiles.slice(i, i + CHUNK).map(async (p) =>
+        db.photographerProfile.update({ where: { id: p.id }, data: { ratingScore: await scoreOne(p, now) } }),
+      ),
+    );
   }
   return profiles.length;
 }

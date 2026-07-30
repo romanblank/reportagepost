@@ -304,6 +304,10 @@ model Photo {
   @@index([profileId, status])
   @@index([status, publishedAt(sort: Desc)])
   @@index([profileId, sortOrder])
+  // Дискавери главной (categoryPreviews/editorsChoice сортируют по editorsChoiceAt) — аудит перф 2026-07-30
+  @@index([status, editorsChoiceAt(sort: Desc), publishedAt(sort: Desc)])
+  // Рекомендательная лента / превью жанров фильтруют по categoryId — аудит перф 2026-07-30
+  @@index([categoryId, status])
 }
 
 // Серия (история) — репортаж с одного события
@@ -326,6 +330,8 @@ model Story {
   comments Comment[]
 
   @@index([profileId, status])
+  // freshStories (главная) фильтрует по глобальному status + сортирует publishedAt — аудит перф 2026-07-30.
+  @@index([status, publishedAt(sort: Desc)])
 }
 
 // ─── Событийная модель активности (фундамент рейтингов v2, рек-ленты, виджетов)
@@ -391,6 +397,9 @@ model Like {
 
   @@unique([userId, photoId])
   @@unique([userId, storyId])
+  // Горячий путь: ленты (bestOfWindow), рекомендации, пересчёт рейтинга агрегируют
+  // Like по photoId + окну createdAt. Like растёт быстрее всех — аудит перф 2026-07-30.
+  @@index([photoId, createdAt])
 }
 
 // Подтверждённая съёмка: заказчик отметил, что съёмка с автором состоялась.
@@ -429,6 +438,9 @@ model Review {
 
   @@unique([authorUserId, profileId]) // один отзыв на пару клиент↔фотограф
   @@index([profileId, status, createdAt])
+  // «Заказчики рекомендуют» (valuedPhotographers) агрегирует отзывы rating≥4+verified
+  // по всей платформе — аудит перф 2026-07-30.
+  @@index([status, rating, verified])
 }
 
 model Comment {
