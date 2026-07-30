@@ -14,7 +14,7 @@ export function LandingHero({ photographers, photos, backdropSrc, featured }: {
   featured: { src: string; name: string; href: string } | null;
 }) {
   return (
-    <section className="relative isolate flex items-center overflow-hidden bg-ink"
+    <section className="relative isolate flex items-center overflow-hidden bg-paper"
       style={{ minHeight: 'clamp(560px, 88vh, 900px)' }}>
       {backdropSrc ? (
         // eslint-disable-next-line @next/next/no-img-element

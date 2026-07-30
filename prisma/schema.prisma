@@ -329,7 +329,7 @@ model ProfileVideo {
   title      String?
   posterKey  String? // опциональный постер-кадр (пока не генерим — задел)
   sortOrder  Int      @default(0)
-  status     ModerationStatus @default(PENDING) // как фото: публикация после модерации
+  status     ModerationStatus @default(PENDING) // роут ставит APPROVED сразу (автор уже прошёл модерацию профиля); поле — для будущего админ-тейкдауна по жалобе
   createdAt  DateTime @default(now())
 
   profile PhotographerProfile @relation(fields: [profileId], references: [id])

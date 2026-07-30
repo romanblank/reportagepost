@@ -26,8 +26,16 @@ export async function GET(
   const range = req.headers.get('range');
   const m = range?.match(/^bytes=(\d*)-(\d*)$/);
   if (m) {
-    let start = m[1] ? parseInt(m[1], 10) : 0;
-    let end = m[2] ? parseInt(m[2], 10) : total - 1;
+    let start: number;
+    let end: number;
+    if (m[1] === '' && m[2] !== '') {
+      // Суффикс-диапазон `bytes=-N` — последние N байт.
+      start = Math.max(0, total - parseInt(m[2], 10));
+      end = total - 1;
+    } else {
+      start = m[1] ? parseInt(m[1], 10) : 0;
+      end = m[2] ? parseInt(m[2], 10) : total - 1;
+    }
     if (Number.isNaN(start)) start = 0;
     if (Number.isNaN(end) || end >= total) end = total - 1;
     if (start > end || start >= total) {
@@ -45,6 +53,7 @@ export async function GET(
         'Accept-Ranges': 'bytes',
         'Content-Length': String(chunk.byteLength),
         'Cache-Control': cache,
+        'X-Content-Type-Options': 'nosniff',
       },
     });
   }
@@ -55,6 +64,7 @@ export async function GET(
       'Accept-Ranges': 'bytes',
       'Content-Length': String(total),
       'Cache-Control': cache,
+      'X-Content-Type-Options': 'nosniff',
     },
   });
 }

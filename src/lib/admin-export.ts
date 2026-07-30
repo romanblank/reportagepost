@@ -22,7 +22,11 @@ function anonId(id: string): string {
 }
 
 function cell(v: string | number | boolean | null | undefined): string {
-  const s = v === null || v === undefined ? '' : String(v);
+  let s = v === null || v === undefined ? '' : String(v);
+  // CSV formula-injection guard (OWASP): значения из свободного ввода (техника и
+  // т.п.), начинающиеся с = + - @ (или tab/CR), Excel исполнит как формулу.
+  // Предваряем апострофом — обезвреживаем, отображение не страдает.
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
   return /["\n\r;,]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 

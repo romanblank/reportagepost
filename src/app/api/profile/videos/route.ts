@@ -6,6 +6,7 @@ import {
   VideoValidationError,
   storeVideo,
   VIDEO_LIMIT_PER_PROFILE,
+  MAX_VIDEO_BYTES,
 } from '@/lib/videos';
 
 export const maxDuration = 60; // крупная загрузка
@@ -31,6 +32,11 @@ export async function POST(req: Request) {
   const titleRaw = form?.get('title');
   if (!(file instanceof File)) {
     return NextResponse.json({ error: 'validation' }, { status: 400 });
+  }
+  // Отклоняем ПО РАЗМЕРУ ДО буферизации в память (DoS-guard: иначе 2+ ГБ
+  // multipart полностью попадёт в heap до проверки веса).
+  if (file.size > MAX_VIDEO_BYTES) {
+    return NextResponse.json({ error: 'file_too_large' }, { status: 413 });
   }
   const title = typeof titleRaw === 'string' ? titleRaw.trim().slice(0, 120) : null;
 

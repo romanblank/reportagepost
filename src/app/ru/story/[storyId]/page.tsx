@@ -61,7 +61,7 @@ export default async function StoryPage(props: { params: Promise<{ storyId: stri
   return (
     <main className="flex-1">
       {/* Иммерсивный герой фото-эссе: обложка + заголовок антиквой поверх */}
-      <section className="relative isolate flex w-full items-end overflow-hidden bg-ink"
+      <section className="relative isolate flex w-full items-end overflow-hidden bg-paper"
         style={{ minHeight: 'clamp(360px, 62vh, 640px)' }}>
         {cover ? (
           // eslint-disable-next-line @next/next/no-img-element

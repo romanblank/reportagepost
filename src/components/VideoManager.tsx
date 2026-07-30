@@ -2,13 +2,14 @@
 
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import type { ModerationStatus } from '@prisma/client';
 import { ru } from '@/i18n/ru';
 
 export interface ManagedVideo {
   id: string;
   url: string;
   title: string | null;
-  status: string; // ModerationStatus
+  status: ModerationStatus;
 }
 
 // Управление загруженными видео автора (кабинет). Multipart-загрузка на

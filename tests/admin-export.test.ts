@@ -52,4 +52,14 @@ describe('admin-export: CSV агрегируемых данных', () => {
     const csv = rowsToCsv([]);
     expect(csv.replace('﻿', '').split('\r\n')).toHaveLength(1);
   });
+
+  it('обезвреживает CSV formula-injection (=,+,-,@ в начале значения)', () => {
+    for (const evil of ['=cmd|calc', '+1+1', '-2+3', '@SUM(A1)']) {
+      const csv = rowsToCsv([{ ...sample, equipment: evil }]);
+      const line = csv.replace('﻿', '').split('\r\n')[1];
+      // значение предваряется апострофом → Excel не исполнит как формулу
+      expect(line).toContain(`'${evil}`);
+      expect(line).not.toContain(`;${evil}`); // без апострофа рядом с ; быть не должно
+    }
+  });
 });
