@@ -88,7 +88,7 @@ export default async function CityCategoryPage(props: {
   };
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:py-10">
+    <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:py-10">
       <JsonLd data={breadcrumbLd([
         { name: ru.catalog.breadcrumbRoot, path: cityPath },
         { name: cityName, path: cityPath },
@@ -98,27 +98,35 @@ export default async function CityCategoryPage(props: {
         <JsonLd data={catalogItemListLd(title, cards.map((c) => ({ username: c.username, name: `${c.firstName} ${c.lastName}` })))} />
       )}
 
-      <nav className="text-sm muted">
-        <Link href={cityPath} className="underline">{cityName}</Link> · {catName}
-      </nav>
-      <h1 className="t-h1 mt-1.5">{title}</h1>
-      <p className="mt-1.5 text-sm muted">{ru.catalog.photographersCount(cards.length)}</p>
+      <header className="border-b border-line pb-5">
+        <nav className="text-sm muted">
+          <Link href={cityPath} className="underline">{cityName}</Link> · {catName}
+        </nav>
+        <h1 className="t-h1 mt-1.5">{title}</h1>
+        <p className="mt-1.5 text-sm muted">{ru.catalog.photographersCount(cards.length)}</p>
+      </header>
 
-      <CategoryLinks countrySlug={params.country} citySlug={params.city} activeCategory={params.category} />
+      <div className="mt-6 grid items-start gap-8 lg:grid-cols-[248px_1fr]">
+        <aside className="space-y-6 rounded-lg border border-line bg-surface p-4 lg:sticky lg:top-20">
+          <div>
+            <h2 className="t-caption mb-2 muted">{ru.catalog.filterGenre}</h2>
+            <CategoryLinks countrySlug={params.country} citySlug={params.city} activeCategory={params.category} vertical />
+          </div>
+          <form method="get" className="space-y-3 border-t border-line pt-4">
+            <label className="block text-sm">
+              <span className="field-hint mt-0">{ru.catalog.availableOn}</span>
+              <input type="date" name="date" defaultValue={searchParams.date ?? ''} className="input mt-1 w-full" />
+            </label>
+            <label className="block text-sm">
+              <span className="field-hint mt-0">{ru.catalog.maxPrice}</span>
+              <input type="number" name="maxPrice" min={0} step={1} inputMode="numeric"
+                defaultValue={searchParams.maxPrice ?? ''} placeholder="₽/час" className="input mt-1 w-full" />
+            </label>
+            <button type="submit" className="btn btn-outline w-full">{ru.catalog.applyDate}</button>
+          </form>
+        </aside>
 
-      <form method="get" className="mt-4 flex flex-wrap items-end gap-3">
-        <label className="text-sm">
-          <span className="field-hint mt-0">{ru.catalog.availableOn}</span>
-          <input type="date" name="date" defaultValue={searchParams.date ?? ''} className="input mt-1 w-auto" />
-        </label>
-        <label className="text-sm">
-          <span className="field-hint mt-0">{ru.catalog.maxPrice}</span>
-          <input type="number" name="maxPrice" min={0} step={1} inputMode="numeric"
-            defaultValue={searchParams.maxPrice ?? ''} placeholder="₽/час" className="input mt-1 w-32" />
-        </label>
-        <button type="submit" className="btn btn-outline px-4 py-2.5">{ru.catalog.applyDate}</button>
-      </form>
-
+        <div className="min-w-0">
       {cards.length === 0 ? (
         <EmptyState
           icon={<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" /></svg>}
@@ -139,6 +147,8 @@ export default async function CityCategoryPage(props: {
           {hasNext ? <Link href={pageHref(page + 1)} className="btn btn-outline px-4 py-2">{ru.catalog.nextPage}</Link> : <span />}
         </nav>
       )}
+        </div>
+      </div>
     </main>
   );
 }

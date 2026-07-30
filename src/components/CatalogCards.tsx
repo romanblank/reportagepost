@@ -59,11 +59,26 @@ export function CatalogCards({ cards, cityName }: { cards: CatalogCard[]; cityNa
   );
 }
 
-// Строка ссылок «город × категория» — внутренняя перелинковка для SEO.
+// Ссылки «город × категория» — внутренняя перелинковка для SEO.
+// vertical — режим боковой панели фильтров (каталог v9); иначе горизонтальная строка чипов.
 export function CategoryLinks({
-  countrySlug, citySlug, activeCategory,
-}: { countrySlug: string; citySlug: string; activeCategory?: string }) {
+  countrySlug, citySlug, activeCategory, vertical = false,
+}: { countrySlug: string; citySlug: string; activeCategory?: string; vertical?: boolean }) {
   const base = `/ru/${countrySlug}/${citySlug}`;
+  if (vertical) {
+    const item = (href: string, label: string, active: boolean) => (
+      <Link key={href} href={href}
+        className={`block rounded-md px-3 py-2 text-sm transition ${active ? 'bg-surface-2 font-medium text-accent' : 'muted hover:bg-surface-2 hover:text-ink'}`}>
+        {label}
+      </Link>
+    );
+    return (
+      <nav className="flex flex-col gap-0.5">
+        {item(base, ru.catalog.allCategories, !activeCategory)}
+        {CATEGORIES.map((c) => item(`${base}/${c.slug}`, c.nameRu, activeCategory === c.slug))}
+      </nav>
+    );
+  }
   return (
     <nav className="mt-5 -mx-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0">
       <Link href={base} className={`chip shrink-0 ${!activeCategory ? 'chip-active' : ''}`}>

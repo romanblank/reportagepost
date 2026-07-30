@@ -167,6 +167,8 @@ export const ru = {
     availableOn: 'Свободен на дату',
     maxPrice: 'Бюджет до, ₽',
     applyDate: 'Показать',
+    filtersTitle: 'Фильтры',
+    filterGenre: 'Жанр',
     prevPage: 'Назад',
     nextPage: 'Дальше',
     recommendedTitle: 'Открыты для новых заказов',
