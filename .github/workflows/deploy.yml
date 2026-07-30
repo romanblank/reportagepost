@@ -91,6 +91,10 @@ jobs:
           key: ${{ secrets.PROD_SSH_KEY }}
           envs: IMAGE,GHCR_TOKEN,GHCR_USER
           script_stop: true
+          # Дефолт command_timeout ssh-action = 10m; при медленном/зависшем pull
+          # образа GHCR→VM его не хватало (деплой fa6f201 упал на «Run Command
+          # Timeout» посреди pull, 2026-07-30). 20m — запас на pull + migrate + старт.
+          command_timeout: 20m
           script: |
             # ВОССТАНОВЛЕНИЕ ПРИ ПЕРЕПОЛНЕНИИ ДИСКА (инцидент 2026-07-24: диск 30GB
             # переполнился Docker-образами/логами → прод лёг). Освобождаем место
