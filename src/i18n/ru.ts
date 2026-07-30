@@ -570,6 +570,7 @@ export const ru = {
   },
   admin: {
     moderationTitle: 'Модерация заявок',
+    exportCsv: 'Выгрузка данных (CSV)',
     storiesQueue: 'Серии на модерации',
     empty: 'Очередь пуста.',
     photosCount: (n: number) => `Фото: ${n}`,
