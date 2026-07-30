@@ -45,6 +45,7 @@ export default async function EditProfilePage() {
           experienceYears: profile.experienceYears ?? null,
           equipment: profile.equipment ?? '',
           teamInfo: profile.teamInfo ?? '',
+          doesVideo: profile.doesVideo,
           languages: profile.languages,
           faq: parseFaq(profile.faq),
           packages: profile.packages.map((p) => ({ hours: p.hours, priceRub: Math.round(p.priceMinor / 100) })),

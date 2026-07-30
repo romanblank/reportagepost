@@ -18,6 +18,7 @@ export const ProfileEditSchema = z.object({
   experienceYears: z.number().int().min(0).max(70).nullable().optional(),
   equipment: z.string().trim().max(500).optional(),
   teamInfo: z.string().trim().max(300).optional(),
+  doesVideo: z.boolean().optional(),
   languages: z.array(z.string().trim().regex(/^[a-z]{2}$/)).max(8).optional(),
   faq: z
     .array(z.object({ q: z.string().trim().min(1).max(200), a: z.string().trim().min(1).max(1000) }))
@@ -73,6 +74,7 @@ export async function applyProfileEdit(
         experienceYears: d.experienceYears ?? null,
         equipment: d.equipment?.trim() || null,
         teamInfo: d.teamInfo?.trim() || null,
+        ...(d.doesVideo !== undefined ? { doesVideo: d.doesVideo } : {}),
         ...(d.languages && d.languages.length ? { languages: d.languages } : {}),
         ...(d.faq !== undefined
           ? { faq: d.faq.length ? (d.faq as unknown as Prisma.InputJsonValue) : Prisma.DbNull }

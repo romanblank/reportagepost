@@ -204,6 +204,8 @@ export const ru = {
     languagesLabel: 'Языки',
     equipmentLabel: 'Оборудование',
     teamLabel: 'Команда',
+    formatsLabel: 'Форматы',
+    formatsPhotoVideo: 'Фото · Видео',
     langName: {
       ru: 'Русский', en: 'English', es: 'Español', de: 'Deutsch', fr: 'Français',
       it: 'Italiano', zh: '中文', tr: 'Türkçe', ar: 'العربية', pt: 'Português',
@@ -750,6 +752,7 @@ export const ru = {
     equipmentPlaceholder: 'Например: Sony A7IV, 24-70 f2.8, накамерный свет',
     team: 'Команда',
     teamPlaceholder: 'Например: снимаю один / с ассистентом / студия из 3 человек',
+    doesVideo: 'Снимаю видео — показывать как видеографа',
     richnessHint: 'Заполненная страница вызывает больше доверия и заметнее в каталоге.',
     contactsHint: 'Как с вами связаться после заявки. Хотя бы один способ — иначе заказчик не дойдёт.',
     siteUrl: 'Сайт (необязательно)',

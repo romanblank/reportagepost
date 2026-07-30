@@ -269,6 +269,9 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
                 {profile.languages.length > 0 && (
                   <div className="flex gap-2"><dt className="muted">{ru.profile.languagesLabel}:</dt><dd>{profile.languages.map((l) => ru.profile.langName[l] ?? l).join(', ')}</dd></div>
                 )}
+                {profile.doesVideo && (
+                  <div className="flex gap-2"><dt className="muted">{ru.profile.formatsLabel}:</dt><dd>{ru.profile.formatsPhotoVideo}</dd></div>
+                )}
                 {isPaid && profile.equipment && (
                   <div className="flex gap-2"><dt className="muted">{ru.profile.equipmentLabel}:</dt><dd>{profile.equipment}</dd></div>
                 )}

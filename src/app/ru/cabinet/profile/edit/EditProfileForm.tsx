@@ -17,6 +17,7 @@ interface Initial {
   experienceYears: number | null;
   equipment: string;
   teamInfo: string;
+  doesVideo: boolean;
   languages: string[];
   faq: { q: string; a: string }[];
   packages: { hours: number; priceRub: number }[];
@@ -45,6 +46,7 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
   const [exp, setExp] = useState(initial.experienceYears?.toString() ?? '');
   const [equipment, setEquipment] = useState(initial.equipment);
   const [teamInfo, setTeamInfo] = useState(initial.teamInfo);
+  const [doesVideo, setDoesVideo] = useState(initial.doesVideo);
   const [langs, setLangs] = useState<string[]>(initial.languages.length ? initial.languages : ['ru']);
   const [faq, setFaq] = useState(initial.faq);
   const [packages, setPackages] = useState(initial.packages.length ? initial.packages : [{ hours: 2, priceRub: 10000 }]);
@@ -72,6 +74,7 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
         experienceYears: exp.trim() ? Number(exp) : null,
         equipment: equipment.trim(),
         teamInfo: teamInfo.trim(),
+        doesVideo,
         languages: langs,
         faq: faq.map((f) => ({ q: f.q.trim(), a: f.a.trim() })).filter((f) => f.q && f.a).slice(0, 10),
         packages: packages.map((p) => ({ hours: p.hours, priceMinor: p.priceRub * 100, currency: 'RUB' })),
@@ -180,6 +183,11 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
           <input value={equipment} onChange={(e) => setEquipment(e.target.value)} maxLength={500} className="input" /></div>
         <div><label className="field-label">{ru.onboarding.team}</label>
           <input value={teamInfo} onChange={(e) => setTeamInfo(e.target.value)} maxLength={300} className="input" /></div>
+        <label className="flex cursor-pointer items-center gap-2.5 sm:col-span-2">
+          <input type="checkbox" checked={doesVideo} onChange={(e) => setDoesVideo(e.target.checked)}
+            className="size-4 accent-[var(--accent)]" />
+          <span className="text-sm">{ru.onboarding.doesVideo}</span>
+        </label>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
