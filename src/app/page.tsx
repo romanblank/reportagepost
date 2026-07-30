@@ -157,14 +157,39 @@ export default async function Home() {
         </section>
       )}
 
-      <section className="mx-auto grid w-full max-w-4xl gap-x-12 gap-y-8 px-4 pb-16 sm:grid-cols-2">
-        <div className="border-t border-line-2 pt-5">
-          <h2 className="t-h3">{ru.landing.forPhotographers}</h2>
-          <p className="t-body mt-2.5 max-w-prose muted">{ru.landing.forPhotographersText}</p>
+      {/* Для фотографов — ценность подписки Active/Active+ (антиклассизм-инвариант) */}
+      <section className="border-y border-line bg-surface">
+        <div className="mx-auto grid w-full max-w-7xl items-center gap-12 px-4 py-16 lg:grid-cols-2">
+          <div>
+            <p className="t-caption text-accent">{ru.landing.photographerBandEyebrow}</p>
+            <h2 className="t-h2 mt-4 max-w-[16ch]">{ru.landing.photographerBandTitle}</h2>
+            <p className="t-body mt-4 max-w-prose muted">{ru.landing.photographerBandText}</p>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <Link href="/ru/register" className="btn btn-accent btn-lg">{ru.landing.photographerBandJoin}</Link>
+              <Link href="/ru/pro" className="btn btn-outline btn-lg">{ru.landing.photographerBandPricing}</Link>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {[
+              { t: ru.landing.perkPageTitle, d: ru.landing.perkPageText },
+              { t: ru.landing.perkAnalyticsTitle, d: ru.landing.perkAnalyticsText },
+              { t: ru.landing.perkShelfTitle, d: ru.landing.perkShelfText },
+              { t: ru.landing.perkInquiriesTitle, d: ru.landing.perkInquiriesText },
+            ].map((p) => (
+              <div key={p.t} className="rounded-lg border border-line bg-surface-2 p-5">
+                <div className="font-medium">{p.t}</div>
+                <p className="t-small mt-1.5 muted">{p.d}</p>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="border-t border-line-2 pt-5">
+      </section>
+
+      {/* Заказчикам — краткая ценность */}
+      <section className="mx-auto w-full max-w-7xl px-4 py-16">
+        <div className="max-w-prose border-t border-line-2 pt-5">
           <h2 className="t-h3">{ru.landing.forClients}</h2>
-          <p className="t-body mt-2.5 max-w-prose muted">{ru.landing.forClientsText}</p>
+          <p className="t-body mt-2.5 muted">{ru.landing.forClientsText}</p>
         </div>
       </section>
 
