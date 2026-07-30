@@ -17,6 +17,7 @@ import { ReviewSection } from '@/components/ReviewSection';
 import { reviewsForProfile } from '@/lib/reviews';
 import { VerifyButton } from '@/components/VerifyButton';
 import { parseFaq } from '@/lib/faq';
+import { parseShowreels } from '@/lib/showreel';
 import { tierOf } from '@/lib/subscription';
 import { ProfileViewBeacon } from '@/components/ProfileViewBeacon';
 import { shootStats, hasShotWith } from '@/lib/shoots';
@@ -154,6 +155,8 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
 
   const absUrl = (u: string) => (u.startsWith('http') ? u : `${BASE_URL}${u}`);
 
+  // Шоурилы — безопасные embed'ы известных провайдеров (whitelist).
+  const showreels = parseShowreels(profile.showreelUrls);
   // Обложка героя = кадр «выбор редакции» или первый в портфолио
   const coverPhoto = profile.photos.find((p) => p.editorsChoiceAt) ?? profile.photos[0];
   const minPkg = profile.packages[0];
@@ -324,6 +327,21 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
               </li>
             ))}
           </ul>
+        </section>
+      )}
+
+      {showreels.length > 0 && (
+        <section className="mt-10">
+          <h2 className="t-caption muted">{ru.profile.videoTitle}</h2>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            {showreels.map((s) => (
+              <div key={s.embedUrl} className="relative overflow-hidden rounded-media border border-line bg-black" style={{ aspectRatio: '16 / 9' }}>
+                <iframe src={s.embedUrl} title={ru.profile.videoTitle} loading="lazy"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen className="absolute inset-0 h-full w-full" />
+              </div>
+            ))}
+          </div>
         </section>
       )}
 

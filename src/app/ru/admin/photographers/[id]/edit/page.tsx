@@ -55,6 +55,7 @@ export default async function AdminEditProfilePage(props: { params: Promise<{ id
           lighting: profile.lighting,
           teamInfo: profile.teamInfo ?? '',
           doesVideo: profile.doesVideo,
+          showreelUrls: profile.showreelUrls,
           languages: profile.languages,
           faq: parseFaq(profile.faq),
           packages: profile.packages.map((p) => ({ hours: p.hours, priceRub: Math.round(p.priceMinor / 100) })),

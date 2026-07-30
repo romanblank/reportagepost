@@ -21,6 +21,7 @@ interface Initial {
   lighting: string[];
   teamInfo: string;
   doesVideo: boolean;
+  showreelUrls: string[];
   languages: string[];
   faq: { q: string; a: string }[];
   packages: { hours: number; priceRub: number }[];
@@ -56,6 +57,7 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
   const [lighting, setLighting] = useState(initial.lighting.join(', '));
   const [teamInfo, setTeamInfo] = useState(initial.teamInfo);
   const [doesVideo, setDoesVideo] = useState(initial.doesVideo);
+  const [showreels, setShowreels] = useState(initial.showreelUrls.join('\n'));
   const [langs, setLangs] = useState<string[]>(initial.languages.length ? initial.languages : ['ru']);
   const [faq, setFaq] = useState(initial.faq);
   const [packages, setPackages] = useState(initial.packages.length ? initial.packages : [{ hours: 2, priceRub: 10000 }]);
@@ -86,6 +88,7 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
         lighting: csvToArr(lighting),
         teamInfo: teamInfo.trim(),
         doesVideo,
+        showreelUrls: showreels.split('\n').map((s) => s.trim()).filter(Boolean).slice(0, 6),
         languages: langs,
         faq: faq.map((f) => ({ q: f.q.trim(), a: f.a.trim() })).filter((f) => f.q && f.a).slice(0, 10),
         packages: packages.map((p) => ({ hours: p.hours, priceMinor: p.priceRub * 100, currency: 'RUB' })),
@@ -203,6 +206,12 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
             className="size-4 accent-[var(--accent)]" />
           <span className="text-sm">{ru.onboarding.doesVideo}</span>
         </label>
+        <div className="sm:col-span-2">
+          <label className="field-label">{ru.onboarding.showreels}</label>
+          <textarea value={showreels} onChange={(e) => setShowreels(e.target.value)} rows={3}
+            placeholder={ru.onboarding.showreelsPlaceholder} className="input font-mono text-xs" />
+          <span className="field-hint">{ru.onboarding.showreelsHint}</span>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">

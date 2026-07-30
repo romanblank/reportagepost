@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import { DomainError } from '@/lib/errors';
+import { parseShowreel } from '@/lib/showreel';
 
 // Схема и применение правки анкеты. Общее для self-роута (фотограф правит свою)
 // и админ-роута (оператор правит анкету заведённого фотографа). Всё, что после
@@ -22,6 +23,7 @@ export const ProfileEditSchema = z.object({
   lighting: z.array(z.string().trim().min(1).max(80)).max(24).optional(),
   teamInfo: z.string().trim().max(300).optional(),
   doesVideo: z.boolean().optional(),
+  showreelUrls: z.array(z.string().trim().min(1).max(300)).max(6).optional(),
   languages: z.array(z.string().trim().regex(/^[a-z]{2}$/)).max(8).optional(),
   faq: z
     .array(z.object({ q: z.string().trim().min(1).max(200), a: z.string().trim().min(1).max(1000) }))
@@ -81,6 +83,10 @@ export async function applyProfileEdit(
         ...(d.lighting !== undefined ? { lighting: d.lighting } : {}),
         teamInfo: d.teamInfo?.trim() || null,
         ...(d.doesVideo !== undefined ? { doesVideo: d.doesVideo } : {}),
+        // Сохраняем только ссылки, парсящиеся в известного провайдера (чистое хранилище).
+        ...(d.showreelUrls !== undefined
+          ? { showreelUrls: d.showreelUrls.filter((u) => parseShowreel(u) !== null) }
+          : {}),
         ...(d.languages && d.languages.length ? { languages: d.languages } : {}),
         ...(d.faq !== undefined
           ? { faq: d.faq.length ? (d.faq as unknown as Prisma.InputJsonValue) : Prisma.DbNull }
