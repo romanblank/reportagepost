@@ -7,7 +7,10 @@ import { parseFaq } from '@/lib/faq';
 import { RU_CITIES } from '@/lib/geo-data';
 import { CATEGORIES } from '@/lib/category-data';
 import { ru } from '@/i18n/ru';
+import { storage } from '@/lib/storage';
+import { VIDEO_LIMIT_PER_PROFILE } from '@/lib/videos';
 import { EditProfileForm } from './EditProfileForm';
+import { VideoManager } from '@/components/VideoManager';
 
 export const metadata: Metadata = { title: ru.editProfile.title };
 export const dynamic = 'force-dynamic';
@@ -19,7 +22,12 @@ export default async function EditProfilePage() {
 
   const profile = await db.photographerProfile.findUnique({
     where: { userId: session.userId },
-    include: { packages: { orderBy: { sortOrder: 'asc' } }, city: true, categories: true },
+    include: {
+      packages: { orderBy: { sortOrder: 'asc' } },
+      city: true,
+      categories: true,
+      videos: { orderBy: { sortOrder: 'asc' } },
+    },
   });
   if (!profile) redirect('/ru/onboarding');
 
@@ -55,6 +63,20 @@ export default async function EditProfilePage() {
           packages: profile.packages.map((p) => ({ hours: p.hours, priceRub: Math.round(p.priceMinor / 100) })),
         }}
       />
+
+      <section className="mt-10 border-t border-line pt-8">
+        <h2 className="t-h2">{ru.onboarding.videoUploadTitle}</h2>
+        <p className="field-hint mt-1 mb-4">{ru.cabinetVideos.hint}</p>
+        <VideoManager
+          limit={VIDEO_LIMIT_PER_PROFILE}
+          videos={profile.videos.map((v) => ({
+            id: v.id,
+            url: storage.publicUrl(v.storageKey),
+            title: v.title,
+            status: v.status,
+          }))}
+        />
+      </section>
     </main>
   );
 }

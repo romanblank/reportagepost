@@ -18,6 +18,7 @@ import { reviewsForProfile } from '@/lib/reviews';
 import { VerifyButton } from '@/components/VerifyButton';
 import { parseFaq } from '@/lib/faq';
 import { parseShowreels } from '@/lib/showreel';
+import { storage } from '@/lib/storage';
 import { tierOf } from '@/lib/subscription';
 import { ProfileViewBeacon } from '@/components/ProfileViewBeacon';
 import { shootStats, hasShotWith } from '@/lib/shoots';
@@ -50,6 +51,7 @@ async function findProfile(username: string) {
       categories: { include: { category: true } },
       packages: { orderBy: { sortOrder: 'asc' } },
       photos: { where: { status: 'APPROVED' }, orderBy: [{ sortOrder: 'asc' }, { publishedAt: 'desc' }], take: 60 },
+      videos: { where: { status: 'APPROVED' }, orderBy: { sortOrder: 'asc' } },
       stories: {
         where: { status: 'APPROVED' },
         orderBy: { publishedAt: 'desc' },
@@ -331,10 +333,16 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
         </section>
       )}
 
-      {showreels.length > 0 && (
+      {(showreels.length > 0 || profile.videos.length > 0) && (
         <section className="mt-10">
           <h2 className="t-caption muted">{ru.profile.videoTitle}</h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            {/* Загруженные видео (нативный плеер, Range-раздача) */}
+            {profile.videos.map((v) => (
+              <video key={v.id} src={storage.publicUrl(v.storageKey)} controls preload="metadata"
+                className="aspect-video w-full rounded-media border border-line bg-black" />
+            ))}
+            {/* Шоурилы по ссылке (безопасный embed известных провайдеров) */}
             {showreels.map((s) => (
               <div key={s.embedUrl} className="relative overflow-hidden rounded-media border border-line bg-black" style={{ aspectRatio: '16 / 9' }}>
                 <iframe src={s.embedUrl} title={ru.profile.videoTitle} loading="lazy"

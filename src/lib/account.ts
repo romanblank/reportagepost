@@ -9,7 +9,7 @@ export async function deleteAccount(userId: string): Promise<void> {
   // 1. Ключи хранилища собираем ДО удаления строк
   const profile = await db.photographerProfile.findUnique({
     where: { userId },
-    select: { id: true, avatarKey: true, photos: { select: { storageKey: true } } },
+    select: { id: true, avatarKey: true, photos: { select: { storageKey: true } }, videos: { select: { storageKey: true } } },
   });
   const storageKeys: string[] = [];
   if (profile) {
@@ -24,6 +24,7 @@ export async function deleteAccount(userId: string): Promise<void> {
       }
     }
     if (profile.avatarKey) storageKeys.push(profile.avatarKey);
+    for (const v of profile.videos) storageKeys.push(v.storageKey);
   }
 
   await db.$transaction(async (tx) => {
@@ -54,6 +55,7 @@ export async function deleteAccount(userId: string): Promise<void> {
       await tx.travelPlan.deleteMany({ where: { profileId: profile.id } });
       await tx.pricePackage.deleteMany({ where: { profileId: profile.id } });
       await tx.profileCategory.deleteMany({ where: { profileId: profile.id } });
+      await tx.profileVideo.deleteMany({ where: { profileId: profile.id } });
       await tx.photo.deleteMany({ where: { profileId: profile.id } }); // до stories (photo.storyId FK)
       await tx.story.deleteMany({ where: { profileId: profile.id } });
       await tx.photographerProfile.delete({ where: { id: profile.id } });

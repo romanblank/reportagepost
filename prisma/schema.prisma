@@ -221,6 +221,7 @@ model PhotographerProfile {
   categories ProfileCategory[]
   packages   PricePackage[]
   photos     Photo[]
+  videos     ProfileVideo[]
   stories    Story[]
   busyDates  BusyDate[]
   travelPlans TravelPlan[]
@@ -313,6 +314,27 @@ model Photo {
   @@index([status, editorsChoiceAt(sort: Desc), publishedAt(sort: Desc)])
   // Рекомендательная лента / превью жанров фильтруют по categoryId — аудит перф 2026-07-30
   @@index([categoryId, status])
+}
+
+// Загруженное видео автора (шоурил/промо). Файл в Object Storage за абстракцией
+// (storage.ts); раздача через /files с Range. Внешние ссылки — отдельно
+// (PhotographerProfile.showreelUrls). Транскод не делаем: храним исходник,
+// браузер играет mp4/webm нативно.
+model ProfileVideo {
+  id         String   @id @default(cuid())
+  profileId  String
+  storageKey String   @unique // videos/<uuid>/source.<ext>
+  mimeType   String
+  sizeBytes  Int
+  title      String?
+  posterKey  String? // опциональный постер-кадр (пока не генерим — задел)
+  sortOrder  Int      @default(0)
+  status     ModerationStatus @default(PENDING) // как фото: публикация после модерации
+  createdAt  DateTime @default(now())
+
+  profile PhotographerProfile @relation(fields: [profileId], references: [id])
+
+  @@index([profileId, status])
 }
 
 // Серия (история) — репортаж с одного события
