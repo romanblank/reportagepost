@@ -114,6 +114,9 @@ export const ru = {
     featuredBadge: 'Кадр недели',
     featuredShotBy: 'Снял',
     featuredViewShot: 'Смотреть работу',
+    // Новые авторы (автоматически по дате прихода — без курирования)
+    newAuthorsTitle: 'Новые авторы',
+    newAuthorBadge: 'новый автор',
     closedNote: 'Регистрация для фотографов открыта. Платформа в закрытой бете — публичный запуск впереди.',
     recentWork: 'Свежие работы',
     // Discovery-секции главной

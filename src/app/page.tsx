@@ -2,8 +2,10 @@ import Link from "next/link";
 import { ru } from "@/i18n/ru";
 import { bestOfWeek, freshPhotos } from "@/lib/feeds";
 import { categoryPreviews, freshStories } from "@/lib/discovery";
-import { communityStats } from "@/lib/widgets";
+import { communityStats, recentPhotographers } from "@/lib/widgets";
+import { cityNameRu } from "@/lib/geo-data";
 import { webVariantUrl } from "@/lib/photos";
+import { Avatar } from "@/components/ui/Avatar";
 import { db } from "@/lib/db";
 import { LandingHero } from "@/components/LandingHero";
 import { FeedMasonry, StoryCards } from "@/components/FeedGallery";
@@ -17,12 +19,13 @@ export const dynamic = "force-dynamic";
 // (по отклику/свежести), без «выбора редакции» — меньше ручной модерации.
 // Пустые ленты честно скрываются.
 export default async function Home() {
-  const [week, fresh, stories, cats, stats, photographers, photos] = await Promise.all([
+  const [week, fresh, stories, cats, stats, newAuthors, photographers, photos] = await Promise.all([
     bestOfWeek(12),
     freshPhotos(16),
     freshStories(6),
     categoryPreviews(),
     communityStats(),
+    recentPhotographers(4),
     db.photographerProfile.count({ where: { status: "APPROVED" } }),
     db.photo.count({ where: { status: "APPROVED" } }),
   ]);
@@ -103,6 +106,41 @@ export default async function Home() {
         <section className="mx-auto w-full max-w-7xl px-4 pb-12 sm:pb-14">
           <SectionHeader title={ru.landing.discoverStories} />
           <div className="mt-4"><StoryCards stories={stories} /></div>
+        </section>
+      )}
+
+      {/* Новые авторы — автоматически по дате прихода (без курирования) */}
+      {newAuthors.length > 0 && (
+        <section className="mx-auto w-full max-w-7xl px-4 pb-12 sm:pb-14">
+          <SectionHeader title={ru.landing.newAuthorsTitle} href="/ru/community" />
+          <ul className="mt-4 grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-4">
+            {newAuthors.map((a) => (
+              <li key={a.username} className="group">
+                <Link href={`/ru/photographer/${a.username}`} className="block">
+                  <div className="relative overflow-hidden rounded-media bg-surface-2">
+                    {a.photos[0] ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={webVariantUrl(a.photos[0].storageKey)}
+                        alt={`${a.user.firstName} ${a.user.lastName}`} loading="lazy"
+                        className="aspect-[3/4] w-full object-cover transition duration-500 group-hover:scale-[1.04]" />
+                    ) : (
+                      <div className="grid aspect-[3/4] w-full place-items-center">
+                        <Avatar avatarKey={a.avatarKey} firstName={a.user.firstName} lastName={a.user.lastName} size={64} />
+                      </div>
+                    )}
+                    <span className="absolute left-2.5 top-2.5 rounded-full border border-line bg-surface/70 px-2.5 py-1 text-[11px] backdrop-blur-sm"
+                      style={{ color: "var(--verified)" }}>
+                      {ru.landing.newAuthorBadge}
+                    </span>
+                  </div>
+                  <div className="mt-3">
+                    <div className="t-small truncate font-medium">{a.user.firstName} {a.user.lastName}</div>
+                    {a.city && <div className="t-caption mt-0.5 truncate muted">{cityNameRu(a.city.slug)}</div>}
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 
