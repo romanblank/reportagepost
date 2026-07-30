@@ -68,39 +68,6 @@
   --foreground: var(--ink);
 }
 
-/* ─── Светлая «Editorial Gallery» — кабинет/админка (до их редизайна) ────────
-   Точная копия прежних токенов (латунь-акцент), чтобы кабинет/админка
-   выглядели как раньше, пока тёмная тема — дефолт публички. */
-.surface-light {
-  background: var(--paper);
-  color: var(--ink);
-  --paper: #fbfbfc;
-  --surface: #ffffff;
-  --surface-2: #f2f3f5;
-  --surface-3: #e9eaed;
-  --ink: #14151a;
-  --ink-2: #3a3b42;
-  --muted: #6c6d75;
-  --muted-2: #9a9ba3;
-  --line: #e6e7eb;
-  --line-2: #d6d7dc;
-  --accent: #b7791f;
-  --accent-ink: #14151a;
-  --accent-soft: #fbf1dc;
-  --ring: rgba(183, 121, 31, 0.34);
-  --success: #2e7d5b;  --success-soft: #e6f4ec;
-  --warning: #b7791f;  --warning-soft: #fbf1dc;
-  --danger:  #c0392b;  --danger-soft:  #fbe9e7;
-  --info:    #2d6cdf;  --info-soft:    #e8effd;
-  --verified: #4a6fa5;
-  --recognition: #956313;
-  --recognition-hi: #e8b04b;
-  --recognition-soft: #fbf1dc;
-  --recognition-ink: #14151a;
-  --background: var(--paper);
-  --foreground: var(--ink);
-}
-
 @theme inline {
   --color-paper: var(--paper);
   --color-surface: var(--surface);
