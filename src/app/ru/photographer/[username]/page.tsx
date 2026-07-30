@@ -272,7 +272,16 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
                 {profile.doesVideo && (
                   <div className="flex gap-2"><dt className="muted">{ru.profile.formatsLabel}:</dt><dd>{ru.profile.formatsPhotoVideo}</dd></div>
                 )}
-                {isPaid && profile.equipment && (
+                {isPaid && profile.cameras.length > 0 && (
+                  <div className="flex gap-2"><dt className="muted">{ru.profile.camerasLabel}:</dt><dd>{profile.cameras.join(', ')}</dd></div>
+                )}
+                {isPaid && profile.lenses.length > 0 && (
+                  <div className="flex gap-2"><dt className="muted">{ru.profile.lensesLabel}:</dt><dd>{profile.lenses.join(', ')}</dd></div>
+                )}
+                {isPaid && profile.lighting.length > 0 && (
+                  <div className="flex gap-2"><dt className="muted">{ru.profile.lightingLabel}:</dt><dd>{profile.lighting.join(', ')}</dd></div>
+                )}
+                {isPaid && profile.equipment && profile.cameras.length === 0 && profile.lenses.length === 0 && profile.lighting.length === 0 && (
                   <div className="flex gap-2"><dt className="muted">{ru.profile.equipmentLabel}:</dt><dd>{profile.equipment}</dd></div>
                 )}
                 {isPaid && profile.teamInfo && (

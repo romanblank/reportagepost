@@ -12,6 +12,9 @@ const sample: ExportRow = {
   categories: 'Концерты / Деловые; события',
   does_video: true,
   experience_years: 11,
+  cameras: 'Sony A1 | Sony A7 IV',
+  lenses: '24-70/2.8 | 70-200/2.8',
+  lighting: 'Godox AD200',
   equipment: 'Sony A1, 24-70',
   min_price_rub: 25000,
   photos_count: 42,
@@ -24,8 +27,8 @@ describe('admin-export: CSV агрегируемых данных', () => {
     const cols = header.split(';');
     expect(cols).toEqual([
       'anon_id', 'created_month', 'city_slug', 'city', 'categories',
-      'does_video', 'experience_years', 'equipment', 'min_price_rub',
-      'photos_count', 'verified',
+      'does_video', 'experience_years', 'cameras', 'lenses', 'lighting',
+      'equipment', 'min_price_rub', 'photos_count', 'verified',
     ]);
     // ни одного PII-поля
     for (const pii of ['first', 'last', 'name', 'email', 'phone', 'whatsapp', 'telegram', 'username', 'user_id', 'userId']) {

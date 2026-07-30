@@ -16,6 +16,9 @@ interface Initial {
   telegram: string;
   experienceYears: number | null;
   equipment: string;
+  cameras: string[];
+  lenses: string[];
+  lighting: string[];
   teamInfo: string;
   doesVideo: boolean;
   languages: string[];
@@ -24,6 +27,10 @@ interface Initial {
 }
 
 const LANGS = ['ru', 'en', 'es', 'de', 'fr', 'it', 'zh', 'tr'];
+
+// Список техники через запятую → массив (обрезка, без пустых, до 24).
+const csvToArr = (s: string): string[] =>
+  s.split(',').map((x) => x.trim()).filter(Boolean).slice(0, 24);
 
 export function EditProfileForm({ initial, avatar, cities, categories, endpoint = '/api/profile', showAvatar = true }: {
   initial: Initial; avatar: string | null;
@@ -44,7 +51,9 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
   const [whatsapp, setWhatsapp] = useState(initial.whatsapp);
   const [telegram, setTelegram] = useState(initial.telegram);
   const [exp, setExp] = useState(initial.experienceYears?.toString() ?? '');
-  const [equipment, setEquipment] = useState(initial.equipment);
+  const [cameras, setCameras] = useState(initial.cameras.join(', '));
+  const [lenses, setLenses] = useState(initial.lenses.join(', '));
+  const [lighting, setLighting] = useState(initial.lighting.join(', '));
   const [teamInfo, setTeamInfo] = useState(initial.teamInfo);
   const [doesVideo, setDoesVideo] = useState(initial.doesVideo);
   const [langs, setLangs] = useState<string[]>(initial.languages.length ? initial.languages : ['ru']);
@@ -72,7 +81,9 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
         whatsapp: whatsapp.trim() ? normalizePhone(whatsapp.trim()) : '',
         telegram: telegram.trim(),
         experienceYears: exp.trim() ? Number(exp) : null,
-        equipment: equipment.trim(),
+        cameras: csvToArr(cameras),
+        lenses: csvToArr(lenses),
+        lighting: csvToArr(lighting),
         teamInfo: teamInfo.trim(),
         doesVideo,
         languages: langs,
@@ -179,8 +190,12 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
             ))}
           </div>
         </div>
-        <div><label className="field-label">{ru.onboarding.equipment}</label>
-          <input value={equipment} onChange={(e) => setEquipment(e.target.value)} maxLength={500} className="input" /></div>
+        <div><label className="field-label">{ru.onboarding.cameras}</label>
+          <input value={cameras} onChange={(e) => setCameras(e.target.value)} placeholder={ru.onboarding.gearPlaceholder} className="input" /></div>
+        <div><label className="field-label">{ru.onboarding.lenses}</label>
+          <input value={lenses} onChange={(e) => setLenses(e.target.value)} placeholder={ru.onboarding.gearPlaceholder} className="input" /></div>
+        <div><label className="field-label">{ru.onboarding.lighting}</label>
+          <input value={lighting} onChange={(e) => setLighting(e.target.value)} placeholder={ru.onboarding.gearPlaceholder} className="input" /></div>
         <div><label className="field-label">{ru.onboarding.team}</label>
           <input value={teamInfo} onChange={(e) => setTeamInfo(e.target.value)} maxLength={300} className="input" /></div>
         <label className="flex cursor-pointer items-center gap-2.5 sm:col-span-2">

@@ -12,8 +12,8 @@ const DELIM = ';'; // RU-Excel дружелюбный разделитель
 
 const COLUMNS = [
   'anon_id', 'created_month', 'city_slug', 'city', 'categories',
-  'does_video', 'experience_years', 'equipment', 'min_price_rub',
-  'photos_count', 'verified',
+  'does_video', 'experience_years', 'cameras', 'lenses', 'lighting',
+  'equipment', 'min_price_rub', 'photos_count', 'verified',
 ] as const;
 
 /** Анонимный устойчивый идентификатор — не раскрывает профиль/username. */
@@ -34,6 +34,9 @@ export interface ExportRow {
   categories: string;
   does_video: boolean;
   experience_years: number | null;
+  cameras: string;
+  lenses: string;
+  lighting: string;
   equipment: string;
   min_price_rub: number | null;
   photos_count: number;
@@ -60,6 +63,9 @@ export async function photographerExportRows(): Promise<ExportRow[]> {
     categories: p.categories.map((c) => categoryNameRu(c.category.slug)).join(' / '),
     does_video: p.doesVideo,
     experience_years: p.experienceYears ?? null,
+    cameras: p.cameras.join(' | '),
+    lenses: p.lenses.join(' | '),
+    lighting: p.lighting.join(' | '),
     equipment: p.equipment ?? '',
     min_price_rub: p.packages[0] ? Math.round(p.packages[0].priceMinor / 100) : null,
     photos_count: p.photos.length,

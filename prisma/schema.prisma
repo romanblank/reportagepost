@@ -195,7 +195,10 @@ model PhotographerProfile {
   avatarKey   String? // ключ аватара в хранилище (квадрат); нет — показываем инициалы
   coverPhotoId String? // выбранная обложка каталога (иначе — лучший/первый кадр)
   experienceYears Int? // стаж в годах (богатство анкеты, паритет MyWed)
-  equipment   String? // камеры/оптика/свет
+  equipment   String? // legacy free-text; структурированные поля ниже (паритет MyWed + B2B-агрегация)
+  cameras     String[]         @default([]) // камеры (структурировано для экспорта)
+  lenses      String[]         @default([]) // оптика
+  lighting    String[]         @default([]) // свет
   teamInfo    String? // соло / команда / ассистенты
   doesVideo   Boolean          @default(false) // снимает видео (роль «Фотограф · Видеограф»)
   faq         Json? // [{q,a}] частые вопросы (богатство анкеты, паритет MyWed)
