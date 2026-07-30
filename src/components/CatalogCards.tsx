@@ -28,6 +28,11 @@ export function CatalogCards({ cards, cityName }: { cards: CatalogCard[]; cityNa
                     <Avatar avatarKey={card.avatarKey} firstName={card.firstName} lastName={card.lastName} size={72} />
                   </div>
                 )}
+                {card.doesVideo && (
+                  <span className="absolute right-2.5 top-2.5 rounded-md border border-line bg-surface/75 px-2 py-1 text-[11px] backdrop-blur-sm">
+                    {ru.profile.formatsPhotoVideo}
+                  </span>
+                )}
                 {card.minPackage && (
                   // Цена на элегантном скриме снизу кадра (не «белая пилюля»)
                   <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-end bg-gradient-to-t from-black/55 via-black/10 to-transparent px-3 pb-2.5 pt-10">

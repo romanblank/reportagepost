@@ -43,6 +43,7 @@ export interface CatalogCard {
   saveCount: number; // в избранном у заказчиков
   score: number;
   tier: Tier; // FREE/PRIME/ELITE — бейдж подписки (FREE не показывается)
+  doesVideo: boolean; // снимает видео — бейдж «Фото · Видео» в каталоге
 }
 
 export function completenessScore(input: {
@@ -118,6 +119,7 @@ async function toCards(shown: CatalogRow[]): Promise<CatalogCard[]> {
     saveCount: p._count.favoritedBy,
     score: p.ratingScore,
     tier: activeTier(p.user.subscription),
+    doesVideo: p.doesVideo,
   } satisfies CatalogCard));
 }
 
