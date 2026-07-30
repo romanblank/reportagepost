@@ -18,6 +18,8 @@ export interface CatalogFilters {
   availableOn?: Date;
   /** Пагинация (аудит P1-1): страница на PAGE_SIZE карточек. */
   page?: number;
+  /** Только видеографы (формат «Видео»). Фото снимают все — отдельного флага не нужно. */
+  videoOnly?: boolean;
 }
 
 export const CATALOG_PAGE_SIZE = 24;
@@ -139,6 +141,7 @@ export async function catalogForCity(filters: CatalogFilters): Promise<CatalogPa
     ...(filters.maxPackagePriceMinor != null
       ? { packages: { some: { priceMinor: { lte: filters.maxPackagePriceMinor } } } }
       : {}),
+    ...(filters.videoOnly ? { doesVideo: true } : {}),
   };
 
   const rows = await db.photographerProfile.findMany({

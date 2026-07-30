@@ -53,7 +53,7 @@ export async function generateMetadata(props: { params: Promise<Params> }): Prom
 
 export default async function CityCategoryPage(props: {
   params: Promise<Params>;
-  searchParams: Promise<{ date?: string; page?: string; maxPrice?: string }>;
+  searchParams: Promise<{ date?: string; page?: string; maxPrice?: string; format?: string }>;
 }) {
   const params = await props.params;
   const searchParams = await props.searchParams;
@@ -65,10 +65,11 @@ export default async function CityCategoryPage(props: {
     ? new Date(`${searchParams.date}T00:00:00Z`)
     : undefined;
   const maxPriceRub = Number(searchParams.maxPrice) > 0 ? Number(searchParams.maxPrice) : undefined;
+  const videoOnly = searchParams.format === 'video';
   const page = Math.max(1, Number(searchParams.page) || 1);
 
   const { cards, hasNext } = await catalogForCity({
-    citySlug: city.slug, categorySlug: params.category, availableOn, page,
+    citySlug: city.slug, categorySlug: params.category, availableOn, page, videoOnly,
     maxPackagePriceMinor: maxPriceRub ? maxPriceRub * 100 : undefined,
   });
 
@@ -78,10 +79,11 @@ export default async function CityCategoryPage(props: {
   const cityPath = `/ru/${params.country}/${params.city}`;
   const catPath = `${cityPath}/${params.category}`;
 
-  const pageHref = (p: number) => {
+  const pageHref = (p: number, format?: string) => {
     const q = new URLSearchParams();
     if (searchParams.date) q.set('date', searchParams.date);
     if (searchParams.maxPrice) q.set('maxPrice', searchParams.maxPrice);
+    if (format) q.set('format', format);
     if (p > 1) q.set('page', String(p));
     const s = q.toString();
     return s ? `${catPath}?${s}` : catPath;
@@ -112,7 +114,15 @@ export default async function CityCategoryPage(props: {
             <h2 className="t-caption mb-2 muted">{ru.catalog.filterGenre}</h2>
             <CategoryLinks countrySlug={params.country} citySlug={params.city} activeCategory={params.category} vertical />
           </div>
+          <div className="border-t border-line pt-4">
+            <h2 className="t-caption mb-2 muted">{ru.catalog.filterFormat}</h2>
+            <div className="flex gap-2">
+              <Link href={pageHref(1)} className={`chip flex-1 justify-center ${!videoOnly ? 'chip-active' : ''}`}>{ru.catalog.formatAll}</Link>
+              <Link href={pageHref(1, 'video')} className={`chip flex-1 justify-center ${videoOnly ? 'chip-active' : ''}`}>{ru.catalog.formatVideo}</Link>
+            </div>
+          </div>
           <form method="get" className="space-y-3 border-t border-line pt-4">
+            {videoOnly && <input type="hidden" name="format" value="video" />}
             <label className="block text-sm">
               <span className="field-hint mt-0">{ru.catalog.availableOn}</span>
               <input type="date" name="date" defaultValue={searchParams.date ?? ''} className="input mt-1 w-full" />
@@ -143,8 +153,8 @@ export default async function CityCategoryPage(props: {
 
       {(page > 1 || hasNext) && (
         <nav className="mt-8 flex items-center justify-between">
-          {page > 1 ? <Link href={pageHref(page - 1)} className="btn btn-outline px-4 py-2">{ru.catalog.prevPage}</Link> : <span />}
-          {hasNext ? <Link href={pageHref(page + 1)} className="btn btn-outline px-4 py-2">{ru.catalog.nextPage}</Link> : <span />}
+          {page > 1 ? <Link href={pageHref(page - 1, videoOnly ? 'video' : undefined)} className="btn btn-outline px-4 py-2">{ru.catalog.prevPage}</Link> : <span />}
+          {hasNext ? <Link href={pageHref(page + 1, videoOnly ? 'video' : undefined)} className="btn btn-outline px-4 py-2">{ru.catalog.nextPage}</Link> : <span />}
         </nav>
       )}
         </div>
