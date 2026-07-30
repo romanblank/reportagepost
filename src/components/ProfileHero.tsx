@@ -11,6 +11,7 @@ export function ProfileHero({
   firstName,
   lastName,
   username,
+  role,
   cityName,
   categories,
   verified,
@@ -27,6 +28,7 @@ export function ProfileHero({
   firstName: string;
   lastName: string;
   username: string;
+  role: string;
   cityName: string;
   categories: string[];
   verified: boolean;
@@ -57,6 +59,7 @@ export function ProfileHero({
           <Avatar avatarKey={avatarKey} firstName={firstName} lastName={lastName} size={88}
             className="shrink-0 ring-2 ring-white/80 ring-offset-2 ring-offset-black/20" />
           <div className="min-w-0 flex-1 pb-1">
+            <p className="mb-1.5 t-caption" style={{ color: '#f0ad82' }}>{role}</p>
             <h1 className="flex flex-wrap items-center gap-x-3 gap-y-1 text-3xl font-semibold leading-[1.05] text-white drop-shadow-sm sm:text-5xl"
               style={{ fontFamily: 'var(--font-cormorant), Georgia, serif' }}>
               <span className="[text-wrap:balance]">{firstName} {lastName}</span>

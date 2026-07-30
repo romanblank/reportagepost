@@ -188,6 +188,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
         firstName={profile.user.firstName}
         lastName={profile.user.lastName}
         username={profile.username}
+        role={profile.doesVideo ? ru.profile.roleBoth : ru.profile.rolePhotographer}
         cityName={cityNameRu(profile.city.slug)}
         categories={profile.categories.map((c) => categoryNameRu(c.category.slug))}
         verified={profile.verified}

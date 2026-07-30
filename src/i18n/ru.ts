@@ -213,6 +213,8 @@ export const ru = {
     formatsLabel: 'Форматы',
     formatsPhotoVideo: 'Фото · Видео',
     videoTitle: 'Видео и шоурилы',
+    rolePhotographer: 'Фотограф',
+    roleBoth: 'Фотограф · Видеограф',
     langName: {
       ru: 'Русский', en: 'English', es: 'Español', de: 'Deutsch', fr: 'Français',
       it: 'Italiano', zh: '中文', tr: 'Türkçe', ar: 'العربية', pt: 'Português',
