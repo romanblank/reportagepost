@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { db } from '@/lib/db';
-import { consumeInviteCode } from '@/lib/invites';
+import { consumeInviteCode, releaseInviteCode } from '@/lib/invites';
 import {
   SESSION_COOKIE,
   createSessionToken,
@@ -43,6 +44,13 @@ export async function POST(req: Request) {
   // Гейт регистрации. Открытая регистрация (OPEN_REGISTRATION) — инвайт
   // опционален (реферальная атрибуция, если код есть). Закрытая — код обязателен.
   // noindex завязан на PUBLIC_LAUNCH и здесь не затрагивается (ребрендинг 2026-07).
+  // Занятый email проверяем ДО потребления инвайта (аудит 2026-07-31, P0):
+  // раньше код сгорал, а регистрация отклонялась — приглашённый оставался ни с чем.
+  const existingEmail = await db.user.findUnique({ where: { email: data.email } });
+  if (existingEmail) {
+    return NextResponse.json({ error: 'email_taken' }, { status: 409 });
+  }
+
   let inviteCodeId: string | null = null;
   if (!OPEN_REGISTRATION) {
     if (!data.inviteCode) {
@@ -57,25 +65,31 @@ export async function POST(req: Request) {
     inviteCodeId = await consumeInviteCode(data.inviteCode);
   }
 
-  const existing = await db.user.findUnique({ where: { email: data.email } });
-  if (existing) {
-    return NextResponse.json({ error: 'email_taken' }, { status: 409 });
+  let user;
+  try {
+    user = await db.user.create({
+      data: {
+        role: data.role,
+        // Заказчику модерация не нужна — активен сразу; фотограф ждёт портфолио
+        status: data.role === 'CLIENT' ? 'ACTIVE' : 'PENDING',
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        passwordHash: await hashPassword(data.password),
+        inviteCodeId,
+        pdnConsentAt: new Date(),
+        pdnConsentVersion: PDN_CONSENT_VERSION,
+      },
+    });
+  } catch (e) {
+    // Гонка: между проверкой и вставкой email заняли. Инвайт уже списан —
+    // возвращаем его в оборот, иначе приглашение пропадает впустую (аудит P0).
+    if (inviteCodeId) await releaseInviteCode(inviteCodeId);
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+      return NextResponse.json({ error: 'email_taken' }, { status: 409 });
+    }
+    throw e;
   }
-
-  const user = await db.user.create({
-    data: {
-      role: data.role,
-      // Заказчику модерация не нужна — активен сразу; фотограф ждёт портфолио
-      status: data.role === 'CLIENT' ? 'ACTIVE' : 'PENDING',
-      firstName: data.firstName,
-      lastName: data.lastName,
-      email: data.email,
-      passwordHash: await hashPassword(data.password),
-      inviteCodeId,
-      pdnConsentAt: new Date(),
-      pdnConsentVersion: PDN_CONSENT_VERSION,
-    },
-  });
 
   const token = await createSessionToken({ userId: user.id, role: user.role, tokenVersion: user.tokenVersion });
   const res = NextResponse.json(

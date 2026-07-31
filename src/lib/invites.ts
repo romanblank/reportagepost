@@ -18,6 +18,19 @@ export async function consumeInviteCode(code: string): Promise<string | null> {
   return updated.count === 1 ? invite.id : null;
 }
 
+/**
+ * Вернуть потреблённое использование инвайта (аудит 2026-07-31, P0).
+ * Инвайт — валюта закрытой беты: если после его списания регистрация не
+ * состоялась (гонка на уникальном email), код обязан вернуться в оборот,
+ * иначе приглашённый человек остаётся без входа, а оператор — без понимания.
+ */
+export async function releaseInviteCode(inviteCodeId: string): Promise<void> {
+  await db.inviteCode.updateMany({
+    where: { id: inviteCodeId, usedCount: { gt: 0 } },
+    data: { usedCount: { decrement: 1 } },
+  });
+}
+
 /** Создать персональный инвайт (S3). Код — случайный base64url. */
 export async function createInvite(opts: {
   issuedByUserId: string;
