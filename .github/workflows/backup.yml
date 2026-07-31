@@ -49,39 +49,47 @@ jobs:
             docker run --rm -v /opt/reportagepost:/work postgres:17 \
               bash -c "set -o pipefail; pg_dump \"\$0\" --no-owner --no-privileges | gzip > /work/${FILE}" "$DUMP_URL"
 
-            # Проверки годности дампа ДО заливки — «зелёный пустой бэкап» больше не пройдёт
+            # Проверки годности дампа ДО заливки.
+            #
+            # 🔴 ГРАБЛЯ SIGPIPE (стоила трёх прогонов): `zcat file | grep -q ...`
+            # под `set -o pipefail` — ловушка. grep -q выходит после ПЕРВОГО
+            # совпадения и закрывает канал, zcat не успевает дописать
+            # распакованный поток (он в разы больше буфера канала), падает с
+            # SIGPIPE, и pipefail объявляет весь конвейер неуспешным — с кодом
+            # 141. То есть проверка НАХОДИЛА таблицу и тут же рапортовала, что
+            # не нашла. Поэтому здесь везде считаем в переменную (grep -c и awk
+            # дочитывают вход до конца) и НИГДЕ не обрываем чтение через -q/head.
             SIZE=$(stat -c %s "/opt/reportagepost/${FILE}")
             echo "Размер архива: ${SIZE} байт"
             gzip -t "/opt/reportagepost/${FILE}" || { echo "❌ архив повреждён"; exit 1; }
-            # Порог только против ПУСТОГО файла. Абсолютный размер — плохая
-            # эвристика: он зависит от объёма базы, и первый же прогон после
-            # починки упал на пороге 50KB, хотя дамп был исправен (18KB при
-            # схеме 6KB, т.е. данные на месте). Годность проверяем содержимым.
+            # Порог только против ПУСТОГО файла: абсолютный размер зависит от
+            # объёма базы и уже давал ложный провал (18КБ при схеме 6КБ).
             [ "$SIZE" -ge 4096 ] || { echo "❌ архив пуст (<4KB)"; exit 1; }
-            zcat "/opt/reportagepost/${FILE}" | tail -5 | grep -q "PostgreSQL database dump complete" \
+
+            DUMP=/opt/reportagepost/dump-check.sql
+            zcat "/opt/reportagepost/${FILE}" > "$DUMP"
+            trap 'rm -f "$DUMP"' EXIT
+
+            grep -c "PostgreSQL database dump complete" "$DUMP" >/dev/null \
               || { echo "❌ нет маркера конца дампа — дамп оборван"; exit 1; }
-            # Структура и данные. Имя схемы НЕ хардкодим: у Managed PG префикс
-            # может отличаться от public, и привязка к нему уже дала ложный
-            # провал. Ищем по имени таблицы, а при несовпадении печатаем, что
-            # в дампе реально есть — чтобы разбираться по факту, а не гадать.
-            if ! zcat "/opt/reportagepost/${FILE}" | grep -qE 'CREATE TABLE .*"User"'; then
-              echo "❌ в дампе не найдено объявление таблицы User. Что найдено:"
-              zcat "/opt/reportagepost/${FILE}" | grep -E '^(CREATE TABLE|COPY) ' | head -15
-              echo "--- первые строки дампа ---"
-              zcat "/opt/reportagepost/${FILE}" | head -25
+
+            TABLES=$(grep -cE 'CREATE TABLE .*"User"' "$DUMP" || true)
+            if [ "$TABLES" -lt 1 ]; then
+              echo "❌ в дампе не найдено объявление таблицы User. Что есть:"
+              grep -E '^(CREATE TABLE|COPY) ' "$DUMP" | head -40 || true
               exit 1
             fi
-            # ДАННЫЕ, а не только схема: между «COPY … "User" …» и терминатором
-            # должна быть хотя бы одна строка. Ловит и «выгружена только схема»,
-            # и обрыв на середине COPY — чего размер не различает.
-            USER_ROWS=$(zcat "/opt/reportagepost/${FILE}" \
-              | awk '/^COPY .*"User" /{f=1;next} f&&/^\\\.$/{f=0} f{c++} END{print c+0}')
-            echo "Строк пользователей в дампе: ${USER_ROWS}"
+
+            # ДАННЫЕ, а не только схема: строки между «COPY … "User" …» и
+            # терминатором. Ловит и «выгружена только схема», и обрыв COPY.
+            USER_ROWS=$(awk '/^COPY .*"User" /{f=1;next} f&&/^\\\.$/{f=0} f{c++} END{print c+0}' "$DUMP")
+            echo "Таблиц User в дампе: ${TABLES}, строк пользователей: ${USER_ROWS}"
             if [ "$USER_ROWS" -lt 1 ]; then
-              echo "❌ в дампе нет ни одной строки пользователей. COPY-секции в дампе:"
-              zcat "/opt/reportagepost/${FILE}" | grep -E '^COPY ' | head -15
+              echo "❌ в дампе нет ни одной строки пользователей:"
+              grep -E '^COPY ' "$DUMP" | head -40 || true
               exit 1
             fi
+            rm -f "$DUMP"
             echo "✅ дамп прошёл проверки (целостность, структура, наличие данных)"
 
             echo "Заливка в s3://${S3_BUCKET}/db-backups/${FILE}"
