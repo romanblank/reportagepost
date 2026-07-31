@@ -14,6 +14,9 @@ const InquirySchema = z.object({
   budgetMinor: z.number().int().min(0).optional(),
   description: z.string().trim().min(20).max(3000),
   website: z.string().max(0).optional(), // honeypot: боты заполняют — люди не видят
+  // Согласие на обработку ПДн обязательно (аудит 2026-07-31, P0): форма собирает
+  // имя/телефон/почту, без согласия обработка неправомерна (ст. 9 152-ФЗ).
+  pdnConsent: z.literal(true, { message: 'consent_required' }),
 });
 
 // Публичная форма заявки (гость или залогиненный клиент)

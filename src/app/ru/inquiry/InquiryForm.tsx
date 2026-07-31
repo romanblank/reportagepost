@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { ru } from '@/i18n/ru';
 import { describeApiError } from '@/lib/form-errors';
 import { normalizePhone } from '@/lib/phone-format';
@@ -17,12 +18,16 @@ export function InquiryForm({ cities, categories, prefill, contact }: { cities: 
   const [pending, setPending] = useState(false);
   const [sent, setSent] = useState<{ notified: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [consent, setConsent] = useState(false);
   // Дата события — не раньше сегодня. Считаем в рендере (клиентский компонент;
   // hydration-расхождение возможно лишь на самой полночи — некритично для min-атрибута).
   const minDate = new Date().toISOString().slice(0, 10);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    // Согласие на обработку ПДн обязательно (аудит 2026-07-31, P0): форма
+    // собирает имя/телефон/почту гостя — без согласия обработка неправомерна.
+    if (!consent) { setError(ru.inquiry.consentRequired); return; }
     setPending(true);
     setError(null);
     const form = new FormData(e.currentTarget);
@@ -41,6 +46,7 @@ export function InquiryForm({ cities, categories, prefill, contact }: { cities: 
         eventDate: String(form.get('eventDate') ?? '') || undefined,
         budgetMinor: budgetRub ? Math.round(Number(budgetRub) * 100) : undefined,
         description: form.get('description'),
+        pdnConsent: consent,
         website: '', // honeypot
       }),
     }).catch(() => null);
@@ -119,6 +125,16 @@ export function InquiryForm({ cities, categories, prefill, contact }: { cities: 
       <label className="text-sm">
         {ru.inquiry.description}
         <textarea name="description" required minLength={20} rows={4} className="input" />
+      </label>
+      <label className="flex cursor-pointer items-start gap-2.5 text-sm">
+        <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)}
+          className="mt-0.5 size-4 shrink-0 accent-[var(--accent)]" />
+        <span className="muted">
+          {ru.inquiry.consentText}{' '}
+          <Link href="/ru/legal/privacy" target="_blank" className="underline hover:text-ink">
+            {ru.inquiry.consentPolicyLink}
+          </Link>
+        </span>
       </label>
       {error && <p role="alert" className="text-sm text-accent">{error}</p>}
       <button type="submit" disabled={pending} className="btn btn-accent">

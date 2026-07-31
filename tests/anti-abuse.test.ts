@@ -90,3 +90,21 @@ describe('раздатчик: потоковое чтение с диапазо�
     }
   });
 });
+
+describe('152-ФЗ: согласие на обработку ПДн в форме заявки', () => {
+  it('API отклоняет заявку без pdnConsent и принимает с ним (валидация схемы)', async () => {
+    const { z } = await import('zod');
+    // Схема-зеркало контракта роута /api/inquiries: без явного согласия — отказ.
+    // Форма собирает имя/телефон/почту гостя, т.е. ПДн (аудит 2026-07-31, P0).
+    const Schema = z.object({
+      contactName: z.string().trim().min(2).max(100),
+      description: z.string().trim().min(20).max(3000),
+      pdnConsent: z.literal(true, { message: 'consent_required' }),
+    });
+    const base = { contactName: 'Иван Заказчиков', description: 'Нужна съёмка конференции на 200 человек' };
+
+    expect(Schema.safeParse({ ...base, pdnConsent: true }).success).toBe(true);
+    expect(Schema.safeParse({ ...base, pdnConsent: false }).success).toBe(false);
+    expect(Schema.safeParse(base).success).toBe(false); // поле опущено — тоже отказ
+  });
+});

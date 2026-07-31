@@ -557,6 +557,12 @@ model Inquiry {
   currency     String        @default("RUB")
   description  String
   status       InquiryStatus @default(OPEN)
+  // Доказательство согласия на обработку ПДн (аудит 2026-07-31, P0): форма
+  // заявки собирает имя/телефон/почту гостя, т.е. ПДн — без зафиксированного
+  // согласия обработка неправомерна (ст. 9 152-ФЗ). Храним момент и версию
+  // редакции политики, как и у аккаунтов (User.pdnConsentAt/Version).
+  pdnConsentAt      DateTime?
+  pdnConsentVersion String?
   createdAt    DateTime      @default(now())
 
   client   User?     @relation(fields: [clientUserId], references: [id])

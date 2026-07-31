@@ -7,6 +7,7 @@ import { cityNameRu } from '@/lib/geo-data';
 import { categoryNameRu } from '@/lib/category-data';
 import { formatRubMinor } from '@/lib/money';
 import { ru } from '@/i18n/ru';
+import { PDN_CONSENT_VERSION } from '@/lib/constants';
 
 export interface CreateInquiryInput {
   clientUserId?: string;
@@ -59,6 +60,10 @@ export async function createInquiry(
       eventDate: input.eventDate,
       budgetMinor: input.budgetMinor,
       description: input.description,
+      // След согласия на обработку ПДн (152-ФЗ): API принимает заявку только
+      // при pdnConsent=true, здесь фиксируем момент и версию редакции политики
+      pdnConsentAt: new Date(),
+      pdnConsentVersion: PDN_CONSENT_VERSION,
     },
   });
 
