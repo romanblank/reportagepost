@@ -35,6 +35,7 @@ model User {
   email        String?    @unique
   phone        String?    @unique // E.164: +79991234567
   phoneVerifiedAt DateTime?
+  emailVerifiedAt DateTime? // подтверждение адреса по ссылке из письма
   passwordHash String?
   passwordChangedAt DateTime? // инвалидация старых JWT при смене пароля
   tokenVersion Int        @default(0) // ручной отзыв всех сессий (бан/логаут-везде)
@@ -70,6 +71,7 @@ model User {
   notifications Notification[]
   adminAudits   AdminAudit[]
   passwordResets PasswordReset[]
+  emailVerifications EmailVerification[]
   recoveryCodes  RecoveryCode[]
   reportsMade    Report[]      @relation("reporter")
   reportsResolved Report[]     @relation("reportResolver")
@@ -766,6 +768,23 @@ model AdminAudit {
 
 // Сброс пароля по email-ссылке (нужно при открытой регистрации). Токен хранится
 // как sha256-хеш; сырой — только в письме. TTL + одноразовость.
+// Подтверждение email (аудит 2026-07-31, P0): адрес не проверялся никогда —
+// опечатка при регистрации навсегда убивала аккаунт (восстановление пароля
+// уходило в никуда), а чужой адрес можно было занять сквоттингом. Тот же
+// паттерн, что у сброса пароля: в БД только sha256-хеш, сырой — в письме.
+model EmailVerification {
+  id        String    @id @default(cuid())
+  userId    String
+  email     String    // адрес на момент выдачи (защита от подмены после выдачи)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
 model PasswordReset {
   id        String    @id @default(cuid())
   userId    String

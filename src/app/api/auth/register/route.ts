@@ -11,6 +11,7 @@ import {
 } from '@/lib/auth';
 import { OPEN_REGISTRATION, PDN_CONSENT_VERSION } from '@/lib/constants';
 import { clientIp, rateLimit } from '@/lib/rate-limit';
+import { requestEmailVerification } from '@/lib/email-verification';
 
 // Валидация на границе (правило: данным извне не верить)
 const RegisterSchema = z.object({
@@ -90,6 +91,10 @@ export async function POST(req: Request) {
     }
     throw e;
   }
+
+  // Письмо с подтверждением адреса (аудит P0). Не блокируем ответ: без SMTP
+  // это no-op, а сбой почты не должен ронять успешную регистрацию.
+  void requestEmailVerification(user.id).catch(() => {});
 
   const token = await createSessionToken({ userId: user.id, role: user.role, tokenVersion: user.tokenVersion });
   const res = NextResponse.json(

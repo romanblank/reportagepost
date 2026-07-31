@@ -20,6 +20,8 @@ import { photographerStats } from '@/lib/analytics';
 import { CabinetStats } from '@/components/CabinetStats';
 import { ResubmitButton } from '@/components/ResubmitButton';
 import { formatDateRu } from '@/lib/date-format';
+import { VerifyEmailBanner } from '@/components/VerifyEmailBanner';
+import { verificationRequired } from '@/lib/email-verification';
 
 export const metadata: Metadata = { title: ru.cabinet.title };
 export const dynamic = 'force-dynamic'; // всегда свежие заявки/статус
@@ -67,7 +69,7 @@ export default async function CabinetPage() {
       ? await db.photographerProfile.count({ where: { status: 'PENDING' } })
       : 0;
 
-  const me = await db.user.findUnique({ where: { id: session.userId }, select: { tgUserId: true, firstName: true } });
+  const me = await db.user.findUnique({ where: { id: session.userId }, select: { tgUserId: true, firstName: true, emailVerifiedAt: true } });
 
   // PRO-статус (Метрика №1: поверхность оплаты в кабинете)
   const subStatus = session.role === 'PHOTOGRAPHER' && profile ? await subscriptionStatus(session.userId) : null;
@@ -81,6 +83,12 @@ export default async function CabinetPage() {
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:py-10">
       <h1 className="t-h2">{me?.firstName ? ru.cabinet.greeting(me.firstName) : ru.cabinet.title}</h1>
+
+      {/* Подтверждение адреса (аудит P0): только когда почта настроена и адрес
+          ещё не подтверждён — иначе просить нечего */}
+      {verificationRequired() && me && !me.emailVerifiedAt && (
+        <div className="mt-4"><VerifyEmailBanner /></div>
+      )}
 
       {session.role === 'ADMIN' && (
         <section className="mt-4 card p-4">

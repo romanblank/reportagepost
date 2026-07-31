@@ -157,3 +157,55 @@ describe.skipIf(!hasDb)('модерация людей: жалобы и блок
     await db.user.deleteMany({ where: { id: { in: [alice.id, bob.id] } } });
   });
 });
+
+describe.skipIf(!hasDb)('подтверждение email (БД)', () => {
+  it('токен одноразовый, протухший не проходит, смена адреса после выдачи обесценивает токен; гейт не блокирует без SMTP', async () => {
+    const { db } = await import('@/lib/db');
+    const { confirmEmail, assertEmailVerified, verificationRequired } = await import('@/lib/email-verification');
+    const { DomainError } = await import('@/lib/errors');
+    const { createHash, randomBytes } = await import('node:crypto');
+    const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
+
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const email = `ev-${stamp}@test.local`;
+    const user = await db.user.create({
+      data: { role: 'CLIENT', status: 'ACTIVE', firstName: 'Е', lastName: 'Мейлов', email },
+    });
+
+    const issue = async (raw: string, opts: { expired?: boolean; email?: string } = {}) =>
+      db.emailVerification.create({
+        data: {
+          userId: user.id,
+          email: opts.email ?? email,
+          tokenHash: sha256(raw),
+          expiresAt: new Date(Date.now() + (opts.expired ? -1000 : 3_600_000)),
+        },
+      });
+
+    // Протухший токен не проходит
+    const expired = randomBytes(16).toString('base64url');
+    await issue(expired, { expired: true });
+    await expect(confirmEmail(expired)).rejects.toThrowError(DomainError);
+
+    // Валидный — подтверждает, повторное использование уже не проходит
+    const good = randomBytes(16).toString('base64url');
+    await issue(good);
+    expect((await confirmEmail(good)).userId).toBe(user.id);
+    expect((await db.user.findUniqueOrThrow({ where: { id: user.id }, select: { emailVerifiedAt: true } })).emailVerifiedAt).not.toBeNull();
+    await expect(confirmEmail(good)).rejects.toThrowError(DomainError);
+
+    // Токен, выданный на ПРЕЖНИЙ адрес, не подтверждает новый (защита от подмены)
+    await db.user.update({ where: { id: user.id }, data: { email: `ev-new-${stamp}@test.local`, emailVerifiedAt: null } });
+    const stale = randomBytes(16).toString('base64url');
+    await issue(stale, { email });
+    await expect(confirmEmail(stale)).rejects.toThrowError(DomainError);
+
+    // Гейт: без настроенного SMTP не блокирует (иначе платформа встанет)
+    if (!verificationRequired()) {
+      await expect(assertEmailVerified(user.id)).resolves.toBeUndefined();
+    }
+
+    await db.emailVerification.deleteMany({ where: { userId: user.id } });
+    await db.user.delete({ where: { id: user.id } });
+  });
+});
