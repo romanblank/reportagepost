@@ -628,6 +628,7 @@ model Payment {
   userId           String
   orderId          String        @unique // наш OrderId — идемпотентность вебхука
   amountMinor      Int // копейки (инвариант: minor units)
+  tier             SubscriptionTier // какой уровень оплачивается (зачисляется на CONFIRMED)
   status           PaymentStatus @default(NEW)
   tinkoffPaymentId String? // PaymentId от Т-Кассы
   createdAt        DateTime      @default(now())

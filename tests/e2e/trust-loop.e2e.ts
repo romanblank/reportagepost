@@ -36,6 +36,7 @@ describe.skipIf(!hasDb)('E2E: петля доверия (съёмка→отзы
       await db.notification.deleteMany({ where: { userId: uid } });
       await db.review.deleteMany({ where: { authorUserId: uid } });
       await db.shootConfirmation.deleteMany({ where: { clientUserId: uid } });
+      await db.message.deleteMany({ where: { OR: [{ senderId: uid }, { recipientId: uid }] } });
       await db.user.delete({ where: { id: uid } }).catch(() => {});
     }
   });
@@ -70,6 +71,9 @@ describe.skipIf(!hasDb)('E2E: петля доверия (съёмка→отзы
     // Заказчик-1 подтверждает съёмку → факты + verified-отзыв
     const c1 = await db.user.create({ data: { role: 'CLIENT', status: 'ACTIVE', firstName: 'Олег', lastName: 'Клиентов', email: `e2e-tl-c1-${stamp}@test.local` } });
     ids.users.push(c1.id);
+    // S4-гейт confirmShoot: двусторонняя переписка клиент↔автор
+    await db.message.create({ data: { senderId: c1.id, recipientId: ph.id, body: 'здравствуйте, интересует съёмка' } });
+    await db.message.create({ data: { senderId: ph.id, recipientId: c1.id, body: 'да, обсудим детали' } });
     await confirmShoot(c1.id, profile.id);
     const stats = await shootStats(profile.id);
     expect(stats).toMatchObject({ count: 1, clients: 1, returning: 0 });

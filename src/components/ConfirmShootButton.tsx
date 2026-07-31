@@ -34,7 +34,8 @@ export function ConfirmShootButton({ profileId, initialConfirmed, authed }: {
       toast(ru.profile.shootConfirmedThanks, 'success');
       router.refresh();
     } else {
-      toast(ru.ui.toastError, 'danger');
+      const code = ((await res?.json().catch(() => null)) as { error?: string } | null)?.error;
+      toast(code === 'shoot_no_contact' ? ru.profile.shootNoContact : ru.ui.toastError, 'danger');
     }
   }
 

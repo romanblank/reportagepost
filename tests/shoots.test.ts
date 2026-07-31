@@ -17,6 +17,14 @@ describe.skipIf(!hasDb)('shoots: подтверждённая съёмка — �
 
     expect(await hasShotWith(client.id, profile.id)).toBe(false);
 
+    // S4-гейт: без переписки подтвердить нельзя
+    await expect(confirmShoot(client.id, profile.id)).rejects.toThrow(DomainError);
+    // односторонней недостаточно (только клиент написал)
+    await db.message.create({ data: { senderId: client.id, recipientId: owner.id, body: 'здравствуйте, интересует съёмка' } });
+    await expect(confirmShoot(client.id, profile.id)).rejects.toThrow(DomainError);
+    // автор ответил → двусторонний контакт есть
+    await db.message.create({ data: { senderId: owner.id, recipientId: client.id, body: 'да, обсудим детали' } });
+
     // первая съёмка
     await confirmShoot(client.id, profile.id);
     expect(await hasShotWith(client.id, profile.id)).toBe(true);
@@ -42,6 +50,7 @@ describe.skipIf(!hasDb)('shoots: подтверждённая съёмка — �
     // cleanup (FK-порядок)
     await db.review.deleteMany({ where: { profileId: profile.id } });
     await db.shootConfirmation.deleteMany({ where: { profileId: profile.id } });
+    await db.message.deleteMany({ where: { OR: [{ senderId: owner.id }, { recipientId: owner.id }] } });
     await db.photographerProfile.delete({ where: { id: profile.id } });
     await db.user.deleteMany({ where: { id: { in: [owner.id, client.id] } } });
   });
