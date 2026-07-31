@@ -24,7 +24,10 @@ export async function handleRoute(fn: () => Promise<NextResponse>): Promise<Next
     return await fn();
   } catch (e) {
     if (e instanceof DomainError) return jsonError(e.code, e.status);
-    console.error('[api] unhandled error:', e);
+    // Необработанная ошибка роута = 500 у живого человека. Раньше она молча
+    // ложилась в лог контейнера, куда оператор не имеет доступа (аудит P1).
+    const { reportError } = await import('@/lib/error-report');
+    void reportError('api', e);
     return jsonError('internal', 500);
   }
 }

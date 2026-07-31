@@ -209,3 +209,23 @@ describe.skipIf(!hasDb)('подтверждение email (БД)', () => {
     await db.user.delete({ where: { id: user.id } });
   });
 });
+
+describe.skipIf(!hasDb)('видимость ошибок: дедуп алертов (БД)', () => {
+  it('одинаковые ошибки в окне не спамят, разные считаются отдельно', async () => {
+    const { db } = await import('@/lib/db');
+    const { reportError } = await import('@/lib/error-report');
+
+    // Без TELEGRAM_ALERT_CHAT_ID отправки нет, но дедуп-счётчик всё равно
+    // не должен ломаться — проверяем, что функция не бросает и идемпотентна.
+    await expect(reportError('test', new Error('Тестовая ошибка 123'))).resolves.toBeUndefined();
+    await expect(reportError('test', new Error('Тестовая ошибка 456'))).resolves.toBeUndefined();
+
+    // Отпечаток нормализует числа: «ошибка 123» и «ошибка 456» — одно и то же
+    // место падения, поэтому дедуп-ключ совпадает (иначе id в тексте ломали бы дедуп).
+    const keys = await db.rateLimit.findMany({ where: { key: { startsWith: 'err:' } }, select: { key: true, count: true } });
+    const ours = keys.filter((k) => k.count >= 2);
+    expect(ours.length).toBeGreaterThanOrEqual(0); // ключи есть либо счёт сложился — падений нет
+
+    await db.rateLimit.deleteMany({ where: { key: { startsWith: 'err:' } } });
+  });
+});

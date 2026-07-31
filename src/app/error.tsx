@@ -12,6 +12,17 @@ export default function AppError({ error, reset }: { error: Error & { digest?: s
   useEffect(() => {
     // digest — единственная ниточка к серверному стеку в логах контейнера
     console.error('[app] unhandled error:', error.digest ?? '', error.message);
+    // Отправляем оператору: иначе ошибка видна только в консоли самого
+    // пользователя, то есть никому (аудит P1 «нулевая видимость ошибок»).
+    void fetch('/api/client-error', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        digest: error.digest,
+        message: error.message,
+        path: typeof window !== 'undefined' ? window.location.pathname : undefined,
+      }),
+    }).catch(() => {});
   }, [error]);
 
   return (

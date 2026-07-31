@@ -8,6 +8,17 @@ import { ru } from '@/i18n/ru';
 export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
     console.error('[app] root layout error:', error.digest ?? '', error.message);
+    // Падение самого layout — самая тяжёлая ошибка: у пользователя пустой экран.
+    // Оператор обязан узнать (аудит P1 «нулевая видимость ошибок»).
+    void fetch('/api/client-error', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        digest: error.digest,
+        message: `[root layout] ${error.message}`,
+        path: typeof window !== 'undefined' ? window.location.pathname : undefined,
+      }),
+    }).catch(() => {});
   }, [error]);
 
   return (
