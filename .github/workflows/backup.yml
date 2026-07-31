@@ -60,16 +60,28 @@ jobs:
             [ "$SIZE" -ge 4096 ] || { echo "❌ архив пуст (<4KB)"; exit 1; }
             zcat "/opt/reportagepost/${FILE}" | tail -5 | grep -q "PostgreSQL database dump complete" \
               || { echo "❌ нет маркера конца дампа — дамп оборван"; exit 1; }
-            # Структура: ключевая таблица объявлена
-            zcat "/opt/reportagepost/${FILE}" | grep -qE 'CREATE TABLE public\."?User"?' \
-              || { echo "❌ в дампе нет таблицы User — дамп неполный"; exit 1; }
-            # ДАННЫЕ, а не только схема: между «COPY public."User"» и «\.»
-            # должна быть хотя бы одна строка. Это ловит и «дамп только схемы»,
-            # и обрыв на середине выгрузки — чего размер не различает.
+            # Структура и данные. Имя схемы НЕ хардкодим: у Managed PG префикс
+            # может отличаться от public, и привязка к нему уже дала ложный
+            # провал. Ищем по имени таблицы, а при несовпадении печатаем, что
+            # в дампе реально есть — чтобы разбираться по факту, а не гадать.
+            if ! zcat "/opt/reportagepost/${FILE}" | grep -qE 'CREATE TABLE .*"User"'; then
+              echo "❌ в дампе не найдено объявление таблицы User. Что найдено:"
+              zcat "/opt/reportagepost/${FILE}" | grep -E '^(CREATE TABLE|COPY) ' | head -15
+              echo "--- первые строки дампа ---"
+              zcat "/opt/reportagepost/${FILE}" | head -25
+              exit 1
+            fi
+            # ДАННЫЕ, а не только схема: между «COPY … "User" …» и терминатором
+            # должна быть хотя бы одна строка. Ловит и «выгружена только схема»,
+            # и обрыв на середине COPY — чего размер не различает.
             USER_ROWS=$(zcat "/opt/reportagepost/${FILE}" \
-              | awk '/^COPY public\."?User"? /{f=1;next} f&&/^\\\.$/{f=0} f{c++} END{print c+0}')
+              | awk '/^COPY .*"User" /{f=1;next} f&&/^\\\.$/{f=0} f{c++} END{print c+0}')
             echo "Строк пользователей в дампе: ${USER_ROWS}"
-            [ "$USER_ROWS" -ge 1 ] || { echo "❌ в дампе нет ни одного пользователя — выгружена только схема"; exit 1; }
+            if [ "$USER_ROWS" -lt 1 ]; then
+              echo "❌ в дампе нет ни одной строки пользователей. COPY-секции в дампе:"
+              zcat "/opt/reportagepost/${FILE}" | grep -E '^COPY ' | head -15
+              exit 1
+            fi
             echo "✅ дамп прошёл проверки (целостность, структура, наличие данных)"
 
             echo "Заливка в s3://${S3_BUCKET}/db-backups/${FILE}"
