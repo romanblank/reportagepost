@@ -264,6 +264,7 @@ export const ru = {
     followingTitle: 'Подписки',
     empty: 'Пока никого. Всё впереди.',
     clientLabel: 'Заказчик',
+    authorLabel: 'Автор',
   },
   story: {
     notFound: 'Серия не найдена',

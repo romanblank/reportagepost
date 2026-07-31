@@ -173,15 +173,3 @@ export async function recomputeRatings(now = new Date()): Promise<number> {
   }
   return profiles.length;
 }
-
-/** Идемпотентный бэкфилл жанровых скоров (вызывается из сида на старте контейнера):
- *  профили, одобренные ДО появления ProfileCategoryScore, не имеют строк — без них
- *  выдача категории пуста. Пересчитываем только их; при полном покрытии — no-op. */
-export async function backfillCategoryScores(now = new Date()): Promise<number> {
-  const missing = await db.photographerProfile.findMany({
-    where: { status: 'APPROVED', categoryScores: { none: {} } },
-    select: { id: true },
-  });
-  for (const { id } of missing) await recomputeOne(id, now);
-  return missing.length;
-}

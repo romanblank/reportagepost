@@ -49,12 +49,14 @@ async function main() {
   const cats = await db.category.count({ where: { active: true } });
   console.log(`Сид: страна RU, городов ${total} (активных ${active}), категорий ${cats}`);
 
-  // Бэкфилл жанровых скоров (рейтинг v2, категория×город): профили, одобренные
-  // до появления ProfileCategoryScore, без строк скора выпадают из выдачи
-  // категории. Идемпотентно: пересчитываются ТОЛЬКО профили без строк (обычно 0).
-  const { backfillCategoryScores } = await import('../src/lib/rating');
-  const backfilled = await backfillCategoryScores();
-  if (backfilled > 0) console.log(`Бэкфилл жанровых скоров: ${backfilled} профилей`);
+  // Полный пересчёт рейтингов на старте контейнера (ревью 2026-07-31, P1):
+  // затухание лайков иначе никогда не переоценивается (событийные пересчёты
+  // только на approve/review/edit), а профили без строк ProfileCategoryScore
+  // выпадали бы из выдачи категории. Идемпотентно; на бета-масштабе — секунды.
+  // При росте каталога (S6) — вынести в отдельный cron, из сида убрать.
+  const { recomputeRatings } = await import('../src/lib/rating');
+  const recomputed = await recomputeRatings();
+  console.log(`Пересчёт рейтингов (глобальный + жанровые): ${recomputed} профилей`);
 
   await db.$disconnect();
 }

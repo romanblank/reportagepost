@@ -1,16 +1,19 @@
 import { db } from '@/lib/db';
 
 // Follow-списки (паритет MyWed): публичные страницы «подписчики»/«подписки»
-// у профиля фотографа. Подписчик-фотограф — карточкой со ссылкой на профиль;
-// подписчик-заказчик — именем без ссылки (публичной страницы у него нет).
+// у профиля фотографа. Подписчик-фотограф — карточкой со ссылкой на профиль.
+// Приватность (ревью 2026-07-31, P2): у заказчика и немодерированного автора
+// публичной страницы нет и согласия на публичность имени не было — их фамилия
+// сокращается до инициала УЖЕ В ВЫБОРКЕ (минимизация данных на источнике).
 
 export interface FollowEntry {
   firstName: string;
-  lastName: string;
-  // null — заказчик (без публичной страницы)
+  lastName: string; // без публичного профиля — только инициал («Иванов» → «И.»)
+  // null — нет публичной страницы (заказчик или автор вне каталога)
   username: string | null;
   avatarKey: string | null;
-  city: string | null; // slug города (для подписи ссылкой не является)
+  city: string | null; // slug города
+  isClient: boolean; // для подписи: «Заказчик» vs «Автор» (не-APPROVED фотограф)
 }
 
 const LIST_CAP = 200; // бета: без пагинации, кап от вырожденных случаев
@@ -18,24 +21,27 @@ const LIST_CAP = 200; // бета: без пагинации, кап от выр
 const USER_SELECT = {
   firstName: true,
   lastName: true,
+  role: true,
   profile: { select: { username: true, avatarKey: true, status: true, city: { select: { slug: true } } } },
 } as const;
 
 type UserRow = {
   firstName: string;
   lastName: string;
+  role: string;
   profile: { username: string; avatarKey: string | null; status: string; city: { slug: string } } | null;
 };
 
 function toEntry(u: UserRow): FollowEntry {
-  // Ссылка/аватар — только на APPROVED-профиль (PENDING/чужие статусы не светим)
+  // Ссылка/аватар/полное имя — только у APPROVED-профиля
   const pub = u.profile && u.profile.status === 'APPROVED' ? u.profile : null;
   return {
     firstName: u.firstName,
-    lastName: u.lastName,
+    lastName: pub ? u.lastName : `${u.lastName[0] ?? ''}.`,
     username: pub?.username ?? null,
     avatarKey: pub?.avatarKey ?? null,
     city: pub?.city.slug ?? null,
+    isClient: u.role === 'CLIENT',
   };
 }
 

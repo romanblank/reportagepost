@@ -9,9 +9,24 @@ import { DomainError } from '@/lib/errors';
 
 const DEDUP_HOURS = 6;
 
+/** Дедуп-маркер гостевого события через таблицу RateLimit (окно DEDUP_HOURS,
+ *  первый заход в окне = писать событие). guestKey — ХЭШ IP из роута (не PII). */
+async function guestFirstInWindow(profileId: string, guestKey: string): Promise<boolean> {
+  const windowMs = DEDUP_HOURS * 3_600_000;
+  const windowStart = new Date(Math.floor(Date.now() / windowMs) * windowMs);
+  const key = `phrev:${profileId}:${guestKey}`;
+  const row = await db.rateLimit.upsert({
+    where: { key_windowStart: { key, windowStart } },
+    create: { key, windowStart, count: 1 },
+    update: { count: { increment: 1 } },
+  });
+  return row.count === 1;
+}
+
 export async function revealPhone(
   profileId: string,
   actorUserId: string | null,
+  guestKey: string | null = null,
 ): Promise<{ phone: string }> {
   const profile = await db.photographerProfile.findUnique({
     where: { id: profileId },
@@ -23,19 +38,26 @@ export async function revealPhone(
 
   // Владелец смотрит свой номер — событие не пишем (не накручивает статистику).
   if (actorUserId !== profile.userId) {
-    const dup = actorUserId
-      ? await db.activityEvent.findFirst({
-          where: {
-            type: 'PHONE_REVEAL',
-            targetType: 'PROFILE',
-            targetId: profileId,
-            actorUserId,
-            createdAt: { gte: new Date(Date.now() - DEDUP_HOURS * 3_600_000) },
-          },
-          select: { id: true },
-        })
-      : null; // гость: дедуп на уровне rate-limit по IP в роуте
-    if (!dup) {
+    let shouldWrite: boolean;
+    if (actorUserId) {
+      // Залогиненный: дедуп по своим событиям в окне
+      const dup = await db.activityEvent.findFirst({
+        where: {
+          type: 'PHONE_REVEAL',
+          targetType: 'PROFILE',
+          targetId: profileId,
+          actorUserId,
+          createdAt: { gte: new Date(Date.now() - DEDUP_HOURS * 3_600_000) },
+        },
+        select: { id: true },
+      });
+      shouldWrite = !dup;
+    } else {
+      // Гость: дедуп по IP-хэшу (ревью P3 — иначе цикл в консоли раздувал
+      // метрику «Смотрели номер» до потолка rate-limit). Без ключа не пишем.
+      shouldWrite = guestKey ? await guestFirstInWindow(profileId, guestKey) : false;
+    }
+    if (shouldWrite) {
       await db.activityEvent.create({
         data: { type: 'PHONE_REVEAL', targetType: 'PROFILE', targetId: profileId, actorUserId },
       });

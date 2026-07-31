@@ -107,5 +107,12 @@ export async function applyProfileEdit(
     }
   });
 
+  // Пересчёт скоров ПОСЛЕ правки (ревью 2026-07-31, P1): смена категорий без
+  // пересчёта оставляла новый жанр без строки ProfileCategoryScore — профиль
+  // невидим в выдаче этого жанра (категорийная ветка каталога идёт от таблицы
+  // скоров). Пакеты/био двигают полноту → пересчитываем на любой правке.
+  const { recomputeOne } = await import('@/lib/rating');
+  await recomputeOne(profileId);
+
   return { username: newUsername ?? currentUsername };
 }

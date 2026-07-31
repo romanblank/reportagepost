@@ -34,14 +34,19 @@ describe.skipIf(!hasDb)('follow-lists: подписчики/подписки (Б
     await db.follow.create({ data: { followerId: target.id, followeeId: approved.id } });
 
     const followers = await followersOf(target.id);
-    const ours = followers.filter((f) => f.lastName.match(/^(approved|pending|client)$/));
+    // Без публичного профиля фамилия сокращена до инициала → фильтруем по обоим видам
+    const ours = followers.filter((f) => ['approved', 'p.', 'c.'].includes(f.lastName));
     // Свежие сверху: client, pending, approved
-    expect(ours.map((f) => f.lastName)).toEqual(['client', 'pending', 'approved']);
-    // Ссылка только у APPROVED-фотографа; заказчик и PENDING — без username/города
+    expect(ours.map((f) => f.lastName)).toEqual(['c.', 'p.', 'approved']);
+    // Ссылка/полная фамилия только у APPROVED-фотографа; заказчик и PENDING —
+    // без username/города, фамилия — инициал (приватность, ревью P2)
     expect(ours[2].username).toBe(`fl-appr-${stamp}`);
     expect(ours[2].city).toBe('moscow');
     expect(ours[1].username).toBeNull();
     expect(ours[0].username).toBeNull();
+    // Подпись различает заказчика и немодерированного автора (ревью P3)
+    expect(ours[0].isClient).toBe(true);
+    expect(ours[1].isClient).toBe(false);
 
     const following = await followingOf(target.id);
     expect(following.some((f) => f.username === `fl-appr-${stamp}`)).toBe(true);

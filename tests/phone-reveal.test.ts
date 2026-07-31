@@ -44,8 +44,12 @@ describe.skipIf(!hasDb)('phone-reveal: «Показать номер» (БД)', 
     await revealPhone(profile.id, viewer.id);
     expect(await db.activityEvent.count({ where: evWhere })).toBe(1);
 
-    // 5) Гость (actor=null) — событие пишется (антискрейп — rate-limit по IP в роуте)
-    await revealPhone(profile.id, null);
+    // 5) Гость: событие пишется ТОЛЬКО с guestKey (IP-хэш из роута) и один раз
+    // в окне (ревью P3: без дедупа цикл раздувал метрику); без ключа — не пишется
+    await revealPhone(profile.id, null); // без ключа → номер отдан, события нет
+    expect(await db.activityEvent.count({ where: evWhere })).toBe(1);
+    await revealPhone(profile.id, null, 'guesthash1');
+    await revealPhone(profile.id, null, 'guesthash1'); // повтор того же IP-хэша — дедуп
     expect(await db.activityEvent.count({ where: evWhere })).toBe(2);
 
     // 6) Владелец смотрит свой номер — событие не пишется
@@ -56,8 +60,9 @@ describe.skipIf(!hasDb)('phone-reveal: «Показать номер» (БД)', 
     await db.user.update({ where: { id: owner.id }, data: { phone: null } });
     await expect(revealPhone(profile.id, viewer.id)).rejects.toThrowError(DomainError);
 
-    // Cleanup (события → профиль → пользователи)
+    // Cleanup (события/дедуп-маркеры → профиль → пользователи)
     await db.activityEvent.deleteMany({ where: { targetId: profile.id } });
+    await db.rateLimit.deleteMany({ where: { key: { startsWith: `phrev:${profile.id}` } } });
     await db.profileCategoryScore.deleteMany({ where: { profileId: profile.id } });
     await db.photographerProfile.delete({ where: { id: profile.id } });
     await db.user.deleteMany({ where: { id: { in: [owner.id, viewer.id] } } });

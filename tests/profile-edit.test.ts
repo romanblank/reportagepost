@@ -46,6 +46,7 @@ describe.skipIf(!hasDb)('applyProfileEdit: общая правка анкеты 
     const userIds = (await db.photographerProfile.findMany({ where: { id: { in: ids } }, select: { userId: true } })).map((p) => p.userId);
     await db.adminAudit.deleteMany({ where: { actorUserId: admin.id } });
     await db.profileCategory.deleteMany({ where: { profileId: { in: ids } } });
+    await db.profileCategoryScore.deleteMany({ where: { profileId: { in: ids } } }); // applyProfileEdit пересчитывает скоры
     await db.photographerProfile.deleteMany({ where: { id: { in: ids } } });
     await db.user.deleteMany({ where: { id: { in: [...userIds, admin.id] } } });
   });

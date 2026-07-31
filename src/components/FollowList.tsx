@@ -19,7 +19,9 @@ export function FollowList({ entries }: { entries: FollowEntry[] }) {
             <span className="min-w-0">
               <span className="block truncate font-medium">{e.firstName} {e.lastName}</span>
               <span className="block truncate text-xs muted">
-                {e.username ? `@${e.username}${e.city ? ` · ${cityNameRu(e.city)}` : ''}` : ru.followList.clientLabel}
+                {e.username
+                  ? `@${e.username}${e.city ? ` · ${cityNameRu(e.city)}` : ''}`
+                  : e.isClient ? ru.followList.clientLabel : ru.followList.authorLabel}
               </span>
             </span>
           </>
