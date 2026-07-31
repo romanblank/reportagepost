@@ -49,6 +49,9 @@ describe.skipIf(!hasDb)('reviews: правила и агрегат (БД)', () =
 
     // verified=true, если заказчик подтвердил реальную съёмку
     const client2 = await db.user.create({ data: { role: 'CLIENT', status: 'ACTIVE', firstName: 'В', lastName: 'Е', email: `rv-c2-${stamp}@test.local` } });
+    // S4-гейт confirmShoot: нужна двусторонняя переписка client2↔owner
+    await db.message.create({ data: { senderId: client2.id, recipientId: owner.id, body: 'здравствуйте' } });
+    await db.message.create({ data: { senderId: owner.id, recipientId: client2.id, body: 'обсудим' } });
     await confirmShoot(client2.id, profile.id);
     const r2 = await addReview(client2.id, profile.id, 5, 'снимал у него, супер');
     expect((await db.review.findUniqueOrThrow({ where: { id: r2.id } })).verified).toBe(true);
@@ -68,6 +71,7 @@ describe.skipIf(!hasDb)('reviews: правила и агрегат (БД)', () =
     const prof = await db.photographerProfile.findUniqueOrThrow({ where: { id: profile.id } });
     expect(prof.ratingScore).toBeGreaterThanOrEqual(1800);
 
+    await db.message.deleteMany({ where: { OR: [{ senderId: owner.id }, { recipientId: owner.id }] } });
     await db.notification.deleteMany({ where: { userId: { in: [owner.id, client.id, otherPhotog.id, selfProfileClient.id, client2.id] } } });
     await db.shootConfirmation.deleteMany({ where: { profileId: { in: [profile.id, selfProfile.id] } } });
     await db.review.deleteMany({ where: { profileId: { in: [profile.id, selfProfile.id] } } });

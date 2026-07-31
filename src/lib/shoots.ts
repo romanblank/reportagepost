@@ -16,6 +16,15 @@ export async function confirmShoot(clientUserId: string, profileId: string, even
   if (profile.userId === clientUserId) throw new DomainError('shoot_self', 400);
   const actor = await db.user.findUnique({ where: { id: clientUserId }, select: { role: true } });
   if (actor?.role !== 'CLIENT') throw new DomainError('shoot_clients_only', 403);
+  // Анти-форж (S4): подтвердить съёмку можно только при РЕАЛЬНОМ контакте на
+  // платформе — двусторонней переписке (клиент писал автору И автор отвечал).
+  // Блокирует нулевой-эффорт фейк-verified (создать клиента → сразу подтвердить
+  // любому автору). Полная двусторонняя аккцептация автором — design-record для S4.
+  const [clientToAuthor, authorToClient] = await Promise.all([
+    db.message.count({ where: { senderId: clientUserId, recipientId: profile.userId } }),
+    db.message.count({ where: { senderId: profile.userId, recipientId: clientUserId } }),
+  ]);
+  if (clientToAuthor === 0 || authorToClient === 0) throw new DomainError('shoot_no_contact', 403);
   await rateLimit(`shoot:user:${clientUserId}`, 10, 3600); // антиспам подтверждений
   await db.shootConfirmation.create({ data: { clientUserId, profileId, eventDate: eventDate ?? undefined } });
 }
