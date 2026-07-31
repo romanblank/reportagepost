@@ -29,6 +29,31 @@ export async function notifyInApp(userId: string, type: string, payload: Prisma.
   }
 }
 
+/**
+ * Массовая in-app рассылка ОДНИМ запросом (аудит 2026-07-31, P1).
+ * Раньше веер заявки шёл как Promise.all(N × notifyInApp) — по отдельному
+ * INSERT на адресата ВНУТРИ HTTP-запроса. В Москве при тысяче фотографов это
+ * сотни round-trip к БД, и публичная форма заявки (метрика №1) висела бы до
+ * таймаута. createMany делает это за один запрос; live-пуш шлём после.
+ */
+export async function notifyManyInApp(
+  userIds: string[],
+  type: string,
+  payload: Prisma.InputJsonValue,
+): Promise<number> {
+  if (userIds.length === 0) return 0;
+  try {
+    const { count } = await db.notification.createMany({
+      data: userIds.map((userId) => ({ userId, channel: 'IN_APP' as const, type, payload, state: 'SENT' as const })),
+    });
+    for (const userId of userIds) publishToUser(userId, { type: 'notification' });
+    return count;
+  } catch (e) {
+    console.error('[notify] bulk in-app failed:', e);
+    return 0;
+  }
+}
+
 export async function inAppNotifications(userId: string, limit = 50): Promise<InAppNotification[]> {
   const rows = await db.notification.findMany({
     where: { userId, channel: 'IN_APP' },

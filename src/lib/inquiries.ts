@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { notifyInApp } from '@/lib/notifications';
+import { notifyManyInApp } from '@/lib/notifications';
 import { sendEmail } from '@/lib/email';
 import { tgSend } from '@/lib/telegram';
 import { APP_DOMAIN } from '@/lib/constants';
@@ -80,8 +80,10 @@ export async function createInquiry(
   // в БД + live-счётчик (её фотограф увидит гарантированно). email/TG — best-effort
   // фоном (fire-and-forget), чтобы медленный SMTP не подвешивал публичную форму и
   // не терял лид. Мёртвая очередь QUEUED (никто не дренировал) убрана.
-  await Promise.all(
-    recipients.map((r) => notifyInApp(r.userId, 'notification.inquiry.new', { citySlug: input.citySlug })),
+  await notifyManyInApp(
+    recipients.map((r) => r.userId),
+    'notification.inquiry.new',
+    { citySlug: input.citySlug },
   );
 
   const link = `https://${APP_DOMAIN}/ru/cabinet`;
@@ -96,16 +98,37 @@ export async function createInquiry(
   });
   // fire-and-forget: не ждём — сервер персистентный (не serverless), промисы
   // доживают после ответа; ошибки глушим (email/tg вторичны к in-app).
-  void Promise.all(
-    recipients.flatMap((r) => {
-      const jobs: Promise<void>[] = [];
-      if (r.user.email) jobs.push(sendEmail(r.user.email, subject, text));
-      if (r.user.tgUserId) jobs.push(tgSend(r.user.tgUserId, text));
-      return jobs;
-    }),
-  ).catch(() => {});
+  //
+  // ПАЧКАМИ, а не всё разом (аудит 2026-07-31, P1): при сотнях адресатов
+  // одновременный залп упирается в лимиты — Telegram отвечает 429 примерно
+  // после 30 сообщений в секунду и молча теряет всю пачку, SMTP-провайдер
+  // режет за всплеск. Отправляем окнами с паузой; доставка «медленнее, но
+  // доходит» здесь лучше, чем «мгновенно и половина потеряна».
+  void deliverExternal(recipients, subject, text).catch(() => {});
 
   return { inquiryId: inquiry.id, notified: recipients.length };
+}
+
+/** Внешняя доставка пачками с паузой — щадит лимиты Telegram и SMTP. */
+async function deliverExternal(
+  recipients: { user: { email: string | null; tgUserId: string | null } }[],
+  subject: string,
+  text: string,
+): Promise<void> {
+  const BATCH = 20;
+  const PAUSE_MS = 1100; // ~20 сообщений в секунду — вдвое ниже лимита Telegram
+  for (let i = 0; i < recipients.length; i += BATCH) {
+    const chunk = recipients.slice(i, i + BATCH);
+    await Promise.all(
+      chunk.flatMap((r) => {
+        const jobs: Promise<void>[] = [];
+        if (r.user.email) jobs.push(sendEmail(r.user.email, subject, text).catch(() => {}));
+        if (r.user.tgUserId) jobs.push(tgSend(r.user.tgUserId, text).catch(() => {}));
+        return jobs;
+      }),
+    );
+    if (i + BATCH < recipients.length) await new Promise((res) => setTimeout(res, PAUSE_MS));
+  }
 }
 
 /** Заявки для фотографа: его город, открытые. (PRO-гейт добавится в S5.) */
