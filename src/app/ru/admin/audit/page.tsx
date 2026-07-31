@@ -39,7 +39,11 @@ export default async function AdminAuditPage() {
               {rows.map((r) => (
                 <tr key={String(r.id)} className="border-b border-line/60 align-top">
                   <td className="tnum py-2 pr-3 whitespace-nowrap muted">{r.createdAt.toISOString().slice(0, 16).replace('T', ' ')}</td>
-                  <td className="py-2 pr-3 whitespace-nowrap">{r.actor.firstName} {r.actor.lastName}</td>
+                  {/* actor может быть null: аккаунт администратора удалён, а
+                      аудит-след сохранён обезличенным (152-ФЗ + доказательность) */}
+                  <td className="py-2 pr-3 whitespace-nowrap">
+                    {r.actor ? `${r.actor.firstName} ${r.actor.lastName}` : ru.adminAudit.deletedActor}
+                  </td>
                   <td className="py-2 pr-3 whitespace-nowrap font-medium">{r.action}</td>
                   <td className="py-2 pr-3 whitespace-nowrap muted">{r.targetType} · {r.targetId.slice(0, 8)}</td>
                   <td className="py-2 font-mono text-xs muted">{r.meta ? JSON.stringify(r.meta) : '—'}</td>

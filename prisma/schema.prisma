@@ -656,7 +656,10 @@ enum PaymentStatus {
 
 model Payment {
   id               String        @id @default(cuid())
-  userId           String
+  // nullable: при удалении аккаунта запись ОБЕЗЛИЧИВАЕТСЯ, а не удаляется —
+  // первичные документы по платежам хранятся по закону (НК РФ, 54-ФЗ), но без
+  // связи с субъектом ПДн (аудит 2026-07-31, P0 deleteAccount).
+  userId           String?
   orderId          String        @unique // наш OrderId — идемпотентность вебхука
   amountMinor      Int // копейки (инвариант: minor units)
   tier             SubscriptionTier // какой уровень оплачивается (зачисляется на CONFIRMED)
@@ -664,7 +667,7 @@ model Payment {
   tinkoffPaymentId String? // PaymentId от Т-Кассы
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
-  user User @relation(fields: [userId], references: [id])
+  user User? @relation(fields: [userId], references: [id])
 
   @@index([userId, createdAt(sort: Desc)])
 }
@@ -674,13 +677,15 @@ model Payment {
 // эта — про действия оператора над чужими данными/статусами (P0, реверсивность).
 model AdminAudit {
   id          BigInt   @id @default(autoincrement())
-  actorUserId String
+  // nullable: аудит-след административных действий не удаляется (доказательность),
+  // но теряет связь с удалённым аккаунтом (аудит 2026-07-31, P0 deleteAccount).
+  actorUserId String?
   action      String // 'profile.approve', 'profile.reject', 'user.ban'…
   targetType  String
   targetId    String
   meta        Json? // причина, diff полей, снимок затронутых id
   createdAt   DateTime @default(now())
-  actor User @relation(fields: [actorUserId], references: [id])
+  actor User? @relation(fields: [actorUserId], references: [id])
 
   @@index([actorUserId, createdAt])
   @@index([targetType, targetId, createdAt])

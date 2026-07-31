@@ -31,11 +31,22 @@ export async function deleteAccount(userId: string): Promise<void> {
     // 2. Анонимизация (сохраняем агрегаты/бизнес-записи без связи с юзером)
     await tx.activityEvent.updateMany({ where: { actorUserId: userId }, data: { actorUserId: null } });
     await tx.inviteCode.updateMany({ where: { issuedByUserId: userId }, data: { issuedByUserId: null } });
+    // Платежи и аудит-след администратора НЕ удаляются: первичные документы по
+    // платежам хранятся по закону (НК РФ, 54-ФЗ), аудит действий администратора —
+    // доказательность. Обезличиваем: факт остаётся, связь с субъектом уходит
+    // (аудит 2026-07-31, P0: без этого FK не давал удалить аккаунт вообще).
+    await tx.payment.updateMany({ where: { userId }, data: { userId: null } });
+    await tx.adminAudit.updateMany({ where: { actorUserId: userId }, data: { actorUserId: null } });
 
     // 3. Данные, принадлежащие пользователю
     await tx.message.deleteMany({ where: { OR: [{ senderId: userId }, { recipientId: userId }] } });
     await tx.notification.deleteMany({ where: { userId } });
     await tx.phoneVerification.deleteMany({ where: { userId } });
+    await tx.passwordReset.deleteMany({ where: { userId } });
+    await tx.recoveryCode.deleteMany({ where: { userId } });
+    await tx.subscription.deleteMany({ where: { userId } });
+    // Подтверждения съёмок, где пользователь выступал заказчиком
+    await tx.shootConfirmation.deleteMany({ where: { clientUserId: userId } });
     await tx.favoritePhotographer.deleteMany({ where: { userId } });
     await tx.follow.deleteMany({ where: { OR: [{ followerId: userId }, { followeeId: userId }] } });
     await tx.like.deleteMany({ where: { userId } });
@@ -55,6 +66,8 @@ export async function deleteAccount(userId: string): Promise<void> {
       await tx.travelPlan.deleteMany({ where: { profileId: profile.id } });
       await tx.pricePackage.deleteMany({ where: { profileId: profile.id } });
       await tx.profileCategory.deleteMany({ where: { profileId: profile.id } });
+      await tx.profileCategoryScore.deleteMany({ where: { profileId: profile.id } });
+      await tx.shootConfirmation.deleteMany({ where: { profileId: profile.id } });
       await tx.profileVideo.deleteMany({ where: { profileId: profile.id } });
       await tx.photo.deleteMany({ where: { profileId: profile.id } }); // до stories (photo.storyId FK)
       await tx.story.deleteMany({ where: { profileId: profile.id } });

@@ -59,6 +59,9 @@ export async function applyPaymentStatus(
     if (claimed.count === 0) return { found: true, credited: false }; // уже зачислено
 
     const tier = payment.tier as PaidTier;
+    // userId=null — платёж обезличен при удалении аккаунта (запись хранится для
+    // бухгалтерии). Зачислять некому: подтверждаем факт, подписку не трогаем.
+    if (!payment.userId) return { found: true, credited: false };
     const sub = await tx.subscription.findUnique({
       where: { userId: payment.userId },
       select: { currentPeriodEnd: true },

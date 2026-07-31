@@ -30,6 +30,18 @@ describe.skipIf(!hasDb)('deleteAccount: удаление/анонимизаци�
     await db.message.create({ data: { senderId: client.id, recipientId: photog.id, body: 'привет' } });
     const event = await db.activityEvent.create({ data: { actorUserId: photog.id, type: 'PROFILE_VIEW', targetType: 'PROFILE', targetId: profile.id } });
 
+    // Связи, из-за которых удаление падало с FK-ошибкой (аудит 2026-07-31, P0):
+    // жанровые скоры, подписка, платёж, аудит-след, подтверждение съёмки,
+    // сброс пароля, коды восстановления. Без них тест был зелёным, а живой
+    // одобренный фотограф удалиться не мог вообще.
+    await db.profileCategoryScore.create({ data: { profileId: profile.id, categoryId: cat.id, scoreMilli: 1234 } });
+    await db.subscription.create({ data: { userId: photog.id, tier: 'PRIME', currentPeriodEnd: new Date(Date.now() + 86400000) } });
+    const payment = await db.payment.create({ data: { userId: photog.id, orderId: `ord-${stamp}`, amountMinor: 100000, status: 'CONFIRMED', tier: 'PRIME' } });
+    const audit = await db.adminAudit.create({ data: { actorUserId: photog.id, action: 'test.action', targetType: 'PROFILE', targetId: profile.id } });
+    await db.shootConfirmation.create({ data: { clientUserId: client.id, profileId: profile.id } });
+    await db.passwordReset.create({ data: { userId: photog.id, tokenHash: `h-${stamp}`, expiresAt: new Date(Date.now() + 3600000) } });
+    await db.recoveryCode.create({ data: { userId: photog.id, codeHash: `rc-${stamp}` } });
+
     await deleteAccount(photog.id);
 
     // Фотограф и всё его поддерево — нет
@@ -38,6 +50,19 @@ describe.skipIf(!hasDb)('deleteAccount: удаление/анонимизаци�
     expect(await db.photo.count({ where: { id: photo.id } })).toBe(0);
     expect(await db.story.count({ where: { id: story.id } })).toBe(0);
     expect(await db.pricePackage.count({ where: { profileId: profile.id } })).toBe(0);
+    expect(await db.profileCategoryScore.count({ where: { profileId: profile.id } })).toBe(0);
+    expect(await db.subscription.count({ where: { userId: photog.id } })).toBe(0);
+    expect(await db.shootConfirmation.count({ where: { profileId: profile.id } })).toBe(0);
+    expect(await db.passwordReset.count({ where: { userId: photog.id } })).toBe(0);
+    expect(await db.recoveryCode.count({ where: { userId: photog.id } })).toBe(0);
+    // Платёж и аудит-след ОСТАЮТСЯ, но обезличены: первичка по платежам хранится
+    // по закону (НК/54-ФЗ), аудит действий администратора — доказательность
+    const keptPayment = await db.payment.findUnique({ where: { id: payment.id } });
+    expect(keptPayment).not.toBeNull();
+    expect(keptPayment!.userId).toBeNull();
+    const keptAudit = await db.adminAudit.findUnique({ where: { id: audit.id } });
+    expect(keptAudit).not.toBeNull();
+    expect(keptAudit!.actorUserId).toBeNull();
     // Чужие лайки/комменты/отзывы/избранное на его контенте — тоже нет
     expect(await db.like.count({ where: { photoId: photo.id } })).toBe(0);
     expect(await db.comment.count({ where: { authorUserId: client.id } })).toBe(0);
