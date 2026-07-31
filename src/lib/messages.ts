@@ -69,14 +69,19 @@ export async function threadWith(userId: string, peerId: string) {
     where: { senderId: peerId, recipientId: userId, readAt: null },
     data: { readAt: new Date() },
   });
-  return db.message.findMany({
+  // ПОСЛЕДНИЕ 200 сообщений (аудит 2026-07-31, P1): раньше стояло
+  // orderBy asc + take 200, то есть брались 200 САМЫХ СТАРЫХ — после
+  // двухсотого сообщения активный диалог переставал показывать новые
+  // и выглядел зависшим. Берём хвост и разворачиваем для отображения.
+  const recent = await db.message.findMany({
     where: {
       OR: [
         { senderId: userId, recipientId: peerId },
         { senderId: peerId, recipientId: userId },
       ],
     },
-    orderBy: { createdAt: 'asc' },
+    orderBy: { createdAt: 'desc' },
     take: 200,
   });
+  return recent.reverse();
 }

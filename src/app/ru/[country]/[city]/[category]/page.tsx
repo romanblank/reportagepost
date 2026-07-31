@@ -130,7 +130,7 @@ export default async function CityCategoryPage(props: {
             <label className="block text-sm">
               <span className="field-hint mt-0">{ru.catalog.maxPrice}</span>
               <input type="number" name="maxPrice" min={0} step={1} inputMode="numeric"
-                defaultValue={searchParams.maxPrice ?? ''} placeholder={ru.ui.pricePerHour} className="input mt-1 w-full" />
+                defaultValue={searchParams.maxPrice ?? ''} placeholder={ru.ui.budgetPlaceholder} className="input mt-1 w-full" />
             </label>
             <button type="submit" className="btn btn-outline w-full">{ru.catalog.applyDate}</button>
           </form>
