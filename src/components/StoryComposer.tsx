@@ -103,7 +103,7 @@ export function StoryComposer({ photos }: { photos: ComposerPhoto[] }) {
         })}
       </ul>
 
-      <button onClick={submit} disabled={!canSubmit} className="btn btn-accent mt-5 px-6 py-2.5">
+      <button type="button" onClick={submit} disabled={!canSubmit} className="btn btn-accent mt-5 px-6 py-2.5">
         {busy ? ru.cabinetStories.submitting : ru.cabinetStories.submit}
       </button>
     </div>

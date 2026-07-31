@@ -47,7 +47,7 @@ export function ConfirmShootButton({ profileId, initialConfirmed, authed }: {
     );
   }
   return (
-    <button onClick={confirm} disabled={busy} className="btn btn-outline btn-sm" title={ru.profile.confirmShootHint}>
+    <button type="button" onClick={confirm} disabled={busy} className="btn btn-outline btn-sm" title={ru.profile.confirmShootHint}>
       <Icon name="check" size={16} /> {ru.profile.confirmShoot}
     </button>
   );

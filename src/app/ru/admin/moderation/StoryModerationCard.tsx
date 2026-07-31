@@ -46,13 +46,13 @@ export function StoryModerationCard(props: {
         ))}
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <button onClick={() => decide('approve')} disabled={pending}
+        <button type="button" onClick={() => decide('approve')} disabled={pending}
           className="btn btn-accent px-4 py-2 text-sm disabled:opacity-50">
           {ru.admin.approve}
         </button>
         <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder={ru.admin.rejectReason}
           className="input min-w-64 flex-1 text-sm" />
-        <button onClick={() => decide('reject')} disabled={pending || reason.trim().length < 5}
+        <button type="button" onClick={() => decide('reject')} disabled={pending || reason.trim().length < 5}
           className="btn btn-danger px-4 py-2 text-sm disabled:opacity-40">
           {ru.admin.reject}
         </button>

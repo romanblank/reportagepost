@@ -67,7 +67,7 @@ export function LightboxModal({
       aria-label={ru.ui.lightbox.view}
     >
       {images.length > 1 && (
-        <button
+        <button type="button"
           onClick={(e) => { e.stopPropagation(); prev(); }}
           aria-label={ru.ui.lightbox.prev}
           className="absolute left-3 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-white backdrop-blur-sm transition hover:bg-white/20 sm:left-6"
@@ -87,7 +87,7 @@ export function LightboxModal({
         className="anim-lb-zoom max-h-[90vh] max-w-[92vw] rounded-sm object-contain shadow-2xl"
       />
       {images.length > 1 && (
-        <button
+        <button type="button"
           onClick={(e) => { e.stopPropagation(); next(); }}
           aria-label={ru.ui.lightbox.next}
           className="absolute right-3 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-white backdrop-blur-sm transition hover:bg-white/20 sm:right-6"
@@ -95,7 +95,7 @@ export function LightboxModal({
           <Icon name="chevron-right" size={22} />
         </button>
       )}
-      <button
+      <button type="button"
         ref={closeRef}
         onClick={close}
         aria-label={ru.ui.close}

@@ -11,7 +11,7 @@ export function LogoutButton() {
     router.refresh();
   }
   return (
-    <button onClick={logout} className="opacity-70 hover:opacity-100">
+    <button type="button" onClick={logout} className="opacity-70 hover:opacity-100">
       {ru.nav.logout}
     </button>
   );

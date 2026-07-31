@@ -189,7 +189,7 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
         </label>
         {error && <p role="alert" className="mt-2 text-sm text-accent">{error}</p>}
 
-        <button
+        <button type="button"
           onClick={() => setStep('done')}
           disabled={uploaded < ONBOARDING_PHOTOS_MIN || pending}
           className="btn btn-accent mt-4"
