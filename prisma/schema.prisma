@@ -344,6 +344,8 @@ model Photo {
   @@index([status, editorsChoiceAt(sort: Desc), publishedAt(sort: Desc)])
   // Рекомендательная лента / превью жанров фильтруют по categoryId — аудит перф 2026-07-30
   @@index([categoryId, status])
+  // Страница серии тянет фото по storyId — FK без индекса Postgres не создаёт (аудит P1)
+  @@index([storyId])
 }
 
 // Загруженное видео автора (шоурил/промо). Файл в Object Storage за абстракцией
@@ -455,6 +457,9 @@ model Like {
 
   @@unique([userId, photoId])
   @@unique([userId, storyId])
+  // Ленты «лучшее недели/года» группируют по окну времени (аудит P1): индекс
+  // [photoId, createdAt] для такого запроса бесполезен — нужен ведущий createdAt
+  @@index([createdAt(sort: Desc)])
   // Горячий путь: ленты (bestOfWindow), рекомендации, пересчёт рейтинга агрегируют
   // Like по photoId + окну createdAt. Like растёт быстрее всех — аудит перф 2026-07-30.
   @@index([photoId, createdAt])
@@ -528,6 +533,10 @@ model Follow {
   followee User @relation("followee", fields: [followeeId], references: [id])
 
   @@id([followerId, followeeId])
+  // Обратный индекс (аудит 2026-07-31, P1): count по followeeId выполняется на
+  // КАЖДОМ открытии профиля + follow-списки сортируют по createdAt. Составной PK
+  // начинается с followerId и для этих запросов бесполезен.
+  @@index([followeeId, createdAt(sort: Desc)])
 }
 
 // Избранные фотографы заказчика (кабинет B2B: сохранить, чтобы вернуться)
@@ -541,6 +550,8 @@ model FavoritePhotographer {
 
   @@id([userId, profileId])
   @@index([userId])
+  // Счётчик «сохранений» в каталоге и дашборде ищет по profileId (аудит P1)
+  @@index([profileId, createdAt(sort: Desc)])
 }
 
 // ─── Заявки заказчиков ──────────────────────────────────────────────────────

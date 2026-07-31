@@ -67,6 +67,7 @@ describe.skipIf(!hasDb)('stories: создание, модерация, лайк
     await db.notification.deleteMany({ where: { userId: { in: [owner.id, liker.id] } } });
     await db.story.delete({ where: { id: storyId } });
     await db.subscription.deleteMany({ where: { userId: owner.id } });
+    await db.profileCategoryScore.deleteMany({ where: { profileId: profile.id } }); // лайк пересчитывает рейтинг → скоры (FK)
     await db.photographerProfile.delete({ where: { id: profile.id } });
     await db.user.deleteMany({ where: { id: { in: [owner.id, liker.id] } } });
   });

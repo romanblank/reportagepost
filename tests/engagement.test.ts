@@ -37,6 +37,7 @@ describe.skipIf(!hasDb)('engagement: лайки и подписки (БД)', () 
     await db.activityEvent.deleteMany({ where: { targetId: photo.id } });
     await db.like.deleteMany({ where: { photoId: photo.id } });
     await db.photo.delete({ where: { id: photo.id } });
+    await db.profileCategoryScore.deleteMany({ where: { profileId: profile.id } }); // лайк пересчитывает рейтинг → скоры (FK)
     await db.photographerProfile.delete({ where: { id: profile.id } });
     await db.user.deleteMany({ where: { id: { in: [owner.id, liker.id] } } });
   });
@@ -69,6 +70,7 @@ describe.skipIf(!hasDb)('engagement: лайки и подписки (БД)', () 
     await db.activityEvent.deleteMany({ where: { targetId: photo.id } });
     await db.like.deleteMany({ where: { photoId: photo.id } });
     await db.photo.delete({ where: { id: photo.id } });
+    await db.profileCategoryScore.deleteMany({ where: { profileId: { in: [profile.id, actorProfile.id] } } }); // лайк пересчитывает рейтинг (FK)
     await db.photographerProfile.deleteMany({ where: { id: { in: [profile.id, actorProfile.id] } } });
     await db.user.deleteMany({ where: { id: { in: [owner.id, actor.id] } } });
   });

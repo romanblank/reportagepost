@@ -1,0 +1,51 @@
+# Плановое обслуживание прода (аудит 2026-07-31, P1: планировщика не было вообще).
+# Дёргает /api/jobs/maintenance: полный пересчёт рейтингов (затухание лайков —
+# функция времени, без прохода старые лайки весят как свежие) и чистка
+# протухших строк RateLimit / одноразовых токенов.
+#
+# ⚠️ ТРЕБУЕТ СЕКРЕТА: JOBS_SECRET в GitHub Secrets И в Lockbox (тот же самый).
+# Без него роут на проде отключён, а джоба честно падает с алертом.
+name: Maintenance
+
+on:
+  schedule:
+    - cron: "30 2 * * *" # ежедневно 02:30 UTC (после ночного бэкапа)
+  workflow_dispatch: {}
+
+concurrency:
+  group: maintenance
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Пересчёт рейтингов + чистка
+        env:
+          JOBS_SECRET: ${{ secrets.JOBS_SECRET }}
+        run: |
+          set -uo pipefail
+          if [ -z "${JOBS_SECRET:-}" ]; then
+            echo "::error::JOBS_SECRET не задан — джоба обслуживания не может работать"
+            exit 1
+          fi
+          RESP=$(curl -s -m 300 -w "\n%{http_code}" -X POST \
+            -H "Authorization: Bearer ${JOBS_SECRET}" \
+            https://reportagepost.com/api/jobs/maintenance)
+          CODE=$(echo "$RESP" | tail -1)
+          BODY=$(echo "$RESP" | sed '$d')
+          echo "$BODY"
+          [ "$CODE" = "200" ] || { echo "::error::HTTP ${CODE}"; exit 1; }
+
+      - name: Telegram-алерт при провале
+        if: failure()
+        env:
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHAT: ${{ secrets.TELEGRAM_ALERT_CHAT_ID }}
+        run: |
+          set -uo pipefail
+          if [ -n "${TG_TOKEN:-}" ] && [ -n "${TG_CHAT:-}" ]; then
+            curl -s -m 15 "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+              --data-urlencode "chat_id=${TG_CHAT}" \
+              --data-urlencode "text=⚠️ Reportage Post: плановое обслуживание (пересчёт рейтингов) провалилось. Лог: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" >/dev/null || true
+          fi

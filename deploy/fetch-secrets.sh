@@ -38,6 +38,9 @@ if "TELEGRAM_WEBHOOK_SECRET" in entries:
 # Чат оператора для алертов с самой VM (watchdog, монитор диска) — аудит 2026-07-31:
 # алерты жили только в GitHub Actions, а VM-события (контейнер упал, диск полон)
 # не долетали никуда.
+# Секрет планового обслуживания (пересчёт рейтингов по расписанию из Actions)
+if "JOBS_SECRET" in entries:
+    lines.append(f"JOBS_SECRET={entries['JOBS_SECRET']}")
 if "TELEGRAM_ALERT_CHAT_ID" in entries:
     lines.append(f"TELEGRAM_ALERT_CHAT_ID={entries['TELEGRAM_ALERT_CHAT_ID']}")
 # SMTP (транзакционная почта, Postbox). Пробрасываются, когда оператор заведёт.

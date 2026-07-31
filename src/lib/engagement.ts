@@ -8,6 +8,23 @@ import { notifyInApp } from '@/lib/notifications';
 // Вес лайка (v2-механика MyWed): базовый 1000, у одобренного фотографа — 2000.
 // Формула уточнится при рейтинге v2; вес пишется В МОМЕНТ события.
 
+/**
+ * Пересчёт рейтинга автора после лайка (аудит 2026-07-31, P1): раньше
+ * recomputeOne вызывался только на approve/отзыв/правку профиля, а
+ * recomputeRatings — вообще нигде, кроме сида. Из-за этого merit-порядок
+ * каталога был ЗАМОРОЖЕН между деплоями: автор набирал лайки и не двигался
+ * ни на позицию, хотя «выдача по качеству» — главный инвариант продукта.
+ * Ошибку пересчёта глотаем: лайк пользователя не должен падать из-за неё.
+ */
+async function recomputeAfterLike(profileId: string): Promise<void> {
+  try {
+    const { recomputeOne } = await import('@/lib/rating');
+    await recomputeOne(profileId);
+  } catch {
+    // порядок обновится плановым пересчётом (джоб) — лайк уже сохранён
+  }
+}
+
 async function actorWeight(userId: string): Promise<number> {
   const profile = await db.photographerProfile.findUnique({ where: { userId }, select: { status: true } });
   return likeWeightFor(profile?.status);
@@ -38,6 +55,7 @@ export async function togglePhotoLike(userId: string, photoId: string): Promise<
       await db.activityEvent.create({
         data: { actorUserId: userId, type: 'PHOTO_UNLIKE', targetType: 'PHOTO', targetId: photoId, weightMilli: existing.weightMilli },
       });
+      await recomputeAfterLike(photo.profileId);
     }
     return { liked: false };
   }
@@ -57,6 +75,7 @@ export async function togglePhotoLike(userId: string, photoId: string): Promise<
     }
     throw e;
   }
+  await recomputeAfterLike(photo.profileId);
   return { liked: true };
 }
 

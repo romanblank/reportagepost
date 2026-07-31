@@ -51,6 +51,16 @@ export async function createStory(
   return { storyId: story.id };
 }
 
+/** Пересчёт рейтинга после лайка серии — см. комментарий в engagement.ts. */
+async function recomputeAfterStoryLike(profileId: string): Promise<void> {
+  try {
+    const { recomputeOne } = await import('@/lib/rating');
+    await recomputeOne(profileId);
+  } catch {
+    // порядок обновится плановым пересчётом
+  }
+}
+
 export async function toggleStoryLike(userId: string, storyId: string): Promise<{ liked: boolean }> {
   const story = await db.story.findUnique({
     where: { id: storyId },
@@ -67,6 +77,7 @@ export async function toggleStoryLike(userId: string, storyId: string): Promise<
       await db.activityEvent.create({
         data: { actorUserId: userId, type: 'STORY_UNLIKE', targetType: 'STORY', targetId: storyId, weightMilli: existing.weightMilli },
       });
+      await recomputeAfterStoryLike(story.profileId);
     }
     return { liked: false };
   }
@@ -84,6 +95,7 @@ export async function toggleStoryLike(userId: string, storyId: string): Promise<
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') return { liked: true };
     throw e;
   }
+  await recomputeAfterStoryLike(story.profileId);
   return { liked: true };
 }
 
