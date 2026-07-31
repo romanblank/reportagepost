@@ -25,6 +25,11 @@ lines.append(f"S3_ACCESS_KEY_ID={entries['S3_ACCESS_KEY_ID']}")
 lines.append(f"S3_SECRET_ACCESS_KEY={entries['S3_SECRET_ACCESS_KEY']}")
 lines.append("S3_ENDPOINT=https://storage.yandexcloud.net")
 lines.append("S3_BUCKET=reportagepost-media")
+# Отдельный бакет для бэкапа медиа (аудит 2026-07-31): фото — это и есть продукт,
+# а хранились в единственном экземпляре. Появится в Lockbox — синхронизация в
+# ночном бэкапе включится сама.
+if "S3_BACKUP_BUCKET" in entries:
+    lines.append(f"S3_BACKUP_BUCKET={entries['S3_BACKUP_BUCKET']}")
 if "SMSC_LOGIN" in entries:
     lines.append(f"SMSC_LOGIN={entries['SMSC_LOGIN']}")
     lines.append(f"SMSC_PASSWORD={entries.get('SMSC_PASSWORD','')}")
