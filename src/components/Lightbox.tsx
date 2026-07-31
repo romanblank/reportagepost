@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef } from 'react';
 import { Icon } from '@/components/ui/Icon';
+import { ru } from '@/i18n/ru';
 
 export interface LightboxImage {
   src: string;
@@ -63,12 +64,12 @@ export function LightboxModal({
       onClick={close}
       role="dialog"
       aria-modal="true"
-      aria-label="Просмотр фото"
+      aria-label={ru.ui.lightbox.view}
     >
       {images.length > 1 && (
         <button
           onClick={(e) => { e.stopPropagation(); prev(); }}
-          aria-label="Предыдущее"
+          aria-label={ru.ui.lightbox.prev}
           className="absolute left-3 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-white backdrop-blur-sm transition hover:bg-white/20 sm:left-6"
         >
           <Icon name="chevron-left" size={22} />
@@ -88,7 +89,7 @@ export function LightboxModal({
       {images.length > 1 && (
         <button
           onClick={(e) => { e.stopPropagation(); next(); }}
-          aria-label="Следующее"
+          aria-label={ru.ui.lightbox.next}
           className="absolute right-3 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-white backdrop-blur-sm transition hover:bg-white/20 sm:right-6"
         >
           <Icon name="chevron-right" size={22} />
@@ -97,7 +98,7 @@ export function LightboxModal({
       <button
         ref={closeRef}
         onClick={close}
-        aria-label="Закрыть"
+        aria-label={ru.ui.close}
         className="absolute right-4 top-4 z-10 grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white backdrop-blur-sm transition hover:bg-white/20"
       >
         <Icon name="x" size={18} />

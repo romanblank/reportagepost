@@ -106,7 +106,7 @@ export function AccountSettings({ initial }: { initial: Initial }) {
         <div>
           <label className="field-label">{ru.settings.newPassword}</label>
           <input name="next" type="password" className="input" autoComplete="new-password" required minLength={10} />
-          <span className="field-hint">Минимум 10 символов</span>
+          <span className="field-hint">{ru.auth.passwordHint}</span>
         </div>
         {err.password && <p className="text-sm text-danger">{err.password}</p>}
         <button type="submit" disabled={busy === 'password'} className="btn btn-outline btn-sm w-fit">{ru.settings.savePassword}</button>

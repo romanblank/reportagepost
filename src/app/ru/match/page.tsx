@@ -95,7 +95,7 @@ export default async function MatchPage(props: {
           <label className="text-sm">
             <span className="field-hint mt-0">{ru.match.budgetLabel}</span>
             <input type="number" name="budget" min={0} step={1} inputMode="numeric" defaultValue={sp.budget ?? ''}
-              placeholder="₽/час" className="input mt-1 w-full" />
+              placeholder={ru.ui.pricePerHour} className="input mt-1 w-full" />
           </label>
         </div>
         <div className="mt-4 flex items-center gap-3">

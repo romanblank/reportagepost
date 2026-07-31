@@ -429,6 +429,8 @@ export const ru = {
     close: 'Закрыть',
     cancel: 'Отмена',
     loading: 'Секунду…',
+    pricePerHour: '₽/час',
+    lightbox: { view: 'Просмотр фото', prev: 'Предыдущее', next: 'Следующее' },
   },
   portfolio: {
     title: 'Портфолио',
