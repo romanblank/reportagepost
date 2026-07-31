@@ -847,6 +847,7 @@ export const ru = {
     } as Record<string, string>,
   },
   auth: {
+    passwordHint: 'Минимум 10 символов',
     registerTitle: 'Присоединиться к Репортаж Пост',
     registerLeadPhotographer: 'Страница автора: ваши работы, находки редакции и прямые заявки на съёмку.',
     registerLeadClient: 'Найдите автора для события — по городу, дате и портфолио.',
