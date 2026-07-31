@@ -6,6 +6,7 @@ import { db } from '@/lib/db';
 import { twoFactorStatus } from '@/lib/two-factor';
 import { ru } from '@/i18n/ru';
 import { AccountSettings } from '@/components/AccountSettings';
+import { NotifyPrefs } from '@/components/NotifyPrefs';
 import { TwoFactorManager } from '@/components/TwoFactorManager';
 
 export const metadata: Metadata = { title: ru.settings.title };
@@ -18,7 +19,10 @@ export default async function SettingsPage() {
   const [user, status] = await Promise.all([
     db.user.findUniqueOrThrow({
       where: { id: session.userId },
-      select: { firstName: true, lastName: true, email: true, passwordHash: true },
+      select: {
+        firstName: true, lastName: true, email: true, passwordHash: true,
+        notifyInquiriesEmail: true, notifyInquiriesTg: true, tgUserId: true,
+      },
     }),
     twoFactorStatus(session.userId),
   ]);
@@ -39,6 +43,15 @@ export default async function SettingsPage() {
             hasPassword: Boolean(user.passwordHash),
           }} />
         </div>
+      </section>
+
+      {/* Внешние уведомления (аудит P1): отключить поток писем было нечем */}
+      <section className="mt-8">
+        <NotifyPrefs
+          initialEmail={user.notifyInquiriesEmail}
+          initialTg={user.notifyInquiriesTg}
+          hasTelegram={Boolean(user.tgUserId)}
+        />
       </section>
 
       <section className="mt-8">

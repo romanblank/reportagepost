@@ -565,6 +565,7 @@ export const ru = {
     inquirySubject: (city: string) => `Новая заявка на съёмку — ${city}`,
     inquiryBody: (d: { city: string; category: string; date: string; budget: string; excerpt: string; link: string }) =>
       `Заказчик ищет репортажника в городе ${d.city}.\nСобытие: ${d.category} · Дата: ${d.date} · Бюджет: ${d.budget}\n\n«${d.excerpt}»\n\nОткрыть заявку: ${d.link}`,
+    unsubscribeLine: (link: string) => `Чтобы больше не получать письма о заявках — отключите их в кабинете или по ссылке: ${link}`,
     inquiryNoValue: 'не указано',
   },
   notifications: {
@@ -783,6 +784,22 @@ export const ru = {
     tileAvailabilityDesc: 'Занятые дни и выезды',
     tileSettingsDesc: 'Пароль, email, вход',
     greeting: (name: string) => `Здравствуйте, ${name}`,
+  },
+  unsubscribe: {
+    title: 'Отписка от писем',
+    okTitle: 'Готово — писем о заявках больше не будет',
+    okText: 'Вы по-прежнему будете видеть заявки в кабинете и получать письма о доступе к аккаунту. Включить обратно можно в настройках.',
+    failTitle: 'Ссылка не подошла',
+    failText: 'Возможно, она устарела. Настроить уведомления можно в кабинете.',
+    toSettings: 'Настройки уведомлений',
+  },
+  notifyPrefs: {
+    title: 'Уведомления',
+    lead: 'Заявки заказчиков всегда видны в кабинете. Здесь — только внешние каналы.',
+    email: 'Письма о новых заявках',
+    telegram: 'Заявки в Telegram',
+    saved: 'Сохранено',
+    note: 'Письма о доступе к аккаунту (вход, смена пароля, подтверждение адреса) приходят всегда — без них можно потерять доступ.',
   },
   settings: {
     title: 'Настройки и безопасность',

@@ -229,3 +229,60 @@ describe.skipIf(!hasDb)('видимость ошибок: дедуп алерт�
     await db.rateLimit.deleteMany({ where: { key: { startsWith: 'err:' } } });
   });
 });
+
+describe.skipIf(!hasDb)('уведомления: отписка и настройки каналов (БД)', () => {
+  it('веер заявок не пишет отписавшимся, но in-app остаётся всем', async () => {
+    const { db } = await import('@/lib/db');
+    const { createInquiry } = await import('@/lib/inquiries');
+
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const city = await db.city.findFirstOrThrow({ where: { slug: 'moscow' } });
+
+    // Два фотографа: один получает письма, второй отписался
+    const mk = async (tag: string, wantsEmail: boolean) => {
+      const u = await db.user.create({
+        data: {
+          role: 'PHOTOGRAPHER', status: 'ACTIVE', firstName: 'У', lastName: tag,
+          email: `unsub-${tag}-${stamp}@test.local`,
+          notifyInquiriesEmail: wantsEmail,
+        },
+      });
+      const p = await db.photographerProfile.create({
+        data: { userId: u.id, username: `unsub-${tag}-${stamp}`, cityId: city.id, status: 'APPROVED' },
+      });
+      return { u, p };
+    };
+    const subscribed = await mk('yes', true);
+    const unsubscribed = await mk('no', false);
+
+    const res = await createInquiry({
+      contactName: 'Заказчик Тестов',
+      contactEmail: `client-${stamp}@test.local`,
+      citySlug: 'moscow',
+      description: 'Нужна съёмка конференции на 200 человек, два зала, репортаж',
+    });
+
+    // In-app получают ОБА: отписка касается только внешних каналов, а заявки
+    // в кабинете — основной способ их увидеть
+    const inApp = await db.notification.findMany({
+      where: { userId: { in: [subscribed.u.id, unsubscribed.u.id] }, type: 'notification.inquiry.new' },
+      select: { userId: true },
+    });
+    expect(new Set(inApp.map((n) => n.userId)).size).toBe(2);
+    expect(res.notified).toBeGreaterThanOrEqual(2);
+
+    // Настройка отписавшегося не сброшена побочно
+    const still = await db.user.findUniqueOrThrow({
+      where: { id: unsubscribed.u.id }, select: { notifyInquiriesEmail: true },
+    });
+    expect(still.notifyInquiriesEmail).toBe(false);
+
+    // Cleanup
+    const ids = [subscribed.u.id, unsubscribed.u.id];
+    await db.notification.deleteMany({ where: { userId: { in: ids } } });
+    await db.inquiry.deleteMany({ where: { id: res.inquiryId } });
+    await db.profileCategoryScore.deleteMany({ where: { profileId: { in: [subscribed.p.id, unsubscribed.p.id] } } });
+    await db.photographerProfile.deleteMany({ where: { id: { in: [subscribed.p.id, unsubscribed.p.id] } } });
+    await db.user.deleteMany({ where: { id: { in: ids } } });
+  });
+});

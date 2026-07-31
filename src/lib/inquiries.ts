@@ -73,7 +73,16 @@ export async function createInquiry(
       cityId: city.id,
       ...(categoryId ? { categories: { some: { categoryId } } } : {}),
     },
-    select: { userId: true, user: { select: { email: true, tgUserId: true } } },
+    select: {
+      userId: true,
+      user: {
+        select: {
+          email: true, tgUserId: true,
+          // Настройки уведомлений (аудит P1): отписавшемуся не пишем
+          notifyInquiriesEmail: true, notifyInquiriesTg: true, unsubToken: true,
+        },
+      },
+    },
   });
 
   // Единая модель доставки (deep-think Eng P1): notifyInApp — ДОЛГОВЕЧНАЯ запись
@@ -111,7 +120,12 @@ export async function createInquiry(
 
 /** Внешняя доставка пачками с паузой — щадит лимиты Telegram и SMTP. */
 async function deliverExternal(
-  recipients: { user: { email: string | null; tgUserId: string | null } }[],
+  recipients: {
+    user: {
+      email: string | null; tgUserId: string | null;
+      notifyInquiriesEmail: boolean; notifyInquiriesTg: boolean; unsubToken: string | null;
+    };
+  }[],
   subject: string,
   text: string,
 ): Promise<void> {
@@ -122,8 +136,17 @@ async function deliverExternal(
     await Promise.all(
       chunk.flatMap((r) => {
         const jobs: Promise<void>[] = [];
-        if (r.user.email) jobs.push(sendEmail(r.user.email, subject, text).catch(() => {}));
-        if (r.user.tgUserId) jobs.push(tgSend(r.user.tgUserId, text).catch(() => {}));
+        // Уважаем настройки: отключил канал — не пишем в него
+        if (r.user.email && r.user.notifyInquiriesEmail) {
+          // Ссылка «отписаться» обязательна в регулярной рассылке
+          const unsub = r.user.unsubToken
+            ? `\n\n${ru.lifecycle.unsubscribeLine(`https://${APP_DOMAIN}/ru/unsubscribe?token=${r.user.unsubToken}`)}`
+            : '';
+          jobs.push(sendEmail(r.user.email, subject, text + unsub).catch(() => {}));
+        }
+        if (r.user.tgUserId && r.user.notifyInquiriesTg) {
+          jobs.push(tgSend(r.user.tgUserId, text).catch(() => {}));
+        }
         return jobs;
       }),
     );
