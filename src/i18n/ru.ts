@@ -259,6 +259,7 @@ export const ru = {
     } as Record<string, string>,
     site: 'Сайт',
     showPhone: 'Показать номер',
+    phoneTooOften: 'Слишком часто — попробуйте через минуту.',
     statCityRank: 'среди авторов города',
     statFollowers: 'подписчиков',
     statFollowing: 'подписки',

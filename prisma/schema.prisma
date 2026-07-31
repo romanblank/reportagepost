@@ -724,6 +724,7 @@ model Subscription {
   // S5-монетизация (deep-think 2026-07-16): цена по городам + триал + бета-грейс.
   cityTier         String? // A|B|C на момент оформления (цена зафиксирована по городу)
   priceMinorLocked Int? // зафиксированная цена (founding-lock) в копейках/мес
+  currency         String           @default("RUB") // ISO 4217 — к priceMinorLocked
   trialEndsAt      DateTime? // конец пробного периода (PRO по клику без карты)
   graceEndsAt      DateTime? // конец бесплатного бета-PRO → далее переход на оплату
   proRequestedAt   DateTime? // фотограф запросил подключение PRO (бета: ручная активация оператором)
@@ -747,6 +748,10 @@ model Payment {
   userId           String?
   orderId          String        @unique // наш OrderId — идемпотентность вебхука
   amountMinor      Int // копейки (инвариант: minor units)
+  // Код валюты обязателен по денежному инварианту проекта (аудит 2026-07-31, P1):
+  // сумма без валюты — единственное место, где инвариант нарушался. Пока RUB,
+  // но задел на мир заявлен с первого дня, а миграция денег задним числом дорога.
+  currency         String        @default("RUB") // ISO 4217
   tier             SubscriptionTier // какой уровень оплачивается (зачисляется на CONFIRMED)
   status           PaymentStatus @default(NEW)
   tinkoffPaymentId String? // PaymentId от Т-Кассы

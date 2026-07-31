@@ -3,6 +3,7 @@ import type { SubscriptionTier } from '@prisma/client';
 import { db } from '@/lib/db';
 import { priceForCity, cityTierOf } from '@/lib/pricing';
 import { rankForTier } from '@/lib/subscription';
+import { DEFAULT_CURRENCY } from '@/lib/money';
 
 // Биллинг подписок через Т-Кассу: подготовка платежа + идемпотентное зачисление
 // по вебхуку. Провайдер за абстракцией (tinkoff.ts) — без терминала флоу не
@@ -22,7 +23,7 @@ export async function prepareCheckout(userId: string, tier: PaidTier, citySlug: 
   const price = priceForCity(citySlug, tier);
   const orderId = `sub_${userId.slice(0, 8)}_${randomUUID().slice(0, 8)}`;
   await db.payment.create({
-    data: { userId, orderId, amountMinor: price.monthlyMinor, tier, status: 'NEW' },
+    data: { userId, orderId, amountMinor: price.monthlyMinor, currency: DEFAULT_CURRENCY, tier, status: 'NEW' },
   });
   return { orderId, amountMinor: price.monthlyMinor };
 }
