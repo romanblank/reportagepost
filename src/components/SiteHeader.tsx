@@ -19,11 +19,14 @@ export async function SiteHeader() {
   const linkCls = 'text-sm text-muted transition-colors hover:text-ink';
   return (
     <header className="sticky top-0 z-40 border-b border-line/70 bg-paper/80 backdrop-blur-md">
-      <nav className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-3.5">
+      {/* max-w-7xl — как секции главной; в 6xl (1152px) кластер залогиненного
+          (лого+7 ссылок+колокол+поиск+кабинет) не влезал и «Кабинет/Выйти»
+          переносились второй строкой даже на широком окне */}
+      <nav className="mx-auto flex w-full max-w-7xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3.5 lg:gap-x-5">
         <Link href="/" aria-label={ru.nav.brand} className="flex items-center text-ink">
           <BrandLockup className="block h-6 sm:h-7" />
         </Link>
-        <div className="hidden items-center gap-5 sm:flex">
+        <div className="hidden items-center gap-4 sm:flex lg:gap-5">
           <Link href={catalogHref} className={linkCls}>{ru.nav.catalog}</Link>
           <Link href="/ru/match" className={linkCls}>{ru.nav.match}</Link>
           <Link href="/ru/photo" className={linkCls}>{ru.nav.feed}</Link>
@@ -48,7 +51,7 @@ export async function SiteHeader() {
         )}
         <form method="get" action="/ru/search" className={`hidden md:block ${session ? 'ml-4' : 'ml-auto'}`}>
           <input name="q" placeholder={ru.search.placeholder}
-            className="input h-9 w-44 py-1.5 text-sm" aria-label={ru.search.title} />
+            className="input h-9 w-36 py-1.5 text-sm lg:w-44" aria-label={ru.search.title} />
         </form>
         {/* На мобиле навигация в нижнем таб-баре — верхний auth-кластер прячем (app-подача) */}
         <div className="ml-auto hidden items-center gap-4 sm:flex md:ml-4">

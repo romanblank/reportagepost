@@ -76,8 +76,27 @@ export default async function Home() {
                     </span>
                   </>
                 ) : (
-                  // Пустой жанр (бета): чистая тайл-подача, без фейк-градиента
-                  <div className="flex aspect-[3/2] w-full flex-col justify-end p-3">
+                  // Пустой жанр (бета): без фейк-фото — деликатный халфтон-мотив
+                  // бренда (угасающие кольца точек), чтобы тайл читался намеренным
+                  <div className="relative flex aspect-[3/2] w-full flex-col justify-end overflow-hidden p-3">
+                    <svg viewBox="0 0 120 120" aria-hidden
+                      className="absolute -right-6 -top-6 h-28 w-28 text-ink opacity-[0.07] transition duration-500 group-hover:opacity-[0.12]">
+                      <g fill="currentColor">
+                        <circle cx="60" cy="60" r="5" />
+                        {Array.from({ length: 6 }).map((_, i) => {
+                          const a = (i * Math.PI) / 3;
+                          return <circle key={`r1-${i}`} cx={60 + 18 * Math.cos(a)} cy={60 + 18 * Math.sin(a)} r="4" opacity="0.8" />;
+                        })}
+                        {Array.from({ length: 12 }).map((_, i) => {
+                          const a = (i * Math.PI) / 6 + Math.PI / 12;
+                          return <circle key={`r2-${i}`} cx={60 + 34 * Math.cos(a)} cy={60 + 34 * Math.sin(a)} r="3" opacity="0.55" />;
+                        })}
+                        {Array.from({ length: 18 }).map((_, i) => {
+                          const a = (i * Math.PI) / 9;
+                          return <circle key={`r3-${i}`} cx={60 + 50 * Math.cos(a)} cy={60 + 50 * Math.sin(a)} r="2.2" opacity="0.35" />;
+                        })}
+                      </g>
+                    </svg>
                     <span className="font-medium leading-tight">{c.nameRu}</span>
                     <span className="mt-0.5 text-xs text-muted-2 transition group-hover:text-recognition">{ru.landing.categoryExplore}</span>
                   </div>
