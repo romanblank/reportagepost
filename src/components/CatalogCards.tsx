@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { CatalogCard } from '@/lib/catalog';
-import { webVariantUrl } from '@/lib/photos';
+import { webVariantUrl, thumbVariantUrl } from '@/lib/photos';
 import { formatRubMinor } from '@/lib/money';
 import { CATEGORIES, categoryNameRu } from '@/lib/category-data';
 import { ru } from '@/i18n/ru';
@@ -20,8 +20,14 @@ export function CatalogCards({ cards, cityName }: { cards: CatalogCard[]; cityNa
             <Link href={`/ru/photographer/${card.username}`} className="block">
               <div className="relative overflow-hidden rounded-media bg-surface-2 transition-shadow duration-300 group-hover:shadow-[0_14px_36px_-10px_rgba(0,0,0,0.28)]">
                 {card.coverKey ? (
+                  // thumb 640 вместо web 2048 (аудит P1): карточка ~380px на экране,
+                  // а грузилось 300-700КБ — каталог весил ~10МБ. srcSet отдаёт
+                  // полноразмерный вариант только retina-экранам.
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={webVariantUrl(card.coverKey)} alt={alt} loading="lazy"
+                  <img src={thumbVariantUrl(card.coverKey)}
+                    srcSet={`${thumbVariantUrl(card.coverKey)} 640w, ${webVariantUrl(card.coverKey)} 2048w`}
+                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 380px"
+                    alt={alt} loading="lazy"
                     className="aspect-[4/5] w-full object-cover transition duration-[600ms] ease-out group-hover:scale-[1.04]" />
                 ) : (
                   <div className="grid aspect-[4/5] w-full place-items-center">

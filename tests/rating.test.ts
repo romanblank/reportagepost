@@ -64,3 +64,28 @@ describe.skipIf(!hasDb)('rating: engagement по материализованн�
     await db.user.deleteMany({ where: { id: { in: [owner.id, uFresh, uOld, uAncient] } } });
   });
 });
+
+describe('rating: вклад отзывов не растёт от плохой оценки', () => {
+  it('плохой отзыв ОПУСКАЕТ вклад, хорошие поднимают, сплошь низкие дают минус', async () => {
+    const { reviewContribution } = await import('@/lib/rating');
+
+    // Регрессия аудита 2026-07-31: прежняя формула avg×count×200 давала
+    // 5×1×200=1000 → после отзыва на 1 балл 3×2×200=1200, т.е. недовольный
+    // заказчик ПОДНИМАЛ автора в выдаче.
+    const oneGreat = reviewContribution(5, 1);
+    const plusTerrible = reviewContribution(3, 2); // добавился отзыв на 1 → avg 3
+    expect(plusTerrible).toBeLessThan(oneGreat);
+
+    // Больше хороших отзывов — больше вклад
+    expect(reviewContribution(5, 10)).toBeGreaterThan(reviewContribution(5, 3));
+
+    // Плохая репутация уводит вклад в минус
+    expect(reviewContribution(2, 10)).toBeLessThan(0);
+
+    // Нет отзывов — нет вклада (ни плюса, ни минуса)
+    expect(reviewContribution(0, 0)).toBe(0);
+
+    // Байесовское сглаживание: один отзыв на 5 не перевешивает десяток четвёрок
+    expect(reviewContribution(5, 1)).toBeLessThan(reviewContribution(4, 10));
+  });
+});

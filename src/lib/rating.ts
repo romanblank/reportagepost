@@ -49,6 +49,23 @@ export async function engagementMilli(profileId: string, now = new Date(), photo
   return Math.round(sum);
 }
 
+// Параметры вклада отзывов. PRIOR_* — байесовский приор: пока отзывов мало,
+// оценка тянется к нейтральной, и один восторженный (или один злой) отзыв не
+// решает судьбу автора. CAP — после 20 отзывов количество перестаёт влиять.
+const REVIEW_NEUTRAL = 3;
+const REVIEW_PRIOR_MEAN = 3.5;
+const REVIEW_PRIOR_WEIGHT = 5;
+const REVIEW_CAP = 20;
+const REVIEW_SCALE = 400;
+
+/** Вклад отзывов в рейтинг (милли). Экспортирован ради тестов. */
+export function reviewContribution(avgRating: number, count: number): number {
+  if (count <= 0) return 0;
+  const bayes =
+    (REVIEW_PRIOR_WEIGHT * REVIEW_PRIOR_MEAN + avgRating * count) / (REVIEW_PRIOR_WEIGHT + count);
+  return Math.round((bayes - REVIEW_NEUTRAL) * Math.min(count, REVIEW_CAP) * REVIEW_SCALE);
+}
+
 type ProfileForRating = Prisma.PhotographerProfileGetPayload<{
   include: { packages: true; photos: true; categories: true };
 }>;
@@ -102,14 +119,22 @@ async function scoreOne(
     lastPublishedAt,
     now,
   });
-  // Вклад отзывов (паритет MyWed): средняя оценка × число (до 20) — доверие
-  // весомее лайков. VISIBLE только.
+  // Отзывы — только VISIBLE (скрытые админом в рейтинг не идут)
   const rev = await db.review.aggregate({
     where: { profileId: p.id, status: 'VISIBLE' },
     _avg: { rating: true },
     _count: true,
   });
-  const reviewMilli = Math.round((rev._avg.rating ?? 0) * Math.min(rev._count, 20) * 200);
+  // Вклад отзывов (аудит 2026-07-31, P1 — БЫЛА ЛОГИЧЕСКАЯ ОШИБКА).
+  // Прежняя формула avg × count × 200 РОСЛА от плохого отзыва: 5×1×200=1000,
+  // а после отзыва на 1 балл → 3×2×200=1200. То есть недовольный заказчик
+  // поднимал автора в выдаче.
+  //
+  // Теперь: байесовское сглаживание (защищает от «один отзыв на 5 → в топ»)
+  // и отсчёт от НЕЙТРАЛИ — вклад положителен только выше неё и отрицателен
+  // ниже. Согласуется с доброжелательным рейтингом: низкие оценки кормят
+  // внутренний порядок, но публично не показываются.
+  const reviewMilli = reviewContribution(rev._avg.rating ?? 0, rev._count);
   const base = completeness * 1000 + reviewMilli;
 
   // Жанровые скоры — для всех категорий профиля (даже без лайков: база различает

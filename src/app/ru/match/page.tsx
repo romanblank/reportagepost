@@ -5,7 +5,7 @@ import { matchPhotographers, parseBriefText, parseBriefHeuristic, resolveBrief, 
 import { rateLimit } from '@/lib/rate-limit';
 import { RU_CITIES, cityNameRu } from '@/lib/geo-data';
 import { CATEGORIES, categoryNameRu } from '@/lib/category-data';
-import { webVariantUrl } from '@/lib/photos';
+import { thumbVariantUrl } from '@/lib/photos';
 import { formatRubMinor } from '@/lib/money';
 import { ru } from '@/i18n/ru';
 import { Avatar } from '@/components/ui/Avatar';
@@ -132,7 +132,7 @@ export default async function MatchPage(props: {
                       className="relative block h-28 w-24 shrink-0 overflow-hidden rounded-lg bg-surface-2 sm:h-32 sm:w-28">
                       {card.coverKey ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={webVariantUrl(card.coverKey)} alt={`${card.firstName} ${card.lastName}`} loading="lazy"
+                        <img src={thumbVariantUrl(card.coverKey)} alt={`${card.firstName} ${card.lastName}`} loading="lazy"
                           className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.05]" />
                       ) : (
                         <span className="grid h-full w-full place-items-center">

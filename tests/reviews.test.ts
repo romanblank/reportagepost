@@ -67,9 +67,14 @@ describe.skipIf(!hasDb)('reviews: правила и агрегат (БД)', () =
     expect(aggregate.avg).toBeCloseTo(4.5, 5);
     expect(items[0].verified).toBe(true); // verified сортируется выше
 
-    // отзывы влияют на рейтинг: reviewMilli = avg(4.5) × min(2,20) × 200 = 1800
+    // Отзывы влияют на рейтинг. Проверяем СВОЙСТВО, а не конкретное число:
+    // формула вклада менялась (аудит 2026-07-31 — прежняя avg×count росла даже
+    // от плохого отзыва), и тест не должен ломаться при её честной правке.
+    // Здесь две хорошие оценки (avg 4.5) → вклад строго положительный.
+    const { reviewContribution } = await import('@/lib/rating');
     const prof = await db.photographerProfile.findUniqueOrThrow({ where: { id: profile.id } });
-    expect(prof.ratingScore).toBeGreaterThanOrEqual(1800);
+    expect(reviewContribution(aggregate.avg, aggregate.count)).toBeGreaterThan(0);
+    expect(prof.ratingScore).toBeGreaterThan(0);
 
     await db.message.deleteMany({ where: { OR: [{ senderId: owner.id }, { recipientId: owner.id }] } });
     await db.notification.deleteMany({ where: { userId: { in: [owner.id, client.id, otherPhotog.id, selfProfileClient.id, client2.id] } } });
