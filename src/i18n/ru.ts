@@ -259,6 +259,12 @@ export const ru = {
     shootNoContact: 'Отметить съёмку можно после общения с автором в чате — так подтверждение честное.',
     confirmShootHint: 'Снимались у этого автора? Отметьте — так у него появится честный знак доверия.',
   },
+  followList: {
+    followersTitle: 'Подписчики',
+    followingTitle: 'Подписки',
+    empty: 'Пока никого. Всё впереди.',
+    clientLabel: 'Заказчик',
+  },
   story: {
     notFound: 'Серия не найдена',
     byLabel: 'Автор',

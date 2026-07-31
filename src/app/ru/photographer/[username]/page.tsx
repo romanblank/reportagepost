@@ -232,8 +232,15 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
 
         {/* Соц-статы + контакты */}
         <div className="mt-5 flex flex-wrap items-center gap-x-7 gap-y-3">
-          <span className="flex items-baseline gap-1.5"><b className="tnum text-lg font-semibold">{followers}</b><span className="t-caption muted">{ru.profile.statFollowers}</span></span>
-          <span className="flex items-baseline gap-1.5"><b className="tnum text-lg font-semibold">{followingCount}</b><span className="t-caption muted">{ru.profile.statFollowing}</span></span>
+          {/* Счётчики кликабельны — follow-списки (паритет MyWed) */}
+          <Link href={`/ru/photographer/${profile.username}/followers`}
+            className="flex items-baseline gap-1.5 transition hover:opacity-80">
+            <b className="tnum text-lg font-semibold">{followers}</b><span className="t-caption muted">{ru.profile.statFollowers}</span>
+          </Link>
+          <Link href={`/ru/photographer/${profile.username}/following`}
+            className="flex items-baseline gap-1.5 transition hover:opacity-80">
+            <b className="tnum text-lg font-semibold">{followingCount}</b><span className="t-caption muted">{ru.profile.statFollowing}</span>
+          </Link>
           <div className="flex flex-wrap items-center gap-2 text-sm sm:ml-auto">
             <ShareButton path={`/ru/photographer/${profile.username}`} title={`${profile.user.firstName} ${profile.user.lastName}`} />
             {/* «Показать номер» — только при опт-ине; номер раскрывается кликом через API */}
