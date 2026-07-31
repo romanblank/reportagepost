@@ -25,6 +25,14 @@ export class PhotoValidationError extends Error {
   }
 }
 
+// Ограничение декодирования (аудит 2026-07-31, P1 DoS): без limitInputPixels
+// «пиксельная бомба» (маленький файл → гигантский холст) съедает память и CPU
+// единственного контейнера. 50 Мпикс — с большим запасом над любой камерой
+// (даже 100-мегапиксельный кадр среднего формата = 100 Мпикс, но такие в
+// репортаже не грузят; при нужде поднять осознанно).
+const MAX_INPUT_PIXELS = 50_000_000;
+const img = (input: Buffer) => sharp(input, { limitInputPixels: MAX_INPUT_PIXELS, sequentialRead: true });
+
 /**
  * Стадия 1 — анализ БЕЗ записи: валидация (guard-проверки программные) + размеры
  * + perceptual hash. Отдельно от записи, чтобы дедуп-проверка отклоняла ДО
@@ -33,7 +41,7 @@ export class PhotoValidationError extends Error {
 export async function analyzePhoto(input: Buffer): Promise<AnalyzedPhoto> {
   let meta;
   try {
-    meta = await sharp(input).metadata();
+    meta = await img(input).metadata();
   } catch {
     throw new PhotoValidationError('not_image', 'Файл не является изображением');
   }
@@ -46,12 +54,12 @@ export async function analyzePhoto(input: Buffer): Promise<AnalyzedPhoto> {
     );
   }
   // Perceptual hash — с ориентированного кадра, чтобы повёрнутый ре-аплоад ловился.
-  const oriented = await sharp(input).rotate().toBuffer();
+  const oriented = await img(input).rotate().toBuffer();
   const phash = await computeDHash(oriented);
 
   // LQIP-плейсхолдер: крошечный размытый JPEG в base64. Показывается фоном под
   // <img>, пока грузится настоящий кадр (плавная загрузка вместо пустых дыр).
-  const tiny = await sharp(oriented).resize(24, 24, { fit: 'inside' }).blur(1.2).jpeg({ quality: 35 }).toBuffer();
+  const tiny = await img(oriented).resize(24, 24, { fit: 'inside' }).blur(1.2).jpeg({ quality: 35 }).toBuffer();
   const blurData = `data:image/jpeg;base64,${tiny.toString('base64')}`;
 
   return { width, height, phash, blurData };
@@ -64,9 +72,9 @@ export async function analyzePhoto(input: Buffer): Promise<AnalyzedPhoto> {
 export async function storePhotoVariants(input: Buffer): Promise<{ storageKey: string }> {
   const id = randomUUID();
   const base = `photos/${id}`;
-  const original = await sharp(input).rotate().jpeg({ quality: 92 }).toBuffer();
-  const web = await sharp(input).rotate().resize(2048, 2048, { fit: 'inside' }).jpeg({ quality: 82 }).toBuffer();
-  const thumb = await sharp(input).rotate().resize(640, 640, { fit: 'inside' }).jpeg({ quality: 78 }).toBuffer();
+  const original = await img(input).rotate().jpeg({ quality: 92 }).toBuffer();
+  const web = await img(input).rotate().resize(2048, 2048, { fit: 'inside' }).jpeg({ quality: 82 }).toBuffer();
+  const thumb = await img(input).rotate().resize(640, 640, { fit: 'inside' }).jpeg({ quality: 78 }).toBuffer();
 
   await storage.put(`${base}/original.jpg`, original, 'image/jpeg');
   await storage.put(`${base}/web.jpg`, web, 'image/jpeg');
@@ -79,12 +87,12 @@ export async function storePhotoVariants(input: Buffer): Promise<{ storageKey: s
  *  чтобы не ловить устаревший CDN-кэш при замене. */
 export async function processAndStoreAvatar(input: Buffer, profileId: string): Promise<string> {
   try {
-    await sharp(input).metadata();
+    await img(input).metadata();
   } catch {
     throw new PhotoValidationError('not_image', 'Файл не является изображением');
   }
   const key = `avatars/${profileId}/${randomUUID()}.jpg`;
-  const jpeg = await sharp(input).rotate().resize(400, 400, { fit: 'cover' }).jpeg({ quality: 85 }).toBuffer();
+  const jpeg = await img(input).rotate().resize(400, 400, { fit: 'cover' }).jpeg({ quality: 85 }).toBuffer();
   await storage.put(key, jpeg, 'image/jpeg');
   return key;
 }

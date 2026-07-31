@@ -14,8 +14,16 @@ async function actorWeight(userId: string): Promise<number> {
 }
 
 export async function togglePhotoLike(userId: string, photoId: string): Promise<{ liked: boolean }> {
-  const photo = await db.photo.findUnique({ where: { id: photoId } });
+  const photo = await db.photo.findUnique({
+    where: { id: photoId },
+    include: { profile: { select: { userId: true } } },
+  });
   if (!photo || photo.status !== 'APPROVED') throw new DomainError('photo_not_found', 404);
+  // Самолайк запрещён (аудит 2026-07-31, P1 «накрутка merit»): лайки — ЕДИНСТВЕННЫЙ
+  // публичный сигнал качества после отказа от среднего балла, и они двигают порядок
+  // каталога. Автор, лайкающий собственное портфолио, поднимал себя над честными.
+  // Ср. toggleFollow, где self_follow был закрыт с самого начала.
+  if (photo.profile.userId === userId) throw new DomainError('self_like', 400);
 
   const existing = await db.like.findUnique({
     where: { userId_photoId: { userId, photoId } },

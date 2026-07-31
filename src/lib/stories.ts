@@ -52,8 +52,13 @@ export async function createStory(
 }
 
 export async function toggleStoryLike(userId: string, storyId: string): Promise<{ liked: boolean }> {
-  const story = await db.story.findUnique({ where: { id: storyId } });
+  const story = await db.story.findUnique({
+    where: { id: storyId },
+    include: { profile: { select: { userId: true } } },
+  });
   if (!story || story.status !== 'APPROVED') throw new DomainError('story_not_found', 404);
+  // Самолайк запрещён (аудит 2026-07-31): лайки серий идут в тот же рейтинг
+  if (story.profile.userId === userId) throw new DomainError('self_like', 400);
 
   const existing = await db.like.findUnique({ where: { userId_storyId: { userId, storyId } } });
   if (existing) {

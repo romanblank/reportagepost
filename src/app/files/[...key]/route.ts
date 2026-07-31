@@ -2,24 +2,31 @@ import { NextResponse } from 'next/server';
 import { storage } from '@/lib/storage';
 import { contentTypeForKey } from '@/lib/videos';
 
-// Dev-раздатчик файлов локального хранилища. На проде — CDN перед Object Storage.
+// Раздатчик объектов хранилища (бакет приватный, поэтому через свой роут; на
+// проде перед ним должен встать CDN/кэш nginx — тогда сюда доходят только промахи).
 // Поддержка Range (206) — обязательна для перемотки <video>.
+//
+// 🔴 АУДИТ 2026-07-31 (P0, независимо найден security и architecture): раньше
+// роут делал storage.get() — тянул объект ЦЕЛИКОМ в heap и лишь потом резал
+// нужный кусок. Несколько перемоток 200-МБ шоурила = несколько сотен МБ в
+// памяти единственного контейнера (лимит 2 ГБ) → OOM → падает весь прод.
+// Теперь тело идёт потоком, а диапазон запрашивается у самого S3.
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ key: string[] }> },
 ) {
   const { key } = await params;
   const joined = key.join('/');
-  let data: Buffer | null;
+
+  let total: number | null;
   try {
-    data = await storage.get(joined);
+    total = await storage.size(joined);
   } catch {
     return NextResponse.json({ error: 'bad_key' }, { status: 400 });
   }
-  if (!data) return NextResponse.json({ error: 'not_found' }, { status: 404 });
+  if (total === null) return NextResponse.json({ error: 'not_found' }, { status: 404 });
 
   const contentType = contentTypeForKey(joined) ?? 'image/jpeg';
-  const total = data.byteLength;
   const cache = 'public, max-age=31536000, immutable';
 
   // Range-запрос (перемотка видео): отдаём 206 с нужным срезом.
@@ -44,21 +51,24 @@ export async function GET(
         headers: { 'Content-Range': `bytes */${total}`, 'Accept-Ranges': 'bytes' },
       });
     }
-    const chunk = data.subarray(start, end + 1);
-    return new NextResponse(new Uint8Array(chunk), {
+    const part = await storage.getStream(joined, { start, end });
+    if (!part) return NextResponse.json({ error: 'not_found' }, { status: 404 });
+    return new NextResponse(part.body, {
       status: 206,
       headers: {
         'Content-Type': contentType,
         'Content-Range': `bytes ${start}-${end}/${total}`,
         'Accept-Ranges': 'bytes',
-        'Content-Length': String(chunk.byteLength),
+        'Content-Length': String(end - start + 1),
         'Cache-Control': cache,
         'X-Content-Type-Options': 'nosniff',
       },
     });
   }
 
-  return new NextResponse(new Uint8Array(data), {
+  const whole = await storage.getStream(joined);
+  if (!whole) return NextResponse.json({ error: 'not_found' }, { status: 404 });
+  return new NextResponse(whole.body, {
     headers: {
       'Content-Type': contentType,
       'Accept-Ranges': 'bytes',

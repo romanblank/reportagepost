@@ -11,6 +11,7 @@ import { findNearDuplicate } from '@/lib/photo-dedup';
 import { premoderate } from '@/lib/premoderation';
 import { tierOf } from '@/lib/subscription';
 import { portfolioLimit } from '@/lib/pricing';
+import { rateLimit } from '@/lib/rate-limit';
 
 export const maxDuration = 60; // обработка sharp на больших файлах
 
@@ -20,6 +21,17 @@ const MAX_FILE_BYTES = 40 * 1024 * 1024;
 export async function POST(req: Request) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+
+  // Лимит частоты (аудит 2026-07-31, P1): на каждый файл до 40МБ идут несколько
+  // декодирований sharp — это CPU и память единственного контейнера. У аватара
+  // лимит стоял с самого начала, у портфолио его не было вовсе, а лимит по
+  // КОЛИЧЕСТВУ фото не мешает (удалил → загрузил снова). 60/час — вдвое выше
+  // реального пакета съёмки, но обрубает цикл.
+  try {
+    await rateLimit(`photo-upload:user:${session.userId}`, 60, 3600);
+  } catch {
+    return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
+  }
 
   const profile = await db.photographerProfile.findUnique({
     where: { userId: session.userId },
