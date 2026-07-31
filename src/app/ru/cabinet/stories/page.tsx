@@ -65,7 +65,7 @@ export default async function CabinetStoriesPage() {
                   ) : (
                     <span className="font-medium">{s.title}</span>
                   )}
-                  <span className="ml-2 muted">· {s._count.photos} кадров</span>
+                  <span className="ml-2 muted">· {ru.cabinetStories.photosCount(s._count.photos)}</span>
                 </span>
                 <span className={`t-caption shrink-0 rounded-sm px-2 py-0.5 ${s.status === 'APPROVED' ? 'bg-success-soft text-success' : 'bg-surface-2 muted'}`}>
                   {STATUS_LABEL[s.status]}

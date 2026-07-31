@@ -1,8 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ru } from '@/i18n/ru';
+
+// Время сообщения (локаль ru, ЧЧ:ММ). На клиенте — часовой пояс пользователя.
+function msgTime(iso: string): string {
+  try {
+    return new Date(iso).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return '';
+  }
+}
 
 interface Msg {
   id: string;
@@ -16,6 +25,12 @@ export function ThreadClient({ peerId, selfId, initial }: { peerId: string; self
   const [messages, setMessages] = useState(initial);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Автоскролл к последнему сообщению при загрузке и новых сообщениях.
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ block: 'end' });
+  }, [messages]);
 
   // Синхронизация со свежими данными сервера после router.refresh() (аудит P1:
   // без этого входящие не появлялись). Официальный react-паттерн «правка стейта
@@ -54,18 +69,24 @@ export function ThreadClient({ peerId, selfId, initial }: { peerId: string; self
 
   return (
     <div className="mt-4 flex flex-1 flex-col">
-      <ul className="flex flex-col gap-2">
-        {messages.map((m) => (
-          <li
-            key={m.id}
-            className={`max-w-[85%] rounded-xl border px-3 py-2 text-sm ${
-              m.senderId === selfId ? 'self-end bg-foreground text-background' : 'self-start'
-            }`}
-          >
-            {m.body}
-          </li>
-        ))}
-      </ul>
+      {messages.length === 0 ? (
+        <p className="py-10 text-center text-sm muted">{ru.messages.emptyThread}</p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {messages.map((m) => {
+            const mine = m.senderId === selfId;
+            return (
+              <li key={m.id} className={`flex max-w-[85%] flex-col ${mine ? 'self-end items-end' : 'self-start items-start'}`}>
+                <span className={`rounded-xl border px-3 py-2 text-sm ${mine ? 'bg-foreground text-background' : ''}`}>
+                  {m.body}
+                </span>
+                <time className="mt-0.5 px-1 text-[11px] text-muted-2" dateTime={m.createdAt}>{msgTime(m.createdAt)}</time>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <div ref={bottomRef} />
       {error && <p role="alert" className="mt-2 text-sm text-accent">{error}</p>}
       <form onSubmit={onSubmit} className="mt-4 flex gap-2">
         <input name="body" required maxLength={4000} placeholder={ru.messages.placeholder}

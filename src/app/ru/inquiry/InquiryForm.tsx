@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ru } from '@/i18n/ru';
 import { describeApiError } from '@/lib/form-errors';
 import { normalizePhone } from '@/lib/phone-format';
@@ -17,6 +17,9 @@ export function InquiryForm({ cities, categories, prefill, contact }: { cities: 
   const [pending, setPending] = useState(false);
   const [sent, setSent] = useState<{ notified: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Дата события — не раньше сегодня. Ставим на клиенте (без hydration-mismatch).
+  const [minDate, setMinDate] = useState('');
+  useEffect(() => { setMinDate(new Date().toISOString().slice(0, 10)); }, []);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -49,7 +52,7 @@ export function InquiryForm({ cities, categories, prefill, contact }: { cities: 
     }
     setError(await describeApiError(res, {
       codeLabels: { no_contact: ru.inquiry.errorNoContact },
-      fieldLabels: { description: 'описание', contactName: 'имя', contactPhone: 'телефон', contactEmail: 'email' },
+      fieldLabels: ru.inquiry.fieldLabels,
       fallback: ru.inquiry.errorGeneric,
     }));
   }
@@ -106,7 +109,7 @@ export function InquiryForm({ cities, categories, prefill, contact }: { cities: 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="text-sm">
           {ru.inquiry.eventDate}
-          <input name="eventDate" type="date" className="input" />
+          <input name="eventDate" type="date" min={minDate || undefined} className="input" />
         </label>
         <label className="text-sm">
           {ru.inquiry.budget}
