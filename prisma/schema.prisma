@@ -71,6 +71,10 @@ model User {
   adminAudits   AdminAudit[]
   passwordResets PasswordReset[]
   recoveryCodes  RecoveryCode[]
+  reportsMade    Report[]      @relation("reporter")
+  reportsResolved Report[]     @relation("reportResolver")
+  blocksMade     UserBlock[]   @relation("blocker")
+  blockedBy      UserBlock[]   @relation("blocked")
 }
 
 // Верификация телефона по SMS-коду (E.164). Код хранится как argon2-хеш
@@ -570,6 +574,74 @@ model Inquiry {
   category Category? @relation(fields: [categoryId], references: [id])
 
   @@index([cityId, status, createdAt(sort: Desc)])
+}
+
+// ─── Жалобы и блокировки (модерация людей) ──────────────────────────────────
+// Аудит 2026-07-31 (P0): у платформы не было НИ ОДНОГО инструмента реакции на
+// человека — ни жалобы, ни блокировки собеседника. Для беты с живыми людьми
+// (и для позиции информационного посредника) это обязательный минимум.
+
+enum ReportTargetType {
+  USER
+  PHOTO
+  STORY
+  REVIEW
+  COMMENT
+  MESSAGE
+}
+
+enum ReportReason {
+  SPAM            // реклама, навязчивые рассылки
+  ABUSE           // оскорбления, угрозы, травля
+  ADULT           // непристойный контент
+  COPYRIGHT       // чужая работа выдаётся за свою / претензия правообладателя
+  PERSONAL_DATA   // раскрытие чужих персональных данных, съёмка без согласия
+  FRAUD           // обман, попытка увести оплату мимо платформы
+  OTHER
+}
+
+enum ReportStatus {
+  OPEN
+  RESOLVED   // приняли меры
+  DISMISSED  // жалоба не подтвердилась
+}
+
+model Report {
+  id           String           @id @default(cuid())
+  reporterId   String?          // null — жалоба от гостя (форма правообладателя)
+  targetType   ReportTargetType
+  targetId     String
+  reason       ReportReason
+  comment      String?          // пояснение заявителя
+  contactEmail String?          // для гостевых жалоб (обратная связь правообладателю)
+  status       ReportStatus     @default(OPEN)
+  resolution   String?          // что сделал админ
+  resolvedById String?
+  resolvedAt   DateTime?
+  createdAt    DateTime         @default(now())
+
+  reporter   User? @relation("reporter", fields: [reporterId], references: [id])
+  resolvedBy User? @relation("reportResolver", fields: [resolvedById], references: [id])
+
+  // Очередь админа: свежие открытые сверху
+  @@index([status, createdAt(sort: Desc)])
+  // Сколько раз жаловались на объект (сигнал для модерации)
+  @@index([targetType, targetId])
+  // Антиспам жалобами: один заявитель — одна жалоба на объект
+  @@unique([reporterId, targetType, targetId])
+}
+
+// Блокировка собеседника: заблокированный не может писать в личку.
+model UserBlock {
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+
+  blocker User @relation("blocker", fields: [blockerId], references: [id])
+  blocked User @relation("blocked", fields: [blockedId], references: [id])
+
+  @@id([blockerId, blockedId])
+  @@index([blockedId])
 }
 
 // ─── Личка и уведомления ────────────────────────────────────────────────────

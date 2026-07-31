@@ -1,7 +1,7 @@
 import { db } from '@/lib/db';
 
 export class MessageError extends Error {
-  constructor(public code: 'recipient_not_found' | 'self_message') {
+  constructor(public code: 'recipient_not_found' | 'self_message' | 'blocked') {
     super(code);
   }
 }
@@ -12,6 +12,11 @@ export async function sendMessage(senderId: string, recipientId: string, body: s
   if (senderId === recipientId) throw new MessageError('self_message');
   const recipient = await db.user.findUnique({ where: { id: recipientId } });
   if (!recipient || recipient.status === 'BANNED') throw new MessageError('recipient_not_found');
+  // Блокировка (аудит 2026-07-31, P0 «нет инструментов модерации людей»):
+  // заблокированный не может писать. Проверяем в ОБЕ стороны — заблокировавший
+  // тоже не пишет заблокированному, иначе диалог остаётся односторонним.
+  const { isBlockedBetween } = await import('@/lib/reports');
+  if (await isBlockedBetween(senderId, recipientId)) throw new MessageError('blocked');
 
   return db.message.create({ data: { senderId, recipientId, body } });
 }

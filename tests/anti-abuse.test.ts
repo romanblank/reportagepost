@@ -108,3 +108,52 @@ describe('152-ФЗ: согласие на обработку ПДн в форм�
     expect(Schema.safeParse(base).success).toBe(false); // поле опущено — тоже отказ
   });
 });
+
+describe.skipIf(!hasDb)('модерация людей: жалобы и блокировки (БД)', () => {
+  it('жалоба создаётся и дедупится; на себя нельзя; блокировка запрещает переписку в обе стороны', async () => {
+    const { db } = await import('@/lib/db');
+    const { createReport, blockUser, unblockUser, isBlockedBetween, openReportCount } = await import('@/lib/reports');
+    const { sendMessage, MessageError } = await import('@/lib/messages');
+    const { DomainError } = await import('@/lib/errors');
+
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const mk = (tag: string) => db.user.create({
+      data: { role: 'CLIENT', status: 'ACTIVE', firstName: 'М', lastName: tag, email: `rep-${tag}-${stamp}@test.local` },
+    });
+    const alice = await mk('alice');
+    const bob = await mk('bob');
+
+    // Переписка до блокировки работает
+    await sendMessage(alice.id, bob.id, 'Здравствуйте, интересует съёмка');
+
+    // Жалоба на пользователя
+    const r1 = await createReport({ reporterId: alice.id, targetType: 'USER', targetId: bob.id, reason: 'SPAM', comment: 'Рассылает рекламу' });
+    expect(await openReportCount('USER', bob.id)).toBe(1);
+    // Повтор той же жалобы — идемпотентно (не плодим очередь)
+    const r2 = await createReport({ reporterId: alice.id, targetType: 'USER', targetId: bob.id, reason: 'SPAM' });
+    expect(r2.id).toBe(r1.id);
+    expect(await openReportCount('USER', bob.id)).toBe(1);
+    // На себя жаловаться нельзя; на несуществующий объект — 404
+    await expect(createReport({ reporterId: alice.id, targetType: 'USER', targetId: alice.id, reason: 'SPAM' })).rejects.toThrowError(DomainError);
+    await expect(createReport({ reporterId: alice.id, targetType: 'PHOTO', targetId: 'no-such-photo', reason: 'ABUSE' })).rejects.toThrowError(DomainError);
+
+    // Блокировка: писать нельзя В ОБЕ стороны
+    await blockUser(alice.id, bob.id);
+    expect(await isBlockedBetween(alice.id, bob.id)).toBe(true);
+    await expect(sendMessage(bob.id, alice.id, 'Ответ')).rejects.toThrowError(MessageError);
+    await expect(sendMessage(alice.id, bob.id, 'Ещё сообщение')).rejects.toThrowError(MessageError);
+
+    // Разблокировка возвращает переписку
+    await unblockUser(alice.id, bob.id);
+    expect(await isBlockedBetween(alice.id, bob.id)).toBe(false);
+    const ok = await sendMessage(bob.id, alice.id, 'Спасибо, что разблокировали');
+    expect(ok.id).toBeTruthy();
+
+    // Cleanup
+    await db.report.deleteMany({ where: { OR: [{ reporterId: alice.id }, { targetId: bob.id }] } });
+    await db.userBlock.deleteMany({ where: { OR: [{ blockerId: alice.id }, { blockedId: alice.id }] } });
+    await db.message.deleteMany({ where: { OR: [{ senderId: { in: [alice.id, bob.id] } }, { recipientId: { in: [alice.id, bob.id] } }] } });
+    await db.notification.deleteMany({ where: { userId: { in: [alice.id, bob.id] } } });
+    await db.user.deleteMany({ where: { id: { in: [alice.id, bob.id] } } });
+  });
+});

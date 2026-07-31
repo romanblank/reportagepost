@@ -26,6 +26,7 @@ import { ConfirmShootButton } from '@/components/ConfirmShootButton';
 import { ProfileHero } from '@/components/ProfileHero';
 import { ShareButton } from '@/components/ShareButton';
 import { ShowPhoneButton } from '@/components/ShowPhoneButton';
+import { ReportButton } from '@/components/ReportButton';
 
 // dynamic: страница показывает состояние лайков/подписки текущего пользователя
 export const dynamic = 'force-dynamic';
@@ -263,6 +264,13 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
             )}
           </div>
         </div>
+
+        {/* Пожаловаться на профиль — доступно и гостю (жалоба правообладателя) */}
+        {!isSelf && (
+          <div className="mt-3">
+            <ReportButton targetType="USER" targetId={profile.userId} authed={Boolean(session)} />
+          </div>
+        )}
 
         {/* Владельцу-FREE — почему часть его страницы скрыта + апгрейд */}
         {isSelf && !isPaid && (
