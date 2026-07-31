@@ -2,6 +2,14 @@ name: CI/CD
 on:
   push:
     branches: [main]
+    # Правки только доков/заметок не должны гонять полный build+deploy
+    # (экономия минут Actions — важно на private-плане). Смешанные пуши
+    # (код + доки) деплоятся как обычно.
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - '.gitignore'
+      - 'LICENSE'
   workflow_dispatch: {}
 
 concurrency:
