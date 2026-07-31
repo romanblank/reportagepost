@@ -18,6 +18,7 @@ import { PLAN_FEATURES } from '@/lib/pricing';
 import { CabinetProBlock } from '@/components/CabinetProBlock';
 import { photographerStats } from '@/lib/analytics';
 import { CabinetStats } from '@/components/CabinetStats';
+import { ResubmitButton } from '@/components/ResubmitButton';
 
 export const metadata: Metadata = { title: ru.cabinet.title };
 export const dynamic = 'force-dynamic'; // всегда свежие заявки/статус
@@ -124,6 +125,10 @@ export default async function CabinetPage() {
             )}
             {profile.status === 'NEEDS_REVISION' && profile.revisionNote && (
               <span className="text-sm text-accent">{profile.revisionNote}</span>
+            )}
+            {/* Выход из тупика: исправил замечания → показать снова (аудит P0) */}
+            {(profile.status === 'REJECTED' || profile.status === 'NEEDS_REVISION') && (
+              <div className="w-full"><ResubmitButton /></div>
             )}
           </section>
 

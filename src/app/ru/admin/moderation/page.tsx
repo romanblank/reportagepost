@@ -6,8 +6,11 @@ import { cityNameRu } from '@/lib/geo-data';
 import { categoryNameRu } from '@/lib/category-data';
 import { thumbVariantUrl } from '@/lib/photos';
 import { ru } from '@/i18n/ru';
+import { photoModerationQueue } from '@/lib/moderation';
+import { webVariantUrl } from '@/lib/photos';
 import { ModerationCard } from './ModerationCard';
 import { StoryModerationCard } from './StoryModerationCard';
+import { PhotoModerationCard } from './PhotoModerationCard';
 
 export const metadata: Metadata = { title: ru.admin.moderationTitle };
 export const dynamic = 'force-dynamic';
@@ -15,7 +18,7 @@ export const dynamic = 'force-dynamic';
 export default async function ModerationPage() {
   if (!(await requireAdmin())) redirect('/ru/login');
 
-  const [profiles, stories] = await Promise.all([
+  const [profiles, stories, pendingPhotos] = await Promise.all([
     db.photographerProfile.findMany({
       where: { status: 'PENDING' },
       // Правки Active/Active+ — в первую очередь (перк подписки), затем по дате.
@@ -37,6 +40,8 @@ export default async function ModerationPage() {
         photos: { where: { status: 'APPROVED' }, orderBy: { sortOrder: 'asc' } },
       },
     }),
+    // Кадры одобренных авторов, добавленные после онбординга (аудит P0)
+    photoModerationQueue(),
   ]);
 
   return (
@@ -61,6 +66,26 @@ export default async function ModerationPage() {
             />
           ))}
         </ul>
+      )}
+
+      {pendingPhotos.length > 0 && (
+        <section className="mt-10">
+          <h2 className="t-h3">{ru.admin.photosQueue}</h2>
+          <p className="mt-1 text-sm muted">{ru.admin.photosQueueHint}</p>
+          <ul className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {pendingPhotos.map((ph) => (
+              <PhotoModerationCard
+                key={ph.photoId}
+                photoId={ph.photoId}
+                authorName={ph.authorName}
+                username={ph.username}
+                webUrl={thumbVariantUrl(ph.storageKey)}
+                fullUrl={webVariantUrl(ph.storageKey)}
+                meta={`${categoryNameRu(ph.categorySlug)} · ${ph.uploadedAt.toISOString().slice(0, 10)}`}
+              />
+            ))}
+          </ul>
+        </section>
       )}
 
       {stories.length > 0 && (

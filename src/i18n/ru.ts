@@ -612,6 +612,8 @@ export const ru = {
     colMeta: 'Детали',
   },
   admin: {
+    photosQueue: 'Новые кадры на проверке',
+    photosQueueHint: 'Работы, добавленные авторами после одобрения страницы. Пока кадр не принят, он не виден в портфолио.',
     moderationTitle: 'Модерация заявок',
     exportCsv: 'Выгрузка данных (CSV)',
     storiesQueue: 'Серии на модерации',
@@ -639,6 +641,13 @@ export const ru = {
     reviewed: 'Отзыв оставлен',
   },
   cabinet: {
+    resubmit: 'Отправить на повторную проверку',
+    resubmitHint: 'Исправили замечания? Мы посмотрим страницу заново — обычно в течение дня.',
+    resubmitErrors: {
+      no_photos: 'Добавьте хотя бы один кадр — без работ страницу не принять.',
+      not_resubmittable: 'Страница уже на проверке или принята.',
+      rate_limited: 'Слишком часто. Попробуйте позже.',
+    } as Record<string, string>,
     title: 'Кабинет',
     statusLabel: 'Статус в сообществе',
     statusPending: 'На рассмотрении',
