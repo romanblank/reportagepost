@@ -30,7 +30,13 @@ export async function changeEmail(userId: string, newEmail: string, password: st
   if (email === user.email) return;
   const taken = await db.user.findUnique({ where: { email } });
   if (taken) throw new DomainError('email_taken', 409);
-  await db.user.update({ where: { id: userId }, data: { email } });
+  // Смена email — чувствительна: инвалидируем все сессии (в т.ч. угнанную), как
+  // при смене пароля (аудит ядра 2026-07-31). Полная ре-верификация владения
+  // новым адресом (письмо-подтверждение) — лонч-пункт, нужна email-инфра.
+  await db.user.update({
+    where: { id: userId },
+    data: { email, tokenVersion: { increment: 1 }, passwordChangedAt: new Date() },
+  });
 }
 
 export async function changeName(userId: string, firstName: string, lastName: string): Promise<void> {
