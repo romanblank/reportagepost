@@ -163,7 +163,7 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
         {uploadProgress && (
           <div className="mt-2">
             <p className="text-sm">{ru.onboarding.uploadingN(uploadProgress.done, uploadProgress.total)}</p>
-            <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
+            <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-surface-2">
               <div className="h-full bg-accent transition-all" style={{ width: `${pct}%` }} />
             </div>
           </div>
@@ -177,7 +177,7 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
               <img key={i} src={src} alt="" className="aspect-square w-full rounded object-cover" />
             ))}
             {uploadProgress && Array.from({ length: uploadProgress.total - uploadProgress.done }).map((_, i) => (
-              <div key={`sk-${i}`} className="aspect-square w-full animate-pulse rounded bg-black/10 dark:bg-white/10" />
+              <div key={`sk-${i}`} className="aspect-square w-full animate-pulse rounded bg-surface-2" />
             ))}
           </div>
         )}
