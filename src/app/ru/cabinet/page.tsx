@@ -19,6 +19,7 @@ import { CabinetProBlock } from '@/components/CabinetProBlock';
 import { photographerStats } from '@/lib/analytics';
 import { CabinetStats } from '@/components/CabinetStats';
 import { ResubmitButton } from '@/components/ResubmitButton';
+import { formatDateRu } from '@/lib/date-format';
 
 export const metadata: Metadata = { title: ru.cabinet.title };
 export const dynamic = 'force-dynamic'; // всегда свежие заявки/статус
@@ -242,7 +243,7 @@ export default async function CabinetPage() {
                   </div>
                   <p className="mt-1">{i.description}</p>
                   <p className="mt-2 muted">
-                    {i.eventDate && `${ru.cabinet.eventDate}: ${i.eventDate.toISOString().slice(0, 10)} · `}
+                    {i.eventDate && `${ru.cabinet.eventDate}: ${formatDateRu(i.eventDate)} · `}
                     {i.budgetMinor != null && `${ru.cabinet.budget}: ${formatRubMinor(i.budgetMinor)} · `}
                     {i.contactPhone ?? i.contactEmail ?? ''}
                   </p>

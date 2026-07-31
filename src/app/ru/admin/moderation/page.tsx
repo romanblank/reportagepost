@@ -11,6 +11,7 @@ import { webVariantUrl } from '@/lib/photos';
 import { ModerationCard } from './ModerationCard';
 import { StoryModerationCard } from './StoryModerationCard';
 import { PhotoModerationCard } from './PhotoModerationCard';
+import { formatDateRu } from '@/lib/date-format';
 
 export const metadata: Metadata = { title: ru.admin.moderationTitle };
 export const dynamic = 'force-dynamic';
@@ -81,7 +82,7 @@ export default async function ModerationPage() {
                 username={ph.username}
                 webUrl={thumbVariantUrl(ph.storageKey)}
                 fullUrl={webVariantUrl(ph.storageKey)}
-                meta={`${categoryNameRu(ph.categorySlug)} · ${ph.uploadedAt.toISOString().slice(0, 10)}`}
+                meta={`${categoryNameRu(ph.categorySlug)} · ${formatDateRu(ph.uploadedAt)}`}
               />
             ))}
           </ul>

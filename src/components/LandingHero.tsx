@@ -58,8 +58,8 @@ export function LandingHero({ photographers, photos, backdropSrc, featured }: {
 
           {(photographers > 0 || photos > 0) && (
             <p className="mt-8 flex flex-wrap gap-x-6 gap-y-1 t-caption tabular-nums text-muted">
-              <span><b className="text-ink">{photographers}</b> {ru.landing.statAuthors}</span>
-              <span><b className="text-ink">{photos}</b> {ru.landing.statWorks}</span>
+              <span><b className="text-ink">{photographers}</b> {ru.landing.statAuthors(photographers)}</span>
+              <span><b className="text-ink">{photos}</b> {ru.landing.statWorks(photos)}</span>
               <span className="text-muted">
                 {ru.landing.heroPhotographerNudge}{' '}
                 <Link href="/ru/register" className="text-accent underline underline-offset-2">{ru.landing.heroPhotographerCta}</Link>

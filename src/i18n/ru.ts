@@ -1,5 +1,19 @@
 // Словарь RU. Конвенция (CLAUDE.md): все строки UI — только отсюда.
 // Глобальный задел: en.ts ляжет рядом с теми же ключами.
+
+/**
+ * Русская плюрализация (аудит 2026-07-31, P0): счётчики склеивались как
+ * `${n} авторов` и давали «1 авторов», «3 работ», «1 новых» — на главной,
+ * в лентах и в title страниц. Формы: [1, 2-4, 5-0] — «работа/работы/работ».
+ */
+export function plural(n: number, forms: [string, string, string]): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return forms[0];
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return forms[1];
+  return forms[2];
+}
+
 export const ru = {
   meta: {
     title: 'Репортаж Пост',
@@ -10,6 +24,12 @@ export const ru = {
     title: 'Города',
     lead: 'Выберите город, чтобы посмотреть репортажных фотографов.',
   },
+  errorPage: {
+    title: 'Что-то пошло не так',
+    text: 'Мы уже знаем о сбое. Попробуйте обновить — обычно этого достаточно.',
+    retry: 'Попробовать снова',
+    code: 'Код ошибки',
+  },
   notFound: {
     title: 'Страница не найдена',
     text: 'Возможно, ссылка устарела или страница была перемещена.',
@@ -17,10 +37,10 @@ export const ru = {
   },
   online: {
     now: 'сейчас онлайн',
-    minsAgo: (n: number) => `был ${n} мин назад`,
-    hoursAgo: (n: number) => `был ${n} ч назад`,
-    daysAgo: (n: number) => `был ${n} дн назад`,
-    longAgo: 'давно не заходил',
+    minsAgo: (n: number) => `заходили ${n} мин назад`,
+    hoursAgo: (n: number) => `заходили ${n} ч назад`,
+    daysAgo: (n: number) => `заходили ${n} дн назад`,
+    longAgo: 'давно не заходили',
   },
   search: {
     title: 'Поиск фотографов',
@@ -108,8 +128,8 @@ export const ru = {
     heroSearchCta: 'Найти',
     heroPhotographerNudge: 'Вы фотограф?',
     heroPhotographerCta: 'Создать профиль',
-    statAuthors: 'авторов',
-    statWorks: 'работ',
+    statAuthors: (n: number) => plural(n, ['автор', 'автора', 'авторов']),
+    statWorks: (n: number) => plural(n, ['работа', 'работы', 'работ']),
     // Featured-карточка в герое (алгоритмическая — по отклику, не выбор редакции)
     featuredBadge: 'Кадр недели',
     featuredShotBy: 'Снял',
@@ -178,7 +198,7 @@ export const ru = {
     allCategories: 'Все категории',
     perHourFrom: (price: string) => `от ${price}/час`,
     packageLabel: (hours: number, price: string) => `${hours} ч — ${price}`,
-    availableOn: 'Свободен на дату',
+    availableOn: 'Свободны в эту дату',
     maxPrice: 'Бюджет до, ₽',
     applyDate: 'Показать',
     filtersTitle: 'Фильтры',
@@ -213,7 +233,7 @@ export const ru = {
     storiesTitle: 'Серии',
     editorsChoice: 'Находка редакции',
     moreInCity: (city: string) => `Ещё фотографы — ${city}`,
-    verified: 'Проверен',
+    verified: 'Проверено',
     openPhoto: 'Открыть фото',
     verifiedHint: 'Личность и работы подтвердил Репортаж Пост',
     adminVerify: 'Отметить проверенным',
@@ -481,9 +501,9 @@ export const ru = {
   },
   dashboard: {
     title: 'Сообщество',
-    statPhotographers: 'Фотографов',
-    statPhotos: 'Фотографий',
-    statCities: 'Городов',
+    statPhotographers: (n: number) => plural(n, ['Фотограф', 'Фотографа', 'Фотографов']),
+    statPhotos: (n: number) => plural(n, ['Фотография', 'Фотографии', 'Фотографий']),
+    statCities: (n: number) => plural(n, ['Город', 'Города', 'Городов']),
     statStories: 'Серий',
     recentTitle: 'Новые в сообществе',
     valuedTitle: 'Заказчики рекомендуют',
@@ -524,7 +544,7 @@ export const ru = {
     empty: 'Пока нет диалогов.',
     emptySubtitle: 'Напишите фотографу с его страницы — переписка появится здесь.',
     emptyAction: 'Найти фотографа',
-    unread: (n: number) => `${n} новых`,
+    unread: (n: number) => `${n} ${plural(n, ['новое', 'новых', 'новых'])}`,
     placeholder: 'Напишите сообщение…',
     send: 'Отправить',
     writeTo: (name: string) => `Диалог с ${name}`,
@@ -582,7 +602,7 @@ export const ru = {
     statusApproved: 'Опубликован',
     statusDraft: 'Черновик',
     statusPending: 'На рассмотрении',
-    statusRejected: 'Отклонён',
+    statusRejected: 'Страница не принята',
     toPublish: 'Опубликовать',
     unpublish: 'Снять с публикации',
     grantPro: 'Выдать founding-PRO',
@@ -651,7 +671,7 @@ export const ru = {
     title: 'Кабинет',
     statusLabel: 'Статус в сообществе',
     statusPending: 'На рассмотрении',
-    statusApproved: 'Принят',
+    statusApproved: 'Страница принята',
     statusRejected: 'Пока не принят',
     statusDraft: 'Черновик',
     statusRevision: 'На доработке',
@@ -749,9 +769,9 @@ export const ru = {
     lead: 'Отметьте дни, когда вы заняты. В каталоге заказчики смогут отфильтровать «свободен на дату» — занятые дни вас скроют.',
     locked: 'Календарь станет доступен после одобрения профиля.',
     busy: 'Занят',
-    free: 'Свободен',
+    free: 'Свободна',
     legendBusy: 'Занят',
-    legendFree: 'Свободен',
+    legendFree: 'Свободна',
     prevMonth: 'Предыдущий месяц',
     nextMonth: 'Следующий месяц',
     saveError: 'Не удалось сохранить. Попробуйте ещё раз.',

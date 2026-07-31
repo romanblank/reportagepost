@@ -10,6 +10,7 @@ import { formatRubMinor } from '@/lib/money';
 import { ru } from '@/i18n/ru';
 import { Avatar } from '@/components/ui/Avatar';
 import { VerifiedBadge } from '@/components/ui/Badge';
+import { formatDateRu } from '@/lib/date-format';
 
 export const metadata: Metadata = { title: ru.match.metaTitle };
 export const dynamic = 'force-dynamic'; // бриф в searchParams + запрос к БД
@@ -112,7 +113,7 @@ export default async function MatchPage(props: {
             <span className="rounded-full bg-surface-2 px-3 py-1 font-medium">{cityNameRu(brief.citySlug)}</span>
             {brief.categorySlug && <span className="rounded-full bg-surface-2 px-3 py-1 font-medium">{categoryNameRu(brief.categorySlug)}</span>}
             {brief.maxBudgetMinor && <span className="rounded-full bg-surface-2 px-3 py-1 font-medium tnum">{ru.match.budgetChip(formatRubMinor(brief.maxBudgetMinor))}</span>}
-            {brief.date && <span className="rounded-full bg-surface-2 px-3 py-1 font-medium tnum">{brief.date.toISOString().slice(0, 10)}</span>}
+            {brief.date && <span className="rounded-full bg-surface-2 px-3 py-1 font-medium tnum">{formatDateRu(brief.date)}</span>}
           </div>
           <div className="mt-6">
           {matches.length === 0 ? (

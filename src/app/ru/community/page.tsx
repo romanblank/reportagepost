@@ -20,9 +20,9 @@ export default async function CommunityPage() {
   ]);
 
   const tiles = [
-    { label: ru.dashboard.statPhotographers, value: stats.photographers },
-    { label: ru.dashboard.statPhotos, value: stats.photos },
-    { label: ru.dashboard.statCities, value: stats.cities },
+    { label: ru.dashboard.statPhotographers(stats.photographers), value: stats.photographers },
+    { label: ru.dashboard.statPhotos(stats.photos), value: stats.photos },
+    { label: ru.dashboard.statCities(stats.cities), value: stats.cities },
     { label: ru.dashboard.statStories, value: stats.stories },
   ].filter((t) => t.value > 0);
 
