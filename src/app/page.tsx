@@ -1,12 +1,9 @@
 import Link from "next/link";
 import { ru } from "@/i18n/ru";
-import { bestOfWeek, freshPhotos } from "@/lib/feeds";
-import { categoryPreviews, freshStories } from "@/lib/discovery";
-import { communityStats, recentPhotographers } from "@/lib/widgets";
 import { cityNameRu } from "@/lib/geo-data";
 import { webVariantUrl } from "@/lib/photos";
+import { cachedHomeData } from "@/lib/home-data";
 import { Avatar } from "@/components/ui/Avatar";
-import { db } from "@/lib/db";
 import { LandingHero } from "@/components/LandingHero";
 import { FeedMasonry, StoryCards } from "@/components/FeedGallery";
 
@@ -19,16 +16,11 @@ export const dynamic = "force-dynamic";
 // (по отклику/свежести), без «выбора редакции» — меньше ручной модерации.
 // Пустые ленты честно скрываются.
 export default async function Home() {
-  const [week, fresh, stories, cats, stats, newAuthors, photographers, photos] = await Promise.all([
-    bestOfWeek(12),
-    freshPhotos(16),
-    freshStories(6),
-    categoryPreviews(),
-    communityStats(),
-    recentPhotographers(4),
-    db.photographerProfile.count({ where: { status: "APPROVED" } }),
-    db.photo.count({ where: { status: "APPROVED" } }),
-  ]);
+  // Витрина кешируется на 2 минуты (аудит P1): раньше каждый заход заново
+  // агрегировал лайки за неделю и все ленты. Персонализации на главной нет,
+  // поэтому кеш общий и безопасный.
+  const { week, fresh, stories, cats, stats, newAuthors, photographers, photos } =
+    await cachedHomeData();
 
   const statTiles = [
     { label: ru.dashboard.statPhotographers(stats.photographers), value: stats.photographers },
