@@ -176,25 +176,29 @@ export async function recommendedFeed(userId: string, limit = 60): Promise<{ pho
 
   if (catIds.length > 0) {
     const since = new Date(Date.now() - 30 * 86_400_000);
-    // Сначала id фото нужных категорий (аудит P1-3: не агрегируем весь журнал
-    // платформы — только события по интересующим фото)
-    const catPhotos = await db.photo.findMany({
-      where: { status: 'APPROVED', categoryId: { in: catIds }, profile: { status: 'APPROVED' } },
-      select: { id: true },
-      take: 5000,
-    });
-    if (catPhotos.length === 0) return fallbackFeed(limit);
-    // По материализованным лайкам (см. коммент к bestOfWindow), не по журналу.
+    // Идём ОТ СВЕЖИХ ЛАЙКОВ, а не от всех фото категории (аудит 2026-07-31, P1).
+    // Раньше сначала вытягивались до 5000 id фото, потом по ним делался
+    // groupBy с IN(5000) — тяжёлый запрос на КАЖДОЕ открытие ленты, растущий
+    // вместе с каталогом, ради отбора всего 60 кадров. Теперь фильтр по
+    // категории и статусу выражен через связь, а сортировка и отсечение
+    // выполняются в БД (по индексу Like[createdAt]) — из базы приходит ровно
+    // столько строк, сколько нужно.
     const grouped = await db.like.groupBy({
       by: ['photoId'],
-      where: { photoId: { in: catPhotos.map((p) => p.id) }, createdAt: { gte: since } },
+      where: {
+        createdAt: { gte: since },
+        photo: { status: 'APPROVED', categoryId: { in: catIds }, profile: { status: 'APPROVED' } },
+      },
       _sum: { weightMilli: true },
+      orderBy: { _sum: { weightMilli: 'desc' } },
+      take: limit,
     });
     const scores = new Map<string, number>();
     for (const g of grouped) {
       if (g.photoId) scores.set(g.photoId, g._sum.weightMilli ?? 0);
     }
-    const topIds = [...scores.entries()].filter(([, s]) => s > 0).sort((a, b) => b[1] - a[1]).slice(0, limit).map(([id]) => id);
+    const topIds = [...scores.entries()].filter(([, s]) => s > 0).map(([id]) => id);
+    if (topIds.length === 0) return fallbackFeed(limit);
     const candidates = await db.photo.findMany({
       where: { status: 'APPROVED', id: { in: topIds }, profile: { status: 'APPROVED' } },
       include: { profile: { include: { user: { select: { firstName: true, lastName: true } } } } },

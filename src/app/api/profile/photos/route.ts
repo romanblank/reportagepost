@@ -12,10 +12,19 @@ import { premoderate } from '@/lib/premoderation';
 import { tierOf } from '@/lib/subscription';
 import { portfolioLimit } from '@/lib/pricing';
 import { rateLimit } from '@/lib/rate-limit';
+import { storage } from '@/lib/storage';
 
 export const maxDuration = 60; // обработка sharp на больших файлах
 
 const MAX_FILE_BYTES = 40 * 1024 * 1024;
+
+/** Лимит выбран параллельной загрузкой — отдельный тип, чтобы отличить от
+ *  ошибок валидации и корректно откатить уже записанные файлы. */
+class PhotoLimitError extends Error {
+  constructor(public limit: number) {
+    super('photo_limit');
+  }
+}
 
 // Онбординг, шаг 2: загрузка фото портфолио (multipart: file, categorySlug)
 export async function POST(req: Request) {
@@ -40,6 +49,8 @@ export async function POST(req: Request) {
   if (!profile) return NextResponse.json({ error: 'no_profile' }, { status: 409 });
 
   // Лимит портфолио зависит от тарифа (FREE 20 / PRO 300) — граница FREE/PRO.
+  // Ранняя проверка отсекает заведомо лишнее ДО дорогой обработки; финальная,
+  // защищённая от гонки, — в транзакции при вставке (см. ниже).
   const limit = portfolioLimit(await tierOf(session.userId));
   const photoCount = await db.photo.count({ where: { profileId: profile.id } });
   if (photoCount >= limit) {
@@ -80,7 +91,15 @@ export async function POST(req: Request) {
 
     // Стадия 2: запись вариантов + строка Photo
     const stored = await storePhotoVariants(buffer);
-    const photo = await db.photo.create({
+
+    // Повторная проверка лимита В ТРАНЗАКЦИИ (аудит 2026-07-31, P1 TOCTOU):
+    // между ранней проверкой и вставкой проходят секунды тяжёлой обработки, а
+    // браузер шлёт файлы пачками параллельно — все запросы видели «лимит не
+    // достигнут» и вставлялись, пробивая тариф. Здесь окно гонки — миллисекунды.
+    const photo = await db.$transaction(async (tx) => {
+      const current = await tx.photo.count({ where: { profileId: profile.id } });
+      if (current >= limit) throw new PhotoLimitError(limit);
+      return tx.photo.create({
       data: {
         profileId: profile.id,
         categoryId: profileCategory.categoryId,
@@ -94,6 +113,19 @@ export async function POST(req: Request) {
         aiVerdict: verdict ? (verdict as unknown as Prisma.InputJsonObject) : undefined,
         // status: PENDING по умолчанию — публикация только после модерации
       },
+      });
+    }).catch(async (e) => {
+      // Лимит выбрали параллельные загрузки — убираем уже записанные варианты,
+      // иначе в хранилище останутся осиротевшие файлы, за которые платим.
+      if (e instanceof PhotoLimitError) {
+        const base = stored.storageKey.replace(/\/original\.jpg$/, '');
+        await Promise.all([
+          storage.delete(`${base}/original.jpg`),
+          storage.delete(`${base}/web.jpg`),
+          storage.delete(`${base}/thumb.jpg`),
+        ]).catch(() => {});
+      }
+      throw e;
     });
 
     return NextResponse.json(
@@ -101,6 +133,9 @@ export async function POST(req: Request) {
       { status: 201 },
     );
   } catch (e) {
+    if (e instanceof PhotoLimitError) {
+      return NextResponse.json({ error: 'photo_limit', limit: e.limit }, { status: 409 });
+    }
     if (e instanceof PhotoValidationError) {
       return NextResponse.json({ error: e.code, message: e.message }, { status: 422 });
     }
