@@ -31,6 +31,9 @@ const cormorant = Cormorant({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin", "cyrillic"],
+  // Моно — только для чисел/кода, не above-the-fold. Без preload, чтобы не
+  // тянуть неиспользуемый на первом экране шрифт (warn «preloaded but not used»).
+  preload: false,
 });
 
 export const metadata: Metadata = {
