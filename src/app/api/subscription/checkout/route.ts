@@ -41,6 +41,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ paymentUrl });
   } catch (e) {
     console.error('[checkout] createPayment failed:', e);
+    // Init не удался — не оставляем висящий Payment(NEW).
+    await db.payment.update({ where: { orderId }, data: { status: 'REJECTED' } }).catch(() => {});
     return NextResponse.json({ error: 'payment_init_failed' }, { status: 502 });
   }
 }

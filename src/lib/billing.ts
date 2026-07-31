@@ -40,14 +40,23 @@ export async function applyPaymentStatus(
     const payment = await tx.payment.findUnique({ where: { orderId } });
     if (!payment) return { found: false, credited: false };
 
-    const alreadyConfirmed = payment.status === 'CONFIRMED';
-    await tx.payment.update({
-      where: { id: payment.id },
-      data: { status, tinkoffPaymentId: tinkoffPaymentId ?? payment.tinkoffPaymentId },
-    });
+    // Не-финальные статусы — просто фиксируем.
+    if (status !== 'CONFIRMED') {
+      await tx.payment.update({
+        where: { id: payment.id },
+        data: { status, tinkoffPaymentId: tinkoffPaymentId ?? payment.tinkoffPaymentId },
+      });
+      return { found: true, credited: false };
+    }
 
-    // Зачисляем только на первом CONFIRMED (идемпотентность).
-    if (status !== 'CONFIRMED' || alreadyConfirmed) return { found: true, credited: false };
+    // АТОМАРНЫЙ переход в CONFIRMED: updateMany с guard `status != CONFIRMED`.
+    // Postgres берёт row-lock на UPDATE → при гонке двух вебхуков второй увидит
+    // count=0 и не зачислит повторно (защита от двойного продления периода).
+    const claimed = await tx.payment.updateMany({
+      where: { id: payment.id, status: { not: 'CONFIRMED' } },
+      data: { status: 'CONFIRMED', tinkoffPaymentId: tinkoffPaymentId ?? payment.tinkoffPaymentId },
+    });
+    if (claimed.count === 0) return { found: true, credited: false }; // уже зачислено
 
     const tier = payment.tier as PaidTier;
     const sub = await tx.subscription.findUnique({
