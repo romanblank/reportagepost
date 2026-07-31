@@ -52,10 +52,49 @@ sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t && sudo systemctl reload nginx
 
 # container-watchdog (урок Verifi: restart-policy не всегда спасает)
+# 🔴 АУДИТ 2026-07-31 (P1): watchdog был мёртв с рождения — compose требует
+# ${IMAGE:?...}, которого в окружении cron нет (он живёт в .deploy.env), поэтому
+# `up -d` падал с «required variable IMAGE is missing» в /dev/null. Теперь IMAGE
+# читается из .deploy.env, а сам факт подъёма/провала уходит в Telegram.
 sudo tee /usr/local/bin/rp-watchdog.sh >/dev/null <<'WD'
 #!/usr/bin/env bash
+set -uo pipefail
+cd /opt/reportagepost || exit 0
+
+notify() { # $1 — текст; шлём, если заведены токен и чат
+  local tok chat
+  tok=$(grep -E '^TELEGRAM_BOT_TOKEN=' .env.prod 2>/dev/null | cut -d= -f2-)
+  chat=$(grep -E '^TELEGRAM_ALERT_CHAT_ID=' .env.prod 2>/dev/null | cut -d= -f2-)
+  [ -n "$tok" ] && [ -n "$chat" ] || return 0
+  curl -s -m 15 "https://api.telegram.org/bot${tok}/sendMessage" \
+    --data-urlencode "chat_id=${chat}" --data-urlencode "text=$1" >/dev/null || true
+}
+
+# 1. Контейнер жив?
 if ! docker ps --format '{{.Names}}' | grep -q '^reportagepost$'; then
-  cd /opt/reportagepost && docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
+  IMAGE=$(grep -E '^IMAGE=' .deploy.env 2>/dev/null | cut -d= -f2-)
+  if [ -z "$IMAGE" ]; then
+    notify "🔴 Reportage Post: контейнер лежит, а .deploy.env без IMAGE — watchdog поднять не может"
+    exit 1
+  fi
+  if IMAGE="$IMAGE" docker compose --env-file .env.prod -f docker-compose.prod.yml up -d >/tmp/rp-watchdog.log 2>&1; then
+    notify "⚠️ Reportage Post: контейнер был мёртв — watchdog поднял его заново ($IMAGE)"
+  else
+    notify "🔴 Reportage Post: контейнер мёртв, watchdog поднять НЕ СМОГ. $(tail -3 /tmp/rp-watchdog.log)"
+  fi
+fi
+
+# 2. Диск (инциденты 2026-07-13 и 2026-07-24 — оба по переполнению).
+# Раньше о росте узнавали только по факту падения прода: внешняя проба видит /health,
+# а не 85% занятого диска. Порог 80% даёт запас на реакцию.
+USED=$(df --output=pcent / | tail -1 | tr -dc '0-9')
+if [ -n "$USED" ] && [ "$USED" -ge 80 ]; then
+  STAMP=/var/tmp/rp-disk-alerted
+  # не спамим: не чаще раза в 6 часов
+  if [ ! -f "$STAMP" ] || [ $(( $(date +%s) - $(stat -c %Y "$STAMP") )) -gt 21600 ]; then
+    notify "⚠️ Reportage Post: диск VM занят на ${USED}% (порог 80%). docker system df / логи — проверить до падения."
+    touch "$STAMP"
+  fi
 fi
 WD
 sudo chmod +x /usr/local/bin/rp-watchdog.sh

@@ -2,9 +2,14 @@
 # pg_dump гоняется в postgres-контейнере на VM (не нужен postgres-client на хосте),
 # заливается в бакет через aws-cli с уже имеющимися на VM S3-ключами (.env.prod).
 #
-# ⚠️ ПЕРЕД ДОВЕРИЕМ: оператор запускает вручную (workflow_dispatch) и смотрит логи;
-# затем убедиться в restore (restore-drill — отдельный workflow). Бэкап без
-# проверенного restore = не бэкап.
+# 🔴 УРОК АУДИТА 2026-07-31 (P0 «зелёный пустой бэкап»): внешний `set -o pipefail`
+# НЕ действует внутри `docker run bash -c "...|gzip"` — код возврата брался от gzip,
+# поэтому упавший pg_dump (протухший пароль, недоступный пулер, mismatch версий)
+# давал пустой .gz, «успешный» лог и уехавший в S3 мусор. Теперь: pipefail внутри
+# контейнера + проверка целостности архива, размера и маркера конца дампа + алерт
+# в Telegram при любом провале. Клиент postgres:17 (был :16 — старше сервера
+# pg_dump отказывает «server version mismatch»).
+# Восстановление проверяется отдельным workflow restore-drill.yml (еженедельно).
 name: Backup DB
 
 on:
@@ -21,6 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: pg_dump → Object Storage (на VM)
+        id: dump
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.PROD_HOST }}
@@ -38,8 +44,23 @@ jobs:
             # CA для verify-full нет в контейнере postgres:16 → для дампа по внутренней
             # сети VM→Managed PG понижаем до sslmode=require (шифрование без проверки CA).
             DUMP_URL=$(echo "$DATABASE_URL" | sed -E 's/sslmode=verify-full/sslmode=require/; s/&sslrootcert=[^&]*//; s/\?sslrootcert=[^&]*&/?/')
-            docker run --rm -v /opt/reportagepost:/work postgres:16 \
-              bash -c "pg_dump \"\$0\" --no-owner --no-privileges | gzip > /work/${FILE}" "$DUMP_URL"
+            # pipefail ВНУТРИ контейнера: иначе код возврата = gzip (всегда 0) и
+            # упавший pg_dump уезжает в S3 пустышкой под видом успеха (аудит P0).
+            docker run --rm -v /opt/reportagepost:/work postgres:17 \
+              bash -c "set -o pipefail; pg_dump \"\$0\" --no-owner --no-privileges | gzip > /work/${FILE}" "$DUMP_URL"
+
+            # Проверки годности дампа ДО заливки — «зелёный пустой бэкап» больше не пройдёт
+            SIZE=$(stat -c %s "/opt/reportagepost/${FILE}")
+            echo "Размер архива: ${SIZE} байт"
+            gzip -t "/opt/reportagepost/${FILE}" || { echo "❌ архив повреждён"; exit 1; }
+            [ "$SIZE" -ge 51200 ] || { echo "❌ дамп подозрительно мал (<50KB) — вероятно, пустой"; exit 1; }
+            zcat "/opt/reportagepost/${FILE}" | tail -5 | grep -q "PostgreSQL database dump complete" \
+              || { echo "❌ нет маркера конца дампа — дамп оборван"; exit 1; }
+            # Санити по содержимому: ключевые таблицы должны присутствовать
+            zcat "/opt/reportagepost/${FILE}" | grep -qE 'CREATE TABLE public\."?User"?' \
+              || { echo "❌ в дампе нет таблицы User — дамп неполный"; exit 1; }
+            echo "✅ дамп прошёл проверки (целостность, размер, полнота)"
+
             echo "Заливка в s3://${S3_BUCKET}/db-backups/${FILE}"
             docker run --rm -v /opt/reportagepost:/work \
               -e AWS_ACCESS_KEY_ID="$S3_ACCESS_KEY_ID" \
@@ -56,3 +77,20 @@ jobs:
                 [ -n "$old" ] && docker run --rm -e AWS_ACCESS_KEY_ID="$S3_ACCESS_KEY_ID" -e AWS_SECRET_ACCESS_KEY="$S3_SECRET_ACCESS_KEY" amazon/aws-cli --endpoint-url "$S3_ENDPOINT" s3 rm "s3://${S3_BUCKET}/db-backups/${old}" || true
               done
             echo "Бэкап готов: ${FILE}"
+
+      # Провал бэкапа обязан будить оператора: раньше падение было видно только
+      # красным значком в Actions, на который никто не смотрит ночью (аудит P1).
+      - name: Telegram-алерт при провале бэкапа
+        if: failure()
+        env:
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHAT: ${{ secrets.TELEGRAM_ALERT_CHAT_ID }}
+        run: |
+          set -uo pipefail
+          if [ -n "${TG_TOKEN:-}" ] && [ -n "${TG_CHAT:-}" ]; then
+            curl -s -m 15 "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+              --data-urlencode "chat_id=${TG_CHAT}" \
+              --data-urlencode "text=🔴 Reportage Post: НОЧНОЙ БЭКАП БД ПРОВАЛИЛСЯ. Лог: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" >/dev/null || true
+          else
+            echo "TG-секреты не заданы — алерт не отправлен"
+          fi

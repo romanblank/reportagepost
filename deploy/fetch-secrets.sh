@@ -35,6 +35,11 @@ if "TELEGRAM_BOT_TOKEN" in entries:
     lines.append(f"TELEGRAM_BOT_TOKEN={entries['TELEGRAM_BOT_TOKEN']}")
 if "TELEGRAM_WEBHOOK_SECRET" in entries:
     lines.append(f"TELEGRAM_WEBHOOK_SECRET={entries['TELEGRAM_WEBHOOK_SECRET']}")
+# Чат оператора для алертов с самой VM (watchdog, монитор диска) — аудит 2026-07-31:
+# алерты жили только в GitHub Actions, а VM-события (контейнер упал, диск полон)
+# не долетали никуда.
+if "TELEGRAM_ALERT_CHAT_ID" in entries:
+    lines.append(f"TELEGRAM_ALERT_CHAT_ID={entries['TELEGRAM_ALERT_CHAT_ID']}")
 # SMTP (транзакционная почта, Postbox). Пробрасываются, когда оператор заведёт.
 for k in ("SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASSWORD", "SMTP_FROM"):
     if k in entries:
