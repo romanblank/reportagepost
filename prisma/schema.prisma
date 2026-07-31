@@ -169,6 +169,26 @@ model Category {
   photos   Photo[]
   stories  Story[]
   inquiries Inquiry[]
+  profileScores ProfileCategoryScore[]
+}
+
+// Жанровый рейтинг (рейтинг v2, «ранжирование категория×город»): скор профиля
+// ВНУТРИ жанра — engagement по лайкам фото ЭТОЙ категории (с тем же затуханием)
+// + общая база (полнота+отзывы). Специалист жанра ранжируется в нём выше
+// генералиста с равным глобальным ratingScore. Пересчёт — вместе с ratingScore
+// (recomputeOne/recomputeRatings), строки категорий, покинувших профиль, удаляются.
+model ProfileCategoryScore {
+  profileId  String
+  categoryId String
+  scoreMilli Int      @default(0)
+  updatedAt  DateTime @updatedAt
+
+  profile  PhotographerProfile @relation(fields: [profileId], references: [id])
+  category Category            @relation(fields: [categoryId], references: [id])
+
+  @@id([profileId, categoryId])
+  // Выдача категории: сортировка по скору внутри жанра
+  @@index([categoryId, scoreMilli(sort: Desc)])
 }
 
 // ─── Профиль фотографа ──────────────────────────────────────────────────────
@@ -228,6 +248,7 @@ model PhotographerProfile {
   favoritedBy FavoritePhotographer[]
   reviews    Review[]
   shootConfirmations ShootConfirmation[]
+  categoryScores ProfileCategoryScore[]
 
   @@index([cityId, status, ratingScore(sort: Desc), proRank(sort: Desc)])
 }

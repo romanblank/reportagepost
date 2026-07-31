@@ -40,6 +40,7 @@ describe.skipIf(!hasDb)('moderation: одобрение и отклонение 
     await db.activityEvent.deleteMany({ where: { actorUserId: userId } });
     await db.photo.deleteMany({ where: { profileId } });
     await db.profileCategory.deleteMany({ where: { profileId } });
+    await db.profileCategoryScore.deleteMany({ where: { profileId } }); // recomputeOne на approve пишет жанровые скоры
     await db.photographerProfile.delete({ where: { id: profileId } });
     await db.user.delete({ where: { id: userId } });
   }

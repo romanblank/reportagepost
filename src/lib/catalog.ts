@@ -144,13 +144,32 @@ export async function catalogForCity(filters: CatalogFilters): Promise<CatalogPa
     ...(filters.videoOnly ? { doesVideo: true } : {}),
   };
 
+  // MERIT-ONLY: порядок основной выдачи НЕ зависит от подписки (антиклассизм-
+  // инвариант). proRank убран — он давал платным верх при равном ratingScore
+  // (а на молодом каталоге он у всех ≈ равен). Буст подписки живёт ТОЛЬКО в
+  // отдельной полке recommendedForCity. Tiebreaker — детерминированный id
+  // (стабильная пагинация; не деньги). Ротацию равного merit — отдельным пунктом.
+  //
+  // Страница КАТЕГОРИИ (рейтинг v2, категория×город): сортировка по ЖАНРОВОМУ
+  // скору (ProfileCategoryScore — engagement лайков фото этого жанра + общая
+  // база) — специалист жанра выше генералиста с равным глобальным ratingScore.
+  // Запрос идёт от таблицы скоров (профиль без строки скора = не пересчитан,
+  // бэкфилл в сиде гарантирует покрытие). Город без категории — по ratingScore.
+  if (filters.categorySlug) {
+    const scoreRows = await db.profileCategoryScore.findMany({
+      where: { category: { slug: filters.categorySlug }, profile: where },
+      orderBy: [{ scoreMilli: 'desc' }, { profileId: 'asc' }],
+      skip: (page - 1) * CATALOG_PAGE_SIZE,
+      take: CATALOG_PAGE_SIZE + 1, // +1 для hasNext
+      include: { profile: { include: CATALOG_INCLUDE } },
+    });
+    const hasNext = scoreRows.length > CATALOG_PAGE_SIZE;
+    const cards = await toCards(scoreRows.slice(0, CATALOG_PAGE_SIZE).map((r) => r.profile));
+    return { cards, page, hasNext };
+  }
+
   const rows = await db.photographerProfile.findMany({
     where,
-    // MERIT-ONLY: порядок основной выдачи НЕ зависит от подписки (антиклассизм-
-    // инвариант). proRank убран — он давал платным верх при равном ratingScore
-    // (а на молодом каталоге он у всех ≈ равен). Буст подписки живёт ТОЛЬКО в
-    // отдельной полке recommendedForCity. Tiebreaker — детерминированный id
-    // (стабильная пагинация; не деньги). Ротацию равного merit — отдельным пунктом.
     orderBy: [{ ratingScore: 'desc' }, { id: 'asc' }],
     skip: (page - 1) * CATALOG_PAGE_SIZE,
     take: CATALOG_PAGE_SIZE + 1, // +1 для hasNext

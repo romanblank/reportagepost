@@ -50,6 +50,7 @@ describe.skipIf(!hasDb)('admin-onboard: создание фотографа ад
     const userIds = (await db.photographerProfile.findMany({ where: { id: { in: ids } }, select: { userId: true } })).map((p) => p.userId);
     await db.adminAudit.deleteMany({ where: { actorUserId: admin.id } });
     await db.profileCategory.deleteMany({ where: { profileId: { in: ids } } });
+    await db.profileCategoryScore.deleteMany({ where: { profileId: { in: ids } } }); // publish пишет жанровые скоры
     await db.photographerProfile.deleteMany({ where: { id: { in: ids } } });
     await db.user.deleteMany({ where: { id: { in: [...userIds, admin.id] } } });
   });
@@ -91,6 +92,7 @@ describe.skipIf(!hasDb)('admin-onboard: публикация/снятие анк
     await db.photo.deleteMany({ where: { profileId: draft.profileId } });
     await db.adminAudit.deleteMany({ where: { actorUserId: admin.id } });
     await db.profileCategory.deleteMany({ where: { profileId: draft.profileId } });
+    await db.profileCategoryScore.deleteMany({ where: { profileId: draft.profileId } }); // publish пишет жанровые скоры
     await db.photographerProfile.deleteMany({ where: { id: draft.profileId } });
     await db.user.deleteMany({ where: { id: { in: [draftUser, admin.id] } } });
   });

@@ -48,6 +48,14 @@ async function main() {
   const active = await db.city.count({ where: { countryId: country.id, active: true } });
   const cats = await db.category.count({ where: { active: true } });
   console.log(`Сид: страна RU, городов ${total} (активных ${active}), категорий ${cats}`);
+
+  // Бэкфилл жанровых скоров (рейтинг v2, категория×город): профили, одобренные
+  // до появления ProfileCategoryScore, без строк скора выпадают из выдачи
+  // категории. Идемпотентно: пересчитываются ТОЛЬКО профили без строк (обычно 0).
+  const { backfillCategoryScores } = await import('../src/lib/rating');
+  const backfilled = await backfillCategoryScores();
+  if (backfilled > 0) console.log(`Бэкфилл жанровых скоров: ${backfilled} профилей`);
+
   await db.$disconnect();
 }
 
