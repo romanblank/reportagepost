@@ -55,6 +55,8 @@ export default async function AdminEditProfilePage(props: { params: Promise<{ id
           lighting: profile.lighting,
           teamInfo: profile.teamInfo ?? '',
           doesVideo: profile.doesVideo,
+          showPhone: profile.showPhone,
+          hasPhone: Boolean(profile.user.phone),
           showreelUrls: profile.showreelUrls,
           languages: profile.languages,
           faq: parseFaq(profile.faq),

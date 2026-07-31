@@ -221,6 +221,9 @@ model PhotographerProfile {
   lighting    String[]         @default([]) // свет
   teamInfo    String? // соло / команда / ассистенты
   doesVideo   Boolean          @default(false) // снимает видео (роль «Фотограф · Видеограф»)
+  // «Показать номер» (паритет MyWed): ЯВНЫЙ опт-ин — телефон собран для верификации,
+  // без согласия на страницу не выводится. Раскрытие кликом через API + событие.
+  showPhone   Boolean          @default(false)
   showreelUrls String[]        @default([]) // шоурилы по ссылке (YouTube/Vimeo/RuTube/VK — whitelist-embed)
   faq         Json? // [{q,a}] частые вопросы (богатство анкеты, паритет MyWed)
   status      ModerationStatus @default(PENDING)
@@ -397,6 +400,7 @@ enum ActivityType {
   PHOTO_PUBLISH
   STORY_PUBLISH
   COMMENT_CREATE
+  PHONE_REVEAL
   COMMENT_DELETE
 }
 

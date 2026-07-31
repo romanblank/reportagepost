@@ -23,6 +23,7 @@ export const ProfileEditSchema = z.object({
   lighting: z.array(z.string().trim().min(1).max(80)).max(24).optional(),
   teamInfo: z.string().trim().max(300).optional(),
   doesVideo: z.boolean().optional(),
+  showPhone: z.boolean().optional(), // «Показать номер» — явный опт-ин
   showreelUrls: z.array(z.string().trim().min(1).max(300)).max(6).optional(),
   languages: z.array(z.string().trim().regex(/^[a-z]{2}$/)).max(8).optional(),
   faq: z
@@ -83,6 +84,7 @@ export async function applyProfileEdit(
         ...(d.lighting !== undefined ? { lighting: d.lighting } : {}),
         teamInfo: d.teamInfo?.trim() || null,
         ...(d.doesVideo !== undefined ? { doesVideo: d.doesVideo } : {}),
+        ...(d.showPhone !== undefined ? { showPhone: d.showPhone } : {}),
         // Сохраняем только ссылки, парсящиеся в известного провайдера (чистое хранилище).
         ...(d.showreelUrls !== undefined
           ? { showreelUrls: d.showreelUrls.filter((u) => parseShowreel(u) !== null) }

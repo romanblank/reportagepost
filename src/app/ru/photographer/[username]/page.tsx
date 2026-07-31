@@ -25,6 +25,7 @@ import { shootStats, hasShotWith } from '@/lib/shoots';
 import { ConfirmShootButton } from '@/components/ConfirmShootButton';
 import { ProfileHero } from '@/components/ProfileHero';
 import { ShareButton } from '@/components/ShareButton';
+import { ShowPhoneButton } from '@/components/ShowPhoneButton';
 
 // dynamic: страница показывает состояние лайков/подписки текущего пользователя
 export const dynamic = 'force-dynamic';
@@ -235,6 +236,8 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
           <span className="flex items-baseline gap-1.5"><b className="tnum text-lg font-semibold">{followingCount}</b><span className="t-caption muted">{ru.profile.statFollowing}</span></span>
           <div className="flex flex-wrap items-center gap-2 text-sm sm:ml-auto">
             <ShareButton path={`/ru/photographer/${profile.username}`} title={`${profile.user.firstName} ${profile.user.lastName}`} />
+            {/* «Показать номер» — только при опт-ине; номер раскрывается кликом через API */}
+            {profile.showPhone && profile.user.phone && <ShowPhoneButton profileId={profile.id} />}
             {(profile.whatsapp || profile.telegram || profile.siteUrl) && (
               <>
               {profile.whatsapp && (

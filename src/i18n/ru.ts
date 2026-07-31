@@ -238,6 +238,7 @@ export const ru = {
       it: 'Italiano', zh: '中文', tr: 'Türkçe', ar: 'العربية', pt: 'Português',
     } as Record<string, string>,
     site: 'Сайт',
+    showPhone: 'Показать номер',
     statCityRank: 'среди авторов города',
     statFollowers: 'подписчиков',
     statFollowing: 'подписки',
@@ -388,6 +389,7 @@ export const ru = {
     faqQuestion: 'Вопрос',
     faqAnswer: 'Ответ',
     faqAdd: 'Добавить вопрос',
+    showPhone: 'Показывать телефон на странице («Показать номер» — раскрывается кликом)',
   },
   tg: {
     title: 'Уведомления в Telegram',
@@ -670,6 +672,7 @@ export const ru = {
     // Дашборд
     statPhotos: 'Кадров в портфолио',
     statSaves: 'Сохранили в избранное',
+    statPhoneReveals: 'Смотрели номер (30 дней)',
     statReviews: 'Отзывов',
     statInquiries: 'Заявок в городе',
     manageTitle: 'Управление',

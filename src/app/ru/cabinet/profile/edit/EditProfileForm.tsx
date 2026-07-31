@@ -21,6 +21,8 @@ interface Initial {
   lighting: string[];
   teamInfo: string;
   doesVideo: boolean;
+  showPhone: boolean;
+  hasPhone: boolean; // у аккаунта есть телефон (без него тоггл бессмыслен)
   showreelUrls: string[];
   languages: string[];
   faq: { q: string; a: string }[];
@@ -50,6 +52,7 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
   const [bio, setBio] = useState(initial.bio);
   const [siteUrl, setSiteUrl] = useState(initial.siteUrl);
   const [whatsapp, setWhatsapp] = useState(initial.whatsapp);
+  const [showPhone, setShowPhone] = useState(initial.showPhone);
   const [telegram, setTelegram] = useState(initial.telegram);
   const [exp, setExp] = useState(initial.experienceYears?.toString() ?? '');
   const [cameras, setCameras] = useState(initial.cameras.join(', '));
@@ -81,6 +84,7 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
         bio: bio.trim(),
         siteUrl: siteUrl.trim() ? normalizeUrl(siteUrl.trim()) : '',
         whatsapp: whatsapp.trim() ? normalizePhone(whatsapp.trim()) : '',
+        showPhone,
         telegram: telegram.trim(),
         experienceYears: exp.trim() ? Number(exp) : null,
         cameras: csvToArr(cameras),
@@ -221,6 +225,15 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
           <input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} className="input" /></div>
         <div><label className="field-label">{ru.onboarding.telegram}</label>
           <input value={telegram} onChange={(e) => setTelegram(e.target.value)} className="input" /></div>
+        {/* «Показать номер» — явный опт-ин: телефон собран для входа/верификации,
+            на страницу попадает только по этому согласию (раскрытие кликом) */}
+        {initial.hasPhone && (
+          <label className="flex cursor-pointer items-center gap-2.5 sm:col-span-3">
+            <input type="checkbox" checked={showPhone} onChange={(e) => setShowPhone(e.target.checked)}
+              className="size-4 accent-[var(--accent)]" />
+            <span className="text-sm">{ru.editProfile.showPhone}</span>
+          </label>
+        )}
       </div>
 
       <fieldset>

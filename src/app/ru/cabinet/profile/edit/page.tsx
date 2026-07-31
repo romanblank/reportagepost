@@ -27,6 +27,7 @@ export default async function EditProfilePage() {
       city: true,
       categories: true,
       videos: { orderBy: { sortOrder: 'asc' } },
+      user: { select: { phone: true } },
     },
   });
   if (!profile) redirect('/ru/onboarding');
@@ -57,6 +58,8 @@ export default async function EditProfilePage() {
           lighting: profile.lighting,
           teamInfo: profile.teamInfo ?? '',
           doesVideo: profile.doesVideo,
+          showPhone: profile.showPhone,
+          hasPhone: Boolean(profile.user.phone),
           showreelUrls: profile.showreelUrls,
           languages: profile.languages,
           faq: parseFaq(profile.faq),

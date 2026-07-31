@@ -12,12 +12,13 @@ export interface PhotographerStats {
   followers: number; // подписчиков
   reviews: number; // видимых отзывов
   likes: number; // лайков на кадрах портфолио
+  phoneReveals30d: number; // раскрытий номера за 30 дней («Показать номер»)
 }
 
 export async function photographerStats(userId: string, profileId: string): Promise<PhotographerStats> {
   const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const viewWhere = { type: 'PROFILE_VIEW' as const, targetType: 'PROFILE' as const, targetId: profileId };
-  const [views, views30d, saves, saves30d, followers, reviews, likes] = await Promise.all([
+  const [views, views30d, saves, saves30d, followers, reviews, likes, phoneReveals30d] = await Promise.all([
     db.activityEvent.count({ where: viewWhere }),
     db.activityEvent.count({ where: { ...viewWhere, createdAt: { gte: since } } }),
     db.favoritePhotographer.count({ where: { profileId } }),
@@ -25,8 +26,11 @@ export async function photographerStats(userId: string, profileId: string): Prom
     db.follow.count({ where: { followeeId: userId } }),
     db.review.count({ where: { profileId, status: 'VISIBLE' } }),
     db.like.count({ where: { photo: { profileId } } }),
+    db.activityEvent.count({
+      where: { type: 'PHONE_REVEAL', targetType: 'PROFILE', targetId: profileId, createdAt: { gte: since } },
+    }),
   ]);
-  return { views, views30d, saves, saves30d, followers, reviews, likes };
+  return { views, views30d, saves, saves30d, followers, reviews, likes, phoneReveals30d };
 }
 
 // Записать просмотр профиля (beacon с клиента — боты без JS не пишут). Владелец
