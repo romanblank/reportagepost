@@ -115,8 +115,12 @@ export function PortfolioManager({
                 </button>
               )}
               {confirmId === p.id ? (
-                <button type="button" disabled={busy === p.id} onClick={() => del(p.id)}
-                  className="btn btn-danger btn-sm px-2">{ru.portfolio.delete}</button>
+                <span className="flex items-center gap-1">
+                  <button type="button" disabled={busy === p.id} onClick={() => del(p.id)}
+                    className="btn btn-danger btn-sm px-2">{ru.portfolio.delete}</button>
+                  <button type="button" disabled={busy === p.id} onClick={() => setConfirmId(null)}
+                    className="btn btn-ghost btn-sm px-2">{ru.portfolio.cancel}</button>
+                </span>
               ) : (
                 <button type="button" title={ru.portfolio.delete} aria-label={ru.portfolio.delete}
                   disabled={busy === p.id} onClick={() => setConfirmId(p.id)}

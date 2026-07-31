@@ -445,6 +445,7 @@ export const ru = {
     moveUp: 'Выше',
     moveDown: 'Ниже',
     delete: 'Удалить',
+    cancel: 'Отмена',
     deleteConfirm: 'Удалить этот кадр? Действие необратимо.',
     deleted: 'Кадр удалён.',
     coverSet: 'Обложка обновлена.',
