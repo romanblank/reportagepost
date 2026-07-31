@@ -51,7 +51,7 @@ function ResetForm() {
             <div>
               <label htmlFor="reset-password" className="field-label">{ru.auth.pwreset.newPassword}</label>
               <input id="reset-password" name="password" type="password" required minLength={10} autoComplete="new-password" className="input" />
-              <span className="field-hint">Минимум 10 символов</span>
+              <span className="field-hint">{ru.auth.passwordHint}</span>
             </div>
             {error && <p role="alert" className="text-sm text-danger">{error}</p>}
             <button type="submit" disabled={pending} className="btn btn-accent btn-lg mt-1">{ru.auth.pwreset.resetSubmit}</button>

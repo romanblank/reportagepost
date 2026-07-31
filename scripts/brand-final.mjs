@@ -31,7 +31,7 @@ function mix(a, b, t) {
 }
 
 // ── ЗНАК: разрежённый халфтон (count = ring*6 ≈ 90 точек) ─────────────────────
-function halftoneDots({ cx = 256, cy = 256, dotFill, warmFill, gid = 'g', rings = 5, r0 = 30, dr = 33, dotBase = 13 }) {
+function halftoneDots({ cx = 256, cy = 256, dotFill, warmFill, rings = 5, r0 = 30, dr = 33, dotBase = 13 }) {
   let d = '';
   for (let ring = 1; ring <= rings; ring++) {
     const r = r0 + ring * dr, count = ring * 6;

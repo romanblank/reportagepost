@@ -91,7 +91,7 @@ function RegisterForm() {
           <div>
             <label htmlFor="reg-password" className="field-label">{ru.auth.password}</label>
             <input id="reg-password" name="password" type="password" required minLength={10} autoComplete="new-password" className="input" />
-            <span className="field-hint">Минимум 10 символов</span>
+            <span className="field-hint">{ru.auth.passwordHint}</span>
           </div>
           {showInvite ? (
             <div>
