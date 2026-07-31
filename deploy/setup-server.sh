@@ -100,6 +100,37 @@ WD
 sudo chmod +x /usr/local/bin/rp-watchdog.sh
 echo '*/5 * * * * root /usr/local/bin/rp-watchdog.sh >/dev/null 2>&1' | sudo tee /etc/cron.d/rp-watchdog >/dev/null
 
+# ── Плановое обслуживание: пересчёт рейтингов + чистка (аудит 2026-07-31) ─────
+# Запускаем НА VM, а не из GitHub Actions: секрет уже лежит в .env.prod после
+# деплоя (не нужен GitHub Secret и права на его запись), задача не зависит от
+# квоты минут Actions и не ходит через интернет — стучимся в localhost.
+# Затухание лайков — функция времени, без периодического прохода merit-порядок
+# каталога отражает вчерашний день.
+sudo tee /usr/local/bin/rp-maintenance.sh >/dev/null <<'MNT'
+#!/usr/bin/env bash
+set -uo pipefail
+cd /opt/reportagepost || exit 0
+SECRET=$(grep -E '^JOBS_SECRET=' .env.prod 2>/dev/null | cut -d= -f2-)
+[ -z "$SECRET" ] && exit 0   # секрет ещё не заведён — тихо выходим
+
+RESP=$(curl -s -m 300 -w '\n%{http_code}' -X POST \
+  -H "Authorization: Bearer ${SECRET}" \
+  http://127.0.0.1:3000/api/jobs/maintenance)
+CODE=$(printf '%s' "$RESP" | tail -1)
+[ "$CODE" = "200" ] && exit 0
+
+# Провалилось — сообщаем оператору (тем же каналом, что watchdog)
+tok=$(grep -E '^TELEGRAM_BOT_TOKEN=' .env.prod 2>/dev/null | cut -d= -f2-)
+chat=$(grep -E '^TELEGRAM_ALERT_CHAT_ID=' .env.prod 2>/dev/null | cut -d= -f2-)
+if [ -n "$tok" ] && [ -n "$chat" ]; then
+  curl -s -m 15 "https://api.telegram.org/bot${tok}/sendMessage" \
+    --data-urlencode "chat_id=${chat}" \
+    --data-urlencode "text=⚠️ Reportage Post: плановое обслуживание (пересчёт рейтингов) вернуло HTTP ${CODE}" >/dev/null || true
+fi
+MNT
+sudo chmod +x /usr/local/bin/rp-maintenance.sh
+echo '30 2 * * * root /usr/local/bin/rp-maintenance.sh >/dev/null 2>&1' | sudo tee /etc/cron.d/rp-maintenance >/dev/null
+
 # ── Прививка от переполнения диска (инцидент 2026-07-24) ──────────────────────
 # Корень был в деплое (образы не чистились после подмены — фикс в deploy.yml).
 # Здесь — belt-and-suspenders, чтобы диск не забился НИКОГДА:
