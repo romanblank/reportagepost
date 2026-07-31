@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { ru } from '@/i18n/ru';
 import { LightboxModal } from '@/components/Lightbox';
 import { LikeButton } from '@/components/EngagementButtons';
 
@@ -46,9 +47,13 @@ export function PortfolioGallery({
               loading="lazy"
               width={photo.width}
               height={photo.height}
+              role="button"
+              tabIndex={0}
+              aria-label={ru.profile.openPhoto}
               onClick={() => setIndex(i)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIndex(i); } }}
               style={photo.blurhash ? { backgroundImage: `url(${photo.blurhash})` } : undefined}
-              className="w-full cursor-zoom-in bg-cover bg-center transition duration-500 ease-out group-hover:scale-[1.02]"
+              className="w-full cursor-zoom-in bg-cover bg-center transition duration-500 ease-out group-hover:scale-[1.02] focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
             />
             {/* лайк — тонкой накладкой на фото (проступает на ховере), не «пилюлей под кадром» */}
             <figcaption className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-end bg-gradient-to-t from-black/45 to-transparent px-2 pb-2 pt-8 opacity-0 transition-opacity duration-300 group-hover:opacity-100">

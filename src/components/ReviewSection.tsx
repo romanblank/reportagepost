@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ru } from '@/i18n/ru';
 import { describeApiError } from '@/lib/form-errors';
@@ -36,7 +37,15 @@ export function ReviewSection({
   aggregate: { avg: number; count: number };
   me: Me;
 }) {
+  const router = useRouter();
   const [items, setItems] = useState<ReviewItem[]>(initial);
+  // Синхронизация со свежими серверными данными после router.refresh() (свой
+  // отзыв подтягивает имя автора + verified вместо оптимистичного «—»).
+  const [prevInitial, setPrevInitial] = useState(initial);
+  if (initial !== prevInitial) {
+    setPrevInitial(initial);
+    setItems(initial);
+  }
   const [rating, setRating] = useState(0);
   const [body, setBody] = useState('');
   const [pending, setPending] = useState(false);
@@ -62,6 +71,7 @@ export function ReviewSection({
         ...prev,
       ]);
       setBody(''); setRating(0); setShowForm(false);
+      router.refresh(); // подтянуть реальные имя/verified с сервера
       return;
     }
     setError(await describeApiError(res, { codeLabels: ru.reviews.errors, fallback: ru.inquiry.errorGeneric }));

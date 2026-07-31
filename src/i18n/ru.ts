@@ -214,6 +214,7 @@ export const ru = {
     editorsChoice: 'Находка редакции',
     moreInCity: (city: string) => `Ещё фотографы — ${city}`,
     verified: 'Проверен',
+    openPhoto: 'Открыть фото',
     verifiedHint: 'Личность и работы подтвердил Репортаж Пост',
     adminVerify: 'Отметить проверенным',
     adminUnverify: 'Снять проверку',
@@ -517,6 +518,7 @@ export const ru = {
     writeTo: (name: string) => `Диалог с ${name}`,
     errorSend: 'Сообщение не отправилось. Попробуйте ещё раз.',
     errorRate: 'Слишком часто. Подождите минуту.',
+    emptyThread: 'Пока сообщений нет — напишите первым.',
   },
   adminInvites: {
     title: 'Инвайты',
