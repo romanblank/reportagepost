@@ -134,16 +134,21 @@ export default async function CityCategoryPage(props: {
             </label>
             <button type="submit" className="btn btn-outline w-full">{ru.catalog.applyDate}</button>
           </form>
+          <Link href={cityPath} className="block border-t border-line pt-4 text-sm text-accent hover:underline">
+            ← {ru.catalog.resetFilters}
+          </Link>
         </aside>
 
         <div className="min-w-0">
       {cards.length === 0 ? (
+        // Страница всегда отфильтрована по жанру — предлагаем всех авторов города
+        // (сброс) + заявку, а не сбивающую с толку регистрацию.
         <EmptyState
-          icon={<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" /></svg>}
-          title={ru.catalog.empty}
-          subtitle={ru.catalog.emptyCta(cityName)}
+          icon={<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>}
+          title={ru.catalog.emptyFiltered}
+          subtitle={ru.catalog.emptyFilteredHint}
           actions={[
-            { href: '/ru/register', label: ru.catalog.emptyRegister, variant: 'accent' },
+            { href: cityPath, label: ru.catalog.resetFilters, variant: 'accent' },
             { href: '/ru/inquiry', label: ru.catalog.emptyInquiry, variant: 'outline' },
           ]}
         />

@@ -49,7 +49,7 @@ export function InquiryForm({ cities, categories, prefill, contact }: { cities: 
     }
     setError(await describeApiError(res, {
       codeLabels: { no_contact: ru.inquiry.errorNoContact },
-      fieldLabels: { description: 'описание', contactName: 'имя', contactPhone: 'телефон', contactEmail: 'email' },
+      fieldLabels: ru.inquiry.fieldLabels,
       fallback: ru.inquiry.errorGeneric,
     }));
   }

@@ -186,6 +186,9 @@ export const ru = {
     filterFormat: 'Формат',
     formatAll: 'Все',
     formatVideo: 'Видео',
+    resetFilters: 'Сбросить фильтры',
+    emptyFiltered: 'Под ваши фильтры никого',
+    emptyFilteredHint: 'В городе есть авторы — попробуйте смягчить условия или сбросить фильтры.',
     prevPage: 'Назад',
     nextPage: 'Дальше',
     recommendedTitle: 'Открыты для новых заказов',
@@ -275,6 +278,7 @@ export const ru = {
   },
   cabinetStories: {
     title: 'Серии',
+    photosCount: (n: number) => `${n} ${n % 10 === 1 && n % 100 !== 11 ? 'кадр' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 'кадра' : 'кадров'}`,
     metaTitle: 'Серии — Репортаж Пост',
     subtitle: 'Соберите репортаж с одного события в серию — редакция может заметить её в «Находках».',
     needActive: 'Серии — возможность подписки Active. Оформите её, чтобы собирать репортажи в истории.',
@@ -947,6 +951,7 @@ export const ru = {
     sentNotified: (n: number) => `Уведомлено фотографов: ${n}.`,
     errorNoContact: 'Укажите телефон или email',
     errorGeneric: 'Не получилось отправить. Проверьте поля и попробуйте ещё раз.',
+    fieldLabels: { description: 'описание', contactName: 'имя', contactPhone: 'телефон', contactEmail: 'email' } as Record<string, string>,
   },
 } as const;
 

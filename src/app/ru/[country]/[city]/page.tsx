@@ -69,6 +69,7 @@ export default async function CatalogPage(props: {
   // «Рекомендуемые» (буст-видимость подписки, soft-hybrid) — только на 1-й
   // странице без фильтров. Все запросы страницы — параллельно (force-dynamic).
   const showRecommended = page === 1 && !categorySlug && !availableOn && !maxPriceRub && !videoOnly;
+  const hasActiveFilters = Boolean(categorySlug || availableOn || maxPriceRub || videoOnly);
   const [{ cards, hasNext }, recommended, visiting] = await Promise.all([
     catalogForCity({
       citySlug: city.slug, categorySlug, availableOn, page, videoOnly,
@@ -132,6 +133,11 @@ export default async function CatalogPage(props: {
             </label>
             <button type="submit" className="btn btn-outline w-full">{ru.catalog.applyDate}</button>
           </form>
+          {hasActiveFilters && (
+            <Link href={basePath} className="block border-t border-line pt-4 text-sm text-accent hover:underline">
+              ← {ru.catalog.resetFilters}
+            </Link>
+          )}
         </aside>
 
         {/* Результаты */}
@@ -175,15 +181,26 @@ export default async function CatalogPage(props: {
       )}
 
       {mainCards.length === 0 && recommended.length === 0 && visiting.length === 0 ? (
-        <EmptyState
-          icon={<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" /></svg>}
-          title={ru.catalog.empty}
-          subtitle={ru.catalog.emptyCta(cityName)}
-          actions={[
-            { href: '/ru/register', label: ru.catalog.emptyRegister, variant: 'accent' },
-            { href: '/ru/inquiry', label: ru.catalog.emptyInquiry, variant: 'outline' },
-          ]}
-        />
+        hasActiveFilters ? (
+          // Под фильтры пусто (а не «в городе никого») — не сбиваем с толку CTA
+          // регистрации; предлагаем сбросить фильтры.
+          <EmptyState
+            icon={<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>}
+            title={ru.catalog.emptyFiltered}
+            subtitle={ru.catalog.emptyFilteredHint}
+            actions={[{ href: basePath, label: ru.catalog.resetFilters, variant: 'accent' }]}
+          />
+        ) : (
+          <EmptyState
+            icon={<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" /></svg>}
+            title={ru.catalog.empty}
+            subtitle={ru.catalog.emptyCta(cityName)}
+            actions={[
+              { href: '/ru/register', label: ru.catalog.emptyRegister, variant: 'accent' },
+              { href: '/ru/inquiry', label: ru.catalog.emptyInquiry, variant: 'outline' },
+            ]}
+          />
+        )
       ) : mainCards.length === 0 ? null : (
         <>
           {recommended.length > 0 && <h2 className="mt-8 text-lg font-medium">{ru.catalog.allInCity}</h2>}
