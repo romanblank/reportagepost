@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { DomainError } from '@/lib/errors';
 import type { Readable } from 'node:stream';
 import { storage } from '@/lib/storage';
 
@@ -14,9 +15,11 @@ export const VIDEO_MIME_EXT: Record<string, string> = {
 export const MAX_VIDEO_BYTES = 200 * 1024 * 1024; // 200 МБ — разумный потолок шоурила
 export const VIDEO_LIMIT_PER_PROFILE = 6; // до 6 роликов на автора
 
-export class VideoValidationError extends Error {
-  constructor(public code: 'unsupported_format' | 'file_too_large' | 'empty', message?: string) {
-    super(message ?? code);
+// Наследует DomainError (аудит 2026-08-01, P2): статус едет вместе с кодом,
+// роут больше не перемапливает 413/422 вручную.
+export class VideoValidationError extends DomainError {
+  constructor(public code: 'unsupported_format' | 'file_too_large' | 'empty') {
+    super(code, code === 'file_too_large' ? 413 : 422);
     this.name = 'VideoValidationError';
   }
 }

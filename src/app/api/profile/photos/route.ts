@@ -3,7 +3,6 @@ import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import {
-  PhotoValidationError,
   analyzePhoto,
   storePhotoVariants,
 } from '@/lib/photos';
@@ -13,6 +12,7 @@ import { tierOf } from '@/lib/subscription';
 import { portfolioLimit } from '@/lib/pricing';
 import { rateLimit } from '@/lib/rate-limit';
 import { storage } from '@/lib/storage';
+import { DomainError, handleRoute } from '@/lib/errors';
 
 export const maxDuration = 60; // обработка sharp на больших файлах
 
@@ -20,14 +20,15 @@ const MAX_FILE_BYTES = 40 * 1024 * 1024;
 
 /** Лимит выбран параллельной загрузкой — отдельный тип, чтобы отличить от
  *  ошибок валидации и корректно откатить уже записанные файлы. */
-class PhotoLimitError extends Error {
+class PhotoLimitError extends DomainError {
   constructor(public limit: number) {
-    super('photo_limit');
+    super('photo_limit', 409);
   }
 }
 
 // Онбординг, шаг 2: загрузка фото портфолио (multipart: file, categorySlug)
-export async function POST(req: Request) {
+export function POST(req: Request) {
+  return handleRoute(async () => {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
@@ -36,11 +37,9 @@ export async function POST(req: Request) {
   // лимит стоял с самого начала, у портфолио его не было вовсе, а лимит по
   // КОЛИЧЕСТВУ фото не мешает (удалил → загрузил снова). 60/час — вдвое выше
   // реального пакета съёмки, но обрубает цикл.
-  try {
-    await rateLimit(`photo-upload:user:${session.userId}`, 60, 3600);
-  } catch {
-    return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
-  }
+  // 429 отдаёт handleRoute по DomainError. Прежний catch ловил и падение БД,
+  // выдавая «слишком много попыток» вместо 500 (аудит 2026-08-01, P2).
+  await rateLimit(`photo-upload:user:${session.userId}`, 60, 3600);
 
   const profile = await db.photographerProfile.findUnique({
     where: { userId: session.userId },
@@ -133,12 +132,12 @@ export async function POST(req: Request) {
       { status: 201 },
     );
   } catch (e) {
+    // PhotoValidationError теперь сам несёт код и статус — его разбирает
+    // handleRoute; здесь остаётся только лимит с его полем limit в теле.
     if (e instanceof PhotoLimitError) {
       return NextResponse.json({ error: 'photo_limit', limit: e.limit }, { status: 409 });
     }
-    if (e instanceof PhotoValidationError) {
-      return NextResponse.json({ error: e.code, message: e.message }, { status: 422 });
-    }
     throw e;
   }
+  });
 }

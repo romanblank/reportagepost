@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { DomainError } from '@/lib/errors';
 import sharp from 'sharp';
 import { storage } from '@/lib/storage';
 import { computeDHash } from '@/lib/phash';
@@ -19,9 +20,11 @@ export interface ProcessedPhoto extends AnalyzedPhoto {
   storageKey: string; // ключ оригинала; варианты лежат рядом
 }
 
-export class PhotoValidationError extends Error {
-  constructor(public code: 'not_image' | 'too_small', message: string) {
-    super(message);
+// Наследует DomainError (аудит 2026-08-01, P2). 422: файл дошёл целым, но
+// содержимое не годится — это не ошибка синтаксиса запроса.
+export class PhotoValidationError extends DomainError {
+  constructor(public code: 'not_image' | 'too_small', public detail: string) {
+    super(code, 422);
   }
 }
 

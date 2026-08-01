@@ -1,8 +1,11 @@
 import { db } from '@/lib/db';
+import { DomainError } from '@/lib/errors';
 
-export class MessageError extends Error {
+// Наследует DomainError (аудит 2026-08-01, P2) — см. InquiryError.
+// 'blocked' — 403: получатель закрыл переписку, повтор не поможет.
+export class MessageError extends DomainError {
   constructor(public code: 'recipient_not_found' | 'self_message' | 'blocked') {
-    super(code);
+    super(code, code === 'blocked' ? 403 : 400);
   }
 }
 

@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { DomainError } from '@/lib/errors';
 import { notifyManyInApp } from '@/lib/notifications';
 import { sendEmail } from '@/lib/email';
 import { tgSend } from '@/lib/telegram';
@@ -21,9 +22,15 @@ export interface CreateInquiryInput {
   description: string;
 }
 
-export class InquiryError extends Error {
+/**
+ * Наследует DomainError (аудит 2026-08-01, P2): раньше это был отдельный класс,
+ * и каждый роут сам ловил его и лепил статус — маппинг дублировался, а новый
+ * роут писался копипастой соседнего, воспроизводя расхождение. Теперь ошибка
+ * несёт и код, и статус, а превращает её в ответ единый handleRoute.
+ */
+export class InquiryError extends DomainError {
   constructor(public code: 'city_not_found' | 'category_not_found' | 'no_contact') {
-    super(code);
+    super(code, 400);
   }
 }
 

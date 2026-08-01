@@ -3,9 +3,9 @@ import { db } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import { storage } from '@/lib/storage';
 import { Readable } from 'node:stream';
+import { handleRoute } from '@/lib/errors';
 import type { ReadableStream as NodeWebReadable } from 'node:stream/web';
 import {
-  VideoValidationError,
   storeVideoStream,
   VIDEO_LIMIT_PER_PROFILE,
   MAX_VIDEO_BYTES,
@@ -19,7 +19,8 @@ async function currentProfile(userId: string) {
 }
 
 // Загрузка видео автора (multipart: file, title?). Публикация после модерации (как фото).
-export async function POST(req: Request) {
+export function POST(req: Request) {
+  return handleRoute(async () => {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   const profile = await currentProfile(session.userId);
@@ -62,10 +63,13 @@ export async function POST(req: Request) {
     }
   }
 
-  try {
-    const stored = await storeVideoStream(// Web-поток из fetch и node:stream/web типизированы порознь (разные lib),
-    // хотя в рантайме Node это один и тот же объект — сужаем через unknown
-    Readable.fromWeb(req.body as unknown as NodeWebReadable<Uint8Array>), mimeType, sizeBytes);
+  // Web-поток из fetch и node:stream/web типизированы порознь (разные lib),
+  // хотя в рантайме Node это один и тот же объект — сужаем через unknown
+  const stored = await storeVideoStream(
+    Readable.fromWeb(req.body as unknown as NodeWebReadable<Uint8Array>),
+    mimeType,
+    sizeBytes,
+  );
     const video = await db.profileVideo.create({
       data: {
         profileId: profile.id,
@@ -81,13 +85,7 @@ export async function POST(req: Request) {
       },
     });
     return NextResponse.json({ videoId: video.id, uploaded: count + 1, limit: VIDEO_LIMIT_PER_PROFILE }, { status: 201 });
-  } catch (e) {
-    if (e instanceof VideoValidationError) {
-      const status = e.code === 'file_too_large' ? 413 : 422;
-      return NextResponse.json({ error: e.code }, { status });
-    }
-    throw e;
-  }
+  });
 }
 
 // Удаление своего видео (+ чистка объекта в хранилище).

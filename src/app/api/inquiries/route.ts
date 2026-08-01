@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { handleRoute } from '@/lib/errors';
 import { z } from 'zod';
 import { getSession } from '@/lib/auth';
 import { InquiryError, createInquiry, inquiriesForPhotographer } from '@/lib/inquiries';
@@ -20,70 +21,75 @@ const InquirySchema = z.object({
 });
 
 // Публичная форма заявки (гость или залогиненный клиент)
-export async function POST(req: Request) {
-  const body = await req.json().catch(() => null);
-  const parsed = InquirySchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: 'validation', details: parsed.error.flatten().fieldErrors },
-      { status: 400 },
-    );
-  }
-
-  const session = await getSession();
-  // Публичный POST рассылает уведомления фотографам города — жёсткий лимит
-  // против спам-рассыла через нашу инфраструктуру (аудит P1 #3): 3/час на IP
-  try {
-    await rateLimit(`inquiry:ip:${clientIp(req)}`, 3, 3600);
-  } catch {
-    return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
-  }
-  try {
-    const result = await createInquiry({
-      clientUserId: session?.userId,
-      contactName: parsed.data.contactName,
-      contactPhone: parsed.data.contactPhone,
-      contactEmail: parsed.data.contactEmail,
-      citySlug: parsed.data.citySlug,
-      categorySlug: parsed.data.categorySlug,
-      eventDate: parsed.data.eventDate ? new Date(`${parsed.data.eventDate}T00:00:00Z`) : undefined,
-      budgetMinor: parsed.data.budgetMinor,
-      description: parsed.data.description,
-    });
-    return NextResponse.json(result, { status: 201 });
-  } catch (e) {
-    if (e instanceof InquiryError) {
-      return NextResponse.json({ error: e.code }, { status: 400 });
+export function POST(req: Request) {
+  return handleRoute(async () => {
+    const body = await req.json().catch(() => null);
+    const parsed = InquirySchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'validation', details: parsed.error.flatten().fieldErrors },
+        { status: 400 },
+      );
     }
-    throw e;
-  }
+
+    const session = await getSession();
+    // Публичный POST рассылает уведомления фотографам города — жёсткий лимит
+    // против спам-рассыла через нашу инфраструктуру (аудит P1 #3): 3/час на IP
+  // Лимит бросает DomainError('rate_limited', 429), его превращает в ответ
+  // handleRoute. Обёртки try/catch здесь больше нет (аудит 2026-08-01, P2):
+  // она ловила ЛЮБУЮ ошибку, включая недоступность БД, и клиент получал
+  // «слишком много попыток» вместо 500 — то есть инцидент маскировался от
+  // мониторинга под штатный отказ.
+    await rateLimit(`inquiry:ip:${clientIp(req)}`, 3, 3600);
+    try {
+      const result = await createInquiry({
+        clientUserId: session?.userId,
+        contactName: parsed.data.contactName,
+        contactPhone: parsed.data.contactPhone,
+        contactEmail: parsed.data.contactEmail,
+        citySlug: parsed.data.citySlug,
+        categorySlug: parsed.data.categorySlug,
+        eventDate: parsed.data.eventDate ? new Date(`${parsed.data.eventDate}T00:00:00Z`) : undefined,
+        budgetMinor: parsed.data.budgetMinor,
+        description: parsed.data.description,
+      });
+      return NextResponse.json(result, { status: 201 });
+    } catch (e) {
+      if (e instanceof InquiryError) {
+        return NextResponse.json({ error: e.code }, { status: 400 });
+      }
+      throw e;
+    }
+  });
 }
 
 // Лента заявок для одобренного фотографа (его город)
-export async function GET() {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  if (session.role !== 'PHOTOGRAPHER') {
-    return NextResponse.json({ error: 'photographers_only' }, { status: 403 });
-  }
+export function GET() {
+  return handleRoute(async () => {
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+    if (session.role !== 'PHOTOGRAPHER') {
+      return NextResponse.json({ error: 'photographers_only' }, { status: 403 });
+    }
 
-  const inquiries = await inquiriesForPhotographer(session.userId);
-  if (inquiries === null) {
-    return NextResponse.json({ error: 'profile_not_approved' }, { status: 403 });
-  }
-  return NextResponse.json({
-    inquiries: inquiries.map((i) => ({
-      id: i.id,
-      contactName: i.contactName,
-      // контакты открываем: сделка происходит вне платформы (модель MyWed)
-      contactPhone: i.contactPhone,
-      contactEmail: i.contactEmail,
-      citySlug: i.city.slug,
-      categorySlug: i.category?.slug ?? null,
-      eventDate: i.eventDate,
-      budgetMinor: i.budgetMinor,
-      description: i.description,
-      createdAt: i.createdAt,
-    })),
+    const inquiries = await inquiriesForPhotographer(session.userId);
+    if (inquiries === null) {
+      return NextResponse.json({ error: 'profile_not_approved' }, { status: 403 });
+    }
+    return NextResponse.json({
+      inquiries: inquiries.map((i) => ({
+        id: i.id,
+        contactName: i.contactName,
+        // контакты открываем: сделка происходит вне платформы (модель MyWed)
+        contactPhone: i.contactPhone,
+        contactEmail: i.contactEmail,
+        citySlug: i.city.slug,
+        categorySlug: i.category?.slug ?? null,
+        eventDate: i.eventDate,
+        budgetMinor: i.budgetMinor,
+        description: i.description,
+        createdAt: i.createdAt,
+      })),
+    });
   });
 }

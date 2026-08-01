@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { db } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import { rateLimit } from '@/lib/rate-limit';
-import { DomainError } from '@/lib/errors';
+import { handleRoute } from '@/lib/errors';
 import { ProfileEditSchema, applyProfileEdit } from '@/lib/profile-edit';
 
 // Онбординг, шаг 1: анкета фотографа (город, категории, цены пакетами, контакты)
@@ -38,97 +38,94 @@ const ProfileSchema = z.object({
     .max(6),
 });
 
-export async function POST(req: Request) {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  if (session.role !== 'PHOTOGRAPHER') {
-    return NextResponse.json({ error: 'photographers_only' }, { status: 403 });
-  }
+export function POST(req: Request) {
+  return handleRoute(async () => {
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+    if (session.role !== 'PHOTOGRAPHER') {
+      return NextResponse.json({ error: 'photographers_only' }, { status: 403 });
+    }
 
-  const body = await req.json().catch(() => null);
-  const parsed = ProfileSchema.safeParse(body);
-  if (!parsed.success) {
+    const body = await req.json().catch(() => null);
+    const parsed = ProfileSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'validation', details: parsed.error.flatten().fieldErrors },
+        { status: 400 },
+      );
+    }
+    const data = parsed.data;
+
+    const existing = await db.photographerProfile.findUnique({
+      where: { userId: session.userId },
+    });
+    if (existing) return NextResponse.json({ error: 'profile_exists' }, { status: 409 });
+
+    const usernameTaken = await db.photographerProfile.findUnique({
+      where: { username: data.username },
+    });
+    if (usernameTaken) return NextResponse.json({ error: 'username_taken' }, { status: 409 });
+
+    const city = await db.city.findFirst({ where: { slug: data.citySlug } });
+    if (!city) return NextResponse.json({ error: 'city_not_found' }, { status: 400 });
+
+    const categories = await db.category.findMany({
+      where: { slug: { in: data.categorySlugs }, active: true },
+    });
+    if (categories.length !== data.categorySlugs.length) {
+      return NextResponse.json({ error: 'category_not_found' }, { status: 400 });
+    }
+
+    const profile = await db.photographerProfile.create({
+      data: {
+        userId: session.userId,
+        username: data.username,
+        cityId: city.id,
+        bio: data.bio,
+        siteUrl: data.siteUrl,
+        whatsapp: data.whatsapp,
+        telegram: data.telegram?.replace(/^@/, ''),
+        experienceYears: data.experienceYears,
+        equipment: data.equipment,
+        teamInfo: data.teamInfo,
+        ...(data.languages && data.languages.length ? { languages: data.languages } : {}),
+        categories: {
+          create: categories.map((c) => ({ categoryId: c.id })),
+        },
+        packages: {
+          create: data.packages.map((p, i) => ({ ...p, sortOrder: i })),
+        },
+      },
+    });
+
     return NextResponse.json(
-      { error: 'validation', details: parsed.error.flatten().fieldErrors },
-      { status: 400 },
+      { profileId: profile.id, username: profile.username, status: profile.status },
+      { status: 201 },
     );
-  }
-  const data = parsed.data;
-
-  const existing = await db.photographerProfile.findUnique({
-    where: { userId: session.userId },
   });
-  if (existing) return NextResponse.json({ error: 'profile_exists' }, { status: 409 });
-
-  const usernameTaken = await db.photographerProfile.findUnique({
-    where: { username: data.username },
-  });
-  if (usernameTaken) return NextResponse.json({ error: 'username_taken' }, { status: 409 });
-
-  const city = await db.city.findFirst({ where: { slug: data.citySlug } });
-  if (!city) return NextResponse.json({ error: 'city_not_found' }, { status: 400 });
-
-  const categories = await db.category.findMany({
-    where: { slug: { in: data.categorySlugs }, active: true },
-  });
-  if (categories.length !== data.categorySlugs.length) {
-    return NextResponse.json({ error: 'category_not_found' }, { status: 400 });
-  }
-
-  const profile = await db.photographerProfile.create({
-    data: {
-      userId: session.userId,
-      username: data.username,
-      cityId: city.id,
-      bio: data.bio,
-      siteUrl: data.siteUrl,
-      whatsapp: data.whatsapp,
-      telegram: data.telegram?.replace(/^@/, ''),
-      experienceYears: data.experienceYears,
-      equipment: data.equipment,
-      teamInfo: data.teamInfo,
-      ...(data.languages && data.languages.length ? { languages: data.languages } : {}),
-      categories: {
-        create: categories.map((c) => ({ categoryId: c.id })),
-      },
-      packages: {
-        create: data.packages.map((p, i) => ({ ...p, sortOrder: i })),
-      },
-    },
-  });
-
-  return NextResponse.json(
-    { profileId: profile.id, username: profile.username, status: profile.status },
-    { status: 201 },
-  );
 }
 
 // Редактирование своей анкеты (MyWed: править можно всегда). Логика применения —
 // в @/lib/profile-edit (общая с админ-роутом онбординга).
-export async function PATCH(req: Request) {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  if (session.role !== 'PHOTOGRAPHER') return NextResponse.json({ error: 'photographers_only' }, { status: 403 });
+export function PATCH(req: Request) {
+  return handleRoute(async () => {
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+    if (session.role !== 'PHOTOGRAPHER') return NextResponse.json({ error: 'photographers_only' }, { status: 403 });
 
-  const parsed = ProfileEditSchema.safeParse(await req.json().catch(() => null));
-  if (!parsed.success) {
-    return NextResponse.json({ error: 'validation', details: parsed.error.flatten().fieldErrors }, { status: 400 });
-  }
+    const parsed = ProfileEditSchema.safeParse(await req.json().catch(() => null));
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'validation', details: parsed.error.flatten().fieldErrors }, { status: 400 });
+    }
 
-  const profile = await db.photographerProfile.findUnique({ where: { userId: session.userId }, select: { id: true, username: true } });
-  if (!profile) return NextResponse.json({ error: 'no_profile' }, { status: 404 });
+    const profile = await db.photographerProfile.findUnique({ where: { userId: session.userId }, select: { id: true, username: true } });
+    if (!profile) return NextResponse.json({ error: 'no_profile' }, { status: 404 });
 
-  try {
+    // 429 и доменные коды разбирает handleRoute. Прежний catch вокруг лимита
+    // ловил и падение БД, отвечая «слишком много попыток» (аудит 2026-08-01, P2).
     await rateLimit(`profile-edit:user:${session.userId}`, 30, 3600);
-  } catch {
-    return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
-  }
 
-  try {
     const { username } = await applyProfileEdit(profile.id, profile.username, parsed.data);
     return NextResponse.json({ ok: true, username });
-  } catch (e) {
-    if (e instanceof DomainError) return NextResponse.json({ error: e.code }, { status: e.status });
-    throw e;
-  }
+  });
 }

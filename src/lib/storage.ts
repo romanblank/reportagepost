@@ -60,6 +60,8 @@ class LocalDiskStorage implements ObjectStorage {
     await writeFile(filePath, data);
   }
 
+  // Тип и длина локальному диску не нужны — они часть общего контракта ради S3
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async putStream(key: string, body: Readable, _contentType: string, _contentLength: number): Promise<void> {
     const filePath = safePath(key);
     await mkdir(path.dirname(filePath), { recursive: true });

@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import type { SubscriptionTier } from '@prisma/client';
 import { db } from '@/lib/db';
 import { priceForCity, cityTierOf, type PaidTier } from '@/lib/pricing';
 import { rankForTier } from '@/lib/subscription';
