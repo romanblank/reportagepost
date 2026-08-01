@@ -144,8 +144,14 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
             <span className="field-label block">{ru.editProfile.avatar}</span>
             <label className={`btn btn-outline mt-1 px-3 py-1.5 text-sm ${avatarBusy ? 'opacity-50' : 'cursor-pointer'}`}>
               {avatarBusy ? ru.editProfile.avatarUploading : ru.editProfile.avatarUpload}
+              {/* сброс value — чтобы повторный выбор того же файла после
+                  ошибки снова срабатывал (аудит 2026-08-01, P1) */}
               <input type="file" accept="image/*" className="sr-only" disabled={avatarBusy}
-                onChange={(e) => uploadAvatar(e.target.files?.[0] ?? null)} />
+                onChange={async (e) => {
+                  const input = e.currentTarget;
+                  await uploadAvatar(input.files?.[0] ?? null);
+                  input.value = '';
+                }} />
             </label>
             {avatarErr && <span className="ml-2 text-xs text-accent">{ru.editProfile.avatarError}</span>}
           </div>

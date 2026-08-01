@@ -5,7 +5,7 @@ import { activeTier, ELITE_RANK, type Tier } from '@/lib/subscription';
 // Каталог: одобренные фотографы города с фильтрами.
 // Ранжирование: MERIT-first (ratingScore) — подписка лишь мягкий tiebreaker, не
 // pay-for-position (разворот 2026-07-25: синергия, не классовость). Буст-видимость
-// подписки — отдельной полкой «Рекомендуемые» (recommendedForCity).
+// подписки — отдельной полкой «Открыты для новых заказов» (recommendedForCity).
 
 export interface CatalogFilters {
   citySlug: string;
@@ -87,7 +87,7 @@ const CATALOG_INCLUDE = {
 type CatalogRow = Prisma.PhotographerProfileGetPayload<{ include: typeof CATALOG_INCLUDE }>;
 
 // Строки профилей → карточки (+ агрегат отзывов одним запросом). Общая сборка
-// для основного списка и полки «Рекомендуемые».
+// для основного списка и полки «Открыты для новых заказов».
 async function toCards(shown: CatalogRow[]): Promise<CatalogCard[]> {
   // Публичный положительный сигнал вместо среднего 1–5: число рекомендаций
   // (отзывы rating≥4 & verified & VISIBLE). Низкие оценки в публичный сигнал не идут.

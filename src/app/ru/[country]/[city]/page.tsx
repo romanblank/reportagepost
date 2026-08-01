@@ -8,6 +8,7 @@ import { cityNameRu } from '@/lib/geo-data';
 import { CATEGORIES } from '@/lib/category-data';
 import { thumbVariantUrl } from '@/lib/photos';
 import { ru } from '@/i18n/ru';
+import { formatDateRu } from '@/lib/date-format';
 import { EmptyState } from '@/components/EmptyState';
 import { JsonLd } from '@/components/JsonLd';
 import { CatalogCards, CategoryLinks } from '@/components/CatalogCards';
@@ -66,7 +67,7 @@ export default async function CatalogPage(props: {
   const videoOnly = searchParams.format === 'video';
   const page = Math.max(1, Number(searchParams.page) || 1);
 
-  // «Рекомендуемые» (буст-видимость подписки, soft-hybrid) — только на 1-й
+  // «Открыты для новых заказов» (буст-видимость подписки, soft-hybrid) — только на 1-й
   // странице без фильтров. Все запросы страницы — параллельно (force-dynamic).
   const showRecommended = page === 1 && !categorySlug && !availableOn && !maxPriceRub && !videoOnly;
   const hasActiveFilters = Boolean(categorySlug || availableOn || maxPriceRub || videoOnly);
@@ -162,8 +163,8 @@ export default async function CatalogPage(props: {
                   <p className="mt-1 text-xs opacity-60">
                     {ru.catalog.travelFrom(cityNameRu(plan.profile.city.slug))} ·{' '}
                     {ru.catalog.travelDates(
-                      plan.fromDate.toISOString().slice(0, 10),
-                      plan.toDate.toISOString().slice(0, 10),
+                      formatDateRu(plan.fromDate),
+                      formatDateRu(plan.toDate),
                     )}
                   </p>
                   <div className="mt-2 grid grid-cols-3 gap-1 overflow-hidden rounded-lg">

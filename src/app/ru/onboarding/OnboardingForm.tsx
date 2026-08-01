@@ -184,8 +184,16 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
 
         <label className={`btn btn-outline mt-3 ${pending ? 'opacity-50' : 'cursor-pointer'}`}>
           {pending ? ru.onboarding.uploadingBtn : ru.onboarding.uploadBtn}
+          {/* value сбрасываем ПОСЛЕ обработки (аудит 2026-08-01, P1): иначе
+              повторный выбор ТЕХ ЖЕ файлов не вызывает change, и после
+              неудачной загрузки кнопка выглядит мёртвой — на самом хрупком
+              шаге воронки, где без фото анкету не отправить. */}
           <input type="file" accept="image/*" multiple className="hidden" disabled={pending}
-            onChange={(e) => uploadPhotos(e.target.files)} />
+            onChange={async (e) => {
+              const input = e.currentTarget;
+              await uploadPhotos(input.files);
+              input.value = '';
+            }} />
         </label>
         {error && <p role="alert" className="mt-2 text-sm text-accent">{error}</p>}
 

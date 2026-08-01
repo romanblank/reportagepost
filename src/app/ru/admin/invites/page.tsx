@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/admin';
 import { invitesList } from '@/lib/invites';
 import { APP_DOMAIN } from '@/lib/constants';
 import { ru } from '@/i18n/ru';
+import { formatDateRu } from '@/lib/date-format';
 import { InviteCreator } from './InviteCreator';
 import { CopyLink } from './CopyLink';
 
@@ -49,7 +50,7 @@ export default async function AdminInvitesPage() {
                   <td className="py-2 pr-3">{inv.usedCount} / {inv.maxUses}</td>
                   <td className="py-2 pr-3">{inv.registered}</td>
                   <td className="py-2 pr-3">
-                    {inv.expiresAt ? inv.expiresAt.toISOString().slice(0, 10) : ru.adminInvites.noExpiry}
+                    {inv.expiresAt ? formatDateRu(inv.expiresAt) : ru.adminInvites.noExpiry}
                   </td>
                 </tr>
               ))}

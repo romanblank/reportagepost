@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 import { inAppNotifications, markNotificationsRead } from '@/lib/notifications';
 import { ru } from '@/i18n/ru';
+import { formatDateRu } from '@/lib/date-format';
 
 export const metadata: Metadata = { title: ru.notifications.title };
 export const dynamic = 'force-dynamic';
@@ -37,7 +38,7 @@ export default async function NotificationsPage() {
                   {!n.readAt && <span className="mr-2 inline-block h-2 w-2 rounded-full bg-accent align-middle" />}
                   {ru.notifications.templates[n.type] ?? n.type}
                 </span>
-                <span className="shrink-0 text-xs muted">{n.createdAt.toISOString().slice(0, 10)}</span>
+                <span className="shrink-0 text-xs muted">{formatDateRu(n.createdAt)}</span>
               </Link>
             </li>
           ))}
