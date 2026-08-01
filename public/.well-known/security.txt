@@ -1,0 +1,7 @@
+# Канал для сообщений о найденных уязвимостях (аудит 2026-08-01, P2).
+# Без него нашедший проблему человек либо молчит, либо пишет публично —
+# и то и другое хуже, чем письмо оператору.
+Contact: mailto:support@reportagepost.com
+Preferred-Languages: ru, en
+Canonical: https://reportagepost.com/.well-known/security.txt
+Expires: 2027-08-01T00:00:00.000Z

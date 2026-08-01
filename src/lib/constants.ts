@@ -23,3 +23,8 @@ export const OPEN_REGISTRATION = true;
 // Версия согласия на обработку ПДн (152-ФЗ). Растёт при изменении текста
 // политики — фиксируется в User.pdnConsentVersion для аудита согласий.
 export const PDN_CONSENT_VERSION = '2026-07-15';
+
+// Имя cookie с решением по трекингу (аудит 2026-08-01, P2). Живёт здесь, а не
+// в route-файле: Next.js разрешает роутам экспортировать только свои
+// служебные поля и валит сборку на любом постороннем экспорте.
+export const COOKIE_CONSENT_NAME = 'rp_consent';

@@ -37,7 +37,8 @@ export function POST(req: Request) {
       const message = await sendMessage(session.userId, parsed.data.recipientId, parsed.data.body);
       // Живая доставка получателю (SSE): событие → браузер обновит тред/счётчик
       publishToUser(parsed.data.recipientId, { type: 'message', from: session.userId });
-      void notifyInApp(parsed.data.recipientId, 'notification.message.new', {});
+      // Собеседник в payload — уведомление открывает нужный тред, а не список
+      void notifyInApp(parsed.data.recipientId, 'notification.message.new', { peerId: session.userId });
       // Telegram-уведомление (если привязан). Не блокируем ответ — fire-and-forget.
       void notifyTelegram(
         parsed.data.recipientId,

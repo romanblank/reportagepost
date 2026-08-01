@@ -41,6 +41,13 @@ function viewedCookie(req: Request): string[] {
 
 export function POST(req: Request) {
   return handleRoute(async () => {
+    // Отказ от аналитики уважаем (аудит 2026-08-01, P2): beacon просмотра — это
+    // необязательный трекинг, и раньше он шёл независимо от решения человека
+    // в cookie-баннере. Считаем просмотр только при явном согласии; отсутствие
+    // решения тоже трактуем как отказ — молчание согласием не является.
+    const consent = (req.headers.get('cookie') ?? '').match(/(?:^|;\s*)rp_consent=([^;]+)/)?.[1] ?? '';
+    if (!consent.startsWith('all')) return NextResponse.json({ ok: true, counted: false });
+
     const body = await req.json().catch(() => ({}));
     const profileId = typeof body?.profileId === 'string' ? body.profileId : null;
     if (!profileId) return jsonError('bad_request', 400);

@@ -233,7 +233,7 @@ export default async function CabinetPage() {
       )}
 
       {session.role === 'PHOTOGRAPHER' && (
-        <section className="mt-6">
+        <section id="inquiries" className="mt-6 scroll-mt-20">
           <h2 className="t-h3">{ru.cabinet.inquiriesTitle}</h2>
           {profile?.status !== 'APPROVED' ? (
             <p className="mt-2 text-sm muted">{ru.cabinet.inquiriesLocked}</p>

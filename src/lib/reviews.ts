@@ -32,7 +32,7 @@ export async function addReview(authorUserId: string, profileId: string, rating:
 
   const profile = await db.photographerProfile.findUnique({
     where: { id: profileId },
-    select: { status: true, userId: true },
+    select: { status: true, userId: true, username: true },
   });
   if (!profile || profile.status !== 'APPROVED') throw new DomainError('target_not_found', 404);
   if (profile.userId === authorUserId) throw new DomainError('review_self', 400);
@@ -58,7 +58,9 @@ export async function addReview(authorUserId: string, profileId: string, rating:
     throw e;
   }
   await recomputeOne(profileId); // отзыв влияет на рейтинг → пересчёт
-  void notifyInApp(profile.userId, 'notification.review.new', {}); // фотографу
+  // Кладём адрес страницы автора: отзывы живут на публичном профиле, и без
+  // этого уведомление вело в кабинет, где отзыва нет (аудит 2026-08-01, P2).
+  void notifyInApp(profile.userId, 'notification.review.new', { username: profile.username });
   return created;
 }
 
