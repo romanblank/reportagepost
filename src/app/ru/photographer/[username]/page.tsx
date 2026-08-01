@@ -6,7 +6,7 @@ import { categoryNameRu } from '@/lib/category-data';
 import { webVariantUrl, thumbVariantUrl } from '@/lib/photos';
 import Link from 'next/link';
 import { formatRubMinor } from '@/lib/money';
-import { ru } from '@/i18n/ru';
+import { ru, label } from '@/i18n/ru';
 import { getSession } from '@/lib/auth';
 import { FavoriteButton, FollowButton, MessageButton } from '@/components/EngagementButtons';
 import { PortfolioGallery } from '@/components/PortfolioGallery';
@@ -198,7 +198,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
         verified={profile.verified}
         verifiedHint={ru.profile.verifiedHint}
         tier={photographerTier}
-        tierLabel={photographerTier !== 'FREE' ? ru.pro.tierName[photographerTier] : ''}
+        tierLabel={photographerTier !== 'FREE' ? label(ru.pro.tierName, photographerTier) : ''}
         photosCount={profile.photos.length}
         photosLabel={ru.profile.statPhotos}
         facts={heroFacts}

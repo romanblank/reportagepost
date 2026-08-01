@@ -5,7 +5,7 @@ import { db } from '@/lib/db';
 import { formatRubMinor } from '@/lib/money';
 import { PLAN_FEATURES, featureInTier, priceForCity, annualSavingPct, type PlanTier } from '@/lib/pricing';
 import { cityNameRu } from '@/lib/geo-data';
-import { ru } from '@/i18n/ru';
+import { ru, label } from '@/i18n/ru';
 
 export const metadata: Metadata = { title: ru.pro.kicker };
 export const dynamic = 'force-dynamic'; // цена/CTA зависят от сессии, города, роли
@@ -60,7 +60,7 @@ export default async function ProPage() {
           <p className="mt-1 text-sm muted">&nbsp;</p>
           <ul className="mt-5 flex flex-col gap-2.5 text-sm">
             {PLAN_FEATURES.filter((f) => f.minTier === 'FREE').map((f) => (
-              <li key={f.key} className="flex gap-2.5"><Check on /> <span>{ru.pro.features[f.key]}</span></li>
+              <li key={f.key} className="flex gap-2.5"><Check on /> <span>{label(ru.pro.features, f.key)}</span></li>
             ))}
           </ul>
         </div>
@@ -114,7 +114,7 @@ export default async function ProPage() {
             <tbody>
               {PLAN_FEATURES.map((f) => (
                 <tr key={f.key} className="border-b border-line/60">
-                  <td className="py-2.5 pr-4">{ru.pro.features[f.key]}</td>
+                  <td className="py-2.5 pr-4">{label(ru.pro.features, f.key)}</td>
                   {(['FREE', 'PRIME', 'ELITE'] as PlanTier[]).map((t) => (
                     <td key={t} className="py-2.5 text-center"><Check on={featureInTier(f, t)} /></td>
                   ))}

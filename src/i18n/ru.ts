@@ -14,6 +14,17 @@ export function plural(n: number, forms: [string, string, string]): string {
   return forms[2];
 }
 
+/**
+ * Безопасный доступ к словарным картам (аудит 2026-08-01, P1).
+ * Карты помечены `as Record<string, string>`, поэтому TypeScript не проверяет
+ * полноту: добавили новый перк/уровень в код, забыли строку в словаре — и
+ * интерфейс показывает пустоту. Здесь возвращаем сам ключ как последнее
+ * средство: техничный текст лучше дыры. Полнота карт проверяется тестом.
+ */
+export function label(map: Record<string, string>, key: string): string {
+  return map[key] ?? key;
+}
+
 export const ru = {
   meta: {
     title: 'Репортаж Пост',
@@ -185,7 +196,10 @@ export const ru = {
   catalog: {
     title: (city: string) => `Репортажные фотографы — ${city}`,
     metaDescription: (city: string, count: number) =>
-      `Каталог репортажных фотографов: ${city}. ${count} проверенных фотографов: портфолио, цены, прямой контакт.`,
+      // «Проверенных» обещать нельзя (аудит 2026-08-01): verified — ручной
+      // флаг у единиц, а в описании стояло у ВСЕХ. Ложное обещание в выдаче
+      // бьёт по доверию и формально является недостоверной рекламой.
+      `Каталог репортажных фотографов: ${city}. ${count} ${plural(count, ['фотограф', 'фотографа', 'фотографов'])}: портфолио, цены, свободные даты, прямой контакт без комиссии.`,
     // Город × категория (SEO-страницы)
     categoryTitle: (category: string, city: string) => `${category} — фотографы, ${city}`,
     categoryMetaDescription: (category: string, city: string, count: number) =>

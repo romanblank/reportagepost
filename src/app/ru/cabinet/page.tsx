@@ -7,7 +7,7 @@ import { inquiriesForPhotographer } from '@/lib/inquiries';
 import { cityNameRu } from '@/lib/geo-data';
 import { categoryNameRu } from '@/lib/category-data';
 import { formatRubMinor } from '@/lib/money';
-import { ru } from '@/i18n/ru';
+import { ru, label } from '@/i18n/ru';
 import { LogoutButton } from '@/components/LogoutButton';
 import { TelegramLinkButton } from '@/components/TelegramLinkButton';
 import { profileCompleteness } from '@/lib/profile-completeness';
@@ -73,7 +73,7 @@ export default async function CabinetPage() {
 
   // PRO-статус (Метрика №1: поверхность оплаты в кабинете)
   const subStatus = session.role === 'PHOTOGRAPHER' && profile ? await subscriptionStatus(session.userId) : null;
-  const lockedPerks = PLAN_FEATURES.filter((f) => f.minTier !== 'FREE').map((f) => ru.pro.features[f.key]);
+  const lockedPerks = PLAN_FEATURES.filter((f) => f.minTier !== 'FREE').map((f) => label(ru.pro.features, f.key));
   const graceUntil = subStatus?.graceEndsAt ? new Intl.DateTimeFormat('ru-RU').format(subStatus.graceEndsAt) : null;
   // Статистика — ценность подписки (только для активных Prime/Elite)
   const stats = subStatus && subStatus.tier !== 'FREE' && profile
@@ -223,7 +223,7 @@ export default async function CabinetPage() {
               <p className="mt-3 text-sm muted">{ru.cabinet.completenessHint}</p>
               <ul className="mt-1 flex flex-wrap gap-2">
                 {completeness.missing.map((k) => (
-                  <li key={k} className="rounded-full bg-surface-2 px-3 py-1 text-xs">{ru.cabinet.completenessItem[k]}</li>
+                  <li key={k} className="rounded-full bg-surface-2 px-3 py-1 text-xs">{label(ru.cabinet.completenessItem, k)}</li>
                 ))}
               </ul>
             </>
