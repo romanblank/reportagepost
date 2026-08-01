@@ -56,3 +56,4 @@ next-env.d.ts
 .agents/
 .claude/skills/
 skills-lock.json
+.uploads-test/

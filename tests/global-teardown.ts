@@ -17,6 +17,11 @@ import 'dotenv/config';
 const TEST_EMAIL = '%@test.local';
 
 export async function teardown(): Promise<void> {
+  // Файлы, записанные фото/аватар-пайплайном, тоже за собой убираем: раньше
+  // они копились в .uploads бесконечно (аудит 2026-08-01, P2).
+  const { rm } = await import('node:fs/promises');
+  await rm('.uploads-test', { recursive: true, force: true }).catch(() => {});
+
   if (!process.env.DATABASE_URL) return; // без БД тесты и так пропускались
 
   const { db } = await import('@/lib/db');

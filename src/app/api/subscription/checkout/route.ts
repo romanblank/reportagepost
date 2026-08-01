@@ -33,8 +33,8 @@ export function POST(req: Request) {
       const { paymentUrl } = await createPayment({
         amountMinor,
         orderId,
-        description: `Подписка ${name}`,
-        itemName: `Подписка ${name} — доступ на 1 месяц`,
+        description: ru.pro.paymentDescription(name),
+        itemName: ru.pro.paymentItemName(name),
         successUrl: `${BASE_URL}/ru/cabinet?paid=1`,
         failUrl: `${BASE_URL}/ru/pro?failed=1`,
         notificationUrl: `${BASE_URL}/api/tinkoff/webhook`,

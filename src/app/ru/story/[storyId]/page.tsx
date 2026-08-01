@@ -1,4 +1,5 @@
 import { cache } from 'react';
+import { APP_NAME } from '@/lib/constants';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -42,7 +43,7 @@ export async function generateMetadata(props: { params: Promise<{ storyId: strin
   const ogImage = raw ? (raw.startsWith('http') ? raw : `${BASE_URL}${raw}`) : undefined;
   return {
     title, description,
-    openGraph: { type: 'article', title, description, siteName: 'Репортаж Пост', images: ogImage ? [ogImage] : undefined },
+    openGraph: { type: 'article', title, description, siteName: APP_NAME, images: ogImage ? [ogImage] : undefined },
     twitter: { card: ogImage ? 'summary_large_image' : 'summary', title, description, images: ogImage ? [ogImage] : undefined },
   };
 }

@@ -1,4 +1,5 @@
 import { cache } from 'react';
+import { APP_NAME } from '@/lib/constants';
 import type { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { db } from '@/lib/db';
@@ -109,7 +110,7 @@ export async function generateMetadata(props: {
     description,
     alternates: { canonical: url },
     openGraph: {
-      type: 'profile', url, title, description, siteName: 'Репортаж Пост',
+      type: 'profile', url, title, description, siteName: APP_NAME,
       images: ogImage ? [{ url: ogImage, width: cover!.width, height: cover!.height }] : undefined,
     },
     twitter: {

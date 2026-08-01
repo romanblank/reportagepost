@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { ru } from '@/i18n/ru';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import { getSession } from '@/lib/auth';
@@ -12,7 +13,7 @@ const ProfileSchema = z.object({
     .string()
     .trim()
     .toLowerCase()
-    .regex(/^[a-z0-9][a-z0-9-]{2,29}$/, 'a-z, 0-9, дефис; 3–30 символов'),
+    .regex(/^[a-z0-9][a-z0-9-]{2,29}$/, ru.validation.usernameFormat),
   citySlug: z.string().trim(),
   categorySlugs: z.array(z.string().trim()).min(1).max(3),
   bio: z.string().trim().max(2000).optional(),

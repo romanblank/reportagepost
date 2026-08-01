@@ -83,6 +83,9 @@ export const ru = {
     entityFallback: '[реквизиты ИП уточняются]',
   },
   pro: {
+    // Назначение платежа: видно в приложении банка и в чеке
+    paymentDescription: (tier: string) => `Подписка ${tier}`,
+    paymentItemName: (tier: string) => `Подписка ${tier} — доступ на 1 месяц`,
     kicker: 'Подписка',
     navLabel: 'Подписка',
     title: 'Инструменты автора и участие в сообществе',
@@ -194,6 +197,8 @@ export const ru = {
     whyText: 'В соцсетях работы тонут в ленте, на бирже фотограф теряется среди случайных исполнителей. Здесь — только событийная съёмка: живой отклик заказчиков и подтверждённые съёмки вместо случайных оценок.',
   },
   catalog: {
+    // alt карточки: его читают вслух скринридеры и видят при неудачной загрузке
+    cardAlt: (name: string, city: string) => `Репортажная съёмка — ${name}, ${city}`,
     title: (city: string) => `Репортажные фотографы — ${city}`,
     metaDescription: (city: string, count: number) =>
       // «Проверенных» обещать нельзя (аудит 2026-08-01): verified — ручной
@@ -984,6 +989,8 @@ export const ru = {
   },
   auth: {
     passwordHint: 'Минимум 10 символов',
+    // Подписи полей для разбора ошибок формы — тоже видимый пользователю текст
+    fieldLabels: { firstName: 'имя', lastName: 'фамилия', email: 'email', password: 'пароль', inviteCode: 'код приглашения' } as Record<string, string>,
     registerTitle: 'Присоединиться к Репортаж Пост',
     registerLeadPhotographer: 'Страница автора: ваши работы, находки редакции и прямые заявки на съёмку.',
     registerLeadClient: 'Найдите автора для события — по городу, дате и портфолио.',
@@ -1109,6 +1116,10 @@ export const ru = {
     errorNoContact: 'Укажите телефон или email',
     errorGeneric: 'Не получилось отправить. Проверьте поля и попробуйте ещё раз.',
     fieldLabels: { description: 'описание', contactName: 'имя', contactPhone: 'телефон', contactEmail: 'email' } as Record<string, string>,
+  },
+  validation: {
+    // Подсказка формата адреса страницы — приходит с сервера в теле ошибки
+    usernameFormat: 'a-z, 0-9, дефис; 3–30 символов',
   },
 } as const;
 

@@ -14,7 +14,7 @@ export function CatalogCards({ cards, cityName }: { cards: CatalogCard[]; cityNa
     <ul className="mt-6 grid grid-cols-1 gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
       {cards.map((card) => {
         const catNames = card.categories.map((slug) => categoryNameRu(slug));
-        const alt = `Репортажная съёмка — ${card.firstName} ${card.lastName}, ${cityName}`;
+        const alt = ru.catalog.cardAlt(`${card.firstName} ${card.lastName}`, cityName);
         return (
           <li key={card.username} className="group">
             <Link href={`/ru/photographer/${card.username}`} className="block">

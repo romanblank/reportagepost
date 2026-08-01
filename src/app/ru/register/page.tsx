@@ -57,7 +57,7 @@ function RegisterForm() {
         invite_invalid: ru.auth.errorInvite,
         email_taken: ru.auth.errorEmailTaken,
       },
-      fieldLabels: { firstName: 'имя', lastName: 'фамилия', email: 'email', password: 'пароль', inviteCode: 'код приглашения' },
+      fieldLabels: ru.auth.fieldLabels,
       fallback: ru.auth.errorRegister,
     }));
   }

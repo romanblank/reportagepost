@@ -41,6 +41,12 @@ jobs:
       # Миграции ПЕРЕД тестами (паттерн Verifi)
       - run: npx prisma migrate deploy && npx prisma generate
       - run: npm run db:seed
+      # Lint и тайпчек в CI (аудит 2026-08-01, P2): раньше качество кода
+      # держалось только на локальном prepare-deploy — то есть на памяти
+      # разработчика. Пуш в обход гейта проходил незамеченным, а ошибки типов
+      # в tests/ не ловились вообще (next build проверяет лишь бандл).
+      - run: npm run lint
+      - run: npm run typecheck
       - run: npm test
       - run: npm run e2e # e2e-батарея (S2-критерий): полный цикл + петля доверия на чистом PG
       - run: npm run build
