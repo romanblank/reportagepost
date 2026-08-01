@@ -1,0 +1,55 @@
+#cloud-config
+# Первичная подготовка VM (аудит 2026-08-01, P2: bootstrap нигде не был описан,
+# знание жило только в переписке). Передаётся при создании инстанса:
+#   yc compute instance create --metadata-from-file user-data=deploy/cloud-init.yaml
+#
+# Здесь только то, что setup-server.sh УЖЕ ПРЕДПОЛАГАЕТ готовым: пользователь,
+# docker, nginx, certbot. Всё остальное — конфиги, секреты, контейнер, cron —
+# делает деплой-workflow, и дублировать это тут нельзя: разъедется.
+
+users:
+  - name: rp
+    groups: [sudo, docker]
+    shell: /bin/bash
+    sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+    ssh_authorized_keys:
+      # Публичный ключ деплоя. Приватная половина — в секрете PROD_SSH_KEY
+      # репозитория; на машине её нет и быть не должно.
+      - ssh-ed25519 AAAA_ЗАМЕНИТЬ_НА_РЕАЛЬНЫЙ_КЛЮЧ deploy@reportagepost
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - ca-certificates
+  - curl
+  - gnupg
+  - nginx
+  - certbot
+  - python3-certbot-nginx
+  - python3
+
+runcmd:
+  # Docker из официального репозитория: в дистрибутивном пакете Ubuntu нет
+  # compose-плагина, которым пользуется деплой.
+  - install -m 0755 -d /etc/apt/keyrings
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+  - chmod a+r /etc/apt/keyrings/docker.asc
+  - >
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc]
+    https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable"
+    > /etc/apt/sources.list.d/docker.list
+  - apt-get update
+  - apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  - systemctl enable --now docker
+  - usermod -aG docker rp
+  # Каталог платформы: дальше им распоряжается setup-server.sh
+  - mkdir -p /opt/reportagepost
+  - chown rp:rp /opt/reportagepost
+  # Firewall: наружу только SSH и веб. Postgres и приложение слушают локально.
+  - ufw allow 22/tcp
+  - ufw allow 80/tcp
+  - ufw allow 443/tcp
+  - ufw --force enable
+
+final_message: "VM готова к деплою. Дальше — deploy/BOOTSTRAP.md, шаги 2-5."
