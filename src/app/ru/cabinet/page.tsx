@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { InquiryCard } from '@/components/InquiryCard';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
@@ -241,21 +242,23 @@ export default async function CabinetPage() {
           ) : (
             <ul className="mt-3 flex flex-col gap-3">
               {inquiries.map((i) => (
-                <li key={i.id} className="card p-4 text-sm">
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <span className="font-medium">{i.contactName}</span>
-                    <span className="opacity-60">
-                      {cityNameRu(i.city.slug)}
-                      {i.category ? ` · ${categoryNameRu(i.category.slug)}` : ''}
-                    </span>
-                  </div>
-                  <p className="mt-1">{i.description}</p>
-                  <p className="mt-2 muted">
-                    {i.eventDate && `${ru.cabinet.eventDate}: ${formatDateRu(i.eventDate)} · `}
-                    {i.budgetMinor != null && `${ru.cabinet.budget}: ${formatRubMinor(i.budgetMinor)} · `}
-                    {i.contactPhone ?? i.contactEmail ?? ''}
-                  </p>
-                </li>
+                <InquiryCard
+                  key={i.id}
+                  inquiryId={i.id}
+                  contactName={i.contactName}
+                  contactPhone={i.contactPhone}
+                  contactEmail={i.contactEmail}
+                  clientUserId={i.clientUserId}
+                  description={i.description}
+                  meta={{
+                    place: `${cityNameRu(i.city.slug)}${i.category ? ` · ${categoryNameRu(i.category.slug)}` : ''}`,
+                    details: [
+                      i.eventDate ? `${ru.cabinet.eventDate}: ${formatDateRu(i.eventDate)}` : null,
+                      i.budgetMinor != null ? `${ru.cabinet.budget}: ${formatRubMinor(i.budgetMinor)}` : null,
+                    ].filter(Boolean).join(' · '),
+                  }}
+                  initialHandling={i.handling}
+                />
               ))}
             </ul>
           )}

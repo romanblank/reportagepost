@@ -74,6 +74,10 @@ export default async function RootLayout({
       {/* pb-16 на мобиле — под нижнюю таб-навигацию */}
       <body className="min-h-full flex flex-col pb-16 sm:pb-0">
         <ToastProvider>
+          {/* id — цель для inert на время открытой модалки (лайтбокс рендерится
+              порталом в body, поэтому сам под inert не попадает). display:contents
+              не меняет верстку. */}
+          <div id="app-root" className="contents">
           <Chrome
             header={<SiteHeader />}
             footer={<SiteFooter />}
@@ -82,6 +86,7 @@ export default async function RootLayout({
           >
             {children}
           </Chrome>
+          </div>
           {session && <LiveUpdates />}
         </ToastProvider>
       </body>

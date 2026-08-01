@@ -218,43 +218,44 @@ enum ModerationStatus {
 }
 
 model PhotographerProfile {
-  id              String            @id @default(cuid())
-  userId          String            @unique
-  username        String            @unique // @slug профиля
-  usernameHistory UsernameHistory[] // прежние адреса → редирект
-  cityId          String
-  bio             String?
-  siteUrl         String?
-  whatsapp        String? // E.164
-  telegram        String? // @username
-  languages       String[]          @default(["ru"]) // языки общения, ISO 639-1
-  verified        Boolean           @default(false) // админ-верификация (trust-бейдж MyWed)
-  avatarKey       String? // ключ аватара в хранилище (квадрат); нет — показываем инициалы
-  coverPhotoId    String? // выбранная обложка каталога (иначе — лучший/первый кадр)
-  experienceYears Int? // стаж в годах (богатство анкеты, паритет MyWed)
-  equipment       String? // legacy free-text; структурированные поля ниже (паритет MyWed + B2B-агрегация)
-  cameras         String[]          @default([]) // камеры (структурировано для экспорта)
-  lenses          String[]          @default([]) // оптика
-  lighting        String[]          @default([]) // свет
-  teamInfo        String? // соло / команда / ассистенты
-  doesVideo       Boolean           @default(false) // снимает видео (роль «Фотограф · Видеограф»)
+  id               String            @id @default(cuid())
+  userId           String            @unique
+  username         String            @unique // @slug профиля
+  usernameHistory  UsernameHistory[] // прежние адреса → редирект
+  inquiryHandlings InquiryHandling[] // отметки по входящим заявкам
+  cityId           String
+  bio              String?
+  siteUrl          String?
+  whatsapp         String? // E.164
+  telegram         String? // @username
+  languages        String[]          @default(["ru"]) // языки общения, ISO 639-1
+  verified         Boolean           @default(false) // админ-верификация (trust-бейдж MyWed)
+  avatarKey        String? // ключ аватара в хранилище (квадрат); нет — показываем инициалы
+  coverPhotoId     String? // выбранная обложка каталога (иначе — лучший/первый кадр)
+  experienceYears  Int? // стаж в годах (богатство анкеты, паритет MyWed)
+  equipment        String? // legacy free-text; структурированные поля ниже (паритет MyWed + B2B-агрегация)
+  cameras          String[]          @default([]) // камеры (структурировано для экспорта)
+  lenses           String[]          @default([]) // оптика
+  lighting         String[]          @default([]) // свет
+  teamInfo         String? // соло / команда / ассистенты
+  doesVideo        Boolean           @default(false) // снимает видео (роль «Фотограф · Видеограф»)
   // «Показать номер» (паритет MyWed): ЯВНЫЙ опт-ин — телефон собран для верификации,
   // без согласия на страницу не выводится. Раскрытие кликом через API + событие.
-  showPhone       Boolean           @default(false)
-  showreelUrls    String[]          @default([]) // шоурилы по ссылке (YouTube/Vimeo/RuTube/VK — whitelist-embed)
-  faq             Json? // [{q,a}] частые вопросы (богатство анкеты, паритет MyWed)
-  status          ModerationStatus  @default(PENDING)
-  rejectReason    String?
-  revisionNote    String? // комментарий «на доработку» (виден фотографу)
+  showPhone        Boolean           @default(false)
+  showreelUrls     String[]          @default([]) // шоурилы по ссылке (YouTube/Vimeo/RuTube/VK — whitelist-embed)
+  faq              Json? // [{q,a}] частые вопросы (богатство анкеты, паритет MyWed)
+  status           ModerationStatus  @default(PENDING)
+  rejectReason     String?
+  revisionNote     String? // комментарий «на доработку» (виден фотографу)
   // Денормализованный рейтинг для сортировки каталога (пересчёт фоном).
   // v1: полнота профиля + свежесть; v2 (S2): взвешенные лайки со сгоранием.
-  ratingScore     Int               @default(0)
+  ratingScore      Int               @default(0)
   // Денормализованный вес подписки в каталоге. Разворот 2026-07-25 (синергия, не
   // классовость): каталог ранжируется MERIT-первым (ratingScore), подписка — лишь
   // МЯГКИЙ tiebreaker в пределах равного рейтинга, НЕ pay-for-position. 0 = FREE;
   // PRIME_RANK = Prime; ELITE_RANK = Elite. Экспирация — реконсилятором.
-  proRank         Int               @default(0)
-  createdAt       DateTime          @default(now())
+  proRank          Int               @default(0)
+  createdAt        DateTime          @default(now())
 
   user               User                   @relation(fields: [userId], references: [id])
   city               City                   @relation(fields: [cityId], references: [id])
@@ -603,6 +604,32 @@ enum InquiryStatus {
   CLOSED
 }
 
+// Персональная отметка фотографа по заявке (аудит 2026-08-01, P2).
+// Заявка веерная: её видят ВСЕ одобренные фотографы города, поэтому общий
+// Inquiry.status тут не годится — один закрыл бы лид всем остальным. Отметка
+// личная: «беру в работу» / «не берусь». Без неё повторный вход в кабинет не
+// показывал, что уже отработано, и лиды терялись — при том что доведение
+// заявки до сделки и есть метрика №1 продукта.
+model InquiryHandling {
+  id        String        @id @default(cuid())
+  inquiryId String
+  profileId String
+  state     HandlingState
+  updatedAt DateTime      @updatedAt
+  createdAt DateTime      @default(now())
+
+  inquiry Inquiry             @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  profile PhotographerProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([inquiryId, profileId])
+  @@index([profileId, state])
+}
+
+enum HandlingState {
+  IN_PROGRESS
+  DECLINED
+}
+
 model Inquiry {
   id                String        @id @default(cuid())
   clientUserId      String? // может быть гость — тогда контакты ниже
@@ -624,9 +651,10 @@ model Inquiry {
   pdnConsentVersion String?
   createdAt         DateTime      @default(now())
 
-  client   User?     @relation(fields: [clientUserId], references: [id])
-  city     City      @relation(fields: [cityId], references: [id])
-  category Category? @relation(fields: [categoryId], references: [id])
+  handlings InquiryHandling[] // персональные отметки фотографов
+  client    User?             @relation(fields: [clientUserId], references: [id])
+  city      City              @relation(fields: [cityId], references: [id])
+  category  Category?         @relation(fields: [categoryId], references: [id])
 
   @@index([cityId, status, createdAt(sort: Desc)])
   @@index([clientUserId])

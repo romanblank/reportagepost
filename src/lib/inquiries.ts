@@ -161,15 +161,62 @@ async function deliverExternal(
   }
 }
 
-/** Заявки для фотографа: его город, открытые. (PRO-гейт добавится в S5.) */
+/**
+ * Заявки для фотографа: его город, открытые, с ЕГО отметкой обработки.
+ * (PRO-гейт добавится в S5.)
+ *
+ * Отметка личная (аудит 2026-08-01, P2): заявку видят все фотографы города,
+ * поэтому общий статус закрыл бы лид всем сразу. Отработанные уезжают вниз —
+ * сверху то, чем ещё никто не занимался.
+ */
 export async function inquiriesForPhotographer(userId: string) {
   const profile = await db.photographerProfile.findUnique({ where: { userId } });
   if (!profile || profile.status !== 'APPROVED') return null;
 
-  return db.inquiry.findMany({
+  const rows = await db.inquiry.findMany({
     where: { cityId: profile.cityId, status: 'OPEN' },
     orderBy: { createdAt: 'desc' },
     take: 50,
-    include: { category: true, city: true },
+    include: {
+      category: true,
+      city: true,
+      handlings: { where: { profileId: profile.id }, select: { state: true } },
+    },
+  });
+
+  return rows
+    .map((i) => ({ ...i, handling: i.handlings[0]?.state ?? null }))
+    .sort((a, b) => {
+      // Новые сверху, «в работе» следом, «не берусь» — в конец
+      const rank = (h: string | null) => (h === null ? 0 : h === 'IN_PROGRESS' ? 1 : 2);
+      return rank(a.handling) - rank(b.handling) || b.createdAt.getTime() - a.createdAt.getTime();
+    });
+}
+
+/**
+ * Отметка фотографа по заявке: «беру в работу» / «не берусь» / снять отметку.
+ * Идемпотентна, чужие заявки (другой город) не принимает.
+ */
+export async function setInquiryHandling(
+  userId: string,
+  inquiryId: string,
+  state: 'IN_PROGRESS' | 'DECLINED' | null,
+): Promise<void> {
+  const profile = await db.photographerProfile.findUnique({ where: { userId } });
+  if (!profile || profile.status !== 'APPROVED') throw new DomainError('forbidden', 403);
+
+  const inquiry = await db.inquiry.findUnique({ where: { id: inquiryId }, select: { cityId: true } });
+  if (!inquiry) throw new DomainError('not_found', 404);
+  // Отмечать можно только то, что фотографу вообще показывают
+  if (inquiry.cityId !== profile.cityId) throw new DomainError('forbidden', 403);
+
+  if (state === null) {
+    await db.inquiryHandling.deleteMany({ where: { inquiryId, profileId: profile.id } });
+    return;
+  }
+  await db.inquiryHandling.upsert({
+    where: { inquiryId_profileId: { inquiryId, profileId: profile.id } },
+    create: { inquiryId, profileId: profile.id, state },
+    update: { state },
   });
 }

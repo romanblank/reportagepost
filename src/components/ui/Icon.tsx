@@ -9,7 +9,8 @@ export type IconName =
   | 'heart' | 'heart-filled'
   | 'check' | 'check-badge'
   | 'chevron-left' | 'chevron-right'
-  | 'message' | 'bell' | 'camera' | 'user' | 'search' | 'calendar' | 'x' | 'plus';
+  | 'message' | 'bell' | 'camera' | 'user' | 'search' | 'calendar' | 'x' | 'plus'
+  | 'phone' | 'mail';
 
 const PATHS: Record<IconName, { d: string; fill?: boolean }> = {
   star: { d: 'M12 3.5l2.6 5.27 5.82.85-4.21 4.1.99 5.79L12 17.77l-5.2 2.73.99-5.79-4.21-4.1 5.82-.85L12 3.5z' },
@@ -18,6 +19,9 @@ const PATHS: Record<IconName, { d: string; fill?: boolean }> = {
   heart: { d: 'M12 20s-7-4.35-9.33-8.03C1.3 9.5 2.28 6.5 5.1 6.02 7 5.7 8.9 6.6 12 9.5c3.1-2.9 5-3.8 6.9-3.48 2.82.48 3.8 3.48 2.43 5.95C19 15.65 12 20 12 20z' },
   'heart-filled': { d: 'M12 20s-7-4.35-9.33-8.03C1.3 9.5 2.28 6.5 5.1 6.02 7 5.7 8.9 6.6 12 9.5c3.1-2.9 5-3.8 6.9-3.48 2.82.48 3.8 3.48 2.43 5.95C19 15.65 12 20 12 20z', fill: true },
   check: { d: 'M4.5 12.5l5 5 10-11' },
+  // Действия по входящей заявке — звонок и почта в один тап
+  phone: { d: 'M6.5 3.5h3l1.5 4-2 1.5a11 11 0 005 5l1.5-2 4 1.5v3a1.5 1.5 0 01-1.7 1.5C10.9 17.6 6.4 13.1 5 6.2A1.5 1.5 0 016.5 3.5z' },
+  mail: { d: 'M3.5 6.5h17v11h-17v-11zm0 .5l8.5 6 8.5-6' },
   'check-badge': { d: 'M9 12l2 2 4-4M12 3l2.09 1.26 2.44-.2.99 2.24 2.02 1.38-.66 2.36.66 2.36-2.02 1.38-.99 2.24-2.44-.2L12 21l-2.09-1.26-2.44.2-.99-2.24-2.02-1.38.66-2.36-.66-2.36 2.02-1.38.99-2.24 2.44.2L12 3z' },
   'chevron-left': { d: 'M15 5l-7 7 7 7' },
   'chevron-right': { d: 'M9 5l7 7-7 7' },
