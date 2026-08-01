@@ -1101,4 +1101,29 @@ export const ru = {
   },
 } as const;
 
-export type Dictionary = typeof ru;
+/**
+ * Тип словаря для будущих локалей (аудит 2026-08-01, P1).
+ *
+ * Было `type Dictionary = typeof ru` — и это НЕ работало как задел: словарь
+ * помечен `as const`, поэтому каждое поле имело тип-ЛИТЕРАЛ ('Репортаж Пост',
+ * а не string). Любой `const en: Dictionary` не собрался бы: TypeScript
+ * требовал бы дословно русские строки. То есть заявленная опора для en.ts
+ * ломалась на первой же строке — обнаружилось бы только при локализации.
+ *
+ * Widen рекурсивно расширяет литералы до примитивов, сохраняя ФОРМУ словаря
+ * (набор ключей, вложенность, сигнатуры функций-шаблонов). Проверка полноты
+ * остаётся: пропущенный или лишний ключ в en.ts — ошибка компиляции.
+ */
+type Widen<T> = T extends string
+  ? string
+  : T extends number
+    ? number
+    : T extends boolean
+      ? boolean
+      : T extends (...args: infer A) => infer R
+        ? (...args: A) => Widen<R>
+        : T extends readonly (infer E)[]
+          ? readonly Widen<E>[]
+          : { [K in keyof T]: Widen<T[K]> };
+
+export type Dictionary = Widen<typeof ru>;

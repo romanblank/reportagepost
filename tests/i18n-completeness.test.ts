@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ru, label } from '@/i18n/ru';
+import { ru, label, type Dictionary } from '@/i18n/ru';
 import { PLAN_FEATURES } from '@/lib/pricing';
 
 // Полнота словарных карт (аудит 2026-08-01, P1).
@@ -62,5 +62,27 @@ describe('i18n: карты покрывают все ключи, использ�
     // Несуществующий ключ: пользователь увидит технический код, но не пустоту
     expect(label(ru.pro.tierName, 'НЕТ_ТАКОГО')).toBe('НЕТ_ТАКОГО');
     expect(label({}, 'x')).toBe('x');
+  });
+});
+
+// Тип-уровневая проверка задела на en.ts (аудит 2026-08-01, P1).
+//
+// Vitest исполняет только рантайм, поэтому «тест» здесь — сам факт компиляции:
+// эти присваивания проверяет `npm run typecheck` в гейте. Если Dictionary
+// снова начнёт нести литеральные типы, английские строки перестанут
+// присваиваться и сборка упадёт — ровно то, что раньше не ловилось.
+type EnMeta = Dictionary['meta'];
+const enMeta: EnMeta = {
+  title: 'Reportage Post',
+  description: 'A community of reportage photographers: work, client gratitude and direct booking requests.',
+};
+
+// Шаблоны-функции сохраняют сигнатуру, но не язык
+const enTemplate: Dictionary['inquiry']['sentNotified'] = (n: number) => `Photographers notified: ${n}.`;
+
+describe('i18n: словарь пригоден как основа для второй локали', () => {
+  it('английские значения ложатся в форму словаря', () => {
+    expect(enMeta.title).toBe('Reportage Post');
+    expect(enTemplate(3)).toContain('3');
   });
 });

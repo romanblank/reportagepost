@@ -34,6 +34,14 @@ echo "→ npm run lint"
 npm run lint >/dev/null 2>&1 || say "Lint падает (ошибки ESLint — прогони: npm run lint)"
 
 # 5. Тесты и билд
+# 5. Тайпчек ВСЕГО проекта, включая tests/ (аудит 2026-08-01, P1).
+# `next build` проверяет типы только того, что попадает в бандл, — тесты и
+# скрипты не проверялись ничем. Ошибка типа в тесте всплывала бы лишь при
+# падении рантайма, а тип-уровневые проверки (задел на en.ts) вообще не имели
+# исполнителя. tsc --noEmit покрывает include из tsconfig целиком.
+echo "→ npm run typecheck"
+npm run typecheck --silent || say "Ошибки типов (tsc --noEmit)"
+
 echo "→ npm test"
 npm test --silent || say "Тесты падают"
 # Билд БЕЗ DATABASE_URL — как реальный Docker-билд в CI (урок 2026-07-14:
