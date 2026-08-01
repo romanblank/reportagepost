@@ -1,5 +1,10 @@
 // Единый разбор ответа API в человекочитаемую ошибку (аудит: клиент выбрасывал
 // details/429, показывая общее «проверьте поля»). Используется всеми формами.
+//
+// Строки — из словаря (аудит 2026-08-01, P1): здесь жили зашитые тексты, хотя
+// их видит КАЖДЫЙ пользователь при любом сбое формы. Инвариант «строки UI
+// только из i18n» держался в компонентах, но протекал в серверных либах.
+import { ru } from '@/i18n/ru';
 
 interface ApiErrorBody {
   error?: string;
@@ -14,10 +19,10 @@ interface ApiErrorBody {
  */
 export async function describeApiError(
   res: Response | null,
-  opts: { fieldLabels?: Record<string, string>; codeLabels?: Record<string, string>; fallback: string } = { fallback: 'Что-то пошло не так. Попробуйте ещё раз.' },
+  opts: { fieldLabels?: Record<string, string>; codeLabels?: Record<string, string>; fallback?: string } = {},
 ): Promise<string> {
-  if (!res) return 'Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.';
-  if (res.status === 429) return 'Слишком много попыток. Подождите минуту и попробуйте снова.';
+  if (!res) return ru.formErrors.offline;
+  if (res.status === 429) return ru.formErrors.tooMany;
 
   const body: ApiErrorBody | null = await res.json().catch(() => null);
   const code = body?.error;
@@ -31,9 +36,9 @@ export async function describeApiError(
         const why = msgs?.[0];
         return why ? `${label}: ${why}` : label;
       });
-    if (parts.length > 0) return `Проверьте поля — ${parts.join('; ')}`;
+    if (parts.length > 0) return ru.formErrors.checkFields(parts.join('; '));
   }
 
   if (body?.message) return body.message;
-  return opts.fallback;
+  return opts.fallback ?? ru.formErrors.generic;
 }

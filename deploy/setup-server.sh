@@ -131,6 +131,53 @@ MNT
 sudo chmod +x /usr/local/bin/rp-maintenance.sh
 echo '30 2 * * * root /usr/local/bin/rp-maintenance.sh >/dev/null 2>&1' | sudo tee /etc/cron.d/rp-maintenance >/dev/null
 
+# ── Сторож самих сторожей (аудит 2026-08-01) ─────────────────────────────────
+# Проблема: ВСЯ система наблюдения жила в GitHub Actions, а GitHub отключает
+# scheduled workflows после 60 дней без коммитов в репозиторий — молча. Плюс
+# минуты Actions однажды кончились, и встал не только деплой, но и бэкап с
+# uptime-пробой. Итог: «тишина» неотличима от «всё хорошо».
+#
+# Этот сторож живёт НА VM и раз в сутки проверяет, что ночной бэкап реально
+# случился: смотрит возраст последнего дампа в бакете. Не пришёл за 36 часов —
+# значит цепочка Actions встала, и оператор узнаёт об этом сам, а не когда
+# понадобится восстановление.
+sudo tee /usr/local/bin/rp-heartbeat.sh >/dev/null <<'HB'
+#!/usr/bin/env bash
+set -uo pipefail
+cd /opt/reportagepost || exit 0
+
+notify() {
+  local tok chat
+  tok=$(grep -E '^TELEGRAM_BOT_TOKEN=' .env.prod 2>/dev/null | cut -d= -f2-)
+  chat=$(grep -E '^TELEGRAM_ALERT_CHAT_ID=' .env.prod 2>/dev/null | cut -d= -f2-)
+  [ -n "$tok" ] && [ -n "$chat" ] || return 0
+  curl -s -m 15 "https://api.telegram.org/bot${tok}/sendMessage" \
+    --data-urlencode "chat_id=${chat}" --data-urlencode "text=$1" >/dev/null || true
+}
+
+ID=$(grep -E '^S3_ACCESS_KEY_ID=' .env.prod | cut -d= -f2-)
+SEC=$(grep -E '^S3_SECRET_ACCESS_KEY=' .env.prod | cut -d= -f2-)
+EP=$(grep -E '^S3_ENDPOINT=' .env.prod | cut -d= -f2-)
+BUCKET=$(grep -E '^S3_BUCKET=' .env.prod | cut -d= -f2-)
+[ -n "$ID" ] && [ -n "$BUCKET" ] || exit 0
+
+LAST=$(docker run --rm -e AWS_ACCESS_KEY_ID="$ID" -e AWS_SECRET_ACCESS_KEY="$SEC" \
+  -e AWS_DEFAULT_REGION=ru-central1 amazon/aws-cli --endpoint-url "$EP" \
+  s3 ls "s3://${BUCKET}/db-backups/" 2>/dev/null | sort | tail -1 | awk '{print $1" "$2}')
+
+if [ -z "$LAST" ]; then
+  notify "🔴 Reportage Post: в бакете НЕТ НИ ОДНОГО дампа БД. Бэкапы не работают."
+  exit 1
+fi
+
+AGE_H=$(( ( $(date -u +%s) - $(date -u -d "$LAST" +%s 2>/dev/null || echo 0) ) / 3600 ))
+if [ "$AGE_H" -gt 36 ]; then
+  notify "🔴 Reportage Post: последний бэкап БД сделан ${AGE_H} ч назад (норма — сутки). Ночная задача в GitHub Actions, похоже, встала."
+fi
+HB
+sudo chmod +x /usr/local/bin/rp-heartbeat.sh
+echo '0 12 * * * root /usr/local/bin/rp-heartbeat.sh >/dev/null 2>&1' | sudo tee /etc/cron.d/rp-heartbeat >/dev/null
+
 # ── Прививка от переполнения диска (инцидент 2026-07-24) ──────────────────────
 # Корень был в деплое (образы не чистились после подмены — фикс в deploy.yml).
 # Здесь — belt-and-suspenders, чтобы диск не забился НИКОГДА:

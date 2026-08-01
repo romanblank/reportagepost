@@ -4,6 +4,7 @@ import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import type { UserRole } from '@prisma/client';
 import { db } from '@/lib/db';
+import { ru } from '@/i18n/ru';
 
 // ─── Пароли (argon2id — стандарт 2026) ─────────────────────────────────────
 
@@ -155,7 +156,7 @@ export async function verifyYandexPendingToken(token: string): Promise<YandexPen
     return {
       yandexId: payload.yandexId,
       email: (typeof payload.email === 'string' ? payload.email : null),
-      firstName: typeof payload.firstName === 'string' ? payload.firstName : 'Пользователь',
+      firstName: typeof payload.firstName === 'string' ? payload.firstName : ru.formErrors.unknownUser,
       lastName: typeof payload.lastName === 'string' ? payload.lastName : '—',
     };
   } catch {
