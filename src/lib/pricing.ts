@@ -1,11 +1,13 @@
+import type { SubscriptionTier } from '@prisma/client';
 // Тарифы PRO. Деньги — в минорных единицах (копейки), инвариант «деньги = integer».
 // Цена зависит от города (VISION/S5): столицы — премиум-паритет с MyWed, дальше
 // вниз. Оператор меняет суммы ЗДЕСЬ. Разворот 2026-07-16 (deep-think): оффер PRO
 // строится на СТАТУСЕ (бейдж/Признание/безлимит/founding), заявки — вторичный
 // перк (заработает с ростом клиентского спроса). Годовая = ~10×месяц (−17%).
 
-export type PlanTier = 'FREE' | 'PRIME' | 'ELITE';
-export type PaidTier = 'PRIME' | 'ELITE';
+// Производные от enum Prisma, а не третья копия союза (аудит 2026-08-01, P2)
+export type PlanTier = SubscriptionTier;
+export type PaidTier = Exclude<SubscriptionTier, 'FREE'>;
 export type CityTier = 'A' | 'B' | 'C';
 
 export interface CityPrice {

@@ -3,6 +3,11 @@ import { db } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import { recordProfileView, viewedRecently } from '@/lib/analytics';
 import { handleRoute, jsonError } from '@/lib/errors';
+// clientIp — из общего модуля (аудит 2026-08-01, P2): здесь жила его копия,
+// и правка приоритета заголовков (x-real-ip перед XFF — она уже была) должна
+// была вноситься в два места. Map-лимитер ниже остаётся: для beacon-а с
+// частотой в десятки в минуту запись в БД на каждый запрос неоправданна.
+import { clientIp } from '@/lib/rate-limit';
 
 // Beacon просмотра профиля (POST { profileId }). Защита от инфляции метрики
 // (это платная ценность Prime/Elite) и абьюза открытого эндпоинта:
@@ -26,12 +31,6 @@ function rateLimited(ip: string, max = 30, windowMs = 60_000): boolean {
   RL.set(ip, arr);
   if (RL.size > 5000) { for (const [k, v] of RL) if (v.every((t) => now - t > windowMs)) RL.delete(k); }
   return false;
-}
-
-function clientIp(req: Request): string {
-  return req.headers.get('x-real-ip')
-    || req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-    || 'unknown';
 }
 
 function viewedCookie(req: Request): string[] {

@@ -116,3 +116,54 @@ describe('catalog: ранжирование v1 (полнота + свежест�
     expect(stale).toBe(0);
   });
 });
+
+// Обложка каталога (аудит 2026-08-01, P2): выбранная автором обложка искалась
+// внутри усечённой выборки из 6 свежих кадров — у активно публикующего автора
+// она туда не попадала, и карточка молча возвращалась к последнему кадру.
+describe.skipIf(!hasDb)('catalog: обложка автора уважается независимо от давности кадра (БД)', () => {
+  const ids: string[] = [];
+  afterAll(async () => {
+    const { db } = await import('@/lib/db');
+    await db.photographerProfile.updateMany({ where: { userId: { in: ids } }, data: { coverPhotoId: null } });
+    await db.photo.deleteMany({ where: { profile: { userId: { in: ids } } } });
+    await db.profileCategory.deleteMany({ where: { profile: { userId: { in: ids } } } });
+    await db.photographerProfile.deleteMany({ where: { userId: { in: ids } } });
+    await db.user.deleteMany({ where: { id: { in: ids } } });
+  });
+
+  it('обложкой стоит самый старый из 7 кадров — именно он попадает в карточку', async () => {
+    const { db } = await import('@/lib/db');
+    const { catalogForCity } = await import('@/lib/catalog');
+
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const city = await db.city.findFirstOrThrow({ where: { slug: 'moscow' } });
+    const cat = await db.category.findFirstOrThrow({ where: { slug: 'concerts-festivals' } });
+    const username = `cover-${stamp}`;
+
+    const u = await db.user.create({ data: { role: 'PHOTOGRAPHER', status: 'ACTIVE', firstName: 'Обл', lastName: 'Тест', email: `cover-${stamp}@test.local` } });
+    ids.push(u.id);
+    const p = await db.photographerProfile.create({
+      data: { userId: u.id, username, cityId: city.id, status: 'APPROVED', ratingScore: 9_500_000 },
+    });
+
+    // 7 кадров: индекс 0 — самый старый, он же будущая обложка
+    const photoIds: string[] = [];
+    for (let i = 0; i < 7; i++) {
+      const photo = await db.photo.create({
+        data: {
+          profileId: p.id, categoryId: cat.id, storageKey: `photos/${username}-${i}/original.jpg`,
+          width: 2400, height: 1600, status: 'APPROVED',
+          publishedAt: new Date(Date.now() - (7 - i) * 86_400_000),
+        },
+      });
+      photoIds.push(photo.id);
+    }
+    const oldest = photoIds[0];
+    await db.photographerProfile.update({ where: { id: p.id }, data: { coverPhotoId: oldest } });
+
+    const { cards } = await catalogForCity({ citySlug: 'moscow' });
+    const card = cards.find((c) => c.username === username);
+    expect(card, 'профиль не попал в выдачу — тест не проверяет то, что должен').toBeTruthy();
+    expect(card!.coverKey).toBe(`photos/${username}-0/original.jpg`);
+  });
+});

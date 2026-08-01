@@ -45,10 +45,31 @@ export function POST(req: Request) {
       db.emailVerification.deleteMany({ where: { expiresAt: { lt: cutoff } } }),
     ]);
 
+    // Ретенция журнала событий (аудит 2026-08-01, P2). ActivityEvent — самая
+    // растущая таблица платформы (строка на каждый уникальный просмотр
+    // профиля), а читается окном 30 дней. Без ретенции бесконечно дорожают
+    // дамп, restore-drill и сама запись. 400 дней — больше года, чтобы
+    // годовые сравнения оставались возможны.
+    // Батчами: один deleteMany на миллион строк держал бы длинную транзакцию
+    // и раздувал WAL.
+    const eventCutoff = new Date(Date.now() - 400 * 24 * 3_600_000);
+    let activityRows = 0;
+    for (let pass = 0; pass < 50; pass++) {
+      const batch = await db.activityEvent.findMany({
+        where: { createdAt: { lt: eventCutoff } },
+        select: { id: true },
+        take: 5_000,
+      });
+      if (batch.length === 0) break;
+      const { count } = await db.activityEvent.deleteMany({ where: { id: { in: batch.map((r) => r.id) } } });
+      activityRows += count;
+      if (batch.length < 5_000) break;
+    }
+
     return NextResponse.json({
       ok: true,
       profiles,
-      cleaned: { rateLimitRows, resets, verifications },
+      cleaned: { rateLimitRows, resets, verifications, activityRows },
       tookMs: Date.now() - startedAt,
     });
   });

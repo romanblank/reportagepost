@@ -437,6 +437,9 @@ enum TargetType {
 
 // Append-only журнал. Никогда не обновляется и не удаляется —
 // рейтинги, лента и виджеты считаются поверх него.
+// Журнал событий. ВАЖНО: рейтинг считается НЕ по нему, а по материализованным
+// Like (волна №6) — журнал остался источником аналитики просмотров и раскрытий
+// телефона в дашборде подписчика. Ретенция 400 дней (jobs/maintenance).
 model ActivityEvent {
   id          BigInt       @id @default(autoincrement())
   actorUserId String?
@@ -451,7 +454,10 @@ model ActivityEvent {
 
   @@index([targetType, targetId, createdAt])
   @@index([actorUserId, createdAt])
-  @@index([type, createdAt])
+  // Индекс [type, createdAt] снят (аудит 2026-08-01, P2): ни один запрос не
+  // начинается с type без targetId — все читают журнал по объекту
+  // (src/lib/analytics.ts). Лишний индекс дорожал на самой частой записи
+  // платформы (beacon просмотра пишет строку на каждый уникальный просмотр).
 }
 
 // Материализованные лайки (текущее состояние; история — в ActivityEvent)

@@ -61,10 +61,20 @@ describe.skipIf(!hasDb)('reviews: правила и агрегат (БД)', () =
     await replyToReview(owner.id, r1.id, 'Спасибо за отзыв!');
     expect((await db.review.findUniqueOrThrow({ where: { id: r1.id } })).reply).toBe('Спасибо за отзыв!');
 
-    // агрегат: (4 + 5) / 2 = 4.5, count 2
+    // Публичный агрегат — только счётчик. Средний балл 1–5 не должен покидать
+    // сервер вовсе (аудит 2026-08-01, P2): раньше он уезжал в RSC-payload и
+    // читался в исходнике страницы, хотя продукт публично от оценки отказался.
     const { aggregate, items } = await reviewsForProfile(profile.id);
     expect(aggregate.count).toBe(2);
-    expect(aggregate.avg).toBeCloseTo(4.5, 5);
+    expect(Object.keys(aggregate)).toEqual(['count']);
+    expect(JSON.stringify(aggregate)).not.toContain('avg');
+
+    // Среднее остаётся внутренним: его считают рейтинг и дашборд автора
+    const internalAvg = await db.review.aggregate({
+      where: { profileId: profile.id, status: 'VISIBLE', rating: { gte: 4 } },
+      _avg: { rating: true },
+    });
+    expect(internalAvg._avg.rating).toBeCloseTo(4.5, 5); // (4 + 5) / 2
     expect(items[0].verified).toBe(true); // verified сортируется выше
 
     // Отзывы влияют на рейтинг. Проверяем СВОЙСТВО, а не конкретное число:
@@ -73,7 +83,7 @@ describe.skipIf(!hasDb)('reviews: правила и агрегат (БД)', () =
     // Здесь две хорошие оценки (avg 4.5) → вклад строго положительный.
     const { reviewContribution } = await import('@/lib/rating');
     const prof = await db.photographerProfile.findUniqueOrThrow({ where: { id: profile.id } });
-    expect(reviewContribution(aggregate.avg, aggregate.count)).toBeGreaterThan(0);
+    expect(reviewContribution(internalAvg._avg.rating ?? 0, aggregate.count)).toBeGreaterThan(0);
     expect(prof.ratingScore).toBeGreaterThan(0);
 
     await db.message.deleteMany({ where: { OR: [{ senderId: owner.id }, { recipientId: owner.id }] } });

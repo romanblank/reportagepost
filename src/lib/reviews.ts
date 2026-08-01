@@ -103,7 +103,13 @@ export interface ReviewView {
 }
 
 export interface ReviewAggregate {
-  avg: number; // средняя оценка (0 если нет)
+  // Средней оценки здесь НЕТ намеренно (аудит 2026-08-01, P2).
+  // Рендер её и не показывал, но серверный компонент передавал объект в
+  // клиентский — значит avg уезжал в RSC-payload и читался в исходнике
+  // страницы. Продукт публично отказался от оценки 1–5 (design-record
+  // «доброжелательный рейтинг»), поэтому она не должна покидать сервер вовсе.
+  // Внутренние потребители среднего (рейтинг, дашборд автора) считают его
+  // сами, не пересекаясь с публичным путём.
   count: number;
 }
 
@@ -122,7 +128,7 @@ export async function reviewsForProfile(
       take: limit,
       include: { author: { select: { firstName: true, lastName: true } } },
     }),
-    db.review.aggregate({ where: pub, _avg: { rating: true }, _count: true }),
+    db.review.count({ where: pub }),
   ]);
   return {
     items: rows.map((r) => ({
@@ -136,6 +142,6 @@ export async function reviewsForProfile(
       reply: r.reply,
       repliedAt: r.repliedAt,
     })),
-    aggregate: { avg: agg._avg.rating ?? 0, count: agg._count },
+    aggregate: { count: agg },
   };
 }

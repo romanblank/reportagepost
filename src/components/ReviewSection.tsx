@@ -34,7 +34,7 @@ export function ReviewSection({
 }: {
   profileId: string;
   initial: ReviewItem[];
-  aggregate: { avg: number; count: number };
+  aggregate: { count: number };
   me: Me;
 }) {
   const router = useRouter();

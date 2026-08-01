@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { SubscriptionTier } from '@prisma/client';
 import { db } from '@/lib/db';
-import { priceForCity, cityTierOf } from '@/lib/pricing';
+import { priceForCity, cityTierOf, type PaidTier } from '@/lib/pricing';
 import { rankForTier } from '@/lib/subscription';
 import { DEFAULT_CURRENCY } from '@/lib/money';
 
@@ -9,7 +9,9 @@ import { DEFAULT_CURRENCY } from '@/lib/money';
 // по вебхуку. Провайдер за абстракцией (tinkoff.ts) — без терминала флоу не
 // инициируется, но логика зачисления полностью готова и покрыта тестами.
 
-export type PaidTier = 'PRIME' | 'ELITE';
+// Свой PaidTier здесь объявлялся независимо и мог молча разойтись с pricing —
+// теперь один импорт (аудит 2026-08-01, P2)
+export type { PaidTier } from '@/lib/pricing';
 const MONTH_MS = 30 * 24 * 60 * 60 * 1000;
 
 export interface Checkout {
@@ -78,7 +80,7 @@ export async function applyPaymentStatus(
     const cityTier = profile ? cityTierOf(profile.city.slug) : null;
 
     const data = {
-      tier: tier as SubscriptionTier,
+      tier,
       grandfathered: false, // оплаченная (не founding)
       priceMinorLocked: payment.amountMinor,
       cityTier,

@@ -1,4 +1,4 @@
-import type { Subscription } from '@prisma/client';
+import type { Subscription, SubscriptionTier } from '@prisma/client';
 import { db } from '@/lib/db';
 import { priceForCity, foundingPrice, BETA_GRACE_DAYS, type PaidTier } from '@/lib/pricing';
 
@@ -7,7 +7,13 @@ import { priceForCity, foundingPrice, BETA_GRACE_DAYS, type PaidTier } from '@/l
 // (бета-грейс), trial (пробный), currentPeriodEnd (оплаченный период).
 // Разворот 2026-07-25: FREE/PRIME/ELITE вместо FREE/PRO (синергия, не классовость).
 
-export type Tier = 'FREE' | 'PRIME' | 'ELITE';
+// Единственный источник правды об уровнях — enum Prisma (аудит 2026-08-01, P2).
+// Раньше тот же союз объявлялся трижды (Tier, PlanTier, SubscriptionTier), а
+// связь держалась на кастах `sub!.tier as Tier` — компилятор не проверял ничего.
+// Это ровно сценарий, который уже стоил проекту сборки (урок enum-расширения
+// 2026-07-15): добавили значение в enum — каст промолчал бы, а на Tier завязаны
+// бейджи, лимиты портфолио и цены. Теперь расширение enum падает на компиляции.
+export type Tier = SubscriptionTier;
 
 // Вес подписки в каталоге. МЯГКИЙ tiebreaker (merit-first), НЕ pay-for-position.
 export const PRIME_RANK = 100;
@@ -29,7 +35,7 @@ export async function subscriptionOf(userId: string): Promise<Subscription | nul
 
 // Активный уровень из записи (FREE, если не активна).
 export function activeTier(sub: Subscription | null, now: Date = new Date()): Tier {
-  return isSubActive(sub, now) ? (sub!.tier as Tier) : 'FREE';
+  return isSubActive(sub, now) ? sub!.tier : 'FREE';
 }
 
 export async function tierOf(userId: string, now: Date = new Date()): Promise<Tier> {

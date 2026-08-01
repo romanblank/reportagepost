@@ -100,6 +100,26 @@ async function toCards(shown: CatalogRow[]): Promise<CatalogCard[]> {
     : [];
   const recMap = new Map(recAgg.map((r) => [r.profileId, r._count]));
 
+  // Обложки догружаем ЯВНО (аудит 2026-08-01, P2). Раньше выбранная автором
+  // обложка искалась внутри уже усечённых 6 самых свежих кадров: у активно
+  // публикующего автора она туда не попадала, find молча не находил её и
+  // срабатывал фолбэк на последний кадр. Инструмент «выбрать обложку» переставал
+  // работать без единого сигнала — именно у самых деятельных участников беты.
+  // Запрашиваем только те обложки, которых нет в загруженной выборке.
+  const missingCoverIds = shown
+    .map((p) => p.coverPhotoId)
+    .filter((id): id is string => Boolean(id))
+    .filter((id) => !shown.some((p) => p.photos.some((ph) => ph.id === id)));
+  const extraCovers = missingCoverIds.length
+    ? await db.photo.findMany({
+        // Обложка должна оставаться опубликованной: снятая с публикации не
+        // может подменять карточку в каталоге
+        where: { id: { in: missingCoverIds }, status: 'APPROVED' },
+        select: { id: true, storageKey: true },
+      })
+    : [];
+  const coverMap = new Map(extraCovers.map((c) => [c.id, c.storageKey]));
+
   return shown.map((p) => ({
     username: p.username,
     verified: p.verified,
@@ -113,7 +133,8 @@ async function toCards(shown: CatalogRow[]): Promise<CatalogCard[]> {
       ? { hours: p.packages[0].hours, priceMinor: p.packages[0].priceMinor, currency: p.packages[0].currency }
       : null,
     coverKey:
-      (p.coverPhotoId && p.photos.find((ph) => ph.id === p.coverPhotoId)?.storageKey) ||
+      (p.coverPhotoId &&
+        (p.photos.find((ph) => ph.id === p.coverPhotoId)?.storageKey ?? coverMap.get(p.coverPhotoId))) ||
       p.photos[0]?.storageKey ||
       null,
     photoKeys: p.photos.map((ph) => ph.storageKey),
