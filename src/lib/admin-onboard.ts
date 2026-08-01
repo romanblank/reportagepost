@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { resolveCity } from '@/lib/geo-resolve';
 import { logAudit } from '@/lib/audit';
 import { DomainError } from '@/lib/errors';
 
@@ -34,7 +35,7 @@ export async function createPhotographerByAdmin(
   const usernameTaken = await db.photographerProfile.findUnique({ where: { username: input.username } });
   if (usernameTaken) throw new DomainError('username_taken', 409);
 
-  const city = await db.city.findFirst({ where: { slug: input.citySlug } });
+  const city = await resolveCity(input.citySlug);
   if (!city) throw new DomainError('city_not_found', 400);
 
   const categories = await db.category.findMany({ where: { slug: { in: input.categorySlugs }, active: true } });

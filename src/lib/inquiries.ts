@@ -1,4 +1,6 @@
 import { db } from '@/lib/db';
+import { resolveCity } from '@/lib/geo-resolve';
+import { rateLimit } from '@/lib/rate-limit';
 import { DomainError } from '@/lib/errors';
 import { notifyManyInApp } from '@/lib/notifications';
 import { sendEmail } from '@/lib/email';
@@ -46,7 +48,7 @@ export async function createInquiry(
     throw new InquiryError('no_contact'); // гостю нужен хотя бы один контакт
   }
 
-  const city = await db.city.findFirst({ where: { slug: input.citySlug } });
+  const city = await resolveCity(input.citySlug);
   if (!city) throw new InquiryError('city_not_found');
 
   let categoryId: string | undefined;
@@ -162,6 +164,31 @@ async function deliverExternal(
 }
 
 /**
+ * Маскирование контактов заказчика (аудит 2026-08-01, P2).
+ *
+ * Заявка веерная: её видят все одобренные фотографы города. Раньше вместе с ней
+ * уходили и телефон, и почта — то есть один аккаунт, прошедший модерацию, одним
+ * запросом выгружал всю базу лидов города. Для заказчика это неожиданно: он
+ * писал «фотографу», а контакты получили десятки человек.
+ *
+ * Теперь в списке контакты скрыты, а раскрываются по явному «беру в работу» —
+ * с записью в аудит-лог и суточным лимитом. Показываем достаточно, чтобы
+ * отличить заявки друг от друга, но недостаточно, чтобы связаться в обход.
+ */
+function maskPhone(phone: string): string {
+  // +7 999 123-45-67 → +7 ••• ••• 67
+  const tail = phone.slice(-2);
+  return `${phone.slice(0, 2)} ••• ••• ${tail}`;
+}
+
+function maskEmail(email: string): string {
+  const [name, domain] = email.split('@');
+  if (!domain) return '•••';
+  const head = name.slice(0, 1);
+  return `${head}${'•'.repeat(Math.max(2, Math.min(name.length - 1, 5)))}@${domain}`;
+}
+
+/**
  * Заявки для фотографа: его город, открытые, с ЕГО отметкой обработки.
  * (PRO-гейт добавится в S5.)
  *
@@ -185,7 +212,18 @@ export async function inquiriesForPhotographer(userId: string) {
   });
 
   return rows
-    .map((i) => ({ ...i, handling: i.handlings[0]?.state ?? null }))
+    .map((i) => {
+      const handling = i.handlings[0]?.state ?? null;
+      // Контакты открыты только тому, кто взял заявку в работу
+      const revealed = handling === 'IN_PROGRESS';
+      return {
+        ...i,
+        handling,
+        contactsRevealed: revealed,
+        contactPhone: i.contactPhone && !revealed ? maskPhone(i.contactPhone) : i.contactPhone,
+        contactEmail: i.contactEmail && !revealed ? maskEmail(i.contactEmail) : i.contactEmail,
+      };
+    })
     .sort((a, b) => {
       // Новые сверху, «в работе» следом, «не берусь» — в конец
       const rank = (h: string | null) => (h === null ? 0 : h === 'IN_PROGRESS' ? 1 : 2);
@@ -214,6 +252,30 @@ export async function setInquiryHandling(
     await db.inquiryHandling.deleteMany({ where: { inquiryId, profileId: profile.id } });
     return;
   }
+
+  // «Беру в работу» = раскрытие контактов заказчика. Это обращение с чужими
+  // персональными данными, поэтому оно ограничено и оставляет след.
+  if (state === 'IN_PROGRESS') {
+    const already = await db.inquiryHandling.findUnique({
+      where: { inquiryId_profileId: { inquiryId, profileId: profile.id } },
+      select: { state: true },
+    });
+    if (already?.state !== 'IN_PROGRESS') {
+      // Суточный потолок: добросовестному автору 20 лидов в день с запасом
+      // хватает, а массовую выгрузку базы города это обрубает.
+      await rateLimit(`inquiry-reveal:user:${userId}`, 20, 24 * 3600);
+      await db.adminAudit.create({
+        data: {
+          actorUserId: userId,
+          action: 'inquiry.contacts.reveal',
+          targetType: 'INQUIRY',
+          targetId: inquiryId,
+          meta: { profileId: profile.id },
+        },
+      });
+    }
+  }
+
   await db.inquiryHandling.upsert({
     where: { inquiryId_profileId: { inquiryId, profileId: profile.id } },
     create: { inquiryId, profileId: profile.id, state },

@@ -28,6 +28,7 @@ export function InquiryCard({
   description,
   meta,
   initialHandling,
+  contactsRevealed,
 }: {
   inquiryId: string;
   contactName: string;
@@ -38,6 +39,8 @@ export function InquiryCard({
   /** Город · жанр · дата · бюджет — собирается на сервере, здесь только показ. */
   meta: { place: string; details: string };
   initialHandling: HandlingState;
+  /** Контакты открыты только тому, кто взял заявку: это чужие ПДн. */
+  contactsRevealed: boolean;
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -77,15 +80,23 @@ export function InquiryCard({
       {meta.details && <p className="mt-2 muted">{meta.details}</p>}
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        {contactPhone && (
-          <a href={`tel:${contactPhone}`} className="btn btn-accent btn-sm">
-            <Icon name="phone" size={15} /> {contactPhone}
-          </a>
-        )}
-        {contactEmail && (
-          <a href={`mailto:${contactEmail}`} className="btn btn-outline btn-sm">
-            <Icon name="mail" size={15} /> {contactEmail}
-          </a>
+        {contactsRevealed ? (
+          <>
+            {contactPhone && (
+              <a href={`tel:${contactPhone}`} className="btn btn-accent btn-sm">
+                <Icon name="phone" size={15} /> {contactPhone}
+              </a>
+            )}
+            {contactEmail && (
+              <a href={`mailto:${contactEmail}`} className="btn btn-outline btn-sm">
+                <Icon name="mail" size={15} /> {contactEmail}
+              </a>
+            )}
+          </>
+        ) : (
+          <span className="text-xs muted">
+            {[contactPhone, contactEmail].filter(Boolean).join(' · ')} — {ru.cabinet.inquiryContactsHidden}
+          </span>
         )}
         {clientUserId && (
           <a href={`/ru/messages/${clientUserId}`} className="btn btn-outline btn-sm">
@@ -99,7 +110,7 @@ export function InquiryCard({
           <>
             <button type="button" onClick={() => void mark('IN_PROGRESS')} disabled={busy} aria-busy={busy}
               className="btn btn-ghost btn-sm disabled:opacity-60">
-              {ru.cabinet.inquiryTake}
+              {ru.cabinet.inquiryTakeAndReveal}
             </button>
             <button type="button" onClick={() => void mark('DECLINED')} disabled={busy} aria-busy={busy}
               className="btn btn-ghost btn-sm disabled:opacity-60">

@@ -258,6 +258,7 @@ export default async function CabinetPage() {
                     ].filter(Boolean).join(' · '),
                   }}
                   initialHandling={i.handling}
+                  contactsRevealed={i.contactsRevealed}
                 />
               ))}
             </ul>

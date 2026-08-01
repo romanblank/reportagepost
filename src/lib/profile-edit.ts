@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client';
+import { resolveCity } from '@/lib/geo-resolve';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import { DomainError } from '@/lib/errors';
@@ -60,7 +61,7 @@ export async function applyProfileEdit(
   }
   let newCityId: string | undefined;
   if (d.citySlug) {
-    const city = await db.city.findFirst({ where: { slug: d.citySlug } });
+    const city = await resolveCity(d.citySlug);
     if (!city) throw new DomainError('city_not_found', 400);
     newCityId = city.id;
   }

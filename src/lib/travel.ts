@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { resolveCity } from '@/lib/geo-resolve';
 import { DomainError } from '@/lib/errors';
 
 // Выездные графики: фотограф объявляет период работы в чужом городе.
@@ -16,7 +17,7 @@ export async function addTravelPlan(
   if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()) || to < from) {
     throw new DomainError('bad_dates', 400);
   }
-  const city = await db.city.findFirst({ where: { slug: input.citySlug } });
+  const city = await resolveCity(input.citySlug);
   if (!city) throw new DomainError('city_not_found', 400);
   if (city.id === profile.cityId) throw new DomainError('home_city', 400); // выезд в свой город бессмыслен
 
@@ -46,7 +47,7 @@ export async function travelPlansFor(userId: string) {
 
 /** Приезжие фотографы в городе на дату (или на «сейчас..будущее», если дата не задана). */
 export async function visitingCity(citySlug: string, onDate?: Date) {
-  const city = await db.city.findFirst({ where: { slug: citySlug } });
+  const city = await resolveCity(citySlug);
   if (!city) return [];
   const dateFilter = onDate
     ? { fromDate: { lte: onDate }, toDate: { gte: onDate } }

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { resolveCity } from '@/lib/geo-resolve';
 import { ru } from '@/i18n/ru';
 import { z } from 'zod';
 import { db } from '@/lib/db';
@@ -67,7 +68,7 @@ export function POST(req: Request) {
     });
     if (usernameTaken) return NextResponse.json({ error: 'username_taken' }, { status: 409 });
 
-    const city = await db.city.findFirst({ where: { slug: data.citySlug } });
+    const city = await resolveCity(data.citySlug);
     if (!city) return NextResponse.json({ error: 'city_not_found' }, { status: 400 });
 
     const categories = await db.category.findMany({

@@ -11,6 +11,7 @@ describe.skipIf(!hasDb)('заявки: отметка фотографа лич�
   const inquiryIds: string[] = [];
   afterAll(async () => {
     const { db } = await import('@/lib/db');
+    await db.adminAudit.deleteMany({ where: { targetId: { in: inquiryIds } } });
     await db.inquiryHandling.deleteMany({ where: { inquiryId: { in: inquiryIds } } });
     await db.notification.deleteMany({ where: { userId: { in: userIds } } });
     await db.inquiry.deleteMany({ where: { id: { in: inquiryIds } } });
@@ -68,5 +69,53 @@ describe.skipIf(!hasDb)('заявки: отметка фотографа лич�
     await setInquiryHandling(first, inquiry.id, null);
     const afterUndo = await inquiriesForPhotographer(first);
     expect(afterUndo?.find((i) => i.id === inquiry.id)?.handling).toBeNull();
+  });
+  it('контакты заказчика скрыты до отклика, раскрытие оставляет след в аудите', async () => {
+    const { db } = await import('@/lib/db');
+    const { setInquiryHandling, inquiriesForPhotographer } = await import('@/lib/inquiries');
+
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const moscow = await db.city.findFirstOrThrow({ where: { slug: 'moscow' } });
+    const u = await db.user.create({
+      data: { role: 'PHOTOGRAPHER', status: 'ACTIVE', firstName: 'Кон', lastName: 'Такт', email: `inqc-${stamp}@test.local` },
+    });
+    userIds.push(u.id);
+    await db.photographerProfile.create({
+      data: { userId: u.id, username: `inqc-${stamp}`, cityId: moscow.id, status: 'APPROVED' },
+    });
+
+    const inquiry = await db.inquiry.create({
+      data: {
+        contactName: 'Гость', contactPhone: '+79161234567', contactEmail: 'zakazchik@example.com',
+        cityId: moscow.id, description: 'Съёмка форума, один день.', status: 'OPEN',
+      },
+    });
+    inquiryIds.push(inquiry.id);
+
+    // До отклика — маска: отличить заявки можно, связаться в обход нельзя
+    const before = (await inquiriesForPhotographer(u.id))?.find((i) => i.id === inquiry.id);
+    expect(before?.contactsRevealed).toBe(false);
+    expect(before?.contactPhone).not.toBe('+79161234567');
+    expect(before?.contactPhone).toContain('•');
+    expect(before?.contactEmail).not.toBe('zakazchik@example.com');
+    expect(before?.contactEmail).toContain('@example.com'); // домен виден, имя — нет
+
+    await setInquiryHandling(u.id, inquiry.id, 'IN_PROGRESS');
+
+    const after = (await inquiriesForPhotographer(u.id))?.find((i) => i.id === inquiry.id);
+    expect(after?.contactsRevealed).toBe(true);
+    expect(after?.contactPhone).toBe('+79161234567');
+    expect(after?.contactEmail).toBe('zakazchik@example.com');
+
+    // Обращение с чужими ПДн обязано оставлять след
+    const audit = await db.adminAudit.findMany({
+      where: { action: 'inquiry.contacts.reveal', targetId: inquiry.id },
+    });
+    expect(audit).toHaveLength(1);
+    expect(audit[0].actorUserId).toBe(u.id);
+
+    // Повторная отметка того же состояния след не дублирует
+    await setInquiryHandling(u.id, inquiry.id, 'IN_PROGRESS');
+    expect(await db.adminAudit.count({ where: { action: 'inquiry.contacts.reveal', targetId: inquiry.id } })).toBe(1);
   });
 });
