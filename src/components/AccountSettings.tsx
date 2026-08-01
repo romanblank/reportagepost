@@ -1,15 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { ru } from '@/i18n/ru';
 import { useToast } from '@/components/ui/Toast';
 
 interface Initial { firstName: string; lastName: string; email: string | null; hasPassword: boolean }
 
 async function patch(body: Record<string, unknown>) {
-  const res = await fetch('/api/account/security', {
-    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
-  }).catch(() => null);
+  const res = await apiFetch('/api/account/security', { method: 'PATCH', body: body });
   return res;
 }
 
@@ -41,7 +40,7 @@ export function AccountSettings({ initial }: { initial: Initial }) {
     const res = await patch({ action: 'email', email, password: f.get('password') });
     setBusy(null);
     if (res?.ok) { toast(ru.settings.saved, 'success'); e.currentTarget.reset(); }
-    else { const d = await res?.json().catch(() => ({})); setErr({ email: errText(res?.status, d?.error) }); }
+    else setErr({ email: errText(res.status, res.error) });
   }
 
   async function submitPassword(e: React.FormEvent<HTMLFormElement>) {
@@ -50,7 +49,7 @@ export function AccountSettings({ initial }: { initial: Initial }) {
     const res = await patch({ action: 'password', current: f.get('current') ?? '', next: f.get('next') });
     setBusy(null);
     if (res?.ok) { toast(ru.settings.saved, 'success'); e.currentTarget.reset(); }
-    else { const d = await res?.json().catch(() => ({})); setErr({ password: errText(res?.status, d?.error) }); }
+    else setErr({ password: errText(res.status, res.error) });
   }
 
   return (

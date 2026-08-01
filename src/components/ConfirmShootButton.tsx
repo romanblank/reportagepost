@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { ru } from '@/i18n/ru';
 import { Icon } from '@/components/ui/Icon';
@@ -23,19 +24,19 @@ export function ConfirmShootButton({ profileId, initialConfirmed, authed }: {
       return;
     }
     setBusy(true);
-    const res = await fetch('/api/shoots/confirm', {
+    const res = await apiFetch('/api/shoots/confirm', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ profileId }),
-    }).catch(() => null);
+      body: { profileId },
+      codeLabels: { shoot_no_contact: ru.profile.shootNoContact },
+      fallback: ru.ui.toastError,
+    });
     setBusy(false);
-    if (res?.ok) {
+    if (res.ok) {
       setConfirmed(true);
       toast(ru.profile.shootConfirmedThanks, 'success');
       router.refresh();
     } else {
-      const code = ((await res?.json().catch(() => null)) as { error?: string } | null)?.error;
-      toast(code === 'shoot_no_contact' ? ru.profile.shootNoContact : ru.ui.toastError, 'danger');
+      toast(res.error, 'danger');
     }
   }
 

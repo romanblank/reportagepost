@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { ru } from '@/i18n/ru';
 
@@ -48,13 +49,9 @@ export function ThreadClient({ peerId, selfId, initial }: { peerId: string; self
     if (!body) return;
     setPending(true);
     setError(null);
-    const res = await fetch('/api/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ recipientId: peerId, body }),
-    }).catch(() => null);
+    const res = await apiFetch('/api/messages', { method: 'POST', body: { recipientId: peerId, body } });
     setPending(false);
-    if (res?.status === 201) {
+    if (res.ok) {
       form.reset();
       setMessages((prev) => [
         ...prev,
@@ -64,7 +61,7 @@ export function ThreadClient({ peerId, selfId, initial }: { peerId: string; self
       return;
     }
     // Раньше при не-201 не происходило НИЧЕГО (аудит P0: молчаливый провал)
-    setError(res?.status === 429 ? ru.messages.errorRate : ru.messages.errorSend);
+    setError(res.status === 429 ? ru.messages.errorRate : ru.messages.errorSend);
   }
 
   return (

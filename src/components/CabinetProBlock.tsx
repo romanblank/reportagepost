@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import Link from 'next/link';
 import { ru } from '@/i18n/ru';
 import { useToast } from '@/components/ui/Toast';
@@ -23,20 +24,16 @@ export function CabinetProBlock({ tier, isFounding, graceUntil, proRequested, lo
     setBusy(true);
     // Сначала пробуем оплату через Т-Кассу. Если терминал ещё не выдан
     // (not_configured), роут вернёт не-ok → откатываемся на ручную заявку.
-    const pay = await fetch('/api/subscription/checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tier: 'PRIME' }),
-    }).catch(() => null);
-    if (pay?.ok) {
-      const data = (await pay.json().catch(() => null)) as { paymentUrl?: string } | null;
+    const pay = await apiFetch('/api/subscription/checkout', { method: 'POST', body: { tier: 'PRIME' } });
+    if (pay.ok) {
+      const data = pay.data as { paymentUrl?: string } | null;
       if (data?.paymentUrl) {
         window.location.href = data.paymentUrl; // уходим на страницу оплаты
         return;
       }
     }
     // Фолбэк — ручная заявка (оператор активирует в закрытой бете).
-    const res = await fetch('/api/subscription/request', { method: 'POST' }).catch(() => null);
+    const res = await apiFetch('/api/subscription/request', { method: 'POST' });
     setBusy(false);
     if (!res?.ok) return toast(ru.cabinet.proError, 'danger');
     setRequested(true);

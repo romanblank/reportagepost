@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { ru } from '@/i18n/ru';
 import { cityNameRu } from '@/lib/geo-data';
 
@@ -33,14 +34,10 @@ export function TravelPlans({
     if (fromDate && toDate && toDate < fromDate) return setError(ru.travel.errDates);
     setError(null);
     setPending(true);
-    const res = await fetch('/api/profile/travel', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ citySlug, fromDate, toDate }),
-    }).catch(() => null);
+    const res = await apiFetch('/api/profile/travel', { method: 'POST', body: { citySlug, fromDate, toDate } });
     setPending(false);
     if (!res?.ok) return setError(ru.travel.errSave);
-    const { id } = await res.json();
+    const { id } = res.data as { id: string };
     setPlans((prev) =>
       [...prev, { id, citySlug, fromDate, toDate }].sort((a, b) => a.fromDate.localeCompare(b.fromDate)),
     );
@@ -52,11 +49,7 @@ export function TravelPlans({
   async function remove(id: string) {
     const prev = plans;
     setPlans((p) => p.filter((x) => x.id !== id)); // оптимистично
-    const res = await fetch('/api/profile/travel', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id }),
-    }).catch(() => null);
+    const res = await apiFetch('/api/profile/travel', { method: 'DELETE', body: { id } });
     if (!res?.ok) {
       setPlans(prev); // откат
       setError(ru.travel.errSave);

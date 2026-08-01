@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ru } from '@/i18n/ru';
@@ -17,18 +18,15 @@ export function RoleChoiceForm() {
   async function submit() {
     if (!consent) { setError(ru.auth.consentRequired); return; }
     setBusy(true); setError(null);
-    const res = await fetch('/api/auth/yandex/complete', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ role, pdnConsent: true }),
-    }).catch(() => null);
+    const res = await apiFetch('/api/auth/yandex/complete', { method: 'POST', body: { role, pdnConsent: true } });
     if (res?.ok) {
-      const d = await res.json();
+      const d = res.data as { redirect?: string };
       router.push(d.redirect ?? '/ru/cabinet');
       router.refresh();
       return;
     }
     setBusy(false);
-    setError(res?.status === 401 ? ru.auth.roleExpired : ru.auth.errorYandex);
+    setError(res.status === 401 ? ru.auth.roleExpired : ru.auth.errorYandex);
   }
 
   const cards: { value: Role; title: string; desc: string }[] = [

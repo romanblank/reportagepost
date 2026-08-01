@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { apiFetch, UPLOAD_TIMEOUT_MS } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import type { ModerationStatus } from '@prisma/client';
 import { ru } from '@/i18n/ru';
@@ -30,33 +31,31 @@ export function VideoManager({ videos, limit }: { videos: ManagedVideo[]; limit:
     // Шлём файл СЫРЫМ телом, а не multipart (аудит 2026-08-01, P2): сервер
     // стримит его в хранилище, не собирая 200 МБ в памяти контейнера.
     // Название ролика — заголовком (только ASCII, потому encodeURIComponent).
-    const res = await fetch('/api/profile/videos', {
+    const res = await apiFetch('/api/profile/videos', {
       method: 'POST',
       headers: { 'Content-Type': file.type, 'X-Video-Title': encodeURIComponent(file.name) },
       body: file,
-    }).catch(() => null);
+      // Ролик на 200 МБ по мобильной сети идёт дольше обычного потолка
+      timeoutMs: UPLOAD_TIMEOUT_MS,
+      codeLabels: {
+        file_too_large: ru.cabinetVideos.errTooLarge,
+        unsupported_format: ru.cabinetVideos.errFormat,
+        video_limit: ru.cabinetVideos.errLimit,
+      },
+      fallback: ru.cabinetVideos.errGeneric,
+    });
     setBusy(false);
     if (inputRef.current) inputRef.current.value = '';
-    if (res?.ok) {
+    if (res.ok) {
       router.refresh();
       return;
     }
-    const code = (await res?.json().catch(() => null))?.error as string | undefined;
-    setError(
-      code === 'file_too_large' ? ru.cabinetVideos.errTooLarge
-      : code === 'unsupported_format' ? ru.cabinetVideos.errFormat
-      : code === 'video_limit' ? ru.cabinetVideos.errLimit
-      : ru.cabinetVideos.errGeneric,
-    );
+    setError(res.error);
   }
 
   async function remove(id: string) {
     setBusy(true);
-    await fetch('/api/profile/videos', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ videoId: id }),
-    }).catch(() => null);
+    await apiFetch('/api/profile/videos', { method: 'DELETE', body: { videoId: id } });
     setBusy(false);
     router.refresh();
   }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { ru } from '@/i18n/ru';
 
@@ -13,10 +14,10 @@ export function TelegramLinkButton({ bound }: { bound: boolean }) {
   async function link() {
     setPending(true);
     setError(false);
-    const res = await fetch('/api/profile/telegram', { method: 'POST' }).catch(() => null);
+    const res = await apiFetch('/api/profile/telegram', { method: 'POST' });
     setPending(false);
     if (res?.ok) {
-      const { url } = await res.json();
+      const { url } = res.data as { url: string };
       window.open(url, '_blank', 'noopener'); // откроет чат с ботом и /start
     } else {
       setError(true);
@@ -25,7 +26,7 @@ export function TelegramLinkButton({ bound }: { bound: boolean }) {
 
   async function unlink() {
     setPending(true);
-    await fetch('/api/profile/telegram', { method: 'DELETE' }).catch(() => null);
+    await apiFetch('/api/profile/telegram', { method: 'DELETE' });
     setPending(false);
     router.refresh();
   }

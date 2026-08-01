@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { ru } from '@/i18n/ru';
@@ -25,11 +26,7 @@ function ResetForm() {
     setPending(true);
     setError(null);
     const password = new FormData(e.currentTarget).get('password');
-    const res = await fetch('/api/auth/password/reset', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, password }),
-    }).catch(() => null);
+    const res = await apiFetch('/api/auth/password/reset', { method: 'POST', body: { token, password } });
     setPending(false);
     if (res?.ok) { setDone(true); return; }
     setError(ru.auth.pwreset.resetInvalid);

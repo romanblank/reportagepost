@@ -1,10 +1,10 @@
 'use client';
 
 import { Suspense, useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ru } from '@/i18n/ru';
-import { describeApiError } from '@/lib/form-errors';
 import { AuthScene } from '@/components/AuthScene';
 import { YandexLoginButton } from '@/components/YandexLoginButton';
 
@@ -31,10 +31,7 @@ function RegisterForm() {
     setPending(true);
     setError(null);
     const f = new FormData(e.currentTarget);
-    const res = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    const res = await apiFetch('/api/auth/register', { method: 'POST', body: {
         role: f.get('role'),
         firstName: f.get('firstName'),
         lastName: f.get('lastName'),
@@ -42,16 +39,7 @@ function RegisterForm() {
         password: f.get('password'),
         inviteCode: f.get('inviteCode') || undefined,
         pdnConsent: consent,
-      }),
-    }).catch(() => null);
-    setPending(false);
-
-    if (res?.status === 201) {
-      router.push('/ru/cabinet');
-      router.refresh(); // обновить серверный layout (шапку) под новую сессию
-      return;
-    }
-    setError(await describeApiError(res, {
+      },
       codeLabels: {
         invite_required: ru.auth.errorInvite,
         invite_invalid: ru.auth.errorInvite,
@@ -59,7 +47,16 @@ function RegisterForm() {
       },
       fieldLabels: ru.auth.fieldLabels,
       fallback: ru.auth.errorRegister,
-    }));
+    });
+    setPending(false);
+
+    if (res.ok) {
+      router.push('/ru/cabinet');
+      router.refresh(); // обновить серверный layout (шапку) под новую сессию
+      return;
+    }
+    setError(res.error);
+
   }
 
   return (

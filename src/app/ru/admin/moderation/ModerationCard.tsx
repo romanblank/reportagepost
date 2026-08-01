@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { ru } from '@/i18n/ru';
 
@@ -18,15 +19,9 @@ export function ModerationCard(props: {
   async function decide(action: 'approve' | 'reject') {
     setPending(true);
     setError(null);
-    const res = await fetch('/api/admin/moderation', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(
-        action === 'approve'
+    const res = await apiFetch('/api/admin/moderation', { method: 'POST', body: action === 'approve'
           ? { action, profileId: props.profileId }
-          : { action, profileId: props.profileId, reason },
-      ),
-    }).catch(() => null);
+          : { action, profileId: props.profileId, reason }, });
     setPending(false);
     if (res?.ok) router.refresh();
     else setError(ru.admin.error);

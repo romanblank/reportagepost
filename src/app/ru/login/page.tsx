@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { apiFetch } from '@/lib/api';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -19,23 +20,19 @@ export default function LoginPage() {
     setPending(true);
     setError(null);
     const form = new FormData(e.currentTarget);
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: form.get('email'), password: form.get('password') }),
-    }).catch(() => null);
+    const res = await apiFetch('/api/auth/login', { method: 'POST', body: { email: form.get('email'), password: form.get('password') } });
     setPending(false);
 
-    if (res?.ok) {
-      const data = await res.json().catch(() => ({}));
+    if (res.ok) {
+      const data = res.data as { twoFactor?: boolean } | undefined;
       if (data?.twoFactor) { setTwoFactor(true); return; }
       router.push('/ru/cabinet');
       router.refresh(); // обновить серверный layout (шапку) под новую сессию
       return;
     }
-    if (res?.status === 401) setError(ru.auth.errorInvalid);
-    else if (res?.status === 403) setError(ru.auth.errorBanned);
-    else if (res?.status === 429) setError(ru.auth.errorRate);
+    if (res.status === 401) setError(ru.auth.errorInvalid);
+    else if (res.status === 403) setError(ru.auth.errorBanned);
+    else if (res.status === 429) setError(ru.auth.errorRate);
     else setError(ru.auth.errorGeneric);
   }
 
@@ -44,11 +41,7 @@ export default function LoginPage() {
     setPending(true);
     setError(null);
     const code = new FormData(e.currentTarget).get('code');
-    const res = await fetch('/api/auth/2fa/verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code }),
-    }).catch(() => null);
+    const res = await apiFetch('/api/auth/2fa/verify', { method: 'POST', body: { code } });
     setPending(false);
     if (res?.ok) { router.push('/ru/cabinet'); router.refresh(); return; }
     setError(ru.auth.twoFa.badCode);

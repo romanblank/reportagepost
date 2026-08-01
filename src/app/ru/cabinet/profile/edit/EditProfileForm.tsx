@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ru } from '@/i18n/ru';
-import { describeApiError } from '@/lib/form-errors';
+import { apiFetch, UPLOAD_TIMEOUT_MS } from '@/lib/api';
 import { normalizePhone, normalizeUrl } from '@/lib/phone-format';
 
 interface Initial {
@@ -97,10 +97,15 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
     setError(null);
     setSaved(false);
     if (cats.length === 0) { setPending(false); setError(ru.onboarding.needCategory); return; }
-    const res = await fetch(endpoint, {
+    const res = await apiFetch(endpoint, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+      codeLabels: {
+        username_taken: ru.adminPhotographers.errUsernameTaken,
+        city_not_found: ru.onboarding.needCategory,
+        category_not_found: ru.onboarding.needCategory,
+      },
+      fallback: ru.inquiry.errorGeneric,
+      body: {
         username: username.trim().toLowerCase(),
         citySlug,
         categorySlugs: cats,
@@ -119,23 +124,17 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
         languages: langs,
         faq: faq.map((f) => ({ q: f.q.trim(), a: f.a.trim() })).filter((f) => f.q && f.a).slice(0, 10),
         packages: packages.map((p) => ({ hours: p.hours, priceMinor: p.priceRub * 100, currency: 'RUB' })),
-      }),
-    }).catch(() => null);
+      },
+    });
     setPending(false);
-    if (res?.ok) {
+    if (res.ok) {
       setSaved(true);
       setDirty(false); // сохранили — предупреждать об уходе больше не о чем
       router.refresh();
       return;
     }
-    setError(await describeApiError(res, {
-      codeLabels: {
-        username_taken: ru.adminPhotographers.errUsernameTaken,
-        city_not_found: ru.onboarding.needCategory,
-        category_not_found: ru.onboarding.needCategory,
-      },
-      fallback: ru.inquiry.errorGeneric,
-    }));
+    setError(res.error);
+
   }
 
   async function uploadAvatar(file: File | null) {
@@ -144,9 +143,11 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
     setAvatarErr(false);
     const fd = new FormData();
     fd.set('file', file);
-    const res = await fetch('/api/profile/avatar', { method: 'POST', body: fd }).catch(() => null);
+    const res = await apiFetch('/api/profile/avatar', {
+      method: 'POST', body: fd, timeoutMs: UPLOAD_TIMEOUT_MS,
+    });
     setAvatarBusy(false);
-    if (res?.ok) {
+    if (res.ok) {
       // прежний blob освобождаем, иначе он висит до перезагрузки
       setAvatarUrl((prev) => {
         if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);

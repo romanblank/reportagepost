@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import Link from 'next/link';
 import { ru } from '@/i18n/ru';
 
@@ -23,9 +24,7 @@ export function CreatePhotographerForm({ cities, categories }: { cities: Option[
     const f = new FormData(e.currentTarget);
     const num = (v: FormDataEntryValue | null) => (v && String(v).trim() ? Number(v) : undefined);
     const str = (v: FormDataEntryValue | null) => { const s = v ? String(v).trim() : ''; return s || undefined; };
-    const res = await fetch('/api/admin/photographers', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    const res = await apiFetch('/api/admin/photographers', { method: 'POST', body: {
         firstName: str(f.get('firstName')), lastName: str(f.get('lastName')),
         email: str(f.get('email')), username: str(f.get('username')),
         citySlug: f.get('citySlug'), categorySlugs: cats,
@@ -33,14 +32,16 @@ export function CreatePhotographerForm({ cities, categories }: { cities: Option[
         equipment: str(f.get('equipment')), teamInfo: str(f.get('teamInfo')),
         whatsapp: str(f.get('whatsapp')), telegram: str(f.get('telegram')), siteUrl: str(f.get('siteUrl')),
         publish: f.get('publish') === 'on',
-      }),
-    }).catch(() => null);
+      },
+      codeLabels: {
+        email_taken: ru.adminPhotographers.errEmailTaken,
+        username_taken: ru.adminPhotographers.errUsernameTaken,
+      },
+      fallback: ru.adminPhotographers.errGeneric,
+    });
     setPending(false);
-    if (res?.status === 201) { setCreated(await res.json()); return; }
-    if (res?.status === 409) {
-      const d = await res.json().catch(() => ({}));
-      setError(d.error === 'email_taken' ? ru.adminPhotographers.errEmailTaken : ru.adminPhotographers.errUsernameTaken);
-    } else setError(ru.adminPhotographers.errGeneric);
+    if (res.ok) { setCreated(res.data as { username: string; profileId: string }); return; }
+    setError(res.error);
   }
 
   if (created) {

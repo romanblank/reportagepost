@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { ru } from '@/i18n/ru';
 
@@ -15,15 +16,11 @@ export function InviteCreator() {
   async function create(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setPending(true);
-    const res = await fetch('/api/admin/invites', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    const res = await apiFetch('/api/admin/invites', { method: 'POST', body: {
         note: note.trim() || undefined,
         maxUses: Number(maxUses) || 1,
         expiresDays: expiresDays.trim() ? Number(expiresDays) : undefined,
-      }),
-    }).catch(() => null);
+      } });
     setPending(false);
     if (res?.ok) {
       setNote(''); setMaxUses('1'); setExpiresDays('');

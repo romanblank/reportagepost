@@ -28,7 +28,16 @@ const DEFAULT_TIMEOUT_MS = 20_000;
 /** Загрузка файлов идёт долго — здесь потолок другой. */
 export const UPLOAD_TIMEOUT_MS = 180_000;
 
-export type ApiResult<T> = { ok: true; data: T } | { ok: false; error: string; status: number };
+export type ApiResult<T> =
+  | { ok: true; data: T }
+  /**
+   * error — готовый текст для человека; code — сырой доменный код с сервера
+   * (`username_taken`, `profile_exists`…). Код нужен там, где ответ 4xx не
+   * является ошибкой в смысле интерфейса: повторный сабмит анкеты, например,
+   * означает «уже создано, идём дальше». Сравнивать в таких местах ТЕКСТ было
+   * бы хрупко — он меняется при первой же правке словаря.
+   */
+  | { ok: false; error: string; status: number; code: string | null };
 
 export interface ApiOptions {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
@@ -77,7 +86,7 @@ async function once<T>(path: string, opts: ApiOptions): Promise<ApiResult<T>> {
   } catch {
     // Сеть недоступна или запрос отменён по таймауту — сообщение то же самое,
     // различать их пользователю незачем. status 0 = ответа не было вовсе.
-    return { ok: false, error: await describeApiError(null), status: 0 };
+    return { ok: false, error: await describeApiError(null), status: 0, code: null };
   }
 
   if (!res.ok) {
@@ -86,7 +95,8 @@ async function once<T>(path: string, opts: ApiOptions): Promise<ApiResult<T>> {
       codeLabels: opts.codeLabels,
       fallback: opts.fallback,
     });
-    return { ok: false, error, status: res.status };
+    const body = (await res.json().catch(() => null)) as { error?: string } | null;
+    return { ok: false, error, status: res.status, code: body?.error ?? null };
   }
 
   // 204 и пустое тело — законный успех без данных

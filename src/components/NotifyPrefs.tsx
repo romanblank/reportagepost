@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { ru } from '@/i18n/ru';
 
 // Переключатели внешних уведомлений. Сохраняются сразу по клику — отдельная
@@ -21,11 +22,7 @@ export function NotifyPrefs({
 
   async function save(patch: { notifyInquiriesEmail?: boolean; notifyInquiriesTg?: boolean }) {
     setError(false);
-    const res = await fetch('/api/profile/notifications', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(patch),
-    }).catch(() => null);
+    const res = await apiFetch('/api/profile/notifications', { method: 'PATCH', body: patch });
     if (res?.ok) {
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { ru } from '@/i18n/ru';
 
 // «Показать номер» (паритет MyWed): телефона нет в SSR-разметке — раскрытие
@@ -12,10 +13,10 @@ export function ShowPhoneButton({ profileId }: { profileId: string }) {
 
   async function reveal() {
     setPending(true);
-    const res = await fetch(`/api/profiles/${profileId}/phone`, { method: 'POST' }).catch(() => null);
+    const res = await apiFetch(`/api/profiles/${profileId}/phone`, { method: 'POST' });
     setPending(false);
     if (res?.ok) {
-      const data = (await res.json()) as { phone: string };
+      const data = res.data as { phone: string };
       setPhone(data.phone);
       return;
     }
@@ -23,7 +24,7 @@ export function ShowPhoneButton({ profileId }: { profileId: string }) {
     // пути — заказчик решил звонить. Исчезающий под пальцем CTA читается как
     // «телефона нет / сайт сломан», а перезагрузить страницу никто не догадается.
     // 429 здесь штатное состояние: двойной тап на телефоне уже может его словить.
-    setError(res?.status === 429 ? ru.profile.phoneTooOften : ru.ui.toastError);
+    setError(res.status === 429 ? ru.profile.phoneTooOften : ru.ui.toastError);
   }
   if (phone) {
     return (

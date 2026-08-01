@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { ru } from '@/i18n/ru';
 
 // Удаление аккаунта с подтверждением паролем (необратимо). После успеха — на главную.
@@ -14,11 +15,7 @@ export function DeleteAccountButton() {
     if (!password) return;
     setPending(true);
     setError(null);
-    const res = await fetch('/api/account', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password }),
-    }).catch(() => null);
+    const res = await apiFetch('/api/account', { method: 'DELETE', body: { password } });
     if (res?.ok) {
       window.location.href = '/'; // сессия убита, уходим на лендинг
       return;

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ru } from '@/i18n/ru';
@@ -24,13 +25,7 @@ export function PhotoModerationCard(props: {
   async function decide(action: 'approve' | 'reject') {
     setPending(true);
     setError(null);
-    const res = await fetch('/api/admin/moderation/photos', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(
-        action === 'approve' ? { action, photoId: props.photoId } : { action, photoId: props.photoId, reason },
-      ),
-    }).catch(() => null);
+    const res = await apiFetch('/api/admin/moderation/photos', { method: 'POST', body: action === 'approve' ? { action, photoId: props.photoId } : { action, photoId: props.photoId, reason }, });
     setPending(false);
     if (res?.ok) router.refresh();
     else setError(ru.admin.error);

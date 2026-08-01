@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { ru } from '@/i18n/ru';
 import { Icon } from '@/components/ui/Icon';
 import { StatusBadge } from '@/components/ui/Badge';
@@ -35,11 +36,7 @@ export function PortfolioManager({
   async function persistOrder(next: PortfolioPhoto[]) {
     const prev = photos;
     setPhotos(next);
-    const res = await fetch('/api/profile/photos/reorder', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ids: next.map((p) => p.id) }),
-    }).catch(() => null);
+    const res = await apiFetch('/api/profile/photos/reorder', { method: 'PATCH', body: { ids: next.map((p) => p.id) } });
     if (!res?.ok) {
       setPhotos(prev);
       toast(ru.ui.toastError, 'danger');
@@ -57,7 +54,7 @@ export function PortfolioManager({
   async function del(id: string) {
     setConfirmId(null);
     setBusy(id);
-    const res = await fetch(`/api/profile/photos/${id}`, { method: 'DELETE' }).catch(() => null);
+    const res = await apiFetch(`/api/profile/photos/${id}`, { method: 'DELETE' });
     setBusy(null);
     if (!res?.ok) return toast(ru.ui.toastError, 'danger');
     setPhotos((p) => p.filter((x) => x.id !== id));
@@ -68,11 +65,7 @@ export function PortfolioManager({
   async function makeCover(id: string, status: PortfolioPhoto['status']) {
     if (status !== 'APPROVED') return toast(ru.portfolio.coverOnlyApproved, 'warning');
     setBusy(id);
-    const res = await fetch('/api/profile/cover', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ photoId: id }),
-    }).catch(() => null);
+    const res = await apiFetch('/api/profile/cover', { method: 'PATCH', body: { photoId: id } });
     setBusy(null);
     if (!res?.ok) return toast(ru.ui.toastError, 'danger');
     setCoverId(id);

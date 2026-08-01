@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { apiFetch, UPLOAD_TIMEOUT_MS } from '@/lib/api';
 import { ru } from '@/i18n/ru';
 import { useToast } from '@/components/ui/Toast';
 
@@ -24,7 +25,7 @@ export function AdminPhotographerManager({ profileId, initialStatus, categories,
 
   async function grant(t: 'PRIME' | 'ELITE') {
     setBusy(true);
-    const res = await fetch(`/api/admin/photographers/${profileId}/grant-pro?tier=${t}`, { method: 'POST' }).catch(() => null);
+    const res = await apiFetch(`/api/admin/photographers/${profileId}/grant-pro?tier=${t}`, { method: 'POST' });
     setBusy(false);
     if (!res?.ok) return toast(ru.ui.toastError, 'danger');
     setTier(t);
@@ -33,13 +34,10 @@ export function AdminPhotographerManager({ profileId, initialStatus, categories,
   async function togglePublish() {
     setBusy(true);
     const action = status === 'APPROVED' ? 'unpublish' : 'publish';
-    const res = await fetch(`/api/admin/photographers/${profileId}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }),
-    }).catch(() => null);
+    const res = await apiFetch(`/api/admin/photographers/${profileId}`, { method: 'PATCH', body: { action } });
     setBusy(false);
-    if (!res?.ok) return toast(ru.ui.toastError, 'danger');
-    const d = await res.json();
-    setStatus(d.status);
+    if (!res.ok) return toast(res.error, 'danger');
+    setStatus((res.data as { status: 'DRAFT' | 'PENDING' | 'NEEDS_REVISION' | 'APPROVED' | 'REJECTED' }).status);
   }
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -50,13 +48,15 @@ export function AdminPhotographerManager({ profileId, initialStatus, categories,
     const fd = new FormData();
     fd.append('file', file);
     fd.append('categorySlug', cat);
-    const res = await fetch(`/api/admin/photographers/${profileId}/photos`, { method: 'POST', body: fd }).catch(() => null);
+    const res = await apiFetch(`/api/admin/photographers/${profileId}/photos`, {
+      method: 'POST', body: fd, timeoutMs: UPLOAD_TIMEOUT_MS,
+    });
     setBusy(false);
-    if (!res?.ok) {
-      const d = await res?.json().catch(() => ({}));
-      return toast(d?.error?.startsWith('duplicate') ? ru.adminPhotographers.dupError : ru.adminPhotographers.uploadError, 'danger');
+    if (!res.ok) {
+      // Дубликат — отдельный текст: это не сбой, а осмысленный отказ
+      return toast(res.status === 409 ? ru.adminPhotographers.dupError : ru.adminPhotographers.uploadError, 'danger');
     }
-    const d = await res.json();
+    const d = res.data as { photoId: string; thumbUrl: string };
     setPhotos((p) => [{ id: d.photoId, thumb: d.thumbUrl }, ...p]);
   }
 

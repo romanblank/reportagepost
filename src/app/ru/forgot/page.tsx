@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import Link from 'next/link';
 import { ru } from '@/i18n/ru';
 import { AuthScene } from '@/components/AuthScene';
@@ -13,11 +14,7 @@ export default function ForgotPage() {
     e.preventDefault();
     setPending(true);
     const email = new FormData(e.currentTarget).get('email');
-    await fetch('/api/auth/password/forgot', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    }).catch(() => null);
+    await apiFetch('/api/auth/password/forgot', { method: 'POST', body: { email } });
     setPending(false);
     setDone(true);
   }

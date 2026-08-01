@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { ru } from '@/i18n/ru';
 
 // Календарь занятости фотографа. Клик по дню — toggle занятости (оптимистично,
@@ -44,11 +45,7 @@ export function AvailabilityCalendar({ initialBusy }: { initialBusy: string[] })
     });
     setPending((prev) => new Set(prev).add(key));
 
-    const res = await fetch('/api/profile/busy', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ date: key }),
-    }).catch(() => null);
+    const res = await apiFetch('/api/profile/busy', { method: 'POST', body: { date: key } });
 
     setPending((prev) => {
       const next = new Set(prev);

@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import Link from 'next/link';
 import { ru } from '@/i18n/ru';
-import { describeApiError } from '@/lib/form-errors';
 
 export interface CommentItem {
   id: string;
@@ -31,14 +31,15 @@ export function CommentSection({ storyId, initial, me }: { storyId: string; init
     if (!text) return;
     setPending(true);
     setError(null);
-    const res = await fetch('/api/comments', {
+    const res = await apiFetch<{ id: string }>('/api/comments', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ storyId, body: text }),
-    }).catch(() => null);
+      body: { storyId, body: text },
+      codeLabels: ru.comments.errors,
+      fallback: ru.inquiry.errorGeneric,
+    });
     setPending(false);
-    if (res?.status === 201) {
-      const { id } = await res.json();
+    if (res.ok) {
+      const { id } = res.data;
       setItems((prev) => [
         ...prev,
         { id, body: text, createdAt: new Date().toISOString(), authorName: '', authorUserId: me.userId ?? '' },
@@ -46,17 +47,13 @@ export function CommentSection({ storyId, initial, me }: { storyId: string; init
       setBody('');
       return;
     }
-    setError(await describeApiError(res, { codeLabels: ru.comments.errors, fallback: ru.inquiry.errorGeneric }));
+    setError(res.error);
   }
 
   async function remove(id: string) {
     const prev = items;
     setItems((cur) => cur.filter((c) => c.id !== id)); // оптимистично
-    const res = await fetch('/api/comments', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ commentId: id }),
-    }).catch(() => null);
+    const res = await apiFetch('/api/comments', { method: 'DELETE', body: { commentId: id } });
     if (!res || !res.ok) setItems(prev); // откат при ошибке
   }
 

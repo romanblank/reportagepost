@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { apiFetch, UPLOAD_TIMEOUT_MS } from '@/lib/api';
 import Link from 'next/link';
 import { ru } from '@/i18n/ru';
-import { describeApiError } from '@/lib/form-errors';
 import { normalizePhone, normalizeUrl } from '@/lib/phone-format';
 import { ONBOARDING_PHOTOS_MAX, ONBOARDING_PHOTOS_MIN, MIN_LONG_SIDE } from '@/lib/photos-constants';
 
@@ -60,10 +60,9 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
     setPending(true);
     setError(null);
     const f = new FormData(e.currentTarget);
-    const res = await fetch('/api/profile', {
+    const res = await apiFetch('/api/profile', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+      body: {
         username,
         citySlug: f.get('citySlug'),
         categorySlugs: chosenCats,
@@ -76,22 +75,22 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
         teamInfo: String(f.get('teamInfo') ?? '').trim() || undefined,
         languages: chosenLangs,
         packages: packages.map((p) => ({ hours: p.hours, priceMinor: p.priceRub * 100, currency: 'RUB' })),
-      }),
-    }).catch(() => null);
-    setPending(false);
-    if (res?.status === 201) {
-      setStep('photos');
-      return;
-    }
-    if (res?.status === 409) {
-      const body = await res.json().catch(() => null);
-      if (body?.error === 'profile_exists') { setStep('photos'); return; }
-    }
-    setError(await describeApiError(res, {
+      },
       codeLabels: { username_taken: ru.onboarding.errUsernameTaken, city_not_found: ru.onboarding.errCityNotFound },
       fieldLabels: FIELD_NAMES,
       fallback: ru.inquiry.errorGeneric,
-    }));
+    });
+    setPending(false);
+    if (res.ok) {
+      setStep('photos');
+      return;
+    }
+    // Анкета уже создана (повторный сабмит) — это не ошибка, просто идём дальше
+    if (res.code === 'profile_exists') {
+      setStep('photos');
+      return;
+    }
+    setError(res.error);
   }
 
   async function uploadPhotos(files: FileList | null) {
@@ -105,17 +104,18 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
       const fd = new FormData();
       fd.set('file', file);
       fd.set('categorySlug', chosenCats[0]);
-      const res = await fetch('/api/profile/photos', { method: 'POST', body: fd }).catch(() => null);
-      if (res?.status === 201) {
-        const body = await res.json();
-        setUploaded(body.uploaded);
+      const res = await apiFetch<{ uploaded: number }>('/api/profile/photos', {
+        method: 'POST', body: fd, timeoutMs: UPLOAD_TIMEOUT_MS,
+        codeLabels: PHOTO_ERRORS,
+        fallback: ru.onboarding.uploadFailedGeneric,
+      });
+      if (res.ok) {
+        setUploaded(res.data.uploaded);
         setThumbs((prev) => [...prev, URL.createObjectURL(file)]); // локальное превью
       } else {
-        const body = res ? await res.json().catch(() => null) : null;
-        const code = body?.error as string | undefined;
-        const msg = PHOTO_ERRORS[code ?? ''] ?? body?.message ?? ru.onboarding.uploadFailedGeneric;
-        if (code === 'photo_limit') { setLimitHit(true); break; }
-        setError(ru.onboarding.errPhoto(`${file.name}: ${msg}`));
+        // Достигнутый лимит — не ошибка загрузки, а конец пачки
+        if (res.status === 409) { setLimitHit(true); break; }
+        setError(ru.onboarding.errPhoto(`${file.name}: ${res.error}`));
       }
       done += 1;
       setUploadProgress({ done, total: list.length });

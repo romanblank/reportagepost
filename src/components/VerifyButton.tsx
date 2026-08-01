@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { ru } from '@/i18n/ru';
 
@@ -11,11 +12,7 @@ export function VerifyButton({ profileId, verified }: { profileId: string; verif
 
   async function toggle() {
     setPending(true);
-    const res = await fetch('/api/admin/verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ profileId, verified: !verified }),
-    }).catch(() => null);
+    const res = await apiFetch('/api/admin/verify', { method: 'POST', body: { profileId, verified: !verified } });
     setPending(false);
     if (res?.ok) router.refresh();
   }

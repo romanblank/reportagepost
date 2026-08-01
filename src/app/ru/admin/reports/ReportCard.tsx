@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { ru } from '@/i18n/ru';
 import { useRouter } from 'next/navigation';
 
@@ -25,11 +26,7 @@ export function ReportCard({
   async function resolve(status: 'RESOLVED' | 'DISMISSED') {
     setBusy(true);
     setError(null);
-    const res = await fetch(`/api/admin/reports/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status, resolution: note.trim() || undefined }),
-    }).catch(() => null);
+    const res = await apiFetch(`/api/admin/reports/${id}`, { method: 'PATCH', body: { status, resolution: note.trim() || undefined } });
     setBusy(false);
     if (res?.ok) { router.refresh(); return; }
     setError(ru.ui.toastError);

@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { ru } from '@/i18n/ru';
-import { describeApiError } from '@/lib/form-errors';
 
 // Кнопка «Отправить на повторную проверку» (аудит 2026-07-31, P0): без неё
 // отклонённая анкета была тупиком — исправить можно, показать снова нельзя.
@@ -15,13 +15,17 @@ export function ResubmitButton() {
   async function submit() {
     setPending(true);
     setError(null);
-    const res = await fetch('/api/profile/resubmit', { method: 'POST' }).catch(() => null);
+    const res = await apiFetch('/api/profile/resubmit', {
+      method: 'POST',
+      codeLabels: ru.cabinet.resubmitErrors,
+      fallback: ru.ui.toastError,
+    });
     setPending(false);
     if (res?.ok) {
       router.refresh();
       return;
     }
-    setError(await describeApiError(res, { codeLabels: ru.cabinet.resubmitErrors, fallback: ru.ui.toastError }));
+    setError(res.error);
   }
 
   return (

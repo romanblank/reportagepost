@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { ru } from '@/i18n/ru';
 
@@ -16,9 +17,7 @@ export function BlockButton({ userId, initialBlocked }: { userId: string; initia
   async function toggle() {
     setBusy(true);
     setError(false);
-    const res = await fetch(`/api/users/${userId}/block`, {
-      method: blocked ? 'DELETE' : 'POST',
-    }).catch(() => null);
+    const res = await apiFetch(`/api/users/${userId}/block`, { method: blocked ? 'DELETE' : 'POST' });
     setBusy(false);
     if (res?.ok) {
       setBlocked(!blocked);

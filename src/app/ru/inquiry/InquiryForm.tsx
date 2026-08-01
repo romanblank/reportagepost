@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import Link from 'next/link';
 import { ru } from '@/i18n/ru';
-import { describeApiError } from '@/lib/form-errors';
 import { normalizePhone } from '@/lib/phone-format';
 
 interface Option {
@@ -34,10 +34,7 @@ export function InquiryForm({ cities, categories, prefill, contact }: { cities: 
     const budgetRub = String(form.get('budget') ?? '').trim();
 
     const phoneRaw = String(form.get('contactPhone') ?? '').trim();
-    const res = await fetch('/api/inquiries', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    const res = await apiFetch('/api/inquiries', { method: 'POST', body: {
         contactName: form.get('contactName'),
         contactPhone: phoneRaw ? normalizePhone(phoneRaw) : undefined,
         contactEmail: String(form.get('contactEmail') ?? '').trim() || undefined,
@@ -48,19 +45,19 @@ export function InquiryForm({ cities, categories, prefill, contact }: { cities: 
         description: form.get('description'),
         pdnConsent: consent,
         website: '', // honeypot
-      }),
-    }).catch(() => null);
-    setPending(false);
-
-    if (res?.status === 201) {
-      setSent(await res.json());
-      return;
-    }
-    setError(await describeApiError(res, {
+      },
+      // Карты человеческих текстов уходят в слой — он же и разбирает ответ
       codeLabels: { no_contact: ru.inquiry.errorNoContact },
       fieldLabels: ru.inquiry.fieldLabels,
       fallback: ru.inquiry.errorGeneric,
-    }));
+    });
+    setPending(false);
+
+    if (res.ok) {
+      setSent(res.data as { notified: number });
+      return;
+    }
+    setError(res.error);
   }
 
   if (sent) {

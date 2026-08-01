@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { ru } from '@/i18n/ru';
 import { useToast } from '@/components/ui/Toast';
 
@@ -17,11 +18,10 @@ export function TwoFactorManager({ initial }: { initial: Status }) {
 
   async function begin() {
     setBusy(true); setError(null);
-    const res = await fetch('/api/auth/2fa/enroll', { method: 'POST' }).catch(() => null);
+    const res = await apiFetch('/api/auth/2fa/enroll', { method: 'POST' });
     setBusy(false);
-    if (!res?.ok) return toast(ru.ui.toastError, 'danger');
-    const data = await res.json();
-    setSecret(data.secret);
+    if (!res.ok) return toast(res.error, 'danger');
+    setSecret((res.data as { secret: string }).secret);
     setStep('enroll');
   }
 
@@ -29,26 +29,20 @@ export function TwoFactorManager({ initial }: { initial: Status }) {
     e.preventDefault();
     setBusy(true); setError(null);
     const code = new FormData(e.currentTarget).get('code');
-    const res = await fetch('/api/auth/2fa/enroll', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'confirm', code }),
-    }).catch(() => null);
+    const res = await apiFetch('/api/auth/2fa/enroll', { method: 'POST', body: { action: 'confirm', code } });
     setBusy(false);
-    if (!res?.ok) { setError(ru.auth.twoFa.badCode); return; }
-    const data = await res.json();
-    setCodes(data.recoveryCodes);
+    if (!res.ok) { setError(ru.auth.twoFa.badCode); return; }
+    const { recoveryCodes } = res.data as { recoveryCodes: string[] };
+    setCodes(recoveryCodes);
     setStep('backup');
-    setStatus({ enabled: true, recoveryLeft: data.recoveryCodes.length });
+    setStatus({ enabled: true, recoveryLeft: recoveryCodes.length });
   }
 
   async function disable(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setBusy(true); setError(null);
     const code = new FormData(e.currentTarget).get('code');
-    const res = await fetch('/api/auth/2fa/enroll', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'disable', code }),
-    }).catch(() => null);
+    const res = await apiFetch('/api/auth/2fa/enroll', { method: 'POST', body: { action: 'disable', code } });
     setBusy(false);
     if (!res?.ok) { setError(ru.auth.twoFa.badCode); return; }
     setStatus({ enabled: false, recoveryLeft: 0 });

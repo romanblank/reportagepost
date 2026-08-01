@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { ru } from '@/i18n/ru';
 
@@ -20,11 +21,7 @@ export function StoryModerationCard(props: {
   async function decide(action: 'approve' | 'reject') {
     setPending(true);
     setError(null);
-    const res = await fetch('/api/admin/stories', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(action === 'approve' ? { action, storyId: props.storyId } : { action, storyId: props.storyId, reason }),
-    }).catch(() => null);
+    const res = await apiFetch('/api/admin/stories', { method: 'POST', body: action === 'approve' ? { action, storyId: props.storyId } : { action, storyId: props.storyId, reason } });
     setPending(false);
     if (res?.ok) router.refresh();
     else setError(ru.admin.error);

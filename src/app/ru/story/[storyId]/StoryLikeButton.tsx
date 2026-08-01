@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 
 export function StoryLikeButton({ storyId, initialLiked, initialCount, authed }: {
@@ -20,7 +21,7 @@ export function StoryLikeButton({ storyId, initialLiked, initialCount, authed }:
     }
     setLiked(!liked);
     setCount((c) => c + (liked ? -1 : 1));
-    const res = await fetch(`/api/stories/${storyId}/like`, { method: 'POST' }).catch(() => null);
+    const res = await apiFetch(`/api/stories/${storyId}/like`, { method: 'POST' });
     if (!res?.ok) {
       setLiked(liked);
       setCount((c) => c + (liked ? 1 : -1));

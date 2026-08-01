@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { ru } from '@/i18n/ru';
 
 type TargetType = 'USER' | 'PHOTO' | 'STORY' | 'REVIEW' | 'COMMENT' | 'MESSAGE';
@@ -30,20 +31,16 @@ export function ReportButton({
   async function submit() {
     setBusy(true);
     setError(null);
-    const res = await fetch('/api/reports', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    const res = await apiFetch('/api/reports', { method: 'POST', body: {
         targetType,
         targetId,
         reason,
         comment: comment.trim() || undefined,
         contactEmail: !authed && email.trim() ? email.trim() : undefined,
-      }),
-    }).catch(() => null);
+      } });
     setBusy(false);
-    if (res?.status === 201) { setSent(true); return; }
-    if (res?.status === 429) { setError(ru.report.tooMany); return; }
+    if (res.ok) { setSent(true); return; }
+    if (res.status === 429) { setError(ru.report.tooMany); return; }
     setError(ru.ui.toastError);
   }
 

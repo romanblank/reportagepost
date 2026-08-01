@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { ru } from '@/i18n/ru';
 import { CATEGORIES } from '@/lib/category-data';
@@ -36,18 +37,17 @@ export function StoryComposer({ photos }: { photos: ComposerPhoto[] }) {
   async function submit() {
     if (!canSubmit) return;
     setBusy(true);
-    const res = await fetch('/api/stories', {
+    const res = await apiFetch('/api/stories', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
+      body: {
         title: title.trim(),
         description: description.trim() || undefined,
         categorySlug,
         photoIds: [...selected],
-      }),
-    }).catch(() => null);
+      },
+    });
     setBusy(false);
-    if (res?.ok) {
+    if (res.ok) {
       toast(ru.cabinetStories.created, 'success');
       setTitle('');
       setDescription('');

@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ru } from '@/i18n/ru';
-import { describeApiError } from '@/lib/form-errors';
 
 export interface ReviewItem {
   id: string;
@@ -59,13 +59,9 @@ export function ReviewSection({
     if (rating < 1) { setError(ru.reviews.errors.review_rating); return; }
     setPending(true);
     setError(null);
-    const res = await fetch('/api/reviews', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ profileId, rating, body: body.trim() }),
-    }).catch(() => null);
+    const res = await apiFetch('/api/reviews', { method: 'POST', body: { profileId, rating, body: body.trim() } });
     setPending(false);
-    if (res?.status === 201) {
+    if (res.ok) {
       setItems((prev) => [
         { id: `tmp-${Date.now()}`, rating, body: body.trim(), verified: false, authorUserId: me.userId ?? '', authorName: '', createdAt: new Date().toISOString(), reply: null },
         ...prev,
@@ -74,24 +70,18 @@ export function ReviewSection({
       router.refresh(); // подтянуть реальные имя/verified с сервера
       return;
     }
-    setError(await describeApiError(res, { codeLabels: ru.reviews.errors, fallback: ru.inquiry.errorGeneric }));
+    setError(res.error);
   }
 
   async function reply(reviewId: string, text: string) {
-    const res = await fetch('/api/reviews', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reviewId, reply: text.trim() }),
-    }).catch(() => null);
+    const res = await apiFetch('/api/reviews', { method: 'PATCH', body: { reviewId, reply: text.trim() } });
     if (res?.ok) setItems((prev) => prev.map((r) => (r.id === reviewId ? { ...r, reply: text.trim() } : r)));
   }
 
   async function remove(reviewId: string) {
     const prev = items;
     setItems((cur) => cur.filter((r) => r.id !== reviewId));
-    const res = await fetch('/api/reviews', {
-      method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reviewId }),
-    }).catch(() => null);
+    const res = await apiFetch('/api/reviews', { method: 'DELETE', body: { reviewId } });
     if (!res || !res.ok) setItems(prev);
   }
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { ru } from '@/i18n/ru';
 
 // Баннер «подтвердите адрес» в кабинете. Показывается только когда почта
@@ -13,11 +14,7 @@ export function VerifyEmailBanner() {
   async function resend() {
     setBusy(true);
     setError(false);
-    const res = await fetch('/api/auth/verify-email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: '{}',
-    }).catch(() => null);
+    const res = await apiFetch('/api/auth/verify-email', { method: 'POST', body: {} });
     setBusy(false);
     if (res?.ok) { setSent(true); return; }
     setError(true);
