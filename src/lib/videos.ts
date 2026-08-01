@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import type { Readable } from 'node:stream';
 import { storage } from '@/lib/storage';
 
 // Загрузка видео автора. Транскод не делаем — храним исходник, браузер играет
@@ -40,10 +41,24 @@ export function contentTypeForKey(key: string): string | null {
   return imgByExt[ext] ?? null;
 }
 
-/** Записывает видео в хранилище, возвращает ключ + метаданные. */
-export async function storeVideo(buffer: Buffer, mimeType: string): Promise<{ storageKey: string; sizeBytes: number }> {
-  const { ext } = validateVideoUpload(mimeType, buffer.byteLength);
+/**
+ * Записывает видео в хранилище ПОТОКОМ (аудит 2026-08-01, P2).
+ *
+ * Раньше принимали Buffer: ролик на 200 МБ целиком оказывался в heap
+ * единственного контейнера — ровно тот отказ, который уже чинили у раздатчика,
+ * только со стороны загрузки. Теперь байты идут сквозь процесс, в памяти —
+ * только буфер потока.
+ *
+ * Вес известен заранее (Content-Length), поэтому валидируется ДО чтения тела:
+ * превышение отклоняется, а не «выясняется» после приёма 2 ГБ.
+ */
+export async function storeVideoStream(
+  body: Readable,
+  mimeType: string,
+  sizeBytes: number,
+): Promise<{ storageKey: string; sizeBytes: number }> {
+  const { ext } = validateVideoUpload(mimeType, sizeBytes);
   const storageKey = `videos/${randomUUID()}/source.${ext}`;
-  await storage.put(storageKey, buffer, mimeType);
-  return { storageKey, sizeBytes: buffer.byteLength };
+  await storage.putStream(storageKey, body, mimeType, sizeBytes);
+  return { storageKey, sizeBytes };
 }

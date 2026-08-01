@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile, unlink, stat } from 'node:fs/promises';
-import { createReadStream } from 'node:fs';
+import { createReadStream, createWriteStream } from 'node:fs';
 import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 import path from 'node:path';
 import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 
@@ -17,6 +18,14 @@ export interface ObjectStream {
 
 export interface ObjectStorage {
   put(key: string, data: Buffer, contentType: string): Promise<void>;
+  /**
+   * Потоковая ЗАПИСЬ (аудит 2026-08-01, P2). Симметрична getStream: видео до
+   * 200 МБ нельзя собирать в Buffer — единственный контейнер этого не переживёт
+   * (тот же класс отказа, что уже чинили у раздатчика). Длина обязательна:
+   * S3 без ContentLength сам буферизует поток, чтобы её вычислить, и весь
+   * смысл теряется.
+   */
+  putStream(key: string, body: Readable, contentType: string, contentLength: number): Promise<void>;
   get(key: string): Promise<Buffer | null>;
   /**
    * Потоковое чтение (опционально — диапазон байт). Введено аудитом 2026-07-31
@@ -49,6 +58,12 @@ class LocalDiskStorage implements ObjectStorage {
     const filePath = safePath(key);
     await mkdir(path.dirname(filePath), { recursive: true });
     await writeFile(filePath, data);
+  }
+
+  async putStream(key: string, body: Readable, _contentType: string, _contentLength: number): Promise<void> {
+    const filePath = safePath(key);
+    await mkdir(path.dirname(filePath), { recursive: true });
+    await pipeline(body, createWriteStream(filePath));
   }
 
   async get(key: string): Promise<Buffer | null> {
@@ -113,6 +128,20 @@ class S3Storage implements ObjectStorage {
     safePath(key); // валидация ключа (traversal-guard)
     await this.client.send(
       new PutObjectCommand({ Bucket: this.bucket, Key: key, Body: data, ContentType: contentType }),
+    );
+  }
+
+  async putStream(key: string, body: Readable, contentType: string, contentLength: number): Promise<void> {
+    safePath(key);
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Body: body,
+        ContentType: contentType,
+        // Без ContentLength SDK читает поток целиком в память ради подсчёта
+        ContentLength: contentLength,
+      }),
     );
   }
 

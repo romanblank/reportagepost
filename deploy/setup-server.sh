@@ -8,7 +8,25 @@ sudo chown rp:rp /opt/reportagepost
 # tee затирал certbot-блок 443 при каждом деплое → SSL умирал, Secure-cookie
 # отбрасывались браузером на HTTP)
 CERT_DIR="/etc/letsencrypt/live/reportagepost.com"
+# Лимит тела: 45m по умолчанию хватает фото (40 МБ + обвязка), но резал
+# загрузку видео на периметре — автор получал nginx-овский HTML-413 мимо
+# приложения, без i18n-текста и без следа в логах (аудит 2026-08-01, P2).
+# Точечно поднимаем ТОЛЬКО на роут видео: общий 210m открыл бы приём
+# 200-МБ тел на любой эндпоинт. Значение сверяется с MAX_VIDEO_BYTES тестом
+# tests/deploy-limits.test.ts — рассинхрон ловится в гейте, а не жалобой.
 PROXY_BLOCK='
+    location = /api/profile/videos {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        client_max_body_size 210m;
+        proxy_request_buffering off;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+    }
+
     location / {
         proxy_pass http://127.0.0.1:3000;
         proxy_set_header Host $host;

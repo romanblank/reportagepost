@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { db } from '@/lib/db';
@@ -44,7 +45,12 @@ function relativeOnline(lastSeen: Date | null): string | null {
   return ru.online.longAgo;
 }
 
-async function findProfile(username: string) {
+// Запрос дедуплицируется в пределах одного рендера (аудит 2026-08-01, P2).
+// generateMetadata и сам компонент вызывают его независимо, а Prisma-вызовы
+// Next не дедуплицирует (в отличие от fetch) — самая посещаемая страница
+// платформы делала тяжёлый джойн ДВАЖДЫ на каждый заход. cache() из react
+// уже применён так же к getSession (src/lib/auth.ts).
+const findProfile = cache(async (username: string) => {
   return db.photographerProfile.findFirst({
     where: { username, status: 'APPROVED' },
     include: {
@@ -61,7 +67,7 @@ async function findProfile(username: string) {
       },
     },
   });
-}
+});
 
 export async function generateMetadata(props: {
   params: Promise<{ username: string }>;

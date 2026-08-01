@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -13,7 +14,12 @@ import { ru } from '@/i18n/ru';
 
 export const dynamic = 'force-dynamic';
 
-async function findStory(storyId: string) {
+// Запрос дедуплицируется в пределах одного рендера (аудит 2026-08-01, P2).
+// generateMetadata и сам компонент вызывают его независимо, а Prisma-вызовы
+// Next не дедуплицирует (в отличие от fetch) — самая посещаемая страница
+// платформы делала тяжёлый джойн ДВАЖДЫ на каждый заход. cache() из react
+// уже применён так же к getSession (src/lib/auth.ts).
+const findStory = cache(async (storyId: string) => {
   return db.story.findFirst({
     // Серия публична только у публичного (APPROVED) автора — иначе прямая ссылка
     // открывала бы контент снятого с публикации профиля (консистентно с дискавери).
@@ -24,7 +30,7 @@ async function findStory(storyId: string) {
       _count: { select: { likes: true } },
     },
   });
-}
+});
 
 export async function generateMetadata(props: { params: Promise<{ storyId: string }> }): Promise<Metadata> {
   const { storyId } = await props.params;

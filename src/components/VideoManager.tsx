@@ -27,9 +27,14 @@ export function VideoManager({ videos, limit }: { videos: ManagedVideo[]; limit:
     if (!file) return;
     setBusy(true);
     setError(null);
-    const fd = new FormData();
-    fd.append('file', file);
-    const res = await fetch('/api/profile/videos', { method: 'POST', body: fd }).catch(() => null);
+    // Шлём файл СЫРЫМ телом, а не multipart (аудит 2026-08-01, P2): сервер
+    // стримит его в хранилище, не собирая 200 МБ в памяти контейнера.
+    // Название ролика — заголовком (только ASCII, потому encodeURIComponent).
+    const res = await fetch('/api/profile/videos', {
+      method: 'POST',
+      headers: { 'Content-Type': file.type, 'X-Video-Title': encodeURIComponent(file.name) },
+      body: file,
+    }).catch(() => null);
     setBusy(false);
     if (inputRef.current) inputRef.current.value = '';
     if (res?.ok) {

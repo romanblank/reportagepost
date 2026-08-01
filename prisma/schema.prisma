@@ -26,79 +26,79 @@ enum UserStatus {
 }
 
 model User {
-  id           String     @id @default(cuid())
-  role         UserRole
-  status       UserStatus @default(PENDING)
+  id                   String     @id @default(cuid())
+  role                 UserRole
+  status               UserStatus @default(PENDING)
   // Настоящие имя и фамилия (правило площадки, как у MyWed)
-  firstName    String
-  lastName     String
-  email        String?    @unique
-  phone        String?    @unique // E.164: +79991234567
-  phoneVerifiedAt DateTime?
-  emailVerifiedAt DateTime? // подтверждение адреса по ссылке из письма
-  passwordHash String?
-  passwordChangedAt DateTime? // инвалидация старых JWT при смене пароля
-  tokenVersion Int        @default(0) // ручной отзыв всех сессий (бан/логаут-везде)
-  tgUserId     String?    @unique // Telegram chat_id для уведомлений (S2)
-  yandexId     String?    @unique // Яндекс OAuth: id аккаунта для входа/линковки
-  tgLinkCode   String?    @unique // одноразовый код привязки (deep-link /start)
-  locale       String     @default("ru")
-  inviteCodeId String? // закрытость до S4: кто пригласил
+  firstName            String
+  lastName             String
+  email                String?    @unique
+  phone                String?    @unique // E.164: +79991234567
+  phoneVerifiedAt      DateTime?
+  emailVerifiedAt      DateTime? // подтверждение адреса по ссылке из письма
+  passwordHash         String?
+  passwordChangedAt    DateTime? // инвалидация старых JWT при смене пароля
+  tokenVersion         Int        @default(0) // ручной отзыв всех сессий (бан/логаут-везде)
+  tgUserId             String?    @unique // Telegram chat_id для уведомлений (S2)
+  yandexId             String?    @unique // Яндекс OAuth: id аккаунта для входа/линковки
+  tgLinkCode           String?    @unique // одноразовый код привязки (deep-link /start)
+  locale               String     @default("ru")
+  inviteCodeId         String? // закрытость до S4: кто пригласил
   // Настройки уведомлений (аудит 2026-07-31, P1): отключить письма и телеграм
   // было НЕЧЕМ — единственным выходом оставалось удалить аккаунт. Рассылка
   // заявок это не транзакционное письмо «по вашему действию», а регулярный
   // поток, и человек вправе его выключить, не теряя аккаунт.
   // Транзакционные письма (сброс пароля, подтверждение адреса) настройками НЕ
   // отключаются — без них теряется доступ.
-  notifyInquiriesEmail Boolean @default(true)
-  notifyInquiriesTg    Boolean @default(true)
+  notifyInquiriesEmail Boolean    @default(true)
+  notifyInquiriesTg    Boolean    @default(true)
   // Одноразовый ключ отписки для ссылки в письме (без входа в аккаунт)
-  unsubToken   String?    @unique
-  pdnConsentAt DateTime? // согласие на обработку ПДн (152-ФЗ)
-  pdnConsentVersion String? // версия принятой политики
-  totpSecret String? // секрет TOTP (2FA); null — 2FA не настроена
-  twoFactorEnabledAt DateTime? // 2FA включена (подтверждена кодом)
-  createdAt    DateTime   @default(now())
-  lastSeenAt   DateTime?
+  unsubToken           String?    @unique
+  pdnConsentAt         DateTime? // согласие на обработку ПДн (152-ФЗ)
+  pdnConsentVersion    String? // версия принятой политики
+  totpSecret           String? // секрет TOTP (2FA); null — 2FA не настроена
+  twoFactorEnabledAt   DateTime? // 2FA включена (подтверждена кодом)
+  createdAt            DateTime   @default(now())
+  lastSeenAt           DateTime?
 
-  profile       PhotographerProfile?
-  inviteCode    InviteCode?          @relation(fields: [inviteCodeId], references: [id])
-  issuedInvites InviteCode[]         @relation("issuedInvites")
-  subscription  Subscription?
-  payments      Payment[]
-  events        ActivityEvent[]      @relation("actor")
-  likes         Like[]
-  comments      Comment[]
-  reviews       Review[]
+  profile            PhotographerProfile?
+  inviteCode         InviteCode?            @relation(fields: [inviteCodeId], references: [id])
+  issuedInvites      InviteCode[]           @relation("issuedInvites")
+  subscription       Subscription?
+  payments           Payment[]
+  events             ActivityEvent[]        @relation("actor")
+  likes              Like[]
+  comments           Comment[]
+  reviews            Review[]
   shootConfirmations ShootConfirmation[]
-  follows       Follow[]             @relation("follower")
-  followedBy    Follow[]             @relation("followee")
-  inquiries     Inquiry[]
-  favorites     FavoritePhotographer[]
+  follows            Follow[]               @relation("follower")
+  followedBy         Follow[]               @relation("followee")
+  inquiries          Inquiry[]
+  favorites          FavoritePhotographer[]
   phoneVerifications PhoneVerification[]
-  sentMessages  Message[]            @relation("sender")
-  recvMessages  Message[]            @relation("recipient")
-  notifications Notification[]
-  adminAudits   AdminAudit[]
-  passwordResets PasswordReset[]
+  sentMessages       Message[]              @relation("sender")
+  recvMessages       Message[]              @relation("recipient")
+  notifications      Notification[]
+  adminAudits        AdminAudit[]
+  passwordResets     PasswordReset[]
   emailVerifications EmailVerification[]
-  recoveryCodes  RecoveryCode[]
-  reportsMade    Report[]      @relation("reporter")
-  reportsResolved Report[]     @relation("reportResolver")
-  blocksMade     UserBlock[]   @relation("blocker")
-  blockedBy      UserBlock[]   @relation("blocked")
+  recoveryCodes      RecoveryCode[]
+  reportsMade        Report[]               @relation("reporter")
+  reportsResolved    Report[]               @relation("reportResolver")
+  blocksMade         UserBlock[]            @relation("blocker")
+  blockedBy          UserBlock[]            @relation("blocked")
 }
 
 // Верификация телефона по SMS-коду (E.164). Код хранится как argon2-хеш
 // (не в открытом виде), с TTL и лимитом попыток.
 model PhoneVerification {
-  id         String   @id @default(cuid())
-  userId     String
-  phone      String // E.164
-  codeHash   String
-  attempts   Int      @default(0)
-  expiresAt  DateTime
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  userId    String
+  phone     String // E.164
+  codeHash  String
+  attempts  Int      @default(0)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id])
 
@@ -117,16 +117,16 @@ model RateLimit {
 
 // Закрытость до публичного запуска (S4): регистрация только по инвайтам
 model InviteCode {
-  id        String    @id @default(cuid())
-  code      String    @unique
-  note      String? // кому выдан (амбассадор, ближний круг)
-  maxUses   Int       @default(1)
-  usedCount Int       @default(0)
-  expiresAt DateTime?
+  id             String    @id @default(cuid())
+  code           String    @unique
+  note           String? // кому выдан (амбассадор, ближний круг)
+  maxUses        Int       @default(1)
+  usedCount      Int       @default(0)
+  expiresAt      DateTime?
   issuedByUserId String? // атрибуция: кто выдал (S3 персональные инвайты)
-  createdAt DateTime  @default(now())
-  users     User[]
-  issuedBy  User?     @relation("issuedInvites", fields: [issuedByUserId], references: [id])
+  createdAt      DateTime  @default(now())
+  users          User[]
+  issuedBy       User?     @relation("issuedInvites", fields: [issuedByUserId], references: [id])
 }
 
 // ─── География: дерево страна → регион → город ─────────────────────────────
@@ -162,10 +162,10 @@ model City {
   lat       Float?
   lon       Float?
 
-  country   Country              @relation(fields: [countryId], references: [id])
-  region    Region?              @relation(fields: [regionId], references: [id])
-  profiles  PhotographerProfile[]
-  inquiries Inquiry[]
+  country     Country               @relation(fields: [countryId], references: [id])
+  region      Region?               @relation(fields: [regionId], references: [id])
+  profiles    PhotographerProfile[]
+  inquiries   Inquiry[]
   travelPlans TravelPlan[]
 
   @@unique([countryId, slug])
@@ -181,10 +181,10 @@ model Category {
   sortOrder Int     @default(0)
   active    Boolean @default(true)
 
-  profiles ProfileCategory[]
-  photos   Photo[]
-  stories  Story[]
-  inquiries Inquiry[]
+  profiles      ProfileCategory[]
+  photos        Photo[]
+  stories       Story[]
+  inquiries     Inquiry[]
   profileScores ProfileCategoryScore[]
 }
 
@@ -210,7 +210,7 @@ model ProfileCategoryScore {
 // ─── Профиль фотографа ──────────────────────────────────────────────────────
 
 enum ModerationStatus {
-  DRAFT          // черновик (создан админом, не подан, не в каталоге)
+  DRAFT // черновик (создан админом, не подан, не в каталоге)
   PENDING
   NEEDS_REVISION // возвращён фотографу на доработку с комментарием
   APPROVED
@@ -218,56 +218,56 @@ enum ModerationStatus {
 }
 
 model PhotographerProfile {
-  id          String           @id @default(cuid())
-  userId      String           @unique
-  username    String           @unique // @slug профиля
-  cityId      String
-  bio         String?
-  siteUrl     String?
-  whatsapp    String? // E.164
-  telegram    String? // @username
-  languages   String[]         @default(["ru"]) // языки общения, ISO 639-1
-  verified    Boolean          @default(false) // админ-верификация (trust-бейдж MyWed)
-  avatarKey   String? // ключ аватара в хранилище (квадрат); нет — показываем инициалы
-  coverPhotoId String? // выбранная обложка каталога (иначе — лучший/первый кадр)
+  id              String           @id @default(cuid())
+  userId          String           @unique
+  username        String           @unique // @slug профиля
+  cityId          String
+  bio             String?
+  siteUrl         String?
+  whatsapp        String? // E.164
+  telegram        String? // @username
+  languages       String[]         @default(["ru"]) // языки общения, ISO 639-1
+  verified        Boolean          @default(false) // админ-верификация (trust-бейдж MyWed)
+  avatarKey       String? // ключ аватара в хранилище (квадрат); нет — показываем инициалы
+  coverPhotoId    String? // выбранная обложка каталога (иначе — лучший/первый кадр)
   experienceYears Int? // стаж в годах (богатство анкеты, паритет MyWed)
-  equipment   String? // legacy free-text; структурированные поля ниже (паритет MyWed + B2B-агрегация)
-  cameras     String[]         @default([]) // камеры (структурировано для экспорта)
-  lenses      String[]         @default([]) // оптика
-  lighting    String[]         @default([]) // свет
-  teamInfo    String? // соло / команда / ассистенты
-  doesVideo   Boolean          @default(false) // снимает видео (роль «Фотограф · Видеограф»)
+  equipment       String? // legacy free-text; структурированные поля ниже (паритет MyWed + B2B-агрегация)
+  cameras         String[]         @default([]) // камеры (структурировано для экспорта)
+  lenses          String[]         @default([]) // оптика
+  lighting        String[]         @default([]) // свет
+  teamInfo        String? // соло / команда / ассистенты
+  doesVideo       Boolean          @default(false) // снимает видео (роль «Фотограф · Видеограф»)
   // «Показать номер» (паритет MyWed): ЯВНЫЙ опт-ин — телефон собран для верификации,
   // без согласия на страницу не выводится. Раскрытие кликом через API + событие.
-  showPhone   Boolean          @default(false)
-  showreelUrls String[]        @default([]) // шоурилы по ссылке (YouTube/Vimeo/RuTube/VK — whitelist-embed)
-  faq         Json? // [{q,a}] частые вопросы (богатство анкеты, паритет MyWed)
-  status      ModerationStatus @default(PENDING)
-  rejectReason String?
-  revisionNote String? // комментарий «на доработку» (виден фотографу)
+  showPhone       Boolean          @default(false)
+  showreelUrls    String[]         @default([]) // шоурилы по ссылке (YouTube/Vimeo/RuTube/VK — whitelist-embed)
+  faq             Json? // [{q,a}] частые вопросы (богатство анкеты, паритет MyWed)
+  status          ModerationStatus @default(PENDING)
+  rejectReason    String?
+  revisionNote    String? // комментарий «на доработку» (виден фотографу)
   // Денормализованный рейтинг для сортировки каталога (пересчёт фоном).
   // v1: полнота профиля + свежесть; v2 (S2): взвешенные лайки со сгоранием.
-  ratingScore Int              @default(0)
+  ratingScore     Int              @default(0)
   // Денормализованный вес подписки в каталоге. Разворот 2026-07-25 (синергия, не
   // классовость): каталог ранжируется MERIT-первым (ratingScore), подписка — лишь
   // МЯГКИЙ tiebreaker в пределах равного рейтинга, НЕ pay-for-position. 0 = FREE;
   // PRIME_RANK = Prime; ELITE_RANK = Elite. Экспирация — реконсилятором.
-  proRank     Int              @default(0)
-  createdAt   DateTime         @default(now())
+  proRank         Int              @default(0)
+  createdAt       DateTime         @default(now())
 
-  user       User              @relation(fields: [userId], references: [id])
-  city       City              @relation(fields: [cityId], references: [id])
-  categories ProfileCategory[]
-  packages   PricePackage[]
-  photos     Photo[]
-  videos     ProfileVideo[]
-  stories    Story[]
-  busyDates  BusyDate[]
-  travelPlans TravelPlan[]
-  favoritedBy FavoritePhotographer[]
-  reviews    Review[]
+  user               User                   @relation(fields: [userId], references: [id])
+  city               City                   @relation(fields: [cityId], references: [id])
+  categories         ProfileCategory[]
+  packages           PricePackage[]
+  photos             Photo[]
+  videos             ProfileVideo[]
+  stories            Story[]
+  busyDates          BusyDate[]
+  travelPlans        TravelPlan[]
+  favoritedBy        FavoritePhotographer[]
+  reviews            Review[]
   shootConfirmations ShootConfirmation[]
-  categoryScores ProfileCategoryScore[]
+  categoryScores     ProfileCategoryScore[]
 
   @@index([cityId, status, ratingScore(sort: Desc), proRank(sort: Desc)])
 }
@@ -279,18 +279,19 @@ model ProfileCategory {
   category   Category            @relation(fields: [categoryId], references: [id])
 
   @@id([profileId, categoryId])
+  @@index([categoryId])
 }
 
 // Выездные графики (механика MyWed «фотограф едет в X»): фотограф из города A
 // объявляет период работы в городе B — и показывается в каталоге B с пометкой.
 model TravelPlan {
-  id         String   @id @default(cuid())
-  profileId  String
-  cityId     String // город назначения
-  fromDate   DateTime @db.Date
-  toDate     DateTime @db.Date
-  profile    PhotographerProfile @relation(fields: [profileId], references: [id])
-  city       City                @relation(fields: [cityId], references: [id])
+  id        String              @id @default(cuid())
+  profileId String
+  cityId    String // город назначения
+  fromDate  DateTime            @db.Date
+  toDate    DateTime            @db.Date
+  profile   PhotographerProfile @relation(fields: [profileId], references: [id])
+  city      City                @relation(fields: [cityId], references: [id])
 
   @@index([cityId, fromDate, toDate])
   @@index([profileId])
@@ -299,9 +300,9 @@ model TravelPlan {
 // Календарь занятости: фотограф отмечает занятые даты; каталог фильтрует
 // «свободен на дату» (козырь против MyWed). Дата — UTC-полночь (@db.Date).
 model BusyDate {
-  id        String   @id @default(cuid())
+  id        String              @id @default(cuid())
   profileId String
-  date      DateTime @db.Date
+  date      DateTime            @db.Date
   profile   PhotographerProfile @relation(fields: [profileId], references: [id])
 
   @@unique([profileId, date])
@@ -324,22 +325,22 @@ model PricePackage {
 // ─── Контент: фото и серии ──────────────────────────────────────────────────
 
 model Photo {
-  id          String           @id @default(cuid())
-  profileId   String
-  categoryId  String
-  storyId     String?
-  storageKey  String           @unique // ключ в Object Storage; CDN-URL строится из него
-  width       Int
-  height      Int
-  phash       String? // perceptual hash (dHash) для дедупа/анти-кражи портфолио
-  blurhash    String? // плейсхолдер при загрузке
-  sortOrder   Int              @default(0) // порядок в портфолио (перетаскивание в кабинете)
-  status      ModerationStatus @default(PENDING)
-  rejectReason String?
-  aiVerdict   Json? // вердикт AI-премодерации (подсказка модератору, НЕ решение)
+  id              String           @id @default(cuid())
+  profileId       String
+  categoryId      String
+  storyId         String?
+  storageKey      String           @unique // ключ в Object Storage; CDN-URL строится из него
+  width           Int
+  height          Int
+  phash           String? // perceptual hash (dHash) для дедупа/анти-кражи портфолио
+  blurhash        String? // плейсхолдер при загрузке
+  sortOrder       Int              @default(0) // порядок в портфолио (перетаскивание в кабинете)
+  status          ModerationStatus @default(PENDING)
+  rejectReason    String?
+  aiVerdict       Json? // вердикт AI-премодерации (подсказка модератору, НЕ решение)
   editorsChoiceAt DateTime? // красный флажок MyWed: ручная отметка редакции
-  uploadedAt  DateTime         @default(now())
-  publishedAt DateTime?
+  uploadedAt      DateTime         @default(now())
+  publishedAt     DateTime?
 
   profile  PhotographerProfile @relation(fields: [profileId], references: [id])
   category Category            @relation(fields: [categoryId], references: [id])
@@ -363,16 +364,16 @@ model Photo {
 // (PhotographerProfile.showreelUrls). Транскод не делаем: храним исходник,
 // браузер играет mp4/webm нативно.
 model ProfileVideo {
-  id         String   @id @default(cuid())
+  id         String           @id @default(cuid())
   profileId  String
-  storageKey String   @unique // videos/<uuid>/source.<ext>
+  storageKey String           @unique // videos/<uuid>/source.<ext>
   mimeType   String
   sizeBytes  Int
   title      String?
   posterKey  String? // опциональный постер-кадр (пока не генерим — задел)
-  sortOrder  Int      @default(0)
+  sortOrder  Int              @default(0)
   status     ModerationStatus @default(PENDING) // роут ставит APPROVED сразу (автор уже прошёл модерацию профиля); поле — для будущего админ-тейкдауна по жалобе
-  createdAt  DateTime @default(now())
+  createdAt  DateTime         @default(now())
 
   profile PhotographerProfile @relation(fields: [profileId], references: [id])
 
@@ -381,16 +382,16 @@ model ProfileVideo {
 
 // Серия (история) — репортаж с одного события
 model Story {
-  id          String           @id @default(cuid())
-  profileId   String
-  categoryId  String
-  title       String
-  description String?
+  id           String           @id @default(cuid())
+  profileId    String
+  categoryId   String
+  title        String
+  description  String?
   coverPhotoId String?
-  status      ModerationStatus @default(PENDING)
+  status       ModerationStatus @default(PENDING)
   rejectReason String?
-  createdAt   DateTime         @default(now())
-  publishedAt DateTime?
+  createdAt    DateTime         @default(now())
+  publishedAt  DateTime?
 
   profile  PhotographerProfile @relation(fields: [profileId], references: [id])
   category Category            @relation(fields: [categoryId], references: [id])
@@ -401,6 +402,7 @@ model Story {
   @@index([profileId, status])
   // freshStories (главная) фильтрует по глобальному status + сортирует publishedAt — аудит перф 2026-07-30.
   @@index([status, publishedAt(sort: Desc)])
+  @@index([categoryId])
 }
 
 // ─── Событийная модель активности (фундамент рейтингов v2, рек-ленты, виджетов)
@@ -454,12 +456,12 @@ model ActivityEvent {
 
 // Материализованные лайки (текущее состояние; история — в ActivityEvent)
 model Like {
-  id      String  @id @default(cuid())
-  userId  String
-  photoId String?
-  storyId String?
-  weightMilli Int @default(1000) // вес зафиксирован при лайке; анлайк списывает ЕГО (не текущий)
-  createdAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  userId      String
+  photoId     String?
+  storyId     String?
+  weightMilli Int      @default(1000) // вес зафиксирован при лайке; анлайк списывает ЕГО (не текущий)
+  createdAt   DateTime @default(now())
 
   user  User   @relation(fields: [userId], references: [id])
   photo Photo? @relation(fields: [photoId], references: [id])
@@ -473,6 +475,7 @@ model Like {
   // Горячий путь: ленты (bestOfWindow), рекомендации, пересчёт рейтинга агрегируют
   // Like по photoId + окну createdAt. Like растёт быстрее всех — аудит перф 2026-07-30.
   @@index([photoId, createdAt])
+  @@index([userId])
 }
 
 // Подтверждённая съёмка: заказчик отметил, что съёмка с автором состоялась.
@@ -481,8 +484,8 @@ model Like {
 // РЕАЛЬНОЙ съёмке, а не по любому сообщению (фикс red-team).
 model ShootConfirmation {
   id           String    @id @default(cuid())
-  clientUserId String    // заказчик, подтвердивший съёмку
-  profileId    String    // фотограф (профиль)
+  clientUserId String // заказчик, подтвердивший съёмку
+  profileId    String // фотограф (профиль)
   eventDate    DateTime? // когда была съёмка (опционально)
   createdAt    DateTime  @default(now())
 
@@ -496,13 +499,13 @@ model ShootConfirmation {
 
 model Review {
   id           String        @id @default(cuid())
-  authorUserId String        // клиент, оставивший отзыв
-  profileId    String        // фотограф
-  rating       Int           // 1..5
+  authorUserId String // клиент, оставивший отзыв
+  profileId    String // фотограф
+  rating       Int // 1..5
   body         String
   status       CommentStatus @default(VISIBLE) // VISIBLE по умолчанию; админ может HIDDEN
-  verified     Boolean       @default(false)   // было реальное взаимодействие (сообщение)
-  reply        String?       // ответ фотографа
+  verified     Boolean       @default(false) // было реальное взаимодействие (сообщение)
+  reply        String? // ответ фотографа
   repliedAt    DateTime?
   createdAt    DateTime      @default(now())
 
@@ -514,6 +517,7 @@ model Review {
   // «Заказчики рекомендуют» (valuedPhotographers) агрегирует отзывы rating≥4+verified
   // по всей платформе — аудит перф 2026-07-30.
   @@index([status, rating, verified])
+  @@index([authorUserId])
 }
 
 model Comment {
@@ -547,6 +551,7 @@ model Follow {
   // КАЖДОМ открытии профиля + follow-списки сортируют по createdAt. Составной PK
   // начинается с followerId и для этих запросов бесполезен.
   @@index([followeeId, createdAt(sort: Desc)])
+  @@index([followeeId])
 }
 
 // Избранные фотографы заказчика (кабинет B2B: сохранить, чтобы вернуться)
@@ -562,6 +567,7 @@ model FavoritePhotographer {
   @@index([userId])
   // Счётчик «сохранений» в каталоге и дашборде ищет по profileId (аудит P1)
   @@index([profileId, createdAt(sort: Desc)])
+  @@index([profileId])
 }
 
 // ─── Заявки заказчиков ──────────────────────────────────────────────────────
@@ -572,31 +578,33 @@ enum InquiryStatus {
 }
 
 model Inquiry {
-  id           String        @id @default(cuid())
-  clientUserId String? // может быть гость — тогда контакты ниже
-  contactName  String
-  contactPhone String? // E.164
-  contactEmail String?
-  cityId       String
-  categoryId   String?
-  eventDate    DateTime? // дата события (UTC, date-часть)
-  budgetMinor  Int?
-  currency     String        @default("RUB")
-  description  String
-  status       InquiryStatus @default(OPEN)
+  id                String        @id @default(cuid())
+  clientUserId      String? // может быть гость — тогда контакты ниже
+  contactName       String
+  contactPhone      String? // E.164
+  contactEmail      String?
+  cityId            String
+  categoryId        String?
+  eventDate         DateTime? // дата события (UTC, date-часть)
+  budgetMinor       Int?
+  currency          String        @default("RUB")
+  description       String
+  status            InquiryStatus @default(OPEN)
   // Доказательство согласия на обработку ПДн (аудит 2026-07-31, P0): форма
   // заявки собирает имя/телефон/почту гостя, т.е. ПДн — без зафиксированного
   // согласия обработка неправомерна (ст. 9 152-ФЗ). Храним момент и версию
   // редакции политики, как и у аккаунтов (User.pdnConsentAt/Version).
   pdnConsentAt      DateTime?
   pdnConsentVersion String?
-  createdAt    DateTime      @default(now())
+  createdAt         DateTime      @default(now())
 
   client   User?     @relation(fields: [clientUserId], references: [id])
   city     City      @relation(fields: [cityId], references: [id])
   category Category? @relation(fields: [categoryId], references: [id])
 
   @@index([cityId, status, createdAt(sort: Desc)])
+  @@index([clientUserId])
+  @@index([categoryId])
 }
 
 // ─── Жалобы и блокировки (модерация людей) ──────────────────────────────────
@@ -614,31 +622,31 @@ enum ReportTargetType {
 }
 
 enum ReportReason {
-  SPAM            // реклама, навязчивые рассылки
-  ABUSE           // оскорбления, угрозы, травля
-  ADULT           // непристойный контент
-  COPYRIGHT       // чужая работа выдаётся за свою / претензия правообладателя
-  PERSONAL_DATA   // раскрытие чужих персональных данных, съёмка без согласия
-  FRAUD           // обман, попытка увести оплату мимо платформы
+  SPAM // реклама, навязчивые рассылки
+  ABUSE // оскорбления, угрозы, травля
+  ADULT // непристойный контент
+  COPYRIGHT // чужая работа выдаётся за свою / претензия правообладателя
+  PERSONAL_DATA // раскрытие чужих персональных данных, съёмка без согласия
+  FRAUD // обман, попытка увести оплату мимо платформы
   OTHER
 }
 
 enum ReportStatus {
   OPEN
-  RESOLVED   // приняли меры
-  DISMISSED  // жалоба не подтвердилась
+  RESOLVED // приняли меры
+  DISMISSED // жалоба не подтвердилась
 }
 
 model Report {
   id           String           @id @default(cuid())
-  reporterId   String?          // null — жалоба от гостя (форма правообладателя)
+  reporterId   String? // null — жалоба от гостя (форма правообладателя)
   targetType   ReportTargetType
   targetId     String
   reason       ReportReason
-  comment      String?          // пояснение заявителя
-  contactEmail String?          // для гостевых жалоб (обратная связь правообладателю)
+  comment      String? // пояснение заявителя
+  contactEmail String? // для гостевых жалоб (обратная связь правообладателю)
   status       ReportStatus     @default(OPEN)
-  resolution   String?          // что сделал админ
+  resolution   String? // что сделал админ
   resolvedById String?
   resolvedAt   DateTime?
   createdAt    DateTime         @default(now())
@@ -646,12 +654,12 @@ model Report {
   reporter   User? @relation("reporter", fields: [reporterId], references: [id])
   resolvedBy User? @relation("reportResolver", fields: [resolvedById], references: [id])
 
+  // Антиспам жалобами: один заявитель — одна жалоба на объект
+  @@unique([reporterId, targetType, targetId])
   // Очередь админа: свежие открытые сверху
   @@index([status, createdAt(sort: Desc)])
   // Сколько раз жаловались на объект (сигнал для модерации)
   @@index([targetType, targetId])
-  // Антиспам жалобами: один заявитель — одна жалоба на объект
-  @@unique([reporterId, targetType, targetId])
 }
 
 // Блокировка собеседника: заблокированный не может писать в личку.
@@ -740,7 +748,7 @@ model Subscription {
   proRequestedAt   DateTime? // фотограф запросил подключение PRO (бета: ручная активация оператором)
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
-  user User @relation(fields: [userId], references: [id])
+  user             User             @relation(fields: [userId], references: [id])
 }
 
 enum PaymentStatus {
@@ -751,23 +759,23 @@ enum PaymentStatus {
 }
 
 model Payment {
-  id               String        @id @default(cuid())
+  id               String           @id @default(cuid())
   // nullable: при удалении аккаунта запись ОБЕЗЛИЧИВАЕТСЯ, а не удаляется —
   // первичные документы по платежам хранятся по закону (НК РФ, 54-ФЗ), но без
   // связи с субъектом ПДн (аудит 2026-07-31, P0 deleteAccount).
   userId           String?
-  orderId          String        @unique // наш OrderId — идемпотентность вебхука
+  orderId          String           @unique // наш OrderId — идемпотентность вебхука
   amountMinor      Int // копейки (инвариант: minor units)
   // Код валюты обязателен по денежному инварианту проекта (аудит 2026-07-31, P1):
   // сумма без валюты — единственное место, где инвариант нарушался. Пока RUB,
   // но задел на мир заявлен с первого дня, а миграция денег задним числом дорога.
-  currency         String        @default("RUB") // ISO 4217
+  currency         String           @default("RUB") // ISO 4217
   tier             SubscriptionTier // какой уровень оплачивается (зачисляется на CONFIRMED)
-  status           PaymentStatus @default(NEW)
+  status           PaymentStatus    @default(NEW)
   tinkoffPaymentId String? // PaymentId от Т-Кассы
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-  user User? @relation(fields: [userId], references: [id])
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  user             User?            @relation(fields: [userId], references: [id])
 
   @@index([userId, createdAt(sort: Desc)])
 }
@@ -785,7 +793,7 @@ model AdminAudit {
   targetId    String
   meta        Json? // причина, diff полей, снимок затронутых id
   createdAt   DateTime @default(now())
-  actor User? @relation(fields: [actorUserId], references: [id])
+  actor       User?    @relation(fields: [actorUserId], references: [id])
 
   @@index([actorUserId, createdAt])
   @@index([targetType, targetId, createdAt])
@@ -801,12 +809,12 @@ model AdminAudit {
 model EmailVerification {
   id        String    @id @default(cuid())
   userId    String
-  email     String    // адрес на момент выдачи (защита от подмены после выдачи)
+  email     String // адрес на момент выдачи (защита от подмены после выдачи)
   tokenHash String    @unique
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime  @default(now())
-  user User @relation(fields: [userId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
 
   @@index([userId])
 }
@@ -818,7 +826,7 @@ model PasswordReset {
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime  @default(now())
-  user User @relation(fields: [userId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
 
   @@index([userId])
 }
@@ -831,7 +839,7 @@ model RecoveryCode {
   codeHash  String
   usedAt    DateTime?
   createdAt DateTime  @default(now())
-  user User @relation(fields: [userId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
 
   @@index([userId])
 }

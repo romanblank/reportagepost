@@ -2,11 +2,14 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import { storage } from '@/lib/storage';
+import { Readable } from 'node:stream';
+import type { ReadableStream as NodeWebReadable } from 'node:stream/web';
 import {
   VideoValidationError,
-  storeVideo,
+  storeVideoStream,
   VIDEO_LIMIT_PER_PROFILE,
   MAX_VIDEO_BYTES,
+  VIDEO_MIME_EXT,
 } from '@/lib/videos';
 
 export const maxDuration = 60; // крупная загрузка
@@ -27,29 +30,49 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'video_limit', limit: VIDEO_LIMIT_PER_PROFILE }, { status: 409 });
   }
 
-  const form = await req.formData().catch(() => null);
-  const file = form?.get('file');
-  const titleRaw = form?.get('title');
-  if (!(file instanceof File)) {
-    return NextResponse.json({ error: 'validation' }, { status: 400 });
+  // Тело идёт СЫРЫМ потоком, а не multipart (аудит 2026-08-01, P2).
+  // req.formData() материализует файл в памяти целиком — для 200-МБ шоурила
+  // это heap единственного контейнера. Здесь байты сразу утекают в хранилище;
+  // название ролика едет отдельным заголовком, чтобы не заводить multipart.
+  const mimeType = (req.headers.get('content-type') ?? '').split(';')[0].trim();
+  const lengthRaw = req.headers.get('content-length');
+  const sizeBytes = lengthRaw ? Number(lengthRaw) : NaN;
+
+  if (!VIDEO_MIME_EXT[mimeType]) {
+    return NextResponse.json({ error: 'unsupported_format' }, { status: 415 });
   }
-  // Отклоняем ПО РАЗМЕРУ ДО буферизации в память (DoS-guard: иначе 2+ ГБ
-  // multipart полностью попадёт в heap до проверки веса).
-  if (file.size > MAX_VIDEO_BYTES) {
-    return NextResponse.json({ error: 'file_too_large' }, { status: 413 });
+  // Отклоняем ДО чтения тела: без Content-Length вес неизвестен, а принимать
+  // поток неизвестного размера — приглашение залить диск.
+  if (!Number.isFinite(sizeBytes) || sizeBytes <= 0) {
+    return NextResponse.json({ error: 'validation' }, { status: 411 });
   }
-  const title = typeof titleRaw === 'string' ? titleRaw.trim().slice(0, 120) : null;
+  if (sizeBytes > MAX_VIDEO_BYTES) {
+    return NextResponse.json({ error: 'file_too_large', limit: MAX_VIDEO_BYTES }, { status: 413 });
+  }
+  if (!req.body) return NextResponse.json({ error: 'validation' }, { status: 400 });
+
+  // Заголовок ходит только по ASCII — название приезжает URL-кодированным
+  const titleRaw = req.headers.get('x-video-title');
+  let title: string | null = null;
+  if (titleRaw) {
+    try {
+      title = decodeURIComponent(titleRaw).trim().slice(0, 120) || null;
+    } catch {
+      title = null; // битая кодировка — не повод отклонять загрузку целиком
+    }
+  }
 
   try {
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const stored = await storeVideo(buffer, file.type);
+    const stored = await storeVideoStream(// Web-поток из fetch и node:stream/web типизированы порознь (разные lib),
+    // хотя в рантайме Node это один и тот же объект — сужаем через unknown
+    Readable.fromWeb(req.body as unknown as NodeWebReadable<Uint8Array>), mimeType, sizeBytes);
     const video = await db.profileVideo.create({
       data: {
         profileId: profile.id,
         storageKey: stored.storageKey,
-        mimeType: file.type,
+        mimeType,
         sizeBytes: stored.sizeBytes,
-        title: title || null,
+        title,
         sortOrder: count,
         // Автор уже прошёл модерацию профиля (в каталоге только APPROVED-профили),
         // видео — его самопрезентация → публикуем сразу. Поле status оставлено
