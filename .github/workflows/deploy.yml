@@ -143,6 +143,15 @@ jobs:
             [ -f .deploy.env ] && cp .deploy.env .previous-deploy || true
             echo "IMAGE=$IMAGE" > .deploy.env
             docker pull "$IMAGE"
+
+            # Миграции и сид — ОТДЕЛЬНЫМ шагом до подъёма (аудит 2026-08-01):
+            # так их не ограничивает health-таймаут и не обрывает авто-откат.
+            # Упали — деплой останавливается здесь, прод остаётся на прежней
+            # версии целым; это лучше, чем полуприменённая схема.
+            echo "Миграции и сид…"
+            docker run --rm --env-file .env.prod "$IMAGE" \
+              sh -c 'npx prisma migrate deploy && npm run db:seed'
+
             IMAGE="$IMAGE" docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
             # health-check с ожиданием (миграции на старте)
             for i in $(seq 1 20); do

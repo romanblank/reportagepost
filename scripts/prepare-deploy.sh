@@ -42,6 +42,24 @@ npm test --silent || say "Тесты падают"
 echo "→ npm run build (без DATABASE_URL, как в Docker)"
 env -u DATABASE_URL npm run build >/dev/null 2>&1 || say "Билд падает (проверь static-страницы, лезущие в БД → force-dynamic)"
 
+# 6. Деструктивные миграции (аудит 2026-08-01, P1).
+# Авто-откат деплоя поднимает ПРЕЖНИЙ образ, а миграции forward-only — то есть
+# старый код встречает новую схему. При аддитивных (expand-contract) правках
+# это безопасно, а вот DROP COLUMN/TABLE или переименование ломают откат:
+# откатились — и прод падает на отсутствующей колонке. Здесь не запрещаем, а
+# требуем ОСОЗНАННОСТИ: пометить миграцию комментарием -- SAFE-TO-ROLLBACK
+# после того, как убедились, что прежний образ переживёт новую схему.
+NEW_MIGRATIONS=$(git status --porcelain prisma/migrations 2>/dev/null | awk '{print $2}' | grep -E 'migration\.sql$' || true)
+if [ -n "$NEW_MIGRATIONS" ]; then
+  for m in $NEW_MIGRATIONS; do
+    [ -f "$m" ] || continue
+    if grep -qiE '(DROP TABLE|DROP COLUMN|RENAME COLUMN|RENAME TO|ALTER COLUMN .* TYPE)' "$m"; then
+      grep -qi 'SAFE-TO-ROLLBACK' "$m" \
+        || say "Миграция $m деструктивна (DROP/RENAME/ALTER TYPE) — откат деплоя на прежний образ сломает прод. Проверь совместимость и добавь в файл строку: -- SAFE-TO-ROLLBACK: <почему прежний код переживёт эту схему>"
+    fi
+  done
+fi
+
 if [ "$FAIL" -eq 1 ]; then
   echo ""; echo "⛔ prepare-deploy: НЕ ПРОШЁЛ. Чинить до коммита/деплоя."; exit 1
 fi
