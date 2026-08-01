@@ -16,7 +16,11 @@ const hasDb = Boolean(process.env.DATABASE_URL);
 describe.skipIf(!hasDb)('rating: engagement по материализованным лайкам (БД)', () => {
   it('свежий лайк весит больше старого; окно отсекает древние; фантомные анлайк-события не съедают честный лайк', async () => {
     const { db } = await import('@/lib/db');
-    const { engagementMilli, HALF_LIFE_DAYS } = await import('@/lib/rating');
+    // engagementByPhoto — единственный движок затухания (аудит 2026-08-01, P2).
+    // Раньше тест звал engagementMilli — экспортированный дубль формулы, который
+    // в проде не вызывался ниоткуда: тест зеленел на мёртвом коде, а реальный
+    // путь рейтинга оставался непокрытым.
+    const { engagementByPhoto, HALF_LIFE_DAYS } = await import('@/lib/rating');
 
     const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
     const day = 86_400_000;
@@ -53,7 +57,8 @@ describe.skipIf(!hasDb)('rating: engagement по материализованн�
       ],
     });
 
-    const score = await engagementMilli(profile.id, now);
+    const perPhoto = await engagementByPhoto([photo.id], now);
+    const score = Math.round(perPhoto.get(photo.id) ?? 0);
     // свежий 1000 + старый 1000×0.25 = 1250; древний вне окна = 0; события игнорятся
     expect(score).toBe(1250);
 

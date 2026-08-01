@@ -218,42 +218,43 @@ enum ModerationStatus {
 }
 
 model PhotographerProfile {
-  id              String           @id @default(cuid())
-  userId          String           @unique
-  username        String           @unique // @slug профиля
+  id              String            @id @default(cuid())
+  userId          String            @unique
+  username        String            @unique // @slug профиля
+  usernameHistory UsernameHistory[] // прежние адреса → редирект
   cityId          String
   bio             String?
   siteUrl         String?
   whatsapp        String? // E.164
   telegram        String? // @username
-  languages       String[]         @default(["ru"]) // языки общения, ISO 639-1
-  verified        Boolean          @default(false) // админ-верификация (trust-бейдж MyWed)
+  languages       String[]          @default(["ru"]) // языки общения, ISO 639-1
+  verified        Boolean           @default(false) // админ-верификация (trust-бейдж MyWed)
   avatarKey       String? // ключ аватара в хранилище (квадрат); нет — показываем инициалы
   coverPhotoId    String? // выбранная обложка каталога (иначе — лучший/первый кадр)
   experienceYears Int? // стаж в годах (богатство анкеты, паритет MyWed)
   equipment       String? // legacy free-text; структурированные поля ниже (паритет MyWed + B2B-агрегация)
-  cameras         String[]         @default([]) // камеры (структурировано для экспорта)
-  lenses          String[]         @default([]) // оптика
-  lighting        String[]         @default([]) // свет
+  cameras         String[]          @default([]) // камеры (структурировано для экспорта)
+  lenses          String[]          @default([]) // оптика
+  lighting        String[]          @default([]) // свет
   teamInfo        String? // соло / команда / ассистенты
-  doesVideo       Boolean          @default(false) // снимает видео (роль «Фотограф · Видеограф»)
+  doesVideo       Boolean           @default(false) // снимает видео (роль «Фотограф · Видеограф»)
   // «Показать номер» (паритет MyWed): ЯВНЫЙ опт-ин — телефон собран для верификации,
   // без согласия на страницу не выводится. Раскрытие кликом через API + событие.
-  showPhone       Boolean          @default(false)
-  showreelUrls    String[]         @default([]) // шоурилы по ссылке (YouTube/Vimeo/RuTube/VK — whitelist-embed)
+  showPhone       Boolean           @default(false)
+  showreelUrls    String[]          @default([]) // шоурилы по ссылке (YouTube/Vimeo/RuTube/VK — whitelist-embed)
   faq             Json? // [{q,a}] частые вопросы (богатство анкеты, паритет MyWed)
-  status          ModerationStatus @default(PENDING)
+  status          ModerationStatus  @default(PENDING)
   rejectReason    String?
   revisionNote    String? // комментарий «на доработку» (виден фотографу)
   // Денормализованный рейтинг для сортировки каталога (пересчёт фоном).
   // v1: полнота профиля + свежесть; v2 (S2): взвешенные лайки со сгоранием.
-  ratingScore     Int              @default(0)
+  ratingScore     Int               @default(0)
   // Денормализованный вес подписки в каталоге. Разворот 2026-07-25 (синергия, не
   // классовость): каталог ранжируется MERIT-первым (ratingScore), подписка — лишь
   // МЯГКИЙ tiebreaker в пределах равного рейтинга, НЕ pay-for-position. 0 = FREE;
   // PRIME_RANK = Prime; ELITE_RANK = Elite. Экспирация — реконсилятором.
-  proRank         Int              @default(0)
-  createdAt       DateTime         @default(now())
+  proRank         Int               @default(0)
+  createdAt       DateTime          @default(now())
 
   user               User                   @relation(fields: [userId], references: [id])
   city               City                   @relation(fields: [cityId], references: [id])
@@ -451,16 +452,35 @@ model ActivityEvent {
   createdAt   DateTime     @default(now())
 
   actor User? @relation("actor", fields: [actorUserId], references: [id])
-
-  @@index([targetType, targetId, createdAt])
-  @@index([actorUserId, createdAt])
   // Индекс [type, createdAt] снят (аудит 2026-08-01, P2): ни один запрос не
   // начинается с type без targetId — все читают журнал по объекту
   // (src/lib/analytics.ts). Лишний индекс дорожал на самой частой записи
   // платформы (beacon просмотра пишет строку на каждый уникальный просмотр).
+
+  @@index([targetType, targetId, createdAt])
+  @@index([actorUserId, createdAt])
 }
 
 // Материализованные лайки (текущее состояние; история — в ActivityEvent)
+// Прежние адреса профилей (аудит 2026-08-01, P2). Смена username меняла URL
+// профиля молча: все существующие ссылки — из мессенджеров, соцсетей, визиток,
+// поисковой выдачи — начинали вести в 404. Для платформы, где профиль и есть
+// продукт автора, это потеря аудитории на ровном месте. Старый адрес живёт
+// здесь и отдаёт постоянный редирект на актуальный.
+//
+// Если освободившееся имя займёт ДРУГОЙ автор, запись удаляется: редирект,
+// уводящий на чужой профиль, хуже честного 404.
+model UsernameHistory {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  profileId String
+  changedAt DateTime @default(now())
+
+  profile PhotographerProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+}
+
 model Like {
   id          String   @id @default(cuid())
   userId      String

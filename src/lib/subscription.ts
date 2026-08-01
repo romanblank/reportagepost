@@ -46,8 +46,6 @@ export async function isSubscriber(userId: string): Promise<boolean> {
   return (await tierOf(userId)) !== 'FREE';
 }
 
-// Совместимость: старое isPro = «есть активная подписка».
-export const isPro = isSubscriber;
 
 // Статус подписки для UI кабинета (без утечки внутренних полей в клиент).
 export interface SubscriptionStatus {
@@ -99,11 +97,6 @@ export async function grantFoundingSub(
   await db.photographerProfile.updateMany({ where: { userId }, data: { proRank: rankForTier(tier) } });
 }
 
-// Совместимость со старым вызовом (грант Prime-founding).
-export async function grantFoundingPro(userId: string, citySlug: string, now: Date = new Date()): Promise<void> {
-  return grantFoundingSub(userId, citySlug, 'PRIME', now);
-}
-
 // Зафиксировать заявку фотографа на подключение подписки (закрытая бета: оператор
 // активирует вручную). Идемпотентно.
 export async function requestSubscription(userId: string, now: Date = new Date()): Promise<void> {
@@ -115,4 +108,3 @@ export async function requestSubscription(userId: string, now: Date = new Date()
     update: { proRequestedAt: now },
   });
 }
-export const requestPro = requestSubscription; // совместимость

@@ -50,6 +50,10 @@ export async function applyProfileEdit(
 
   let newUsername: string | undefined;
   if (d.username && d.username !== currentUsername) {
+    // Предварительная проверка — быстрый и понятный отказ, но НЕ гарантия:
+    // между ней и записью имя может занять параллельный запрос. Настоящая
+    // защита — уникальный индекс, и его нарушение ловится ниже как 409
+    // (аудит 2026-08-01, P2: раньше гонка давала 500).
     const taken = await db.photographerProfile.findUnique({ where: { username: d.username } });
     if (taken) throw new DomainError('username_taken', 409);
     newUsername = d.username;
@@ -67,45 +71,66 @@ export async function applyProfileEdit(
     newCategoryIds = cats.map((c) => c.id);
   }
 
-  await db.$transaction(async (tx) => {
-    await tx.photographerProfile.update({
-      where: { id: profileId },
-      data: {
-        ...(newUsername ? { username: newUsername } : {}),
-        ...(newCityId ? { cityId: newCityId } : {}),
-        bio: d.bio?.trim() || null,
-        siteUrl: site || null,
-        whatsapp: d.whatsapp?.trim() || null,
-        telegram: d.telegram?.trim().replace(/^@/, '') || null,
-        experienceYears: d.experienceYears ?? null,
-        ...(d.equipment !== undefined ? { equipment: d.equipment.trim() || null } : {}),
-        ...(d.cameras !== undefined ? { cameras: d.cameras } : {}),
-        ...(d.lenses !== undefined ? { lenses: d.lenses } : {}),
-        ...(d.lighting !== undefined ? { lighting: d.lighting } : {}),
-        teamInfo: d.teamInfo?.trim() || null,
-        ...(d.doesVideo !== undefined ? { doesVideo: d.doesVideo } : {}),
-        ...(d.showPhone !== undefined ? { showPhone: d.showPhone } : {}),
-        // Сохраняем только ссылки, парсящиеся в известного провайдера (чистое хранилище).
-        ...(d.showreelUrls !== undefined
-          ? { showreelUrls: d.showreelUrls.filter((u) => parseShowreel(u) !== null) }
-          : {}),
-        ...(d.languages && d.languages.length ? { languages: d.languages } : {}),
-        ...(d.faq !== undefined
-          ? { faq: d.faq.length ? (d.faq as unknown as Prisma.InputJsonValue) : Prisma.DbNull }
-          : {}),
-      },
-    });
-    if (newCategoryIds) {
-      await tx.profileCategory.deleteMany({ where: { profileId } });
-      await tx.profileCategory.createMany({ data: newCategoryIds.map((categoryId) => ({ profileId, categoryId })) });
-    }
-    if (d.packages) {
-      await tx.pricePackage.deleteMany({ where: { profileId } });
-      await tx.pricePackage.createMany({
-        data: d.packages.map((p, i) => ({ profileId, hours: p.hours, priceMinor: p.priceMinor, currency: p.currency, sortOrder: i })),
+  try {
+    await db.$transaction(async (tx) => {
+      if (newUsername) {
+        // Старый адрес сохраняем — по нему пойдёт редирект на новый профиль.
+        // Прежние ссылки (мессенджеры, соцсети, визитки, выдача) продолжают
+        // работать: для платформы, где профиль и есть продукт автора, молча
+        // ломать их — потеря аудитории на ровном месте.
+        await tx.usernameHistory.deleteMany({ where: { username: newUsername } });
+        await tx.usernameHistory.upsert({
+          where: { username: currentUsername },
+          create: { username: currentUsername, profileId },
+          update: { profileId, changedAt: new Date() },
+        });
+      }
+      await tx.photographerProfile.update({
+        where: { id: profileId },
+        data: {
+          ...(newUsername ? { username: newUsername } : {}),
+          ...(newCityId ? { cityId: newCityId } : {}),
+          bio: d.bio?.trim() || null,
+          siteUrl: site || null,
+          whatsapp: d.whatsapp?.trim() || null,
+          telegram: d.telegram?.trim().replace(/^@/, '') || null,
+          experienceYears: d.experienceYears ?? null,
+          ...(d.equipment !== undefined ? { equipment: d.equipment.trim() || null } : {}),
+          ...(d.cameras !== undefined ? { cameras: d.cameras } : {}),
+          ...(d.lenses !== undefined ? { lenses: d.lenses } : {}),
+          ...(d.lighting !== undefined ? { lighting: d.lighting } : {}),
+          teamInfo: d.teamInfo?.trim() || null,
+          ...(d.doesVideo !== undefined ? { doesVideo: d.doesVideo } : {}),
+          ...(d.showPhone !== undefined ? { showPhone: d.showPhone } : {}),
+          // Сохраняем только ссылки, парсящиеся в известного провайдера (чистое хранилище).
+          ...(d.showreelUrls !== undefined
+            ? { showreelUrls: d.showreelUrls.filter((u) => parseShowreel(u) !== null) }
+            : {}),
+          ...(d.languages && d.languages.length ? { languages: d.languages } : {}),
+          ...(d.faq !== undefined
+            ? { faq: d.faq.length ? (d.faq as unknown as Prisma.InputJsonValue) : Prisma.DbNull }
+            : {}),
+        },
       });
+      if (newCategoryIds) {
+        await tx.profileCategory.deleteMany({ where: { profileId } });
+        await tx.profileCategory.createMany({ data: newCategoryIds.map((categoryId) => ({ profileId, categoryId })) });
+      }
+      if (d.packages) {
+        await tx.pricePackage.deleteMany({ where: { profileId } });
+        await tx.pricePackage.createMany({
+          data: d.packages.map((p, i) => ({ profileId, hours: p.hours, priceMinor: p.priceMinor, currency: p.currency, sortOrder: i })),
+        });
+      }
+    });
+  } catch (e) {
+    // Гонка на уникальном индексе: имя заняли между проверкой и записью.
+    // Без этого разбора клиент получал 500 вместо понятного «имя занято».
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+      throw new DomainError('username_taken', 409);
     }
-  });
+    throw e;
+  }
 
   // Пересчёт скоров ПОСЛЕ правки (ревью 2026-07-31, P1): смена категорий без
   // пересчёта оставляла новый жанр без строки ProfileCategoryScore — профиль

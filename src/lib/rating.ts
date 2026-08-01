@@ -20,35 +20,6 @@ export function decayFactor(ageMs: number): number {
   return Math.pow(0.5, ageDays / HALF_LIFE_DAYS);
 }
 
-/** Вклад текущих фото-лайков профиля с затуханием, в милли-баллах. Если id
- *  одобренных фото уже загружены (scoreOne) — передать их, чтобы не запрашивать
- *  повторно (аудит перф 2026-07-30). */
-export async function engagementMilli(profileId: string, now = new Date(), photoIds?: string[]): Promise<number> {
-  const ids =
-    photoIds ??
-    (await db.photo.findMany({ where: { profileId, status: 'APPROVED' }, select: { id: true } })).map((p) => p.id);
-  if (ids.length === 0) return 0;
-
-  // Считаем по МАТЕРИАЛИЗОВАННЫМ лайкам (таблица Like), а НЕ переигрывая журнал
-  // PHOTO_LIKE/PHOTO_UNLIKE (волна аудита №6, глубинный баг): анлайк удаляет
-  // строку Like, поэтому анлайкнутые лайки исчезают сами. Переигрывание событий
-  // затухало лайк и анлайк независимо от их времён — анлайк (позже) затухал
-  // МЕНЬШЕ лайка, оставляя отрицательный остаток, который съедал чужие честные
-  // лайки. По Like такое невозможно: только существующие лайки, каждый затухает
-  // от своего createdAt. Окно 5×полураспад (~300 дней): вклад старше <1%.
-  const since = new Date(now.getTime() - 5 * HALF_LIFE_DAYS * 86_400_000);
-  const likes = await db.like.findMany({
-    where: { photoId: { in: ids }, createdAt: { gte: since } },
-    select: { weightMilli: true, createdAt: true },
-  });
-
-  let sum = 0;
-  for (const l of likes) {
-    sum += l.weightMilli * decayFactor(now.getTime() - l.createdAt.getTime());
-  }
-  return Math.round(sum);
-}
-
 // Параметры вклада отзывов. PRIOR_* — байесовский приор: пока отзывов мало,
 // оценка тянется к нейтральной, и один восторженный (или один злой) отзыв не
 // решает судьбу автора. CAP — после 20 отзывов количество перестаёт влиять.
@@ -72,7 +43,23 @@ type ProfileForRating = Prisma.PhotographerProfileGetPayload<{
 
 /** Затухший вклад лайков по КАЖДОМУ фото (милли). Одним запросом на профиль —
  *  из него складываются и глобальный engagement, и жанровые (по categoryId фото). */
-async function engagementByPhoto(photoIds: string[], now: Date): Promise<Map<string, number>> {
+/**
+ * Вклад лайков по каждому фото с затуханием, в милли-баллах.
+ *
+ * Единственная реализация движка затухания (аудит 2026-08-01, P2): рядом жила
+ * вторая — engagementMilli, экспортированная, но не вызываемая ни одним
+ * потребителем. Дублированная формула рейтинга — гарантированный дрейф:
+ * следующая правка веса или окна попала бы в одну копию (скорее в мёртвую, она
+ * лежала выше по файлу) и не дала бы никакого эффекта.
+ *
+ * Считаем по МАТЕРИАЛИЗОВАННЫМ лайкам (таблица Like), а НЕ переигрывая журнал
+ * PHOTO_LIKE/PHOTO_UNLIKE (волна аудита №6, глубинный баг): анлайк удаляет
+ * строку Like, поэтому анлайкнутые лайки исчезают сами. Переигрывание событий
+ * затухало лайк и анлайк независимо от их времён — анлайк (позже) затухал
+ * МЕНЬШЕ лайка, оставляя отрицательный остаток, который съедал чужие честные
+ * лайки. Окно 5×полураспад (~300 дней): вклад старше <1%.
+ */
+export async function engagementByPhoto(photoIds: string[], now: Date): Promise<Map<string, number>> {
   const per = new Map<string, number>();
   if (photoIds.length === 0) return per;
   const since = new Date(now.getTime() - 5 * HALF_LIFE_DAYS * 86_400_000);

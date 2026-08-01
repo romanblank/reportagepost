@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getSession } from '@/lib/auth';
-import { requestPro, isPro } from '@/lib/subscription';
+import { requestSubscription, isSubscriber } from '@/lib/subscription';
 import { notifyInApp } from '@/lib/notifications';
 import { handleRoute, jsonError } from '@/lib/errors';
 
@@ -13,9 +13,9 @@ export function POST() {
     const session = await getSession();
     if (!session) return jsonError('unauthorized', 401);
     if (session.role !== 'PHOTOGRAPHER') return jsonError('photographers_only', 403);
-    if (await isPro(session.userId)) return NextResponse.json({ ok: true, alreadyPro: true });
+    if (await isSubscriber(session.userId)) return NextResponse.json({ ok: true, alreadyPro: true });
 
-    await requestPro(session.userId);
+    await requestSubscription(session.userId);
 
     // Уведомить операторов (in-app). Вторично — не роняем заявку.
     const admins = await db.user.findMany({ where: { role: 'ADMIN' }, select: { id: true } });

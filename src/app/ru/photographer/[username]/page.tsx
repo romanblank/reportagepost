@@ -1,6 +1,6 @@
 import { cache } from 'react';
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import { db } from '@/lib/db';
 import { cityNameRu } from '@/lib/geo-data';
 import { categoryNameRu } from '@/lib/category-data';
@@ -69,12 +69,33 @@ const findProfile = cache(async (username: string) => {
   });
 });
 
+/**
+ * Прежний адрес профиля → актуальный (аудит 2026-08-01, P2).
+ *
+ * Смена username меняла URL молча, и все существующие ссылки — из мессенджеров,
+ * соцсетей, визиток, поисковой выдачи — начинали вести в 404. Здесь старый
+ * адрес отдаёт постоянный редирект: ссылки продолжают работать, а вес адреса
+ * переносится на новый.
+ */
+const renamedTo = cache(async (username: string): Promise<string | null> => {
+  const row = await db.usernameHistory.findUnique({
+    where: { username },
+    select: { profile: { select: { username: true, status: true } } },
+  });
+  return row?.profile.status === 'APPROVED' ? row.profile.username : null;
+});
+
 export async function generateMetadata(props: {
   params: Promise<{ username: string }>;
 }): Promise<Metadata> {
   const { username } = await props.params;
   const profile = await findProfile(username);
-  if (!profile) return { title: ru.profile.notFound };
+  if (!profile) {
+    const actual = await renamedTo(username);
+    // Канонический адрес — новый: поисковики переносят вес на него
+    if (actual) return { alternates: { canonical: `${BASE_URL}/ru/photographer/${actual}` } };
+    return { title: ru.profile.notFound };
+  }
   const title = `${profile.user.firstName} ${profile.user.lastName} — ${ru.catalog.title(cityNameRu(profile.city.slug))}`;
   const description = profile.bio ?? title;
   // Страница-как-сайт: при шеринге ссылки — превью с лучшим кадром автора
@@ -101,7 +122,12 @@ export async function generateMetadata(props: {
 export default async function ProfilePage(props: { params: Promise<{ username: string }> }) {
   const { username } = await props.params;
   const profile = await findProfile(username);
-  if (!profile) notFound();
+  if (!profile) {
+    // Адрес мог смениться — уводим на актуальный, а не в 404
+    const actual = await renamedTo(username);
+    if (actual) permanentRedirect(`/ru/photographer/${actual}`);
+    notFound();
+  }
 
   const session = await getSession();
   // Все независимые запросы — одним Promise.all (ревью №7: было 4 сериализованных

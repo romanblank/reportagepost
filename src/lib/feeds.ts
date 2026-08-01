@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { DomainError } from '@/lib/errors';
 
@@ -21,6 +22,32 @@ export interface FeedPhoto {
   blurData: string | null; // LQIP-плейсхолдер (Photo.blurhash) — фон при загрузке
 }
 
+// Один include и одна сборка карточки на все ленты (аудит 2026-08-01, P2).
+// Раньше этот 10-полевой объект был скопирован пять раз (в одной из копий поля
+// шли в другом порядке и в одну строку). Добавление поля в ленту — скажем,
+// alt или признак видео — почти гарантированно было бы забыто в паре мест, и
+// лента поехала бы только на части вкладок.
+const FEED_INCLUDE = {
+  profile: { include: { user: { select: { firstName: true, lastName: true } } } },
+} as const;
+
+type FeedRow = Prisma.PhotoGetPayload<{ include: typeof FEED_INCLUDE }>;
+
+function toFeedPhoto(p: FeedRow, scoreMilli = 0): FeedPhoto {
+  return {
+    photoId: p.id,
+    storageKey: p.storageKey,
+    width: p.width,
+    height: p.height,
+    username: p.profile.username,
+    firstName: p.profile.user.firstName,
+    lastName: p.profile.user.lastName,
+    scoreMilli,
+    avatarKey: p.profile.avatarKey,
+    blurData: p.blurhash,
+  };
+}
+
 async function bestOfWindow(sinceDays: number, limit: number): Promise<FeedPhoto[]> {
   const since = new Date(Date.now() - sinceDays * 86_400_000);
   const grouped = await db.like.groupBy({
@@ -41,26 +68,14 @@ async function bestOfWindow(sinceDays: number, limit: number): Promise<FeedPhoto
 
   const photos = await db.photo.findMany({
     where: { id: { in: top.map(([id]) => id) }, status: 'APPROVED', profile: { status: 'APPROVED' } },
-    include: { profile: { include: { user: { select: { firstName: true, lastName: true } } } } },
+    include: FEED_INCLUDE,
   });
   const byId = new Map(photos.map((p) => [p.id, p]));
 
   return top
     .map(([photoId, scoreMilli]) => {
       const p = byId.get(photoId);
-      if (!p) return null;
-      return {
-        photoId,
-        storageKey: p.storageKey,
-        width: p.width,
-        height: p.height,
-        username: p.profile.username,
-        firstName: p.profile.user.firstName,
-        lastName: p.profile.user.lastName,
-        scoreMilli,
-        avatarKey: p.profile.avatarKey,
-        blurData: p.blurhash,
-      } satisfies FeedPhoto;
+      return p ? toFeedPhoto(p, scoreMilli) : null;
     })
     .filter((x): x is FeedPhoto => x !== null);
 }
@@ -74,20 +89,9 @@ export async function freshPhotos(limit = 60): Promise<FeedPhoto[]> {
     where: { status: 'APPROVED', profile: { status: 'APPROVED' } },
     orderBy: { publishedAt: 'desc' },
     take: limit,
-    include: { profile: { include: { user: { select: { firstName: true, lastName: true } } } } },
+    include: FEED_INCLUDE,
   });
-  return photos.map((p) => ({
-    photoId: p.id,
-    storageKey: p.storageKey,
-    width: p.width,
-    height: p.height,
-    username: p.profile.username,
-    firstName: p.profile.user.firstName,
-    lastName: p.profile.user.lastName,
-    scoreMilli: 0,
-    avatarKey: p.profile.avatarKey,
-    blurData: p.blurhash,
-  }));
+  return photos.map((p) => toFeedPhoto(p));
 }
 
 // «Находки редакции»: квота 80/20 — 80% слотов подписчикам (Active/Active+),
@@ -101,7 +105,7 @@ export async function editorsChoice(limit = 100): Promise<FeedPhoto[]> {
     where: { status: 'APPROVED', editorsChoiceAt: { not: null }, profile: { status: 'APPROVED' } },
     orderBy: { editorsChoiceAt: 'desc' },
     take: Math.max(limit * 4, 48), // запас под квоту
-    include: { profile: { include: { user: { select: { firstName: true, lastName: true } } } } },
+    include: FEED_INCLUDE,
   });
 
   const subscribed = pool.filter((p) => p.profile.proRank > 0);
@@ -115,18 +119,7 @@ export async function editorsChoice(limit = 100): Promise<FeedPhoto[]> {
   }
   picked.sort((a, b) => (b.editorsChoiceAt?.getTime() ?? 0) - (a.editorsChoiceAt?.getTime() ?? 0));
 
-  return picked.map((p) => ({
-    photoId: p.id,
-    storageKey: p.storageKey,
-    width: p.width,
-    height: p.height,
-    username: p.profile.username,
-    firstName: p.profile.user.firstName,
-    lastName: p.profile.user.lastName,
-    scoreMilli: 0,
-    avatarKey: p.profile.avatarKey,
-    blurData: p.blurhash,
-  }));
+  return picked.map((p) => toFeedPhoto(p));
 }
 
 /**
@@ -144,20 +137,9 @@ export async function followingFeed(userId: string, limit = 60): Promise<FeedPho
     },
     orderBy: { publishedAt: 'desc' },
     take: limit,
-    include: { profile: { include: { user: { select: { firstName: true, lastName: true } } } } },
+    include: FEED_INCLUDE,
   });
-  return photos.map((p) => ({
-    photoId: p.id,
-    storageKey: p.storageKey,
-    width: p.width,
-    height: p.height,
-    username: p.profile.username,
-    firstName: p.profile.user.firstName,
-    lastName: p.profile.user.lastName,
-    scoreMilli: 0,
-    avatarKey: p.profile.avatarKey,
-    blurData: p.blurhash,
-  }));
+  return photos.map((p) => toFeedPhoto(p));
 }
 
 /**
@@ -201,15 +183,11 @@ export async function recommendedFeed(userId: string, limit = 60): Promise<{ pho
     if (topIds.length === 0) return fallbackFeed(limit);
     const candidates = await db.photo.findMany({
       where: { status: 'APPROVED', id: { in: topIds }, profile: { status: 'APPROVED' } },
-      include: { profile: { include: { user: { select: { firstName: true, lastName: true } } } } },
+      include: FEED_INCLUDE,
     });
     if (candidates.length > 0) {
       const photos = candidates
-        .map((p) => ({
-          photoId: p.id, storageKey: p.storageKey, width: p.width, height: p.height,
-          username: p.profile.username, firstName: p.profile.user.firstName, lastName: p.profile.user.lastName,
-          scoreMilli: scores.get(p.id) ?? 0, avatarKey: p.profile.avatarKey, blurData: p.blurhash,
-        }))
+        .map((p) => toFeedPhoto(p, scores.get(p.id) ?? 0))
         .sort((a, b) => b.scoreMilli - a.scoreMilli)
         .slice(0, limit);
       return { photos, personalized: true };
