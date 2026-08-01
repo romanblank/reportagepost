@@ -967,7 +967,7 @@ export const ru = {
     inviteCode: 'Код приглашения',
     hasInvite: 'Есть код приглашения?',
     consentLabel: 'Согласие на обработку данных',
-    consentAccept: 'Принимаю',
+    consentAccept: 'Мне исполнилось 18 лет, я принимаю',
     consentPrivacy: 'политику обработки данных',
     consentAnd: 'и',
     consentOffer: 'пользовательское соглашение',

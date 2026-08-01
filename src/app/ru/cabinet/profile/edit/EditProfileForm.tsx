@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ru } from '@/i18n/ru';
 import { describeApiError } from '@/lib/form-errors';
@@ -53,6 +53,11 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
   const [siteUrl, setSiteUrl] = useState(initial.siteUrl);
   const [whatsapp, setWhatsapp] = useState(initial.whatsapp);
   const [showPhone, setShowPhone] = useState(initial.showPhone);
+  // Защита от потери правок (аудит 2026-08-01, P1): в форме 20+ полей с
+  // длинными текстами (о себе, техника, FAQ), а всё состояние жило только в
+  // памяти до отправки. Клик по шапке, по нижнему таб-бару (он на мобиле
+  // всегда на экране) или системный «назад» стирали работу без вопроса.
+  const [dirty, setDirty] = useState(false);
   const [telegram, setTelegram] = useState(initial.telegram);
   const [exp, setExp] = useState(initial.experienceYears?.toString() ?? '');
   const [cameras, setCameras] = useState(initial.cameras.join(', '));
@@ -67,6 +72,24 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = ''; // текст задаёт браузер, свой показать нельзя
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty]);
+
+  // Превью аватара — blob-URL: без revoke он живёт до перезагрузки страницы
+  // (утечка памяти при нескольких заменах подряд).
+  useEffect(() => {
+    return () => {
+      if (avatarUrl?.startsWith('blob:')) URL.revokeObjectURL(avatarUrl);
+    };
+  }, [avatarUrl]);
 
   async function save(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -101,6 +124,7 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
     setPending(false);
     if (res?.ok) {
       setSaved(true);
+      setDirty(false); // сохранили — предупреждать об уходе больше не о чем
       router.refresh();
       return;
     }
@@ -123,7 +147,11 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
     const res = await fetch('/api/profile/avatar', { method: 'POST', body: fd }).catch(() => null);
     setAvatarBusy(false);
     if (res?.ok) {
-      setAvatarUrl(URL.createObjectURL(file)); // мгновенное превью
+      // прежний blob освобождаем, иначе он висит до перезагрузки
+      setAvatarUrl((prev) => {
+        if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
+        return URL.createObjectURL(file);
+      });
       router.refresh();
     } else {
       setAvatarErr(true);
@@ -131,7 +159,8 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
   }
 
   return (
-    <form onSubmit={save} className="mt-6 flex flex-col gap-5">
+    // onInput всплывает от ВСЕХ полей — одна точка вместо правки 25 обработчиков
+    <form onSubmit={save} onInput={() => setDirty(true)} className="mt-6 flex flex-col gap-5">
       {showAvatar && (
         <div className="flex items-center gap-4">
           {avatarUrl ? (
