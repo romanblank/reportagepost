@@ -239,6 +239,10 @@ export const ru = {
   },
   catalog: {
     // alt карточки: его читают вслух скринридеры и видят при неудачной загрузке
+    sortLabel: 'Сортировка',
+    sortMerit: 'по заслугам',
+    sortPrice: 'сначала недорогие',
+    sortFresh: 'новые авторы',
     filterPrice: 'Цена за съёмку, ₽',
     priceFromPh: 'от',
     priceToPh: 'до',
@@ -662,6 +666,7 @@ export const ru = {
     reordered: 'Порядок сохранён.',
   },
   photoFeed: {
+    kicker: 'Лента',
     title: 'Фотографии',
     tabWeek: 'Лучшие за неделю',
     tabYear: 'Лучшие за год',

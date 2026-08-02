@@ -56,7 +56,7 @@ export default async function ProPage() {
         {/* Базовый */}
         <div className="card flex flex-col p-6">
           <h2 className="t-h3">{ru.pro.planFree}</h2>
-          <p className="mt-2 text-3xl font-semibold">{ru.pro.free}</p>
+          <p className="mt-2 text-3xl" style={{ fontFamily: 'var(--font-display)' }}>{ru.pro.free}</p>
           <p className="mt-1 text-sm muted">&nbsp;</p>
           <ul className="mt-5 flex flex-col gap-2.5 text-sm">
             {PLAN_FEATURES.filter((f) => f.minTier === 'FREE').map((f) => (
@@ -74,7 +74,7 @@ export default async function ProPage() {
             </span>
           </div>
           <div className="mt-2 flex items-baseline gap-1.5">
-            <span className="text-3xl font-semibold">{formatRubMinor(primePrice.monthlyMinor)}</span>
+            <span className="text-3xl" style={{ fontFamily: 'var(--font-display)' }}>{formatRubMinor(primePrice.monthlyMinor)}</span>
             <span className="text-sm muted">{ru.pro.perMonth}</span>
           </div>
           <p className="mt-1 text-sm muted">{formatRubMinor(primePrice.annualMinor)} {ru.pro.perYear} · {priceNote}</p>
@@ -90,7 +90,7 @@ export default async function ProPage() {
             </span>
           </div>
           <div className="mt-2 flex items-baseline gap-1.5">
-            <span className="text-3xl font-semibold">{formatRubMinor(elitePrice.monthlyMinor)}</span>
+            <span className="text-3xl" style={{ fontFamily: 'var(--font-display)' }}>{formatRubMinor(elitePrice.monthlyMinor)}</span>
             <span className="text-sm muted">{ru.pro.perMonth}</span>
           </div>
           <p className="mt-1 text-sm muted">{formatRubMinor(elitePrice.annualMinor)} {ru.pro.perYear} · {priceNote}</p>

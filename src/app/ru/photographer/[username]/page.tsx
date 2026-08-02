@@ -418,20 +418,50 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
         <section className="mt-10">
           <span id="video" className="block scroll-mt-20" />
           <SectionHeading kicker={ru.profile.videoKicker} title={ru.profile.videoTitle} />
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            {/* Загруженные видео (нативный плеер, Range-раздача) */}
-            {profile.videos.map((v) => (
-              <video key={v.id} src={storage.publicUrl(v.storageKey)} controls preload="metadata"
-                className="aspect-video w-full rounded-media border border-line bg-black" />
-            ))}
-            {/* Шоурилы по ссылке (безопасный embed известных провайдеров) */}
-            {showreels.map((s) => (
-              <div key={s.embedUrl} className="relative overflow-hidden rounded-media border border-line bg-black" style={{ aspectRatio: '16 / 9' }}>
-                <iframe src={s.embedUrl} title={ru.profile.videoTitle} loading="lazy"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen className="absolute inset-0 h-full w-full" />
-              </div>
-            ))}
+          {/* Раскладка прототипа: первый ролик крупно, остальные — колонкой
+              рядом. Шоурил у событийного автора продающий, и ставить его в
+              общую сетку наравне с прочим — терять главное. */}
+          <div className="mt-4 grid gap-3.5 lg:grid-cols-[1.5fr_1fr]">
+            <div className="flex flex-col gap-3.5">
+              {profile.videos.slice(0, 1).map((v) => (
+                <figure key={v.id} className="relative overflow-hidden rounded-media border border-line bg-black">
+                  <video src={storage.publicUrl(v.storageKey)} controls preload="metadata"
+                    className="aspect-video w-full" />
+                  {v.title && (
+                    <figcaption className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-3 pb-2.5 pt-8 text-[13px] text-white">
+                      {v.title}
+                    </figcaption>
+                  )}
+                </figure>
+              ))}
+              {showreels.slice(0, 1).map((s) => (
+                <div key={s.embedUrl} className="relative overflow-hidden rounded-media border border-line bg-black" style={{ aspectRatio: '16 / 9' }}>
+                  <iframe src={s.embedUrl} title={ru.profile.videoTitle} loading="lazy"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen className="absolute inset-0 h-full w-full" />
+                </div>
+              ))}
+            </div>
+            <div className="flex flex-col gap-3.5">
+              {profile.videos.slice(1).map((v) => (
+                <figure key={v.id} className="relative overflow-hidden rounded-media border border-line bg-black">
+                  <video src={storage.publicUrl(v.storageKey)} controls preload="metadata"
+                    className="aspect-video w-full" />
+                  {v.title && (
+                    <figcaption className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-3 pb-2 pt-6 text-xs text-white">
+                      {v.title}
+                    </figcaption>
+                  )}
+                </figure>
+              ))}
+              {showreels.slice(1).map((s) => (
+                <div key={s.embedUrl} className="relative overflow-hidden rounded-media border border-line bg-black" style={{ aspectRatio: '16 / 9' }}>
+                  <iframe src={s.embedUrl} title={ru.profile.videoTitle} loading="lazy"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen className="absolute inset-0 h-full w-full" />
+                </div>
+              ))}
+            </div>
           </div>
         </section>
       )}

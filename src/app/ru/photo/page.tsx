@@ -55,7 +55,10 @@ export default async function PhotoFeedPage(props: {
     <main className="mx-auto w-full max-w-6xl flex-1 sm:px-4 sm:py-8">
       {/* Табы: sticky-полоса, горизонтальный скролл на мобиле (app-подача) */}
       <div className="sticky top-[57px] z-30 border-b border-line bg-paper/90 px-4 py-2.5 backdrop-blur-md sm:static sm:border-0 sm:bg-transparent sm:px-0 sm:py-0">
-        <h1 className="t-h1 hidden sm:block">{ru.photoFeed.title}</h1>
+        <div className="hidden sm:block">
+          <p className="t-caption muted" style={{ fontFamily: 'var(--font-mono)' }}>{ru.photoFeed.kicker}</p>
+          <h1 className="t-h1 mt-1">{ru.photoFeed.title}</h1>
+        </div>
         <nav className="flex gap-2 overflow-x-auto sm:mt-4 sm:flex-wrap">
           {TABS.map((t) => (
             <Link key={t.key} href={`/ru/photo?tab=${t.key}`}

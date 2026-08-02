@@ -25,7 +25,18 @@ export interface CatalogFilters {
   minPackagePriceMinor?: number;
   /** Только авторы с подтверждёнными обеими сторонами съёмками (фильтр доверия). */
   withShootsOnly?: boolean;
+  /**
+   * Порядок выдачи (прототип v9 даёт выбор сортировки).
+   *
+   * По умолчанию — merit: заслуги, и он же остаётся единственным «редакционным»
+   * порядком. Остальные варианты — способ ЗАКАЗЧИКА посмотреть иначе (дешевле,
+   * новее), а не способ автора купить место: подписка ни в одном из них не
+   * участвует. Это прямо следует из антиклассизм-инварианта.
+   */
+  sort?: CatalogSort;
 }
+
+export type CatalogSort = 'merit' | 'priceAsc' | 'fresh';
 
 /**
  * Сколько авторов в городе по каждому жанру — для счётчиков в фильтрах.
@@ -264,9 +275,16 @@ export async function catalogForCity(filters: CatalogFilters): Promise<CatalogPa
     return { cards, page, hasNext };
   }
 
+  // Порядок: merit по умолчанию; «сначала недорогие» и «новые авторы» — выбор
+  // заказчика. Tiebreaker всегда id — пагинация обязана быть стабильной.
+  const orderBy =
+    filters.sort === 'fresh'
+      ? [{ createdAt: 'desc' as const }, { id: 'asc' as const }]
+      : [{ ratingScore: 'desc' as const }, { id: 'asc' as const }];
+
   const rows = await db.photographerProfile.findMany({
     where,
-    orderBy: [{ ratingScore: 'desc' }, { id: 'asc' }],
+    orderBy,
     skip: (page - 1) * CATALOG_PAGE_SIZE,
     take: CATALOG_PAGE_SIZE + 1, // +1 для hasNext
     include: CATALOG_INCLUDE,
@@ -274,6 +292,19 @@ export async function catalogForCity(filters: CatalogFilters): Promise<CatalogPa
 
   const hasNext = rows.length > CATALOG_PAGE_SIZE;
   const cards = await toCards(rows.slice(0, CATALOG_PAGE_SIZE));
+
+  // «Сначала недорогие» сортируем уже по карточкам: цена показывается только у
+  // подписчиков (перк), поэтому в SQL её порядок был бы неполным. Авторы без
+  // цены уходят вниз — не потому что хуже, а потому что сравнить их по этому
+  // признаку нельзя.
+  if (filters.sort === 'priceAsc') {
+    cards.sort((a, b) => {
+      const pa = a.minPackage?.priceMinor ?? Number.POSITIVE_INFINITY;
+      const pb = b.minPackage?.priceMinor ?? Number.POSITIVE_INFINITY;
+      return pa - pb;
+    });
+  }
+
   return { cards, page, hasNext };
 }
 

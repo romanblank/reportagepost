@@ -72,7 +72,7 @@ export default async function CatalogPage(props: {
   params: Promise<Params>;
   searchParams: Promise<{
     category?: string; date?: string; page?: string;
-    minPrice?: string; maxPrice?: string; format?: string; trusted?: string;
+    minPrice?: string; maxPrice?: string; format?: string; trusted?: string; sort?: string;
   }>;
 }) {
   const params = await props.params;
@@ -89,6 +89,8 @@ export default async function CatalogPage(props: {
   const maxPriceRub = Number(searchParams.maxPrice) > 0 ? Number(searchParams.maxPrice) : undefined;
   const minPriceRub = Number(searchParams.minPrice) > 0 ? Number(searchParams.minPrice) : undefined;
   const trustedOnly = searchParams.trusted === '1';
+  const sort: 'merit' | 'priceAsc' | 'fresh' =
+    searchParams.sort === 'priceAsc' || searchParams.sort === 'fresh' ? searchParams.sort : 'merit';
   const videoOnly = searchParams.format === 'video';
   const page = Math.max(1, Number(searchParams.page) || 1);
 
@@ -102,6 +104,7 @@ export default async function CatalogPage(props: {
       maxPackagePriceMinor: maxPriceRub ? maxPriceRub * 100 : undefined,
       minPackagePriceMinor: minPriceRub ? minPriceRub * 100 : undefined,
       withShootsOnly: trustedOnly,
+      sort,
     }),
     showRecommended ? recommendedForCity(city.slug) : Promise.resolve([] as CatalogCard[]),
     page === 1 ? visitingCity(city.slug, availableOn) : Promise.resolve([]),
@@ -209,6 +212,24 @@ export default async function CatalogPage(props: {
               сузило выдачу, и снимает лишнее одним кликом — а не ищет, где он
               это включил. Каждый чип ведёт на ту же страницу без своего
               параметра, поэтому работает без JS. */}
+          {/* Сортировка — ссылками (работает без JS и остаётся в адресе, значит
+              выдачу можно переслать). Подписка ни в одном порядке не участвует:
+              это способ заказчика посмотреть иначе, а не купить место. */}
+          <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+            <span className="t-caption muted" style={{ fontFamily: 'var(--font-mono)' }}>{ru.catalog.sortLabel}</span>
+            {([
+              ['merit', ru.catalog.sortMerit],
+              ['priceAsc', ru.catalog.sortPrice],
+              ['fresh', ru.catalog.sortFresh],
+            ] as const).map(([key, label]) => (
+              <Link key={key}
+                href={filterHref({ ...searchParams, sort: key === 'merit' ? undefined : key }, basePath)}
+                className={sort === key ? 'text-ink underline underline-offset-4' : 'muted hover:text-ink'}>
+                {label}
+              </Link>
+            ))}
+          </div>
+
           {hasActiveFilters && (
             <div className="mb-5 flex flex-wrap items-center gap-2" aria-label={ru.catalog.activeFiltersLabel}>
               {categorySlug && (

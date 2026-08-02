@@ -33,7 +33,7 @@ export default async function CommunityPage() {
       <div className="mt-6 flex flex-wrap gap-x-12 gap-y-4 border-y border-line py-6">
         {tiles.map((t) => (
           <div key={t.label}>
-            <div className="tnum text-3xl font-semibold leading-none sm:text-4xl">{t.value}</div>
+            <div className="tnum text-3xl leading-none sm:text-4xl" style={{ fontFamily: 'var(--font-display)' }}>{t.value}</div>
             <div className="t-caption mt-2 muted">{t.label}</div>
           </div>
         ))}

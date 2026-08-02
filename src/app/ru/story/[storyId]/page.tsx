@@ -79,13 +79,14 @@ export default async function StoryPage(props: { params: Promise<{ storyId: stri
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/40" />
         <div className="anim-rise relative mx-auto w-full max-w-4xl px-4 pb-8 sm:pb-12">
-          <p className="t-caption text-recognition-hi">{ru.journal.kicker}</p>
-          <h1 className="mt-2 max-w-3xl text-balance text-3xl font-semibold leading-[1.08] text-white drop-shadow-sm sm:text-5xl"
-            style={{ fontFamily: 'var(--font-cormorant), Georgia, serif' }}>
+          {/* Рубрика и кредит — моноширинным, как подпись под кадром в издании;
+              заголовок — типо-ролью, а не зашитым размером (инвариант спеки) */}
+          <p className="t-caption text-recognition-hi" style={{ fontFamily: 'var(--font-mono)' }}>{ru.journal.kicker}</p>
+          <h1 className="t-display mt-2 max-w-3xl text-balance text-white">
             {story.title}
           </h1>
-          <p className="mt-3 text-sm text-white/85">
-            <Link href={`/ru/photographer/${story.profile.username}`} className="font-medium underline underline-offset-2 hover:text-white">
+          <p className="mt-4 text-sm text-white/85" style={{ fontFamily: 'var(--font-mono)' }}>
+            <Link href={`/ru/photographer/${story.profile.username}`} className="underline underline-offset-2 hover:text-white">
               {authorName}
             </Link>
             {' · '}{ru.story.photosCount(story.photos.length)}
@@ -95,7 +96,7 @@ export default async function StoryPage(props: { params: Promise<{ storyId: stri
 
       <article className="mx-auto w-full max-w-4xl px-4 py-8">
         {story.description && (
-          <p className="max-w-2xl text-[17px] leading-relaxed sm:text-lg">{story.description}</p>
+          <p className="t-body-lg max-w-[58ch] leading-relaxed">{story.description}</p>
         )}
         <div className="mt-5">
           <StoryLikeButton
