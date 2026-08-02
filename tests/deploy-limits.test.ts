@@ -110,3 +110,38 @@ describe('sshd: защита от переполнения слотов подк
     expect(setupScript).toMatch(/rm -f "\$SSHD_DROPIN"/);
   });
 });
+
+// Smoke после деплоя: /health трогает только базу и отвечает 200 при падающем
+// каталоге. Стражем проверяем, что smoke не выродится в проверку одной главной
+// и что он смотрит КОДЫ ответа — grep по разметке на SSR-стриминге находит
+// шапку и на битой странице (ложная зелень маскировала сломанный профиль).
+describe('пост-деплой smoke', () => {
+  const smoke = readFileSync(path.join(process.cwd(), 'deploy/smoke.sh'), 'utf8');
+
+  it('покрывает живые разделы, а не только главную', () => {
+    for (const route of ['/ru/russia/moscow', '/ru/match', '/ru/pro', '/ru/login', '/ru/register']) {
+      expect(smoke, `smoke не проверяет ${route}`).toContain(`"${route}"`);
+    }
+  });
+
+  it('стережёт честный 404 — регрессия soft-404 отдавала 200', () => {
+    expect(smoke).toMatch(/nowhere" 404/);
+    expect(smoke).toMatch(/no-such-author[^"]*" 404/);
+  });
+
+  it('проверяет коды ответа, а не разметку', () => {
+    expect(smoke).toContain('%{http_code}');
+    expect(smoke).not.toMatch(/curl[^|]*\|\s*grep/);
+  });
+
+  it('провал smoke — это ненулевой код возврата, иначе деплой не откатится', () => {
+    expect(smoke).toMatch(/exit 1/);
+  });
+
+  it('деплой вызывает smoke и откатывается при его провале', () => {
+    const deploy = readFileSync(path.join(process.cwd(), '.github/workflows/deploy.yml'), 'utf8');
+    expect(deploy).toContain('./smoke.sh');
+    // Без chmod скрипт не запустится на свежей машине
+    expect(deploy).toMatch(/chmod \+x[^\n]*smoke\.sh/);
+  });
+});

@@ -134,7 +134,7 @@ jobs:
             sudo mkdir -p /opt/reportagepost && sudo chown rp:rp /opt/reportagepost
             cp /home/rp/deploy-staging/* /opt/reportagepost/
             cd /opt/reportagepost
-            chmod +x setup-server.sh fetch-secrets.sh
+            chmod +x setup-server.sh fetch-secrets.sh smoke.sh
             ./setup-server.sh
             ./fetch-secrets.sh
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
@@ -164,6 +164,13 @@ jobs:
               sleep 6
               if curl -sf http://127.0.0.1:3000/health >/dev/null; then
                 echo "HEALTH OK"
+                # Smoke реальных страниц: /health трогает только базу и отвечает
+                # 200 даже при падающем каталоге. Провал здесь = прод неисправен,
+                # уходим на общий путь отката ниже.
+                if ! ./smoke.sh; then
+                  echo "SMOKE ПРОВАЛЕН — откатываемся"
+                  break
+                fi
                 # КОРЕНЬ ИНЦИДЕНТА 2026-07-24: prune раньше шёл ДО up (заменяемый образ
                 # был «в использовании» → не удалялся) + exit 0 сразу. За 17 деплоев
                 # образы Next.js (~1.5ГБ) накопились → диск забит. ФИКС: чистим образы
