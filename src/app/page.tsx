@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CatalogCards } from "@/components/CatalogCards";
 import { ru } from "@/i18n/ru";
 import { cityNameRu } from "@/lib/geo-data";
 import { webVariantUrl } from "@/lib/photos";
@@ -19,7 +20,7 @@ export default async function Home() {
   // Витрина кешируется на 2 минуты (аудит P1): раньше каждый заход заново
   // агрегировал лайки за неделю и все ленты. Персонализации на главной нет,
   // поэтому кеш общий и безопасный.
-  const { week, fresh, stories, cats, stats, newAuthors, photographers, photos } =
+  const { week, fresh, stories, cats, stats, newAuthors, photographers, photos, cityAuthors } =
     await cachedHomeData();
 
   const statTiles = [
@@ -45,6 +46,48 @@ export default async function Home() {
       <LandingHero photographers={photographers} photos={photos}
         backdropSrc={heroFeatured ? webVariantUrl(heroFeatured.storageKey) : null}
         featured={featured} />
+
+      {/* Авторы города (прототип v9): главная показывала кадры, но не людей —
+          при том что выбирают именно автора. Карточка та же, что в каталоге. */}
+      {cityAuthors.length > 0 && (
+        <section className="mx-auto w-full max-w-7xl px-4 pt-12 sm:pt-14">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="t-caption muted" style={{ fontFamily: 'var(--font-mono)' }}>
+                {ru.landing.cityAuthorsKicker}
+              </p>
+              <h2 className="t-h2 mt-1">{ru.landing.cityAuthorsTitle(cityNameRu('moscow'))}</h2>
+            </div>
+            <Link href="/ru/russia/moscow" className="text-sm text-accent hover:underline">
+              {ru.landing.cityAuthorsMore}
+            </Link>
+          </div>
+          <CatalogCards cards={cityAuthors} cityName={cityNameRu('moscow')} />
+        </section>
+      )}
+
+      {/* Как устроено доверие — то, чем платформа отличается от биржи.
+          В прототипе это отдельный разговор с заказчиком, и не зря: механику
+          «подтверждённых съёмок» нигде больше не объясняли. */}
+      <section className="mx-auto w-full max-w-7xl px-4 pt-14 sm:pt-16">
+        <p className="t-caption muted" style={{ fontFamily: 'var(--font-mono)' }}>
+          {ru.landing.trustSectionKicker}
+        </p>
+        <h2 className="t-h2 mt-1 max-w-[24ch]">{ru.landing.trustSectionTitle}</h2>
+        <p className="mt-3 max-w-[62ch] text-[15px] leading-relaxed text-ink-2">{ru.landing.trustSectionLead}</p>
+        <ul className="mt-6 grid gap-4 sm:grid-cols-3">
+          {[
+            { t: ru.landing.trustPoint1Title, d: ru.landing.trustPoint1Text },
+            { t: ru.landing.trustPoint2Title, d: ru.landing.trustPoint2Text },
+            { t: ru.landing.trustPoint3Title, d: ru.landing.trustPoint3Text },
+          ].map((p) => (
+            <li key={p.t} className="card p-5">
+              <h3 className="text-[15px] font-medium">{p.t}</h3>
+              <p className="mt-2 text-sm leading-relaxed muted">{p.d}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
 
       {/* Жанры репортажа — навигационные карточки (всегда, даже пустые: показывают охват) */}
       <section className="mx-auto w-full max-w-7xl px-4 py-12 sm:py-14">

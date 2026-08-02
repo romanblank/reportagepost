@@ -1,7 +1,5 @@
 import Link from 'next/link';
 import { ru } from '@/i18n/ru';
-import { CATEGORIES } from '@/lib/category-data';
-import { CATALOG_ROOT } from '@/lib/nav';
 import { HeroSearch } from '@/components/HeroSearch';
 
 // Кинематографичный герой v9 (2026-07-30): текст+поиск слева, featured-карточка
@@ -35,26 +33,21 @@ export function LandingHero({ photographers, photos, backdropSrc, featured }: {
           <p className="t-caption inline-flex items-center gap-2.5 text-accent before:h-px before:w-6 before:bg-accent">
             {ru.landing.kicker}
           </p>
-          <h1 className="mt-5 text-balance text-4xl font-semibold leading-[1.02] text-ink sm:text-5xl lg:text-6xl"
-            style={{ fontFamily: 'var(--font-cormorant), Georgia, serif' }}>
-            {ru.landing.heroTitle}
+          {/* Типо-роль вместо зашитых размеров (инвариант спеки), акцент —
+              курсивом на глаголе: приём прототипа v9 */}
+          <h1 className="t-display mt-5 text-balance text-ink">
+            {ru.landing.heroTitleLead}
+            <br />
+            {ru.landing.heroTitleRest}{' '}
+            <em className="not-italic text-accent" style={{ fontStyle: 'italic' }}>{ru.landing.heroTitleAccent}</em>
           </h1>
           <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-ink-2 sm:text-lg">{ru.landing.heroLead}</p>
 
+          {/* Поиск по брифу + жанры одной группой. Отдельный ряд чипов и
+              подсказка «опишите задачу — подберём» отсюда убраны: они дублировали
+              то, что теперь делает само поле, и на первом экране получалось три
+              способа начать вместо одного понятного. */}
           <div className="mt-8 max-w-xl"><HeroSearch /></div>
-          <p className="mt-3 t-caption text-muted">
-            {ru.landing.matchNudge}{' '}
-            <Link href="/ru/match" className="text-accent underline underline-offset-2">{ru.landing.matchNudgeCta}</Link>
-          </p>
-
-          <nav className="mt-5 flex flex-wrap gap-2">
-            {CATEGORIES.map((c) => (
-              <Link key={c.slug} href={CATALOG_ROOT}
-                className="rounded-full border border-line bg-surface-2/60 px-3.5 py-1.5 text-sm text-ink backdrop-blur-sm transition hover:border-accent hover:text-accent">
-                {c.nameRu}
-              </Link>
-            ))}
-          </nav>
 
           {(photographers > 0 || photos > 0) && (
             <p className="mt-8 flex flex-wrap gap-x-6 gap-y-1 t-caption tabular-nums text-muted">

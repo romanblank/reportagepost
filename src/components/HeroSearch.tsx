@@ -1,40 +1,62 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { RU_CITIES } from '@/lib/geo-data';
+import { useState } from 'react';
+import Link from 'next/link';
 import { ru } from '@/i18n/ru';
-import { Icon } from '@/components/ui/Icon';
+import { CATEGORIES } from '@/lib/category-data';
 
-// Поиск по городу в герое (директива №1). Селектор города → каталог города.
-// Активные города (посев) первыми. Светлый герой: тёмный текст, латунная кнопка.
-// Overflow-safe: select min-w-0 flex-1 (сжимается), форма max-w-md, кнопка shrink-0.
-const CITIES = [...RU_CITIES].sort(
-  (a, b) => Number(b.active ?? false) - Number(a.active ?? false) || a.nameRu.localeCompare(b.nameRu, 'ru'),
-);
-
+/**
+ * Главное действие на первом экране — умный подбор по описанию события
+ * (прототип v9). Раньше здесь стоял выбор города из списка и кнопка «Найти».
+ *
+ * Разница принципиальная: заказчик приходит с задачей — «корпоратив в Москве,
+ * 200 гостей, репортаж без постановки», — а не со знанием, кого и где искать.
+ * Список городов заставлял его сначала перевести задачу в наш способ навигации.
+ * Поле брифа принимает задачу как есть и отдаёт её подбору.
+ *
+ * Жанры остаются рядом отдельной строкой: если человек точно знает, что ему
+ * нужны «Концерты», незачем заставлять его формулировать.
+ */
 export function HeroSearch() {
   const router = useRouter();
-  const [city, setCity] = useState('moscow');
+  const [text, setText] = useState('');
 
   function go(e: React.FormEvent) {
     e.preventDefault();
-    router.push(`/ru/russia/${city}`);
+    const q = text.trim();
+    router.push(q ? `/ru/match?text=${encodeURIComponent(q)}` : '/ru/match');
   }
 
   return (
-    <form onSubmit={go}
-      className="mx-auto flex w-full max-w-md items-stretch gap-2 rounded-2xl border border-line-2 bg-paper p-1.5 shadow-sm">
-      <span className="grid shrink-0 place-items-center pl-2 text-muted-2" aria-hidden>
-        <Icon name="search" size={18} />
-      </span>
-      <select value={city} onChange={(e) => setCity(e.target.value)} aria-label={ru.landing.heroSearchCity}
-        className="min-w-0 flex-1 cursor-pointer bg-transparent py-2.5 pr-2 text-[15px] font-medium text-ink outline-none">
-        {CITIES.map((c) => (
-          <option key={c.slug} value={c.slug}>{c.nameRu}</option>
+    <div>
+      <form onSubmit={go}
+        className="flex flex-col gap-2 rounded-media border border-line bg-surface p-2 sm:flex-row sm:items-center">
+        <label className="min-w-0 flex-1 px-3 py-1.5">
+          <span className="t-caption block muted" style={{ fontFamily: 'var(--font-mono)' }}>
+            {ru.landing.briefLabel}
+          </span>
+          <input
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder={ru.landing.briefPlaceholder}
+            aria-label={ru.landing.briefLabel}
+            className="mt-0.5 w-full border-0 bg-transparent p-0 text-[15px] outline-none placeholder:text-muted-2"
+          />
+        </label>
+        <button type="submit" className="btn btn-accent shrink-0 whitespace-nowrap px-6 py-3">
+          {ru.landing.briefCta}
+        </button>
+      </form>
+
+      <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
+        <span className="muted">{ru.landing.briefOrGenre}</span>
+        {CATEGORIES.map((c) => (
+          <Link key={c.slug} href={`/ru/russia/moscow/${c.slug}`} className="chip">
+            {c.nameRu}
+          </Link>
         ))}
-      </select>
-      <button type="submit" className="btn btn-accent shrink-0 whitespace-nowrap px-5">{ru.landing.heroSearchCta}</button>
-    </form>
+      </div>
+    </div>
   );
 }

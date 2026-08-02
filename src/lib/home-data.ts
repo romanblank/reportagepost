@@ -1,4 +1,5 @@
 import { unstable_cache } from 'next/cache';
+import { catalogForCity } from '@/lib/catalog';
 import { bestOfWeek, freshPhotos } from '@/lib/feeds';
 import { categoryPreviews, freshStories } from '@/lib/discovery';
 import { communityStats, recentPhotographers } from '@/lib/widgets';
@@ -23,7 +24,7 @@ const TTL_SECONDS = 120;
 
 export const cachedHomeData = unstable_cache(
   async () => {
-    const [week, fresh, stories, cats, stats, newAuthors, photographers, photos] = await Promise.all([
+    const [week, fresh, stories, cats, stats, newAuthors, photographers, photos, cityAuthors] = await Promise.all([
       bestOfWeek(12),
       freshPhotos(16),
       freshStories(6),
@@ -32,8 +33,12 @@ export const cachedHomeData = unstable_cache(
       recentPhotographers(4),
       db.photographerProfile.count({ where: { status: 'APPROVED' } }),
       db.photo.count({ where: { status: 'APPROVED' } }),
+      // Авторы города на главной (прототип v9): продукт про людей, а главная
+      // показывала только кадры. Берём первую страницу каталога Москвы —
+      // тот же merit-порядок, что и в каталоге, без отдельной логики.
+      catalogForCity({ citySlug: 'moscow' }).then((p) => p.cards.slice(0, 4)),
     ]);
-    return { week, fresh, stories, cats, stats, newAuthors, photographers, photos };
+    return { week, fresh, stories, cats, stats, newAuthors, photographers, photos, cityAuthors };
   },
   ['home-showcase'],
   { revalidate: TTL_SECONDS, tags: ['home'] },
