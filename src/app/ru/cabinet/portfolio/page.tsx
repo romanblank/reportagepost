@@ -6,6 +6,8 @@ import { db } from '@/lib/db';
 import { ru } from '@/i18n/ru';
 import { thumbVariantUrl } from '@/lib/photos';
 import { PortfolioManager, type PortfolioPhoto } from '@/components/PortfolioManager';
+import { PortfolioImport } from '@/components/PortfolioImport';
+import { categoryNameRu } from '@/lib/category-data';
 
 export const metadata: Metadata = { title: ru.portfolio.title };
 export const dynamic = 'force-dynamic';
@@ -17,7 +19,10 @@ export default async function PortfolioPage() {
 
   const profile = await db.photographerProfile.findUnique({
     where: { userId: session.userId },
-    select: { id: true, status: true, coverPhotoId: true },
+    select: {
+      id: true, status: true, coverPhotoId: true,
+      categories: { include: { category: { select: { slug: true } } } },
+    },
   });
 
   const photos = profile
@@ -53,6 +58,20 @@ export default async function PortfolioPage() {
             <PortfolioManager initialPhotos={items} initialCoverId={profile.coverPhotoId} />
           </div>
         </>
+      )}
+
+      {profile && profile.categories.length > 0 && (
+        <section className="mt-10 border-t border-line pt-8">
+          <h2 className="t-h2">{ru.importPortfolio.title}</h2>
+          <div className="mt-4">
+            <PortfolioImport
+              categories={profile.categories.map((c) => ({
+                slug: c.category.slug,
+                name: categoryNameRu(c.category.slug),
+              }))}
+            />
+          </div>
+        </section>
       )}
     </main>
   );

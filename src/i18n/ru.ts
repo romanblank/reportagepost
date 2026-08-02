@@ -1053,6 +1053,36 @@ export const ru = {
     errSave: 'Не удалось сохранить. Попробуйте ещё раз.',
     rangeLabel: (from: string, to: string) => `${from} — ${to}`,
   },
+  importPortfolio: {
+    title: 'Перенести работы по ссылке',
+    urlLabel: 'Ссылка на ваши работы',
+    urlPlaceholder: 'https://ваш-сайт.ru/portfolio',
+    hint: 'Страница вашего сайта, блога или альбома. Мы покажем найденные кадры — отметьте свои. Перенесённые работы проходят обычную проверку.',
+    scanCta: 'Посмотреть',
+    scanning: 'Смотрим…',
+    categoryLabel: 'Жанр',
+    foundCount: (found: number, picked: number) =>
+      picked > 0 ? `Найдено кадров: ${found}. Отмечено: ${picked}` : `Найдено кадров: ${found}. Отметьте те, что хотите перенести`,
+    pullCta: (n: number) => (n === 0 ? 'Перенести' : `Перенести (${n})`),
+    report: (added: number, reasons: string[]) => {
+      const dup = reasons.filter((r) => r === 'duplicate_own').length;
+      const foreign = reasons.filter((r) => r === 'duplicate_foreign').length;
+      const limit = reasons.filter((r) => r === 'photo_limit').length;
+      const rest = reasons.length - dup - foreign - limit;
+      const parts = [`Перенесено кадров: ${added}`];
+      if (dup > 0) parts.push(`уже есть в вашем портфолио: ${dup}`);
+      if (foreign > 0) parts.push(`совпали с работами другого автора: ${foreign}`);
+      if (limit > 0) parts.push(`не поместились в лимит: ${limit}`);
+      if (rest > 0) parts.push(`не удалось загрузить: ${rest}`);
+      return parts.join(' · ');
+    },
+    errBadUrl: 'Проверьте ссылку — нужен полный адрес страницы, начиная с https://',
+    errBlockedHost: 'По этому адресу переносить нельзя. Укажите публичную страницу вашего сайта или альбома.',
+    errUnreachable: 'Страница не открылась. Проверьте ссылку или попробуйте позже.',
+    errNoImages: 'На странице не нашлось подходящих кадров. Попробуйте ссылку прямо на галерею.',
+    errTooLarge: 'Страница слишком тяжёлая — укажите конкретный раздел портфолио.',
+    errGeneric: 'Не удалось перенести. Попробуйте ещё раз.',
+  },
   cabinetVideos: {
     uploadCta: 'Загрузить видео',
     uploading: 'Загрузка…',

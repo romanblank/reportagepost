@@ -199,3 +199,39 @@ describe('роуты: фоновые задачи защищены секрет�
     }
   });
 });
+
+// Импорт по ссылке даёт пользователю возможность заставить НАШ сервер сходить
+// по произвольному адресу. Гард живёт в библиотеке и покрыт отдельно; здесь
+// проверяется, что роут вообще его вызывает и не открыт посторонним.
+describe('роуты: импорт портфолио по ссылке', () => {
+  it('разведка и перенос требуют сессии фотографа', async () => {
+    const { GET, POST } = await import('@/app/api/profile/import/route');
+    session.current = null;
+    expect((await GET(new Request('http://localhost/api/profile/import?url=https://example.com'))).status).toBe(401);
+    expect((await POST(req({ urls: ['https://example.com/a.jpg'], categorySlug: 'sports' }))).status).toBe(401);
+  });
+
+  it('внутренние адреса отвергаются самим роутом, а не «где-то ниже»', async () => {
+    if (!hasDb) return;
+    const { db } = await import('@/lib/db');
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const city = await db.city.findFirstOrThrow({ where: { slug: 'moscow' } });
+    const user = await db.user.create({
+      data: { role: 'PHOTOGRAPHER', status: 'ACTIVE', firstName: 'И', lastName: 'П', email: `imp-${stamp}@test.local` },
+    });
+    const profile = await db.photographerProfile.create({
+      data: { userId: user.id, username: `imp-${stamp}`, cityId: city.id, status: 'APPROVED' },
+    });
+    session.current = { userId: user.id, role: 'PHOTOGRAPHER', tokenVersion: 0 };
+
+    try {
+      const { GET } = await import('@/app/api/profile/import/route');
+      const res = await GET(new Request('http://localhost/api/profile/import?url=http://169.254.169.254/latest/meta-data/'));
+      expect(res.status).toBe(422);
+      expect(await res.json()).toMatchObject({ error: 'import_blocked_host' });
+    } finally {
+      await db.photographerProfile.delete({ where: { id: profile.id } });
+      await db.user.delete({ where: { id: user.id } });
+    }
+  });
+});
