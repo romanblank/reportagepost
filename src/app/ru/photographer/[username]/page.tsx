@@ -283,7 +283,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
           (прототип v9). Раньше цены, контакты и занятость были размазаны по
           странице, и заказчик собирал их скроллом. */}
       <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-10 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_340px] lg:gap-12">
-        <div className="min-w-0">
+        <div className="order-2 min-w-0 lg:order-1">
         {!isSelf && (
           <div className="flex flex-wrap items-center gap-2 border-b border-line pb-6">
             <MessageButton userId={profile.userId} />
@@ -567,6 +567,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
 
         {/* Правая колонка: цена, обращение, параметры работы и занятость */}
         {!isSelf && (
+          <div className="order-1 lg:order-2">
           <ProfileBooking
             profileId={profile.id}
             username={profile.username}
@@ -583,6 +584,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
             firstWeekday={firstWeekday}
             canShowPhone={Boolean(profile.showPhone && profile.user.phone)}
           />
+          </div>
         )}
       </div>
     </main>

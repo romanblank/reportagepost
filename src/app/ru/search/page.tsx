@@ -37,7 +37,7 @@ export default async function SearchPage(props: {
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:py-10">
-      <h1 className="t-h1">{ru.search.title}</h1>
+      <h1 className="t-title">{ru.search.title}</h1>
 
       <form method="get" className="mt-6 flex flex-wrap gap-2">
         <input name="q" defaultValue={query} placeholder={ru.search.placeholder}

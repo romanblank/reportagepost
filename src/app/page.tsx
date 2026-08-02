@@ -6,7 +6,7 @@ import { webVariantUrl } from "@/lib/photos";
 import { cachedHomeData } from "@/lib/home-data";
 import { Avatar } from "@/components/ui/Avatar";
 import { LandingHero } from "@/components/LandingHero";
-import { FeedMasonry, StoryCards } from "@/components/FeedGallery";
+import { FeedMasonry } from "@/components/FeedGallery";
 
 // force-dynamic: главная тянет ленты из БД (урок: static-страница с запросом
 // падает на пререндере в Docker-билде без DATABASE_URL).
@@ -20,15 +20,12 @@ export default async function Home() {
   // Витрина кешируется на 2 минуты (аудит P1): раньше каждый заход заново
   // агрегировал лайки за неделю и все ленты. Персонализации на главной нет,
   // поэтому кеш общий и безопасный.
-  const { week, fresh, stories, cats, stats, newAuthors, photographers, photos, cityAuthors } =
-    await cachedHomeData();
+  const { week, fresh, newAuthors, photographers, photos, cityAuthors } = await cachedHomeData();
 
-  const statTiles = [
-    { label: ru.dashboard.statPhotographers(stats.photographers), value: stats.photographers },
-    { label: ru.dashboard.statPhotos(stats.photos), value: stats.photos },
-    { label: ru.dashboard.statCities(stats.cities), value: stats.cities },
-    { label: ru.dashboard.statStories, value: stats.stories },
-  ].filter((t) => t.value > 0);
+  // Прототип показывает одну ленту отклика; берём лучшее за неделю, а на малых
+  // данных честно подставляем свежее — пустая секция хуже, чем свежая.
+  const feedPhotos = week.length > 0 ? week : fresh;
+
 
   // Featured «Кадр недели» — алгоритмически: топ по отклику за неделю (не выбор
   // редакции). Фон героя — тот же кадр приглушённо.
@@ -74,99 +71,49 @@ export default async function Home() {
           {ru.landing.trustSectionKicker}
         </p>
         <h2 className="t-h2 mt-1 max-w-[24ch]">{ru.landing.trustSectionTitle}</h2>
-        <p className="mt-3 max-w-[62ch] text-[15px] leading-relaxed text-ink-2">{ru.landing.trustSectionLead}</p>
-        <ul className="mt-6 grid gap-4 sm:grid-cols-3">
+        {/* Нумерация здесь не украшение: это последовательность, по которой
+            выстроено доверие — сначала порядок выдачи, потом отзыв, потом сделка */}
+        <ul className="mt-7 grid gap-6 sm:grid-cols-3 sm:gap-8">
           {[
-            { t: ru.landing.trustPoint1Title, d: ru.landing.trustPoint1Text },
-            { t: ru.landing.trustPoint2Title, d: ru.landing.trustPoint2Text },
-            { t: ru.landing.trustPoint3Title, d: ru.landing.trustPoint3Text },
+            { n: '01', t: ru.landing.trustPoint1Title, d: ru.landing.trustPoint1Text },
+            { n: '02', t: ru.landing.trustPoint2Title, d: ru.landing.trustPoint2Text },
+            { n: '03', t: ru.landing.trustPoint3Title, d: ru.landing.trustPoint3Text },
           ].map((p) => (
-            <li key={p.t} className="card p-5">
-              <h3 className="text-[15px] font-medium">{p.t}</h3>
+            <li key={p.t} className="border-t border-line pt-4">
+              <span className="tnum text-sm" style={{ fontFamily: 'var(--font-mono)', color: 'var(--recognition)' }}>{p.n}</span>
+              <h3 className="mt-2 text-[17px]" style={{ fontFamily: 'var(--font-display)' }}>{p.t}</h3>
               <p className="mt-2 text-sm leading-relaxed muted">{p.d}</p>
             </li>
           ))}
         </ul>
       </section>
 
-      {/* Жанры репортажа — навигационные карточки (всегда, даже пустые: показывают охват) */}
-      <section className="mx-auto w-full max-w-7xl px-4 py-12 sm:py-14">
-        <SectionHeader title={ru.landing.discoverCategories} />
-        <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {cats.map((c) => (
-            <li key={c.slug}>
-              <Link href={`/ru/russia/moscow/${c.slug}`}
-                className="group relative block overflow-hidden rounded-media border border-line bg-surface-2 transition hover:border-line-2">
-                {c.coverKey ? (
-                  <>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={webVariantUrl(c.coverKey)} alt={c.nameRu} loading="lazy"
-                      className="aspect-[3/2] w-full bg-cover bg-center object-cover transition duration-500 group-hover:scale-[1.04]"
-                      style={c.blurData ? { backgroundImage: `url(${c.blurData})` } : undefined} />
-                    <span className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/70 via-black/10 to-transparent p-3">
-                      <span className="font-medium leading-tight text-white">{c.nameRu}</span>
-                      {c.photoCount > 0 && (
-                        <span className="mt-0.5 text-xs text-white/75">{ru.landing.categoryWorks(c.photoCount)}</span>
-                      )}
-                    </span>
-                  </>
-                ) : (
-                  // Пустой жанр (бета): без фейк-фото — деликатный халфтон-мотив
-                  // бренда (угасающие кольца точек), чтобы тайл читался намеренным
-                  <div className="relative flex aspect-[3/2] w-full flex-col justify-end overflow-hidden p-3">
-                    <svg viewBox="0 0 120 120" aria-hidden
-                      className="absolute -right-6 -top-6 h-28 w-28 text-ink opacity-[0.07] transition duration-500 group-hover:opacity-[0.12]">
-                      <g fill="currentColor">
-                        <circle cx="60" cy="60" r="5" />
-                        {Array.from({ length: 6 }).map((_, i) => {
-                          const a = (i * Math.PI) / 3;
-                          return <circle key={`r1-${i}`} cx={60 + 18 * Math.cos(a)} cy={60 + 18 * Math.sin(a)} r="4" opacity="0.8" />;
-                        })}
-                        {Array.from({ length: 12 }).map((_, i) => {
-                          const a = (i * Math.PI) / 6 + Math.PI / 12;
-                          return <circle key={`r2-${i}`} cx={60 + 34 * Math.cos(a)} cy={60 + 34 * Math.sin(a)} r="3" opacity="0.55" />;
-                        })}
-                        {Array.from({ length: 18 }).map((_, i) => {
-                          const a = (i * Math.PI) / 9;
-                          return <circle key={`r3-${i}`} cx={60 + 50 * Math.cos(a)} cy={60 + 50 * Math.sin(a)} r="2.2" opacity="0.35" />;
-                        })}
-                      </g>
-                    </svg>
-                    <span className="font-medium leading-tight">{c.nameRu}</span>
-                    <span className="mt-0.5 text-xs text-muted-2 transition group-hover:text-recognition">{ru.landing.categoryExplore}</span>
-                  </div>
-                )}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      {week.length > 0 && (
-        <section className="mx-auto w-full max-w-7xl px-4 pb-12 sm:pb-14">
-          <SectionHeader title={ru.landing.discoverWeek} href="/ru/photo?tab=week" />
-          <div className="mt-4"><FeedMasonry photos={week} /></div>
-        </section>
-      )}
-
-      {fresh.length > 0 && (
-        <section className="mx-auto w-full max-w-7xl px-4 pb-12 sm:pb-14">
-          <SectionHeader title={ru.landing.recentWork} href="/ru/photo?tab=fresh" />
-          <div className="mt-4"><FeedMasonry photos={fresh} /></div>
-        </section>
-      )}
-
-      {stories.length > 0 && (
-        <section className="mx-auto w-full max-w-7xl px-4 pb-12 sm:pb-14">
-          <SectionHeader title={ru.landing.discoverStories} />
-          <div className="mt-4"><StoryCards stories={stories} /></div>
+      {/* Одна лента вместо трёх (прототип): «что набирает отклик». Раньше шли
+          подряд «лучшее за неделю», «свежее» и «серии» — три почти одинаковые
+          мозаики, между которыми человек не видел разницы. */}
+      {feedPhotos.length > 0 && (
+        <section className="mx-auto w-full max-w-7xl px-4 pb-12 pt-14 sm:pb-14 sm:pt-16">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="t-caption muted" style={{ fontFamily: 'var(--font-mono)' }}>{ru.landing.feedKicker}</p>
+              <h2 className="t-h2 mt-1">{ru.landing.feedTitle}</h2>
+            </div>
+            <Link href="/ru/photo" className="text-sm text-accent hover:underline">{ru.landing.feedMore}</Link>
+          </div>
+          <div className="mt-5"><FeedMasonry photos={feedPhotos} /></div>
         </section>
       )}
 
       {/* Новые авторы — автоматически по дате прихода (без курирования) */}
       {newAuthors.length > 0 && (
         <section className="mx-auto w-full max-w-7xl px-4 pb-12 sm:pb-14">
-          <SectionHeader title={ru.landing.newAuthorsTitle} href="/ru/community" />
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="t-caption muted" style={{ fontFamily: 'var(--font-mono)' }}>{ru.landing.newAuthorsKicker}</p>
+              <h2 className="t-h2 mt-1">{ru.landing.newAuthorsTitle}</h2>
+            </div>
+            <Link href="/ru/community" className="text-sm text-accent hover:underline">{ru.landing.newAuthorsMore}</Link>
+          </div>
           <ul className="mt-4 grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-4">
             {newAuthors.map((a) => (
               <li key={a.username} className="group">
@@ -198,19 +145,6 @@ export default async function Home() {
         </section>
       )}
 
-      {statTiles.length > 0 && (
-        <section className="mx-auto w-full max-w-7xl px-4 pb-14">
-          <div className="flex flex-wrap gap-x-12 gap-y-4 border-y border-line py-6">
-            {statTiles.map((t) => (
-              <Link key={t.label} href="/ru/community" className="group">
-                <div className="tnum text-3xl font-semibold leading-none sm:text-4xl">{t.value}</div>
-                <div className="t-caption mt-2 muted transition group-hover:text-recognition">{t.label}</div>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
-
       {/* Для фотографов — ценность подписки Active/Active+ (антиклассизм-инвариант) */}
       <section className="border-y border-line bg-surface">
         <div className="mx-auto grid w-full max-w-7xl items-center gap-12 px-4 py-16 lg:grid-cols-2">
@@ -239,52 +173,6 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Заказчикам — краткая ценность */}
-      <section className="mx-auto w-full max-w-7xl px-4 py-16">
-        <div className="max-w-prose border-t border-line-2 pt-5">
-          <h2 className="t-h3">{ru.landing.forClients}</h2>
-          <p className="t-body mt-2.5 muted">{ru.landing.forClientsText}</p>
-        </div>
-      </section>
-
-      {/* Как это работает — три шага (нумерация = реальная последовательность) */}
-      <section className="mx-auto w-full max-w-4xl px-4 pb-16">
-        <h2 className="t-h2">{ru.landing.howTitle}</h2>
-        <ol className="mt-6 grid gap-8 sm:grid-cols-3">
-          {[
-            { t: ru.landing.step1Title, d: ru.landing.step1Text },
-            { t: ru.landing.step2Title, d: ru.landing.step2Text },
-            { t: ru.landing.step3Title, d: ru.landing.step3Text },
-          ].map((s, i) => (
-            <li key={s.t} className="border-t border-line-2 pt-4">
-              <span className="t-caption text-recognition tabular-nums">0{i + 1}</span>
-              <h3 className="t-h3 mt-1.5">{s.t}</h3>
-              <p className="t-body mt-2 muted">{s.d}</p>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      {/* Отстройка от бирж/соцсетей */}
-      <section className="mx-auto w-full max-w-4xl px-4 pb-24">
-        <div className="border-t border-line-2 pt-5">
-          <h2 className="t-h2">{ru.landing.whyTitle}</h2>
-          <p className="t-body-lg mt-3 max-w-prose muted">{ru.landing.whyText}</p>
-        </div>
-      </section>
     </main>
-  );
-}
-
-function SectionHeader({ title, href }: { title: string; href?: string }) {
-  return (
-    <div className="flex items-baseline justify-between gap-4">
-      <h2 className="t-h3">{title}</h2>
-      {href && (
-        <Link href={href} className="t-caption shrink-0 text-recognition transition hover:underline">
-          {ru.landing.seeAll} →
-        </Link>
-      )}
-    </div>
   );
 }

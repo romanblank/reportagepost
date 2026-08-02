@@ -104,7 +104,7 @@ export default async function CityCategoryPage(props: {
         <nav className="text-sm muted">
           <Link href={cityPath} className="underline">{cityName}</Link> · {catName}
         </nav>
-        <h1 className="t-h1 mt-1.5">{title}</h1>
+        <h1 className="t-title mt-1.5">{title}</h1>
         <p className="mt-1.5 text-sm muted">{ru.catalog.photographersCount(cards.length)}</p>
       </header>
 

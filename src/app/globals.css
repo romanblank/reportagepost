@@ -132,6 +132,14 @@ body {
     font-weight: 600; line-height: 1.1;
     font-size: clamp(2rem, 1.4rem + 3vw, 3.25rem);
   }
+  /* Заголовок страницы-раздела (каталог, лента, поиск). Между дисплейным
+     героем и заголовком секции: в прототипе v9 это clamp(28px, 3.4vw, 42px) —
+     крупно, но не как на главной, иначе заголовок спорит с работами. */
+  .t-title {
+    font-family: var(--font-cormorant), Georgia, serif;
+    font-weight: 600; line-height: 1.08; letter-spacing: -0.01em;
+    font-size: clamp(1.75rem, 1.2rem + 1.8vw, 2.625rem);
+  }
   .t-h2 {
     font-family: var(--font-cormorant), Georgia, serif;
     font-weight: 600; line-height: 1.15;

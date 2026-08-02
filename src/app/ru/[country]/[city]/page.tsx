@@ -138,7 +138,7 @@ export default async function CatalogPage(props: {
         <span className="text-ink">{cityName}</span>
       </nav>
       <header className="mt-3 border-b border-line pb-5">
-        <h1 className="t-display">{ru.catalog.title(cityName)}</h1>
+        <h1 className="t-title">{ru.catalog.title(cityName)}</h1>
         <p className="mt-2 text-sm muted">
           <b className="tnum font-medium text-ink">{shown.length}</b> {ru.catalog.authorsWord(shown.length)}
           {hasActiveFilters && ` · ${ru.catalog.filteredHint}`}
@@ -147,7 +147,42 @@ export default async function CatalogPage(props: {
 
       <div className="mt-6 grid items-start gap-8 lg:grid-cols-[248px_1fr]">
         {/* Боковая панель фильтров (каталог v9) */}
-        <aside className="space-y-5 rounded-lg border border-line bg-surface p-4 lg:sticky lg:top-20">
+        {/* Мобильный вид: фильтры в нативном аккордеоне (прототип сворачивает
+            панель на узком экране). Раньше форма занимала весь первый экран, и
+            до карточек нужно было пролистать её целиком — каталог начинался с
+            анкеты вместо авторов. <details> работает без JS. */}
+        <details className="rounded-lg border border-line bg-surface lg:hidden" name="catalog-filters">
+          <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium">
+            {ru.catalog.filtersToggle}
+            {hasActiveFilters && <span className="ml-2 text-accent">·</span>}
+          </summary>
+          <div className="space-y-5 border-t border-line p-4">
+            <CategoryLinks countrySlug={params.country} citySlug={params.city}
+              activeCategory={categorySlug} vertical counts={categoryCounts} />
+            <form method="get" className="space-y-4 border-t border-line pt-4">
+              {categorySlug && <input type="hidden" name="category" value={categorySlug} />}
+              {videoOnly && <input type="hidden" name="format" value="video" />}
+              <div className="flex items-center gap-2">
+                <input type="number" name="minPrice" min={0} step={1000} inputMode="numeric"
+                  defaultValue={searchParams.minPrice ?? ''} placeholder={ru.catalog.priceFromPh}
+                  className="input w-full text-sm" aria-label={ru.catalog.priceFromPh} />
+                <span className="muted">—</span>
+                <input type="number" name="maxPrice" min={0} step={1000} inputMode="numeric"
+                  defaultValue={searchParams.maxPrice ?? ''} placeholder={ru.catalog.priceToPh}
+                  className="input w-full text-sm" aria-label={ru.catalog.priceToPh} />
+              </div>
+              <input type="date" name="date" defaultValue={searchParams.date ?? ''} className="input w-full text-sm" />
+              <label className="flex cursor-pointer items-center justify-between gap-3 text-sm">
+                <span>{ru.catalog.filterTrusted}</span>
+                <input type="checkbox" name="trusted" value="1" defaultChecked={trustedOnly}
+                  className="size-4 accent-[var(--accent)]" />
+              </label>
+              <button type="submit" className="btn btn-accent w-full">{ru.catalog.applyDate}</button>
+            </form>
+          </div>
+        </details>
+
+        <aside className="hidden space-y-5 rounded-lg border border-line bg-surface p-4 lg:sticky lg:top-20 lg:block">
           <div>
             <h2 className="t-caption mb-2 muted" style={{ fontFamily: 'var(--font-mono)' }}>{ru.catalog.filterGenre}</h2>
             {/* Категории → path-роуты (SEO-перелинковка) со счётчиками: без чисел
