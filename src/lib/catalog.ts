@@ -20,6 +20,44 @@ export interface CatalogFilters {
   page?: number;
   /** Только видеографы (формат «Видео»). Фото снимают все — отдельного флага не нужно. */
   videoOnly?: boolean;
+  /** Нижняя граница цены пакета: прототип v9 даёт диапазон, а не только потолок.
+   *  Заказчик с бюджетом «от» отсекает совсем дешёвые предложения осознанно. */
+  minPackagePriceMinor?: number;
+  /** Только авторы с подтверждёнными обеими сторонами съёмками (фильтр доверия). */
+  withShootsOnly?: boolean;
+}
+
+/**
+ * Сколько авторов в городе по каждому жанру — для счётчиков в фильтрах.
+ *
+ * Без чисел фильтр вслепую: человек выбирает жанр и попадает в пустую выдачу.
+ * Считаем по тем же правилам, что и каталог (APPROVED + есть работа), иначе
+ * счётчик обещал бы больше, чем показывает список.
+ */
+export async function categoryCountsForCity(citySlug: string): Promise<Record<string, number>> {
+  const rows = await db.profileCategory.groupBy({
+    by: ['categoryId'],
+    where: {
+      profile: {
+        status: 'APPROVED',
+        city: { slug: citySlug },
+        photos: { some: { status: 'APPROVED' } },
+      },
+    },
+    _count: true,
+  });
+  if (rows.length === 0) return {};
+  const cats = await db.category.findMany({
+    where: { id: { in: rows.map((r) => r.categoryId) } },
+    select: { id: true, slug: true },
+  });
+  const slugById = new Map(cats.map((c) => [c.id, c.slug]));
+  const out: Record<string, number> = {};
+  for (const r of rows) {
+    const slug = slugById.get(r.categoryId);
+    if (slug) out[slug] = r._count;
+  }
+  return out;
 }
 
 export const CATALOG_PAGE_SIZE = 24;
@@ -182,10 +220,24 @@ export async function catalogForCity(filters: CatalogFilters): Promise<CatalogPa
       ? { categories: { some: { category: { slug: filters.categorySlug } } } }
       : {}),
     ...(filters.availableOn ? { busyDates: { none: { date: filters.availableOn } } } : {}),
-    ...(filters.maxPackagePriceMinor != null
-      ? { packages: { some: { priceMinor: { lte: filters.maxPackagePriceMinor } } } }
+    // Диапазон цены: обе границы должны выполняться на ОДНОМ пакете, иначе
+    // автор с дешёвым часом и дорогой сменой пройдёт фильтр по ошибке.
+    ...(filters.maxPackagePriceMinor != null || filters.minPackagePriceMinor != null
+      ? {
+          packages: {
+            some: {
+              ...(filters.maxPackagePriceMinor != null ? { priceMinor: { lte: filters.maxPackagePriceMinor } } : {}),
+              ...(filters.minPackagePriceMinor != null
+                ? { priceMinor: { gte: filters.minPackagePriceMinor, ...(filters.maxPackagePriceMinor != null ? { lte: filters.maxPackagePriceMinor } : {}) } }
+                : {}),
+            },
+          },
+        }
       : {}),
     ...(filters.videoOnly ? { doesVideo: true } : {}),
+    // Фильтр доверия: только те, у кого есть подтверждённая обеими сторонами
+    // съёмка. Самоотметки заказчика недостаточно (S4 trust-хардеринг).
+    ...(filters.withShootsOnly ? { shootConfirmations: { some: { state: 'CONFIRMED' as const } } } : {}),
   };
 
   // MERIT-ONLY: порядок основной выдачи НЕ зависит от подписки (антиклассизм-

@@ -108,20 +108,26 @@ export function CatalogCards({ cards, cityName }: { cards: CatalogCard[]; cityNa
 // Ссылки «город × категория» — внутренняя перелинковка для SEO.
 // vertical — режим боковой панели фильтров (каталог v9); иначе горизонтальная строка чипов.
 export function CategoryLinks({
-  countrySlug, citySlug, activeCategory, vertical = false,
-}: { countrySlug: string; citySlug: string; activeCategory?: string; vertical?: boolean }) {
+  countrySlug, citySlug, activeCategory, vertical = false, counts,
+}: {
+  countrySlug: string; citySlug: string; activeCategory?: string; vertical?: boolean;
+  /** Сколько авторов в жанре — без числа фильтр выбирается вслепую (прототип v9) */
+  counts?: Record<string, number>;
+}) {
   const base = `/ru/${countrySlug}/${citySlug}`;
   if (vertical) {
-    const item = (href: string, label: string, active: boolean) => (
+    const item = (href: string, label: string, active: boolean, count?: number) => (
       <Link key={href} href={href}
-        className={`block rounded-md px-3 py-2 text-sm transition ${active ? 'bg-surface-2 font-medium text-accent' : 'muted hover:bg-surface-2 hover:text-ink'}`}>
-        {label}
+        className={`flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm transition ${active ? 'bg-surface-2 font-medium text-accent' : 'muted hover:bg-surface-2 hover:text-ink'}`}>
+        <span className="truncate">{label}</span>
+        {count != null && count > 0 && <span className="shrink-0 tnum text-[12.5px] opacity-70">{count}</span>}
       </Link>
     );
+    const total = counts ? Object.values(counts).reduce((a, b) => a + b, 0) : undefined;
     return (
       <nav className="flex flex-col gap-0.5">
-        {item(base, ru.catalog.allCategories, !activeCategory)}
-        {CATEGORIES.map((c) => item(`${base}/${c.slug}`, c.nameRu, activeCategory === c.slug))}
+        {item(base, ru.catalog.allCategories, !activeCategory, total)}
+        {CATEGORIES.map((c) => item(`${base}/${c.slug}`, c.nameRu, activeCategory === c.slug, counts?.[c.slug]))}
       </nav>
     );
   }

@@ -216,6 +216,11 @@ export const ru = {
   },
   catalog: {
     // alt карточки: его читают вслух скринридеры и видят при неудачной загрузке
+    filterPrice: 'Цена за съёмку, ₽',
+    priceFromPh: 'от',
+    priceToPh: 'до',
+    filterTrusted: 'Только с подтверждёнными съёмками',
+    activeFiltersLabel: 'Активные фильтры',
     breadcrumbLabel: 'Хлебные крошки',
     breadcrumbCatalog: 'Каталог',
     authorsWord: (n: number) => plural(n, ['автор', 'автора', 'авторов']),

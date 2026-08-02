@@ -3,10 +3,10 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { db } from '@/lib/db';
-import { catalogForCity, recommendedForCity, type CatalogCard } from '@/lib/catalog';
+import { catalogForCity, categoryCountsForCity, recommendedForCity, type CatalogCard } from '@/lib/catalog';
 import { visitingCity } from '@/lib/travel';
 import { RU_COUNTRY, cityNameRu } from '@/lib/geo-data';
-import { CATEGORIES } from '@/lib/category-data';
+import { CATEGORIES, categoryNameRu } from '@/lib/category-data';
 import { thumbVariantUrl } from '@/lib/photos';
 import { ru } from '@/i18n/ru';
 import { formatDateRu } from '@/lib/date-format';
@@ -54,9 +54,26 @@ export async function generateMetadata(props: { params: Promise<Params> }): Prom
   };
 }
 
+/**
+ * Ссылка на ту же выдачу без части фильтров (чипы «убрать фильтр»).
+ * Собирается из текущих searchParams, поэтому снятие одного условия не сбрасывает
+ * остальные — частая беда самодельных фильтров.
+ */
+function filterHref(params: Record<string, string | undefined>, basePath: string): string {
+  const qs = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v && k !== 'page') qs.set(k, v);
+  }
+  const q = qs.toString();
+  return q ? `${basePath}?${q}` : basePath;
+}
+
 export default async function CatalogPage(props: {
   params: Promise<Params>;
-  searchParams: Promise<{ category?: string; date?: string; page?: string; maxPrice?: string; format?: string }>;
+  searchParams: Promise<{
+    category?: string; date?: string; page?: string;
+    minPrice?: string; maxPrice?: string; format?: string; trusted?: string;
+  }>;
 }) {
   const params = await props.params;
   const searchParams = await props.searchParams;
@@ -70,20 +87,25 @@ export default async function CatalogPage(props: {
     ? new Date(`${searchParams.date}T00:00:00Z`)
     : undefined;
   const maxPriceRub = Number(searchParams.maxPrice) > 0 ? Number(searchParams.maxPrice) : undefined;
+  const minPriceRub = Number(searchParams.minPrice) > 0 ? Number(searchParams.minPrice) : undefined;
+  const trustedOnly = searchParams.trusted === '1';
   const videoOnly = searchParams.format === 'video';
   const page = Math.max(1, Number(searchParams.page) || 1);
 
   // «Открыты для новых заказов» (буст-видимость подписки, soft-hybrid) — только на 1-й
   // странице без фильтров. Все запросы страницы — параллельно (force-dynamic).
-  const showRecommended = page === 1 && !categorySlug && !availableOn && !maxPriceRub && !videoOnly;
-  const hasActiveFilters = Boolean(categorySlug || availableOn || maxPriceRub || videoOnly);
-  const [{ cards, hasNext }, recommended, visiting] = await Promise.all([
+  const showRecommended = page === 1 && !categorySlug && !availableOn && !maxPriceRub && !minPriceRub && !videoOnly && !trustedOnly;
+  const hasActiveFilters = Boolean(categorySlug || availableOn || maxPriceRub || minPriceRub || videoOnly || trustedOnly);
+  const [{ cards, hasNext }, recommended, visiting, categoryCounts] = await Promise.all([
     catalogForCity({
       citySlug: city.slug, categorySlug, availableOn, page, videoOnly,
       maxPackagePriceMinor: maxPriceRub ? maxPriceRub * 100 : undefined,
+      minPackagePriceMinor: minPriceRub ? minPriceRub * 100 : undefined,
+      withShootsOnly: trustedOnly,
     }),
     showRecommended ? recommendedForCity(city.slug) : Promise.resolve([] as CatalogCard[]),
     page === 1 ? visitingCity(city.slug, availableOn) : Promise.resolve([]),
+    categoryCountsForCity(city.slug),
   ]);
   // Полку исключаем из основного merit-списка (без дублей); shown — всё показанное
   // на странице (для счётчика и JSON-LD).
@@ -122,14 +144,17 @@ export default async function CatalogPage(props: {
 
       <div className="mt-6 grid items-start gap-8 lg:grid-cols-[248px_1fr]">
         {/* Боковая панель фильтров (каталог v9) */}
-        <aside className="space-y-6 rounded-lg border border-line bg-surface p-4 lg:sticky lg:top-20">
+        <aside className="space-y-5 rounded-lg border border-line bg-surface p-4 lg:sticky lg:top-20">
           <div>
-            <h2 className="t-caption mb-2 muted">{ru.catalog.filterGenre}</h2>
-            {/* Категории → path-роуты (SEO-перелинковка), вертикальным списком */}
-            <CategoryLinks countrySlug={params.country} citySlug={params.city} activeCategory={categorySlug} vertical />
+            <h2 className="t-caption mb-2 muted" style={{ fontFamily: 'var(--font-mono)' }}>{ru.catalog.filterGenre}</h2>
+            {/* Категории → path-роуты (SEO-перелинковка) со счётчиками: без чисел
+                человек выбирает жанр вслепую и попадает в пустую выдачу */}
+            <CategoryLinks countrySlug={params.country} citySlug={params.city}
+              activeCategory={categorySlug} vertical counts={categoryCounts} />
           </div>
+
           <div className="border-t border-line pt-4">
-            <h2 className="t-caption mb-2 muted">{ru.catalog.filterFormat}</h2>
+            <h2 className="t-caption mb-2 muted" style={{ fontFamily: 'var(--font-mono)' }}>{ru.catalog.filterFormat}</h2>
             <div className="flex gap-2">
               <Link href={pageHref(basePath, categorySlug, searchParams.date, searchParams.maxPrice, 1)}
                 className={`chip flex-1 justify-center ${!videoOnly ? 'chip-active' : ''}`}>{ru.catalog.formatAll}</Link>
@@ -137,30 +162,84 @@ export default async function CatalogPage(props: {
                 className={`chip flex-1 justify-center ${videoOnly ? 'chip-active' : ''}`}>{ru.catalog.formatVideo}</Link>
             </div>
           </div>
-          {/* Фильтр даты/цены — применяется ко всему каталогу */}
-          <form method="get" className="space-y-3 border-t border-line pt-4">
+
+          {/* Цена диапазоном, дата и фильтр доверия — одной формой */}
+          <form method="get" className="space-y-4 border-t border-line pt-4">
             {categorySlug && <input type="hidden" name="category" value={categorySlug} />}
             {videoOnly && <input type="hidden" name="format" value="video" />}
-            <label className="block text-sm">
-              <span className="field-hint mt-0">{ru.catalog.availableOn}</span>
-              <input type="date" name="date" defaultValue={searchParams.date ?? ''} className="input mt-1 w-full" />
+
+            <div>
+              <span className="t-caption muted" style={{ fontFamily: 'var(--font-mono)' }}>{ru.catalog.filterPrice}</span>
+              <div className="mt-2 flex items-center gap-2">
+                <input type="number" name="minPrice" min={0} step={1000} inputMode="numeric"
+                  defaultValue={searchParams.minPrice ?? ''} placeholder={ru.catalog.priceFromPh}
+                  className="input w-full text-sm" aria-label={ru.catalog.priceFromPh} />
+                <span className="muted">—</span>
+                <input type="number" name="maxPrice" min={0} step={1000} inputMode="numeric"
+                  defaultValue={searchParams.maxPrice ?? ''} placeholder={ru.catalog.priceToPh}
+                  className="input w-full text-sm" aria-label={ru.catalog.priceToPh} />
+              </div>
+            </div>
+
+            <label className="block">
+              <span className="t-caption muted" style={{ fontFamily: 'var(--font-mono)' }}>{ru.catalog.availableOn}</span>
+              <input type="date" name="date" defaultValue={searchParams.date ?? ''} className="input mt-2 w-full text-sm" />
             </label>
-            <label className="block text-sm">
-              <span className="field-hint mt-0">{ru.catalog.maxPrice}</span>
-              <input type="number" name="maxPrice" min={0} step={1} inputMode="numeric"
-                defaultValue={searchParams.maxPrice ?? ''} placeholder="₽" className="input mt-1 w-full" />
+
+            {/* Фильтр доверия: съёмки, подтверждённые ОБЕИМИ сторонами */}
+            <label className="flex cursor-pointer items-center justify-between gap-3 text-sm">
+              <span>{ru.catalog.filterTrusted}</span>
+              <input type="checkbox" name="trusted" value="1" defaultChecked={trustedOnly}
+                className="size-4 accent-[var(--accent)]" />
             </label>
+
             <button type="submit" className="btn btn-outline w-full">{ru.catalog.applyDate}</button>
           </form>
+
           {hasActiveFilters && (
             <Link href={basePath} className="block border-t border-line pt-4 text-sm text-accent hover:underline">
-              ← {ru.catalog.resetFilters}
+              {ru.catalog.resetFilters}
             </Link>
           )}
         </aside>
 
         {/* Результаты */}
         <div className="min-w-0">
+          {/* Активные фильтры чипами (прототип v9): человек видит, ЧТО именно
+              сузило выдачу, и снимает лишнее одним кликом — а не ищет, где он
+              это включил. Каждый чип ведёт на ту же страницу без своего
+              параметра, поэтому работает без JS. */}
+          {hasActiveFilters && (
+            <div className="mb-5 flex flex-wrap items-center gap-2" aria-label={ru.catalog.activeFiltersLabel}>
+              {categorySlug && (
+                <Link href={filterHref({ ...searchParams, category: undefined }, basePath)} className="chip chip-active">
+                  {categoryNameRu(categorySlug)} ✕
+                </Link>
+              )}
+              {videoOnly && (
+                <Link href={filterHref({ ...searchParams, format: undefined }, basePath)} className="chip chip-active">
+                  {ru.catalog.formatVideo} ✕
+                </Link>
+              )}
+              {searchParams.date && (
+                <Link href={filterHref({ ...searchParams, date: undefined }, basePath)} className="chip chip-active">
+                  {ru.catalog.availableOn}: {searchParams.date} ✕
+                </Link>
+              )}
+              {(minPriceRub || maxPriceRub) && (
+                <Link href={filterHref({ ...searchParams, minPrice: undefined, maxPrice: undefined }, basePath)} className="chip chip-active">
+                  {minPriceRub ? `${ru.catalog.priceFromPh} ${minPriceRub}` : ''}
+                  {minPriceRub && maxPriceRub ? ' — ' : ''}
+                  {maxPriceRub ? `${ru.catalog.priceToPh} ${maxPriceRub}` : ''} ₽ ✕
+                </Link>
+              )}
+              {trustedOnly && (
+                <Link href={filterHref({ ...searchParams, trusted: undefined }, basePath)} className="chip chip-active">
+                  {ru.catalog.filterTrusted} ✕
+                </Link>
+              )}
+            </div>
+          )}
       {recommended.length > 0 && (
         <section className="mt-7">
           <h2 className="flex items-center gap-2 text-lg font-medium text-recognition">{ru.catalog.recommendedTitle}</h2>
