@@ -14,7 +14,29 @@ CERT_DIR="/etc/letsencrypt/live/reportagepost.com"
 # Точечно поднимаем ТОЛЬКО на роут видео: общий 210m открыл бы приём
 # 200-МБ тел на любой эндпоинт. Значение сверяется с MAX_VIDEO_BYTES тестом
 # tests/deploy-limits.test.ts — рассинхрон ловится в гейте, а не жалобой.
+# ── Сетевые лимиты запросов (S0, «nginx: rate-limit зоны») ───────────────────
+# Приложение уже считает попытки входа и отправки форм, но его лимитер живёт
+# ЗА nginx и в базе: флуд доходит до Next.js, тратит соединения и пишет строки
+# в PostgreSQL. Периметровый лимит отсекает поток раньше — до приложения.
+#
+# Зоны разведены по характеру трафика: страница каталога тянет два десятка
+# медиа-запросов подряд, и общий лимит уровня «10 r/s» отрубал бы обычного
+# заказчика. Поэтому медиа щедрые, API умеренный, вход — жёсткий.
+# 10m на зону ≈ 160 тыс. адресов, с запасом.
+sudo tee /etc/nginx/conf.d/rp-limits.conf >/dev/null <<'LIM'
+limit_req_zone $binary_remote_addr zone=rp_general:10m rate=30r/s;
+limit_req_zone $binary_remote_addr zone=rp_files:10m   rate=100r/s;
+limit_req_zone $binary_remote_addr zone=rp_api:10m     rate=20r/s;
+limit_req_zone $binary_remote_addr zone=rp_auth:10m    rate=2r/s;
+limit_conn_zone $binary_remote_addr zone=rp_conn:10m;
+# 429, а не дефолтный 503: клиент должен понимать, что это лимит, а не поломка
+limit_req_status 429;
+limit_conn_status 429;
+LIM
+
 PROXY_BLOCK='
+    limit_conn rp_conn 60;
+
     location = /api/profile/videos {
         proxy_pass http://127.0.0.1:3000;
         proxy_set_header Host $host;
@@ -27,7 +49,37 @@ PROXY_BLOCK='
         proxy_send_timeout 300s;
     }
 
+    location ^~ /api/auth/ {
+        limit_req zone=rp_auth burst=10 nodelay;
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        client_max_body_size 1m;
+    }
+
+    location ^~ /files/ {
+        limit_req zone=rp_files burst=200 nodelay;
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location ^~ /api/ {
+        limit_req zone=rp_api burst=40 nodelay;
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        client_max_body_size 45m;
+    }
+
     location / {
+        limit_req zone=rp_general burst=60 nodelay;
         proxy_pass http://127.0.0.1:3000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -210,5 +262,34 @@ printf '{"log-driver":"json-file","log-opts":{"max-size":"10m","max-file":"3"}}\
 #  daemon.json применится при следующем штатном рестарте демона)
 # 3) еженедельная авто-чистка (cron) — на случай долгого простоя без деплоев
 printf '0 4 * * 0 root docker system prune -af >/dev/null 2>&1; journalctl --vacuum-size=100M >/dev/null 2>&1; sudo apt-get clean >/dev/null 2>&1\n' | sudo tee /etc/cron.d/rp-diskclean >/dev/null
+
+# ── Харденинг sshd против сканеров (S0, урок инцидентов Verifi) ──────────────
+# Публичный 22-й порт непрерывно перебирают. Пароли и так выключены, но каждая
+# попытка съедает слот подключения: при заливке сканером sshd перестаёт
+# принимать НОВЫЕ соединения — включая деплой, а другого доступа к VM нет.
+# MaxStartups/PerSourceMaxStartups ограничивают именно недоаутентифицированные
+# соединения, легальный деплой (одно подключение) не задевают.
+#
+# Конфиг кладём отдельным файлом и применяем ТОЛЬКО если sshd его принял:
+# PerSourceMaxStartups есть с OpenSSH 9.2, и на более старой системе нерабочий
+# конфиг убил бы единственный способ попасть на машину.
+SSHD_DROPIN=/etc/ssh/sshd_config.d/rp-harden.conf
+if [ -d /etc/ssh/sshd_config.d ]; then
+  sudo tee "$SSHD_DROPIN" >/dev/null <<'SSHD'
+PasswordAuthentication no
+PermitRootLogin no
+MaxAuthTries 3
+LoginGraceTime 20
+MaxStartups 10:30:60
+PerSourceMaxStartups 5
+SSHD
+  if sudo sshd -t 2>/dev/null; then
+    sudo systemctl reload ssh 2>/dev/null || sudo systemctl reload sshd 2>/dev/null || true
+  else
+    # Конфиг не принят — откатываем, чтобы не остаться без доступа
+    sudo rm -f "$SSHD_DROPIN"
+    echo "setup-server: sshd отверг харденинг, оставлен прежний конфиг" >&2
+  fi
+fi
 
 echo "setup-server: ok"
