@@ -87,6 +87,10 @@ model User {
   reportsResolved    Report[]               @relation("reportResolver")
   blocksMade         UserBlock[]            @relation("blocker")
   blockedBy          UserBlock[]            @relation("blocked")
+  // См. комментарий у PhotographerProfile: индексы поиска описаны в схеме,
+  // чтобы migrate diff не пытался их снести.
+  @@index([firstName(ops: raw("gin_trgm_ops"))], type: Gin, name: "User_firstName_trgm_idx")
+  @@index([lastName(ops: raw("gin_trgm_ops"))], type: Gin, name: "User_lastName_trgm_idx")
 }
 
 // Верификация телефона по SMS-коду (E.164). Код хранится как argon2-хеш
@@ -272,6 +276,11 @@ model PhotographerProfile {
   categoryScores     ProfileCategoryScore[]
 
   @@index([cityId, status, ratingScore(sort: Desc), proRank(sort: Desc)])
+  // Индексы похожести для поиска (pg_trgm). Описаны здесь, а не только в
+  // raw-миграции: иначе `migrate diff` их не видит и КАЖДЫЙ раз предлагает
+  // удалить — рано или поздно это молча уехало бы в миграцию и поиск потерял
+  // бы индексы, не сломавшись заметно (просто стал бы медленным).
+  @@index([username(ops: raw("gin_trgm_ops"))], type: Gin, name: "PhotographerProfile_username_trgm_idx")
 }
 
 model ProfileCategory {
@@ -852,7 +861,10 @@ model Payment {
   currency         String           @default("RUB") // ISO 4217
   tier             SubscriptionTier // какой уровень оплачивается (зачисляется на CONFIRMED)
   status           PaymentStatus    @default(NEW)
-  tinkoffPaymentId String? // PaymentId от Т-Кассы
+  // Уникален: Т-Касса при ретраях присылает тот же PaymentId, и без этого
+  // ограничения повторная доставка вебхука под другим OrderId могла бы
+  // зачислиться дважды (S5-блокер, аудит 2026-07-26).
+  tinkoffPaymentId String?          @unique // PaymentId от Т-Кассы
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
   user             User?            @relation(fields: [userId], references: [id])

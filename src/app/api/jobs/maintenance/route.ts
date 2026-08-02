@@ -33,6 +33,13 @@ export function POST(req: Request) {
     const startedAt = Date.now();
     const profiles = await recomputeRatings();
 
+    // Сверка веса подписки с её реальным состоянием (S5-блокер): proRank
+    // проставляется при зачислении и сам по себе не сбрасывается, поэтому
+    // истёкшая подписка иначе навсегда оставляла бы автору полку
+    // «Рекомендуемые» и приоритет модерации.
+    const { reconcileSubRanks } = await import('@/lib/subscription');
+    const ranksFixed = await reconcileSubRanks();
+
     // Окна rate-limit живут максимум сутки — всё старше не нужно никому
     const cutoff = new Date(Date.now() - 25 * 3_600_000);
     const { count: rateLimitRows } = await db.rateLimit.deleteMany({
@@ -69,6 +76,7 @@ export function POST(req: Request) {
     return NextResponse.json({
       ok: true,
       profiles,
+      ranksFixed,
       cleaned: { rateLimitRows, resets, verifications, activityRows },
       tookMs: Date.now() - startedAt,
     });

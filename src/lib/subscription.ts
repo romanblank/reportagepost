@@ -108,3 +108,37 @@ export async function requestSubscription(userId: string, now: Date = new Date()
     update: { proRequestedAt: now },
   });
 }
+
+/**
+ * Сверка денормализованного proRank с реальным состоянием подписок.
+ *
+ * proRank — вес подписки в каталоге и в очереди модерации — проставляется в
+ * момент зачисления и раньше НИКОГДА не сбрасывался. Пока подписки выдавались
+ * грантами (бессрочными), это было незаметно. С реальной оплатой (S5) истёкшая
+ * подписка навсегда оставляла бы автору полку «Рекомендуемые» и приоритет
+ * модерации: заплатил один раз — получаешь вечно. Это несправедливо к тем, кто
+ * платит regularly, и прямо противоречит смыслу подписки.
+ *
+ * Считаем в рантайме (isSubActive), а поле остаётся денормализацией для
+ * быстрых выборок. Джоба обслуживания гоняет сверку раз в сутки — этого
+ * достаточно: ошибка живёт максимум сутки и только в сторону «ещё показываем».
+ *
+ * Возвращает число исправленных профилей — попадает в ответ джобы, чтобы
+ * расхождение было видно, а не молчало.
+ */
+export async function reconcileSubRanks(now: Date = new Date()): Promise<number> {
+  // Берём только тех, у кого есть чем разойтись: подписка или ненулевой ранг
+  const profiles = await db.photographerProfile.findMany({
+    where: { OR: [{ proRank: { not: 0 } }, { user: { subscription: { isNot: null } } }] },
+    select: { id: true, proRank: true, user: { select: { subscription: true } } },
+  });
+
+  let fixed = 0;
+  for (const p of profiles) {
+    const expected = rankForTier(activeTier(p.user.subscription ?? null, now));
+    if (expected === p.proRank) continue;
+    await db.photographerProfile.update({ where: { id: p.id }, data: { proRank: expected } });
+    fixed += 1;
+  }
+  return fixed;
+}
