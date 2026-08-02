@@ -201,6 +201,29 @@ MNT
 sudo chmod +x /usr/local/bin/rp-maintenance.sh
 echo '30 2 * * * root /usr/local/bin/rp-maintenance.sh >/dev/null 2>&1' | sudo tee /etc/cron.d/rp-maintenance >/dev/null
 
+# ── Воркер транскода видео ───────────────────────────────────────────────────
+# Транскод не может жить в HTTP-запросе загрузки: минутный ролик занимает
+# десятки секунд процессора, соединение столько не держат ни периметр, ни
+# браузер. Поэтому загрузка кладёт исходник и уходит, а очередь разбирает этот
+# cron — раз в две минуты, партией в два ролика (ffmpeg съедает ядро целиком).
+sudo tee /usr/local/bin/rp-video.sh >/dev/null <<'VID'
+#!/usr/bin/env bash
+set -uo pipefail
+cd /opt/reportagepost || exit 0
+SECRET=$(grep -E '^JOBS_SECRET=' .env.prod 2>/dev/null | cut -d= -f2-)
+[ -z "$SECRET" ] && exit 0
+
+# Один воркер зараз: партия может считаться минутами, а параллельные ffmpeg
+# положат сайт. Захват задачи в базе дублирует эту защиту.
+exec 9>/var/lock/rp-video.lock
+flock -n 9 || exit 0
+
+curl -s -m 900 -o /dev/null -X POST -H "Authorization: Bearer ${SECRET}" \
+  http://127.0.0.1:3000/api/jobs/video
+VID
+sudo chmod +x /usr/local/bin/rp-video.sh
+echo '*/2 * * * * root /usr/local/bin/rp-video.sh >/dev/null 2>&1' | sudo tee /etc/cron.d/rp-video >/dev/null
+
 # ── Сторож самих сторожей (аудит 2026-08-01) ─────────────────────────────────
 # Проблема: ВСЯ система наблюдения жила в GitHub Actions, а GitHub отключает
 # scheduled workflows после 60 дней без коммитов в репозиторий — молча. Плюс

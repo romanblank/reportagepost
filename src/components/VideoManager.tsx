@@ -3,14 +3,19 @@
 import { useRef, useState } from 'react';
 import { apiFetch, UPLOAD_TIMEOUT_MS } from '@/lib/api';
 import { useRouter } from 'next/navigation';
-import type { ModerationStatus } from '@prisma/client';
+import type { ModerationStatus, VideoProcessing } from '@prisma/client';
 import { ru } from '@/i18n/ru';
 
 export interface ManagedVideo {
   id: string;
-  url: string;
+  /** Ссылка на готовый web-вариант; `null`, пока ролик не обработан. */
+  url: string | null;
+  poster: string | null;
   title: string | null;
   status: ModerationStatus;
+  processing: VideoProcessing;
+  failureReason: string | null;
+  durationSec: number | null;
 }
 
 // Управление загруженными видео автора (кабинет). Multipart-загрузка на
@@ -66,10 +71,26 @@ export function VideoManager({ videos, limit }: { videos: ManagedVideo[]; limit:
         <ul className="grid gap-4 sm:grid-cols-2">
           {videos.map((v) => (
             <li key={v.id} className="overflow-hidden rounded-media border border-line bg-surface-2">
-              <video src={v.url} controls preload="metadata" className="aspect-video w-full bg-black" />
+              {v.url ? (
+                <video src={v.url} poster={v.poster ?? undefined} controls preload="none"
+                  className="aspect-video w-full bg-black" />
+              ) : (
+                // Ожидание обработки — не ошибка: автор должен видеть, что ролик
+                // принят и над ним идёт работа, иначе он загрузит его ещё раз
+                <div className="grid aspect-video w-full place-items-center bg-surface px-4 text-center">
+                  <span className="t-small text-muted">
+                    {v.processing === 'FAILED'
+                      ? ru.cabinetVideos.statusFailed(v.failureReason)
+                      : ru.cabinetVideos.statusProcessing}
+                  </span>
+                </div>
+              )}
               <div className="flex items-center justify-between gap-2 px-3 py-2">
                 <span className="t-small truncate">
                   {v.title || ru.cabinetVideos.untitled}
+                  {v.durationSec != null && (
+                    <span className="ml-2 t-caption text-muted">{ru.cabinetVideos.duration(v.durationSec)}</span>
+                  )}
                   {v.status !== 'APPROVED' && (
                     <span className="ml-2 t-caption text-warning">{ru.cabinetVideos.statusPending}</span>
                   )}

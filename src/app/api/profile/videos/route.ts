@@ -80,11 +80,18 @@ export function POST(req: Request) {
         sortOrder: count,
         // Автор уже прошёл модерацию профиля (в каталоге только APPROVED-профили),
         // видео — его самопрезентация → публикуем сразу. Поле status оставлено
-        // для админ-тейкдауна при жалобе. Без модерации-тупика (PENDING навсегда).
+        // для админ-тейкдауна при жалобе и для роликов, чьи кадры насторожили
+        // премодерацию. Без модерации-тупика (PENDING навсегда).
         status: 'APPROVED',
+        // Показывать ролик нечем, пока воркер не сделает web-варианты: исходник
+        // наружу не отдаётся. UPLOADED — это позиция в очереди транскода.
+        processing: 'UPLOADED',
       },
     });
-    return NextResponse.json({ videoId: video.id, uploaded: count + 1, limit: VIDEO_LIMIT_PER_PROFILE }, { status: 201 });
+    return NextResponse.json(
+      { videoId: video.id, uploaded: count + 1, limit: VIDEO_LIMIT_PER_PROFILE, processing: 'UPLOADED' },
+      { status: 201 },
+    );
   });
 }
 
@@ -103,7 +110,11 @@ export async function DELETE(req: Request) {
   if (!video || video.profileId !== profile.id) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }
-  await storage.delete(video.storageKey);
+  // Удаляем ВСЕ артефакты ролика, а не только исходник: после транскода в
+  // бакете лежат ещё два варианта и постер, и они пережили бы удаление записи.
+  for (const key of [video.storageKey, video.hdKey, video.sdKey, video.posterKey]) {
+    if (key) await storage.delete(key).catch(() => {});
+  }
   await db.profileVideo.delete({ where: { id: video.id } });
   return NextResponse.json({ ok: true });
 }

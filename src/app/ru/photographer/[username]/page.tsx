@@ -3,6 +3,7 @@ import { monthLabelRu } from '@/lib/date-format';
 import { ProfileSubnav } from '@/components/ProfileSubnav';
 import { ProfileBooking } from '@/components/ProfileBooking';
 import { ProfileStats, ProfileGear, ConfirmedShoots } from '@/components/ProfileStats';
+import { VideoPlayer } from '@/components/VideoPlayer';
 import { SectionHeading } from '@/components/ui/SectionHeading';
 import { APP_NAME } from '@/lib/constants';
 import type { Metadata } from 'next';
@@ -64,7 +65,9 @@ const findProfile = cache(async (username: string) => {
       categories: { include: { category: true } },
       packages: { orderBy: { sortOrder: 'asc' } },
       photos: { where: { status: 'APPROVED' }, orderBy: [{ sortOrder: 'asc' }, { publishedAt: 'desc' }], take: 60 },
-      videos: { where: { status: 'APPROVED' }, orderBy: { sortOrder: 'asc' } },
+      // Только готовые: у необработанного ролика ещё нет web-вариантов, а
+      // исходник наружу не отдаётся — играть было бы нечего
+      videos: { where: { status: 'APPROVED', processing: 'READY' }, orderBy: { sortOrder: 'asc' } },
       stories: {
         where: { status: 'APPROVED' },
         orderBy: { publishedAt: 'desc' },
@@ -481,7 +484,11 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
             <div className="flex flex-col gap-3.5">
               {profile.videos.slice(0, 1).map((v) => (
                 <figure key={v.id} className="relative overflow-hidden rounded-media border border-line bg-black">
-                  <video src={storage.publicUrl(v.storageKey)} controls preload="metadata"
+                  <VideoPlayer
+                    hdSrc={v.hdKey ? storage.publicUrl(v.hdKey) : null}
+                    sdSrc={v.sdKey ? storage.publicUrl(v.sdKey) : null}
+                    poster={v.posterKey ? storage.publicUrl(v.posterKey) : null}
+                    title={v.title}
                     className="aspect-video w-full" />
                   {v.title && (
                     <figcaption className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-3 pb-2.5 pt-8 text-[13px] text-white">
@@ -501,7 +508,11 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
             <div className="flex flex-col gap-3.5">
               {profile.videos.slice(1).map((v) => (
                 <figure key={v.id} className="relative overflow-hidden rounded-media border border-line bg-black">
-                  <video src={storage.publicUrl(v.storageKey)} controls preload="metadata"
+                  <VideoPlayer
+                    hdSrc={v.hdKey ? storage.publicUrl(v.hdKey) : null}
+                    sdSrc={v.sdKey ? storage.publicUrl(v.sdKey) : null}
+                    poster={v.posterKey ? storage.publicUrl(v.posterKey) : null}
+                    title={v.title}
                     className="aspect-video w-full" />
                   {v.title && (
                     <figcaption className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-3 pb-2 pt-6 text-xs text-white">

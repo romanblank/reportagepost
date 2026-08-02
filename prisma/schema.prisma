@@ -380,21 +380,45 @@ model Photo {
 // (storage.ts); раздача через /files с Range. Внешние ссылки — отдельно
 // (PhotographerProfile.showreelUrls). Транскод не делаем: храним исходник,
 // браузер играет mp4/webm нативно.
+// Стадия обработки ролика. Отдельно от модерации: «файл ещё не готов к показу»
+// и «редакция не одобрила» — разные состояния, и путать их нельзя (готовое, но
+// неодобренное видео нельзя играть, а необработанное нечего и модерировать).
+enum VideoProcessing {
+  UPLOADED // исходник принят, ждёт воркер
+  PROCESSING // ffmpeg в работе
+  READY // варианты и постер лежат в хранилище
+  FAILED // отбраковано probe-гардом или упало при транскоде
+}
+
 model ProfileVideo {
   id         String           @id @default(cuid())
   profileId  String
-  storageKey String           @unique // videos/<uuid>/source.<ext>
+  storageKey String           @unique // videos/<uuid>/source.<ext> — ИСХОДНИК, наружу не отдаётся
   mimeType   String
   sizeBytes  Int
   title      String?
-  posterKey  String? // опциональный постер-кадр (пока не генерим — задел)
+  posterKey  String? // кадр-обложка, генерится воркером
   sortOrder  Int              @default(0)
   status     ModerationStatus @default(PENDING) // роут ставит APPROVED сразу (автор уже прошёл модерацию профиля); поле — для будущего админ-тейкдауна по жалобе
   createdAt  DateTime         @default(now())
 
+  // Пайплайн транскода: сырое видео не раздаём — вес и кодеки непредсказуемы,
+  // а мобильный трафик заказчика оплачивает он, а не мы.
+  processing     VideoProcessing @default(UPLOADED)
+  hdKey          String? // 1080p, ~4 Мбит/с
+  sdKey          String? // 720p, ~2.5 Мбит/с — по умолчанию на узких экранах
+  durationSec    Int?
+  width          Int?
+  height         Int?
+  codec          String?
+  failureReason  String? // причина отбраковки — показывается автору
+  processedAt    DateTime?
+  processedBytes Int? // суммарный вес вариантов: видно, во что обходится хранение
+
   profile PhotographerProfile @relation(fields: [profileId], references: [id])
 
   @@index([profileId, status])
+  @@index([processing, createdAt]) // очередь воркера
 }
 
 // Серия (история) — репортаж с одного события

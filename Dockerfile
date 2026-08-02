@@ -2,6 +2,10 @@
 # полный node_modules (нужен prisma CLI для migrate deploy на старте).
 FROM node:22-alpine
 WORKDIR /app
+# ffmpeg/ffprobe — воркер транскода видео: probe входа, web-варианты 1080p/720p,
+# постер и кадры для премодерации. Ставить на лету в рантайме нельзя: пакет
+# нужен каждому новому контейнеру, а сеть при старте не гарантирована.
+RUN apk add --no-cache ffmpeg
 # Версия сборки (git SHA из CI) — /health отдаёт её, чтобы верифицировать деплой
 ARG APP_VERSION=dev
 ENV APP_VERSION=$APP_VERSION

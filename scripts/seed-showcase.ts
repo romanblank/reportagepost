@@ -411,7 +411,7 @@ async function main() {
       const file = videos.find((v) => prefix && v.includes(prefix)) ?? videos[index % videos.length];
       const buf = await readFile(path.join(SHOTS_DIR, file));
       const stored = await storeVideoStream(Readable.from(buf), 'video/mp4', buf.byteLength);
-      await db.profileVideo.create({
+      const created = await db.profileVideo.create({
         data: {
           profileId: profile.id, storageKey: stored.storageKey, mimeType: 'video/mp4',
           sizeBytes: stored.sizeBytes, title: 'Шоурил · монтаж со съёмок', sortOrder: 0,
@@ -419,6 +419,11 @@ async function main() {
         },
       });
       videosAdded++;
+      // Прогоняем через тот же пайплайн, что и загрузку автора: без web-вариантов
+      // ролик не покажется на профиле (исходник наружу не отдаётся).
+      const { processVideo } = await import('@/lib/video-pipeline');
+      const res = await processVideo(created.id);
+      if (!res.ok) console.warn(`  видео ${created.id}: ${res.reason}`);
       // Автор с роликом отмечается как снимающий видео — иначе бейдж в каталоге
       // разойдётся с содержимым страницы
       await db.photographerProfile.update({ where: { id: profile.id }, data: { doesVideo: true } });

@@ -74,9 +74,15 @@ export default async function EditProfilePage() {
           limit={VIDEO_LIMIT_PER_PROFILE}
           videos={profile.videos.map((v) => ({
             id: v.id,
-            url: storage.publicUrl(v.storageKey),
+            // Исходник не показываем даже автору: пока нет web-варианта, играть
+            // нечего — вместо мёртвого плеера менеджер рисует статус обработки
+            url: v.sdKey ? storage.publicUrl(v.sdKey) : null,
+            poster: v.posterKey ? storage.publicUrl(v.posterKey) : null,
             title: v.title,
             status: v.status,
+            processing: v.processing,
+            failureReason: v.failureReason,
+            durationSec: v.durationSec,
           }))}
         />
       </section>

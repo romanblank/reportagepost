@@ -1053,9 +1053,22 @@ export const ru = {
   cabinetVideos: {
     uploadCta: 'Загрузить видео',
     uploading: 'Загрузка…',
-    hint: 'MP4, WebM или MOV, до 200 МБ. Публикуется после короткой проверки. До 6 роликов.',
+    hint: 'MP4, WebM или MOV, до 200 МБ и не длиннее 90 секунд. После загрузки ролик готовится к показу пару минут. До 6 роликов.',
     untitled: 'Без названия',
     statusPending: 'на проверке',
+    statusProcessing: 'Готовим ролик к показу — обычно это пара минут',
+    statusFailed: (reason: string | null) => {
+      // Причины из пайплайна переводим, остальное сводим к общей фразе: автору
+      // незачем читать сообщение ffmpeg, ему нужно понять, что делать дальше.
+      const known: Record<string, string> = {
+        video_too_long: 'Ролик длиннее 90 секунд — обрежьте и загрузите снова',
+        video_too_short: 'Ролик слишком короткий — нужен хотя бы одна секунда',
+        video_codec_unsupported: 'Не удалось прочитать видео: сохраните его в MP4 (H.264)',
+        video_no_stream: 'В файле нет видеодорожки',
+      };
+      return (reason && known[reason]) ?? 'Не удалось обработать ролик — попробуйте загрузить ещё раз';
+    },
+    duration: (sec: number) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`,
     delete: 'Удалить',
     errTooLarge: 'Файл больше 200 МБ — сожмите или обрежьте ролик.',
     errFormat: 'Поддерживаются MP4, WebM и MOV.',

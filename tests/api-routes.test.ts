@@ -161,3 +161,41 @@ describe.skipIf(!hasDb)('роуты: раскрытие телефона (БД)'
     await db.user.delete({ where: { id: owner.id } });
   });
 });
+
+// Фоновые задачи ходят по секрету, а не по сессии: воркер транскода живёт
+// эндпоинтом, и открытая дверь к нему означала бы, что любой прохожий может
+// занять процессор VM транскодом.
+describe('роуты: фоновые задачи защищены секретом', () => {
+  const jobReq = (auth?: string) =>
+    new Request('http://localhost/api/jobs/video', {
+      method: 'POST',
+      headers: auth ? { authorization: auth } : {},
+    });
+
+  it('воркер видео не открывается без секрета и с чужим секретом', async () => {
+    const { POST } = await import('@/app/api/jobs/video/route');
+    const saved = process.env.JOBS_SECRET;
+    process.env.JOBS_SECRET = 'jobs-ok-1';
+    try {
+      expect((await POST(jobReq())).status).toBe(403);
+      expect((await POST(jobReq('Bearer jobs-bad-1'))).status).toBe(403);
+      // Короткий токен не должен ронять сравнение на разной длине
+      expect((await POST(jobReq('Bearer x'))).status).toBe(403);
+    } finally {
+      if (saved === undefined) delete process.env.JOBS_SECRET;
+      else process.env.JOBS_SECRET = saved;
+    }
+  });
+
+  it('без настроенного секрета роут закрыт полностью, а не открыт всем', async () => {
+    const { POST } = await import('@/app/api/jobs/video/route');
+    const saved = process.env.JOBS_SECRET;
+    delete process.env.JOBS_SECRET;
+    try {
+      expect((await POST(jobReq('Bearer anything'))).status).toBe(403);
+      expect((await POST(jobReq())).status).toBe(403);
+    } finally {
+      if (saved !== undefined) process.env.JOBS_SECRET = saved;
+    }
+  });
+});
