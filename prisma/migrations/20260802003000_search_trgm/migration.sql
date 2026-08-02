@@ -9,6 +9,11 @@
 --
 -- SAFE-TO-ROLLBACK: расширение и индексы; данные не затрагиваются.
 
+-- ВАЖНО про Managed PostgreSQL: обычному владельцу базы CREATE EXTENSION
+-- запрещён (нужен superuser), расширения включаются через API кластера:
+--   yc managed-postgresql database update <db> --cluster-id <id> --extensions pg_trgm
+-- Эта строка нужна для ЛОКАЛЬНОЙ разработки и CI, где база своя. На проде
+-- расширение уже включено менеджером, поэтому IF NOT EXISTS проходит без прав.
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 CREATE INDEX IF NOT EXISTS "PhotographerProfile_username_trgm_idx"
