@@ -112,3 +112,18 @@ export function webVariantUrl(storageKey: string): string {
 export function thumbVariantUrl(storageKey: string): string {
   return storage.publicUrl(storageKey.replace('/original.jpg', '/thumb.jpg'));
 }
+
+/**
+ * Все объекты хранилища, принадлежащие кадру.
+ *
+ * Как и у видео (`videoStorageKeys`), место одно: отклонение модератором,
+ * удаление автором и удаление аккаунта должны чистить один и тот же набор.
+ * Рассинхрон уже стоил того, что отклонённый кадр продолжал раздаваться.
+ */
+export function photoStorageKeys(storageKey: string): string[] {
+  if (storageKey.endsWith('/original.jpg')) {
+    const base = storageKey.slice(0, -'/original.jpg'.length);
+    return [`${base}/original.jpg`, `${base}/web.jpg`, `${base}/thumb.jpg`];
+  }
+  return [storageKey];
+}

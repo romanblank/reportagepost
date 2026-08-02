@@ -3,15 +3,17 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { requireAdmin } from '@/lib/admin';
 import { db } from '@/lib/db';
+import { storage } from '@/lib/storage';
 import { cityNameRu } from '@/lib/geo-data';
 import { categoryNameRu } from '@/lib/category-data';
 import { thumbVariantUrl } from '@/lib/photos';
 import { ru } from '@/i18n/ru';
-import { photoModerationQueue } from '@/lib/moderation';
+import { photoModerationQueue, videoModerationQueue } from '@/lib/moderation';
 import { webVariantUrl } from '@/lib/photos';
 import { ModerationCard } from './ModerationCard';
 import { StoryModerationCard } from './StoryModerationCard';
 import { PhotoModerationCard } from './PhotoModerationCard';
+import { VideoModerationCard } from './VideoModerationCard';
 import { formatDateRu } from '@/lib/date-format';
 
 export const metadata: Metadata = { title: ru.admin.moderationTitle };
@@ -20,7 +22,7 @@ export const dynamic = 'force-dynamic';
 export default async function ModerationPage() {
   if (!(await requireAdmin())) redirect('/ru/login');
 
-  const [profiles, stories, pendingPhotos] = await Promise.all([
+  const [profiles, stories, pendingPhotos, pendingVideos] = await Promise.all([
     db.photographerProfile.findMany({
       where: { status: 'PENDING' },
       // Правки Active/Active+ — в первую очередь (перк подписки), затем по дате.
@@ -44,6 +46,8 @@ export default async function ModerationPage() {
     }),
     // Кадры одобренных авторов, добавленные после онбординга (аудит P0)
     photoModerationQueue(),
+    // Ролики, отправленные на проверку премодерацией кадров
+    videoModerationQueue(),
   ]);
 
   return (
@@ -85,6 +89,27 @@ export default async function ModerationPage() {
                 webUrl={thumbVariantUrl(ph.storageKey)}
                 fullUrl={webVariantUrl(ph.storageKey)}
                 meta={`${categoryNameRu(ph.categorySlug)} · ${formatDateRu(ph.uploadedAt)}`}
+              />
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {pendingVideos.length > 0 && (
+        <section className="mt-10">
+          <h2 className="t-h3">{ru.adminVideos.queueTitle}</h2>
+          <p className="mt-1 text-sm muted">{ru.adminVideos.queueLead}</p>
+          <ul className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {pendingVideos.map((v) => (
+              <VideoModerationCard
+                key={v.id}
+                videoId={v.id}
+                authorName={v.authorName}
+                username={v.username}
+                title={v.title}
+                duration={v.durationSec != null ? ru.cabinetVideos.duration(v.durationSec) : null}
+                posterUrl={v.posterKey ? storage.publicUrl(v.posterKey) : null}
+                videoUrl={v.sdKey ? storage.publicUrl(v.sdKey) : v.hdKey ? storage.publicUrl(v.hdKey) : null}
               />
             ))}
           </ul>

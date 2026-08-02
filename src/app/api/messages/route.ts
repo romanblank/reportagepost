@@ -4,6 +4,7 @@ import { getSession } from '@/lib/auth';
 import { MessageError, dialogsFor, sendMessage } from '@/lib/messages';
 import { handleRoute, jsonError } from '@/lib/errors';
 import { rateLimit } from '@/lib/rate-limit';
+import { assertEmailVerified } from '@/lib/email-verification';
 import { publishToUser } from '@/lib/realtime';
 import { notifyInApp } from '@/lib/notifications';
 import { notifyTelegram } from '@/lib/telegram';
@@ -32,6 +33,9 @@ export function POST(req: Request) {
 
     // Антиспам: 20 сообщений/мин на пользователя (аудит P1 #3)
     await rateLimit(`msg:user:${session.userId}`, 20, 60);
+    // Писать может только тот, до кого мы можем достучаться: иначе регистрация
+    // на несуществующий адрес открывает рассылку по всем авторам (аудит 2026-08-03)
+    await assertEmailVerified(session.userId);
 
     try {
       const message = await sendMessage(session.userId, parsed.data.recipientId, parsed.data.body);

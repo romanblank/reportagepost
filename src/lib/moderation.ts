@@ -183,15 +183,131 @@ export async function rejectPhoto(photoId: string, reason: string, actorUserId?:
   const info = await db.$transaction(async (tx) => {
     const photo = await tx.photo.findUnique({
       where: { id: photoId },
-      select: { status: true, profile: { select: { userId: true } } },
+      select: { status: true, storageKey: true, profileId: true, profile: { select: { userId: true, coverPhotoId: true } } },
     });
-    if (!photo || photo.status !== 'PENDING') return null;
-    await tx.photo.update({ where: { id: photoId }, data: { status: 'REJECTED', rejectReason: reason } });
+    // Снимать можно и уже опубликованный кадр: по жалобе правообладателя иначе
+    // не было НИЧЕГО, кроме гашения всей анкеты автора (аудит 2026-08-03).
+    if (!photo || (photo.status !== 'PENDING' && photo.status !== 'APPROVED')) return null;
+
+    await tx.photo.update({
+      where: { id: photoId },
+      data: { status: 'REJECTED', rejectReason: reason, publishedAt: null, editorsChoiceAt: null },
+    });
+    // Снятый кадр не должен остаться обложкой профиля
+    if (photo.profile.coverPhotoId === photoId) {
+      await tx.photographerProfile.update({ where: { id: photo.profileId }, data: { coverPhotoId: null } });
+    }
     if (actorUserId) await logAudit(tx, actorUserId, 'photo.reject', 'PHOTO', photoId, { reason });
-    return { userId: photo.profile.userId };
+    return { userId: photo.profile.userId, storageKey: photo.storageKey, profileId: photo.profileId };
   });
   if (!info) return;
+
+  // Файлы удаляем следом: раздатчик /files не смотрит в базу, и отклонённый
+  // кадр продолжал бы раздаваться по прямой ссылке вечно, с годовым кэшем.
+  // Так же поступает rejectVideo — асимметрия была недосмотром.
+  const { photoStorageKeys } = await import('@/lib/photos');
+  const { storage } = await import('@/lib/storage');
+  for (const key of photoStorageKeys(info.storageKey)) await storage.delete(key).catch(() => {});
+
+  // Кадр мог участвовать в рейтинге автора
+  const { recomputeOne } = await import('@/lib/rating');
+  await recomputeOne(info.profileId).catch(() => {});
+
   // Причина обязана дойти до автора — иначе он не поймёт, почему кадра нет
   const { notifyInApp } = await import('@/lib/notifications');
-  await notifyInApp(info.userId, 'photo.rejected', { reason }).catch(() => {});
+  await notifyInApp(info.userId, 'notification.photo.rejected', { reason }).catch(() => {});
+}
+
+/**
+ * Очередь роликов на проверку.
+ *
+ * Ролики публикуются сразу — автор уже прошёл модерацию профиля. На проверку
+ * попадают только те, чьи кадры насторожили премодерацию. Без этой очереди
+ * такой ролик оказывался в тупике: невидим на странице и не показан никому из
+ * редакции — автор ждал бы вечно (ровно та ошибка, которую уже разбирали с
+ * фотографиями).
+ */
+export interface VideoQueueItem {
+  id: string;
+  title: string | null;
+  durationSec: number | null;
+  posterKey: string | null;
+  sdKey: string | null;
+  hdKey: string | null;
+  createdAt: Date;
+  profileId: string;
+  username: string;
+  authorName: string;
+}
+
+export async function videoModerationQueue(limit = 100): Promise<VideoQueueItem[]> {
+  const rows = await db.profileVideo.findMany({
+    // Только готовые: необработанный ролик показывать нечем
+    where: { status: 'PENDING', processing: 'READY' },
+    orderBy: { createdAt: 'asc' },
+    take: limit,
+    include: { profile: { include: { user: { select: { firstName: true, lastName: true } } } } },
+  });
+  return rows.map((v) => ({
+    id: v.id,
+    title: v.title,
+    durationSec: v.durationSec,
+    posterKey: v.posterKey,
+    sdKey: v.sdKey,
+    hdKey: v.hdKey,
+    createdAt: v.createdAt,
+    profileId: v.profileId,
+    username: v.profile.username,
+    authorName: `${v.profile.user.firstName} ${v.profile.user.lastName}`.trim(),
+  }));
+}
+
+/** Публикация ролика после проверки. */
+export async function approveVideo(videoId: string, actorUserId?: string): Promise<void> {
+  await db.$transaction(async (tx) => {
+    const video = await tx.profileVideo.findUnique({ where: { id: videoId }, select: { status: true } });
+    if (!video || video.status !== 'PENDING') return;
+    await tx.profileVideo.update({ where: { id: videoId }, data: { status: 'APPROVED' } });
+    if (actorUserId) await logAudit(tx, actorUserId, 'video.approve', 'VIDEO', videoId);
+  });
+}
+
+/**
+ * Отклонение ролика с причиной.
+ *
+ * Файлы удаляются сразу: отклонённое видео не будет опубликовано никогда, а
+ * его варианты — самые тяжёлые объекты в хранилище.
+ */
+export async function rejectVideo(videoId: string, reason: string, actorUserId?: string): Promise<void> {
+  const trimmed = reason.trim();
+  if (trimmed.length < 3) {
+    const { DomainError } = await import('@/lib/errors');
+    throw new DomainError('validation', 400);
+  }
+
+  const video = await db.profileVideo.findUnique({ where: { id: videoId } });
+  if (!video || video.status !== 'PENDING') return;
+
+  const { videoStorageKeys } = await import('@/lib/videos');
+  const { storage } = await import('@/lib/storage');
+  const keys = videoStorageKeys(video);
+
+  await db.$transaction(async (tx) => {
+    await tx.profileVideo.update({
+      where: { id: videoId },
+      data: { status: 'REJECTED', failureReason: trimmed.slice(0, 200) },
+    });
+    if (actorUserId) await logAudit(tx, actorUserId, 'video.reject', 'VIDEO', videoId);
+  });
+
+  // Автор должен узнать причину — тем же каналом, что и по отклонённому кадру
+  const owner = await db.photographerProfile.findUnique({
+    where: { id: video.profileId }, select: { userId: true },
+  });
+  if (owner) {
+    const { notifyInApp } = await import('@/lib/notifications');
+    await notifyInApp(owner.userId, 'notification.video.rejected', { reason: trimmed.slice(0, 200) }).catch(() => {});
+  }
+
+  for (const key of keys) await storage.delete(key).catch(() => {});
 }

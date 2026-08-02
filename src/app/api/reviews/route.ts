@@ -5,6 +5,7 @@ import { handleRoute, jsonError, DomainError } from '@/lib/errors';
 import { addReview, replyToReview, setReviewHidden, REVIEW_MAX } from '@/lib/reviews';
 import { recomputeOne } from '@/lib/rating';
 import { rateLimit } from '@/lib/rate-limit';
+import { assertEmailVerified } from '@/lib/email-verification';
 import { db } from '@/lib/db';
 
 const createSchema = z.object({
@@ -19,6 +20,9 @@ export function POST(req: Request) {
     if (!session) return jsonError('unauthorized', 401);
     const parsed = createSchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) throw new DomainError('validation', 400);
+    // Отзыв — публичный сигнал доверия; писать его может только автор с
+    // подтверждённым адресом (аудит 2026-08-03: гейт был написан, но не подключён)
+    await assertEmailVerified(session.userId);
     const review = await addReview(session.userId, parsed.data.profileId, parsed.data.rating, parsed.data.body);
     return NextResponse.json({ id: review.id }, { status: 201 });
   });

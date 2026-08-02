@@ -46,7 +46,9 @@ describe.skipIf(!hasDb)('пофотовая модерация (БД)', () => {
     const rejected = await db.photo.findUniqueOrThrow({ where: { id: bad.id } });
     expect(rejected.status).toBe('REJECTED');
     expect(rejected.rejectReason).toBe('Кадр не в жанре репортажа');
-    expect(await db.notification.count({ where: { userId: user.id, type: 'photo.rejected' } })).toBe(1);
+    // Ключ шаблона — с префиксом 'notification.': без него страница уведомлений
+    // выводила сырой ключ вместо текста (найдено ревью 2026-08-03)
+    expect(await db.notification.count({ where: { userId: user.id, type: 'notification.photo.rejected' } })).toBe(1);
 
     // Повторное решение по уже обработанному кадру — no-op, не ломается
     await approvePhoto(bad.id);

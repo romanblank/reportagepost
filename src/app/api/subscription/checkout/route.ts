@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { handleRoute } from '@/lib/errors';
 import { getSession } from '@/lib/auth';
+import { rateLimit } from '@/lib/rate-limit';
 import { db } from '@/lib/db';
 import { tinkoffConfigured, createPayment } from '@/lib/tinkoff';
 import { prepareCheckout } from '@/lib/billing';
@@ -13,6 +14,10 @@ export function POST(req: Request) {
   return handleRoute(async () => {
     const session = await getSession();
     if (!session) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+
+    // Каждый вызов создаёт платёжную запись и обращение к эквайеру: цикл даёт
+    // мусор в бухгалтерии и антифрод-претензии к платформе (аудит 2026-08-03)
+    await rateLimit(`checkout:user:${session.userId}`, 10, 3600);
     if (session.role !== 'PHOTOGRAPHER') return NextResponse.json({ error: 'forbidden' }, { status: 403 });
 
     const body = (await req.json().catch(() => null)) as { tier?: string } | null;

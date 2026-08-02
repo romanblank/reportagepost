@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { hashPassword, verifyPassword } from '@/lib/auth';
 import { DomainError } from '@/lib/errors';
+import { requestEmailVerification } from '@/lib/email-verification';
 
 // Управление аккаунтом из настроек: смена пароля/email/имени. Все операции —
 // с проверкой владения (по session userId) и подтверждением пароля где нужно.
@@ -35,8 +36,22 @@ export async function changeEmail(userId: string, newEmail: string, password: st
   // новым адресом (письмо-подтверждение) — лонч-пункт, нужна email-инфра.
   await db.user.update({
     where: { id: userId },
-    data: { email, tokenVersion: { increment: 1 }, passwordChangedAt: new Date() },
+    data: {
+      email,
+      tokenVersion: { increment: 1 },
+      passwordChangedAt: new Date(),
+      // Признак «почта подтверждена» относится к КОНКРЕТНОМУ адресу. Перенос
+      // его на новый адрес открывал обход Sybil-фрикции: подтвердил ящик →
+      // сменил адрес на мусорный → ящик снова свободен для регистрации, и так
+      // без предела. Через confirmShoot это давало неограниченное число
+      // «подтверждённых заказчиков» и фальшивые verified-отзывы.
+      emailVerifiedAt: null,
+    },
   });
+
+  // Новый адрес нужно подтвердить — иначе уведомления о заявках и
+  // восстановление доступа перестанут работать молча
+  void requestEmailVerification(userId).catch(() => {});
 }
 
 export async function changeName(userId: string, firstName: string, lastName: string): Promise<void> {

@@ -18,6 +18,14 @@ export async function GET(
   const { key } = await params;
   const joined = key.join('/');
 
+  // Раздаём только известные пространства ключей. Path traversal закрыт в
+  // storage, но без этого списка ЛЮБОЙ объект бакета, положенный рядом
+  // (дамп, выгрузка, временный файл воркера), стал бы публичным без единой
+  // строчки нового кода (аудит 2026-08-03).
+  if (!/^(photos|avatars|videos)\//.test(joined)) {
+    return NextResponse.json({ error: 'not_found' }, { status: 404 });
+  }
+
   let total: number | null;
   try {
     total = await storage.size(joined);

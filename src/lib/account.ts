@@ -56,6 +56,19 @@ export async function deleteAccount(userId: string): Promise<void> {
     await tx.comment.deleteMany({ where: { authorUserId: userId } });
     await tx.review.deleteMany({ where: { authorUserId: userId } });
     await tx.inquiry.deleteMany({ where: { clientUserId: userId } });
+    // Второй заход на те же грабли (аудит 2026-08-03, P0): обе связи —
+    // ON DELETE RESTRICT, поэтому любой пользователь первые двое суток после
+    // регистрации (пока жив токен подтверждения почты) и любой, кто хоть раз
+    // кого-то заблокировал, удалить аккаунт НЕ МОГ — получал 500. Право на
+    // отзыв согласия, обещанное в политике, просто не работало.
+    await tx.emailVerification.deleteMany({ where: { userId } });
+    await tx.userBlock.deleteMany({ where: { OR: [{ blockerId: userId }, { blockedId: userId }] } });
+    // Жалобы субъекта обезличиваются ДО удаления: после SET NULL у reporterId
+    // связь потеряется, а свободный текст и контакт заявителя останутся
+    await tx.report.updateMany({
+      where: { reporterId: userId },
+      data: { comment: null, contactEmail: null },
+    });
 
     // 4. Профиль фотографа + поддерево (+ чужие данные на нём)
     if (profile) {
