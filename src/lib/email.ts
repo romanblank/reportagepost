@@ -1,5 +1,6 @@
 import nodemailer, { type Transporter } from 'nodemailer';
 import { ru } from '@/i18n/ru';
+import { alertOperator } from '@/lib/telegram';
 import { BASE_URL } from '@/lib/sitemap';
 import { operatorLine } from '@/lib/legal-entity';
 
@@ -65,6 +66,11 @@ export async function sendEmail(
   try {
     await t.sendMail({ from, to, subject, text: `${text}\n${emailFooter(kind)}` });
   } catch (e) {
+    // Раньше провал уходил только в консоль контейнера, которую никто не
+    // читает: автор не получал письмо подтверждения, а платформа считала, что
+    // отправила. Теперь о поломке узнаёт оператор — молчание не должно
+    // выглядеть как успех.
     console.error('[email] send failed:', e);
+    void alertOperator(`✉️ Письмо не отправлено (${subject}): ${e instanceof Error ? e.message : 'ошибка SMTP'}`);
   }
 }

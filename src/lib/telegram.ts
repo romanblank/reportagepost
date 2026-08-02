@@ -99,3 +99,16 @@ export async function notifyTelegram(userId: string, text: string): Promise<void
   const user = await db.user.findUnique({ where: { id: userId }, select: { tgUserId: true } });
   if (user?.tgUserId) await tgSend(user.tgUserId, text);
 }
+
+/**
+ * Сообщение оператору в служебный чат (тот же, куда пишут watchdog и бэкапы).
+ *
+ * Нужен для поломок, о которых иначе никто не узнает: интеграция, устроенная
+ * как тихий no-op, снаружи неотличима от работающей. Без настроенного чата —
+ * обычный no-op, как и всё остальное.
+ */
+export async function alertOperator(text: string): Promise<void> {
+  const chat = process.env.TELEGRAM_ALERT_CHAT_ID;
+  if (!chat) return;
+  await tgSend(chat, text);
+}
