@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "db:seed": "tsx prisma/seed.ts",
-    "e2e": "vitest run --config vitest.e2e.config.ts"
+    "e2e": "vitest run --config vitest.e2e.config.ts",
+    "audit:pages": "tsx scripts/audit-pages.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1086.0",
