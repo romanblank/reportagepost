@@ -3,7 +3,9 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { db } from '@/lib/db';
-import { catalogForCity, categoryCountsForCity, recommendedForCity, type CatalogCard } from '@/lib/catalog';
+import { catalogForCity, categoryCountsForCity, brandCountsForCity, recommendedForCity, type CatalogCard } from '@/lib/catalog';
+import { CAMERA_BRANDS } from '@/lib/gear-brands';
+import { RU_CITIES } from '@/lib/geo-data';
 import { visitingCity } from '@/lib/travel';
 import { RU_COUNTRY, cityNameRu } from '@/lib/geo-data';
 import { CATEGORIES, categoryNameRu } from '@/lib/category-data';
@@ -59,10 +61,16 @@ export async function generateMetadata(props: { params: Promise<Params> }): Prom
  * Собирается из текущих searchParams, поэтому снятие одного условия не сбрасывает
  * остальные — частая беда самодельных фильтров.
  */
-function filterHref(params: Record<string, string | undefined>, basePath: string): string {
+function filterHref(
+  params: Record<string, string | string[] | undefined>,
+  basePath: string,
+): string {
   const qs = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
-    if (v && k !== 'page') qs.set(k, v);
+    if (!v || k === 'page') continue;
+    // Повторяющиеся параметры (бренды техники) сохраняем все, а не последний
+    if (Array.isArray(v)) v.forEach((x) => qs.append(k, x));
+    else qs.set(k, v);
   }
   const q = qs.toString();
   return q ? `${basePath}?${q}` : basePath;
@@ -73,6 +81,7 @@ export default async function CatalogPage(props: {
   searchParams: Promise<{
     category?: string; date?: string; page?: string;
     minPrice?: string; maxPrice?: string; format?: string; trusted?: string; sort?: string;
+    brand?: string | string[];
   }>;
 }) {
   const params = await props.params;
@@ -89,6 +98,10 @@ export default async function CatalogPage(props: {
   const maxPriceRub = Number(searchParams.maxPrice) > 0 ? Number(searchParams.maxPrice) : undefined;
   const minPriceRub = Number(searchParams.minPrice) > 0 ? Number(searchParams.minPrice) : undefined;
   const trustedOnly = searchParams.trusted === '1';
+  // Бренды приходят повторяющимся параметром (?brand=Sony&brand=Canon)
+  const brandParam = searchParams.brand;
+  const selectedBrands = (Array.isArray(brandParam) ? brandParam : brandParam ? [brandParam] : [])
+    .filter((b) => (CAMERA_BRANDS as readonly string[]).includes(b));
   const sort: 'merit' | 'priceAsc' | 'fresh' =
     searchParams.sort === 'priceAsc' || searchParams.sort === 'fresh' ? searchParams.sort : 'merit';
   const videoOnly = searchParams.format === 'video';
@@ -97,18 +110,22 @@ export default async function CatalogPage(props: {
   // «Открыты для новых заказов» (буст-видимость подписки, soft-hybrid) — только на 1-й
   // странице без фильтров. Все запросы страницы — параллельно (force-dynamic).
   const showRecommended = page === 1 && !categorySlug && !availableOn && !maxPriceRub && !minPriceRub && !videoOnly && !trustedOnly;
-  const hasActiveFilters = Boolean(categorySlug || availableOn || maxPriceRub || minPriceRub || videoOnly || trustedOnly);
-  const [{ cards, hasNext }, recommended, visiting, categoryCounts] = await Promise.all([
+  const hasActiveFilters = Boolean(
+    categorySlug || availableOn || maxPriceRub || minPriceRub || videoOnly || trustedOnly || selectedBrands.length,
+  );
+  const [{ cards, hasNext }, recommended, visiting, categoryCounts, brandCounts] = await Promise.all([
     catalogForCity({
       citySlug: city.slug, categorySlug, availableOn, page, videoOnly,
       maxPackagePriceMinor: maxPriceRub ? maxPriceRub * 100 : undefined,
       minPackagePriceMinor: minPriceRub ? minPriceRub * 100 : undefined,
       withShootsOnly: trustedOnly,
       sort,
+      cameraBrands: selectedBrands,
     }),
     showRecommended ? recommendedForCity(city.slug) : Promise.resolve([] as CatalogCard[]),
     page === 1 ? visitingCity(city.slug, availableOn) : Promise.resolve([]),
     categoryCountsForCity(city.slug),
+    brandCountsForCity(city.slug),
   ]);
   // Полку исключаем из основного merit-списка (без дублей); shown — всё показанное
   // на странице (для счётчика и JSON-LD).
@@ -184,6 +201,22 @@ export default async function CatalogPage(props: {
 
         <aside className="hidden space-y-5 rounded-lg border border-line bg-surface p-4 lg:sticky lg:top-20 lg:block">
           <div>
+            <h2 className="t-caption mb-2 muted" style={{ fontFamily: 'var(--font-mono)' }}>{ru.catalog.filterCity}</h2>
+            {/* Смена города прямо в панели: раньше для этого нужно было уйти в
+                общий каталог и начать выбор заново */}
+            <form method="get" action="/ru/russia" className="contents">
+              <select name="city" defaultValue={city.slug} aria-label={ru.catalog.filterCity}
+                className="input w-full text-sm"
+                // Переход выполняет форма ниже; select без JS отправляется кнопкой
+              >
+                {RU_CITIES.map((c) => (
+                  <option key={c.slug} value={c.slug}>{c.nameRu}</option>
+                ))}
+              </select>
+            </form>
+          </div>
+
+          <div className="border-t border-line pt-4">
             <h2 className="t-caption mb-2 muted" style={{ fontFamily: 'var(--font-mono)' }}>{ru.catalog.filterGenre}</h2>
             {/* Категории → path-роуты (SEO-перелинковка) со счётчиками: без чисел
                 человек выбирает жанр вслепую и попадает в пустую выдачу */}
@@ -223,6 +256,26 @@ export default async function CatalogPage(props: {
               <span className="t-caption muted" style={{ fontFamily: 'var(--font-mono)' }}>{ru.catalog.availableOn}</span>
               <input type="date" name="date" defaultValue={searchParams.date ?? ''} className="input mt-2 w-full text-sm" />
             </label>
+
+            {/* Техника — по бренду камеры (раздел прототипа). Счётчики те же,
+                что у жанров: выбирать вслепую нельзя. */}
+            {Object.keys(brandCounts).length > 0 && (
+              <div>
+                <span className="t-caption muted" style={{ fontFamily: 'var(--font-mono)' }}>{ru.catalog.filterGear}</span>
+                <div className="mt-2 flex flex-col gap-1.5">
+                  {CAMERA_BRANDS.filter((b) => brandCounts[b]).map((b) => (
+                    <label key={b} className="flex cursor-pointer items-center justify-between gap-3 text-sm">
+                      <span className="flex items-center gap-2">
+                        <input type="checkbox" name="brand" value={b} defaultChecked={selectedBrands.includes(b)}
+                          className="size-4 accent-[var(--accent)]" />
+                        {b}
+                      </span>
+                      <span className="tnum text-[12.5px] opacity-70">{brandCounts[b]}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Фильтр доверия: съёмки, подтверждённые ОБЕИМИ сторонами */}
             <label className="flex cursor-pointer items-center justify-between gap-3 text-sm">
@@ -287,6 +340,11 @@ export default async function CatalogPage(props: {
                   {minPriceRub ? `${ru.catalog.priceFromPh} ${minPriceRub}` : ''}
                   {minPriceRub && maxPriceRub ? ' — ' : ''}
                   {maxPriceRub ? `${ru.catalog.priceToPh} ${maxPriceRub}` : ''} ₽ ✕
+                </Link>
+              )}
+              {selectedBrands.length > 0 && (
+                <Link href={filterHref({ ...searchParams, brand: undefined }, basePath)} className="chip chip-active">
+                  {selectedBrands.join(', ')} ✕
                 </Link>
               )}
               {trustedOnly && (

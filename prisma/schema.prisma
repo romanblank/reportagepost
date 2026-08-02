@@ -87,6 +87,7 @@ model User {
   reportsResolved    Report[]               @relation("reportResolver")
   blocksMade         UserBlock[]            @relation("blocker")
   blockedBy          UserBlock[]            @relation("blocked")
+
   // См. комментарий у PhotographerProfile: индексы поиска описаны в схеме,
   // чтобы migrate diff не пытался их снести.
   @@index([firstName(ops: raw("gin_trgm_ops"))], type: Gin, name: "User_firstName_trgm_idx")
@@ -239,6 +240,11 @@ model PhotographerProfile {
   experienceYears  Int? // стаж в годах (богатство анкеты, паритет MyWed)
   equipment        String? // legacy free-text; структурированные поля ниже (паритет MyWed + B2B-агрегация)
   cameras          String[]          @default([]) // камеры (структурировано для экспорта)
+  // Нормализованные бренды камер — для фильтра каталога «Техника» (прототип v9).
+  // Хранится отдельно от cameras: там свободный текст («Sony A7 IV»), по
+  // которому нельзя ни отфильтровать по массиву, ни построить индекс. Здесь —
+  // канонический список брендов, пересчитывается при сохранении анкеты.
+  cameraBrands     String[]          @default([])
   lenses           String[]          @default([]) // оптика
   lighting         String[]          @default([]) // свет
   teamInfo         String? // соло / команда / ассистенты

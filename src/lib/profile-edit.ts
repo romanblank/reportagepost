@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client';
+import { brandsFromCameras } from '@/lib/gear-brands';
 import { resolveCity } from '@/lib/geo-resolve';
 import { z } from 'zod';
 import { db } from '@/lib/db';
@@ -97,7 +98,14 @@ export async function applyProfileEdit(
           telegram: d.telegram?.trim().replace(/^@/, '') || null,
           experienceYears: d.experienceYears ?? null,
           ...(d.equipment !== undefined ? { equipment: d.equipment.trim() || null } : {}),
-          ...(d.cameras !== undefined ? { cameras: d.cameras } : {}),
+          ...(d.cameras !== undefined
+          ? {
+              cameras: d.cameras,
+              // Бренды пересчитываем здесь же: иначе фильтр каталога начнёт
+              // расходиться с тем, что автор написал в анкете
+              cameraBrands: brandsFromCameras(d.cameras),
+            }
+          : {}),
           ...(d.lenses !== undefined ? { lenses: d.lenses } : {}),
           ...(d.lighting !== undefined ? { lighting: d.lighting } : {}),
           teamInfo: d.teamInfo?.trim() || null,

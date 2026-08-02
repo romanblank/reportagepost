@@ -34,6 +34,8 @@ export interface CatalogFilters {
    * участвует. Это прямо следует из антиклассизм-инварианта.
    */
   sort?: CatalogSort;
+  /** Бренды камер (раздел «Техника» в прототипе). Пустой массив = без фильтра. */
+  cameraBrands?: string[];
 }
 
 export type CatalogSort = 'merit' | 'priceAsc' | 'fresh';
@@ -45,6 +47,24 @@ export type CatalogSort = 'merit' | 'priceAsc' | 'fresh';
  * Считаем по тем же правилам, что и каталог (APPROVED + есть работа), иначе
  * счётчик обещал бы больше, чем показывает список.
  */
+/** Сколько авторов города снимает на каждый бренд — счётчики фильтра «Техника». */
+export async function brandCountsForCity(citySlug: string): Promise<Record<string, number>> {
+  const rows = await db.photographerProfile.findMany({
+    where: {
+      status: 'APPROVED',
+      city: { slug: citySlug },
+      photos: { some: { status: 'APPROVED' } },
+      cameraBrands: { isEmpty: false },
+    },
+    select: { cameraBrands: true },
+  });
+  const out: Record<string, number> = {};
+  for (const r of rows) {
+    for (const b of r.cameraBrands) out[b] = (out[b] ?? 0) + 1;
+  }
+  return out;
+}
+
 export async function categoryCountsForCity(citySlug: string): Promise<Record<string, number>> {
   const rows = await db.profileCategory.groupBy({
     by: ['categoryId'],
@@ -249,6 +269,7 @@ export async function catalogForCity(filters: CatalogFilters): Promise<CatalogPa
     // Фильтр доверия: только те, у кого есть подтверждённая обеими сторонами
     // съёмка. Самоотметки заказчика недостаточно (S4 trust-хардеринг).
     ...(filters.withShootsOnly ? { shootConfirmations: { some: { state: 'CONFIRMED' as const } } } : {}),
+    ...(filters.cameraBrands?.length ? { cameraBrands: { hasSome: filters.cameraBrands } } : {}),
   };
 
   // MERIT-ONLY: порядок основной выдачи НЕ зависит от подписки (антиклассизм-

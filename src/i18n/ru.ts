@@ -266,6 +266,8 @@ export const ru = {
   catalog: {
     // alt карточки: его читают вслух скринридеры и видят при неудачной загрузке
     filtersToggle: 'Фильтры и жанры',
+    filterCity: 'Город',
+    filterGear: 'Техника',
     sortLabel: 'Сортировка',
     sortMerit: 'по заслугам',
     sortPrice: 'сначала недорогие',
@@ -334,7 +336,7 @@ export const ru = {
     notFound: 'Фотограф не найден',
     pricesTitle: 'Стоимость',
     packageHours: (hours: number) => `${hours} ч съёмки`,
-    portfolioTitle: 'Портфолио',
+    portfolioTitle: 'Работы',
     storiesTitle: 'Серии',
     editorsChoice: 'Находка редакции',
     moreInCity: (city: string) => `Ещё фотографы — ${city}`,
@@ -410,6 +412,7 @@ export const ru = {
     gearLenses: 'Оптика',
     gearLighting: 'Свет',
     gearTeam: 'Команда',
+    shootsKicker: 'Факты',
     shootsTitle: 'Подтверждённые съёмки',
     shootsCount: (n: number) => `${n} ${plural(n, ['раз', 'раза', 'раз'])}`,
     shootsCountHint: 'заказчики отметили состоявшуюся съёмку',

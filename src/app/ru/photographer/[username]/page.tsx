@@ -273,6 +273,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
           ...(profile.videos.length > 0 ? [{ id: 'video', label: ru.profile.navVideo }] : []),
           ...(gearGroups.some((g) => g.items.length > 0) ? [{ id: 'gear', label: ru.profile.navGear }] : []),
           { id: 'reviews', label: ru.profile.navReviews },
+          ...(isSelf ? [] : [{ id: 'booking', label: ru.profile.navCalendar }]),
         ]}
         summary={shoots.count > 0
           ? `${ru.profile.shootsCount(shoots.count)} · ${ru.profile.shootsReturning(shoots.returning)}`
@@ -567,7 +568,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
 
         {/* Правая колонка: цена, обращение, параметры работы и занятость */}
         {!isSelf && (
-          <div className="order-1 lg:order-2">
+          <div id="booking" className="order-1 scroll-mt-20 lg:order-2">
           <ProfileBooking
             profileId={profile.id}
             username={profile.username}
