@@ -36,7 +36,7 @@ export const cachedHomeData = unstable_cache(
       // Авторы города на главной (прототип v9): продукт про людей, а главная
       // показывала только кадры. Берём первую страницу каталога Москвы —
       // тот же merit-порядок, что и в каталоге, без отдельной логики.
-      catalogForCity({ citySlug: 'moscow' }).then((p) => p.cards.slice(0, 4)),
+      catalogForCity({ citySlug: 'moscow' }).then((p) => p.cards.slice(0, 3)),
     ]);
     return { week, fresh, stories, cats, stats, newAuthors, photographers, photos, cityAuthors };
   },

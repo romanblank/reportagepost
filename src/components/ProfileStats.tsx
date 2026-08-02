@@ -20,8 +20,13 @@ export interface StatItem {
  */
 export function ProfileStats({ items }: { items: StatItem[] }) {
   if (items.length === 0) return null;
+  // На широком экране раскладываем в один ряд, на узком — по два
+  const cols = Math.min(items.length, 4);
+  // Колонок ровно столько, сколько фактов (до четырёх): при жёстких трёх
+  // колонках четвёртый факт повисал в пустой строке.
   return (
-    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-media border border-line bg-line sm:grid-cols-3">
+    <div className="stat-grid grid grid-cols-2 gap-px overflow-hidden rounded-media border border-line bg-line"
+      style={{ ['--stat-cols' as string]: String(cols) }}>
       {items.map((s) => (
         <div key={s.label} className="bg-paper px-5 py-5">
           <p className={`tnum text-3xl leading-none ${s.accent ? 'text-recognition' : ''}`}

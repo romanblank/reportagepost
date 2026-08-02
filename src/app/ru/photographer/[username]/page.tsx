@@ -32,7 +32,6 @@ import { shootStats, hasShotWith } from '@/lib/shoots';
 import { ConfirmShootButton } from '@/components/ConfirmShootButton';
 import { ProfileHero } from '@/components/ProfileHero';
 import { ShareButton } from '@/components/ShareButton';
-import { ShowPhoneButton } from '@/components/ShowPhoneButton';
 import { ReportButton } from '@/components/ReportButton';
 
 // dynamic: страница показывает состояние лайков/подписки текущего пользователя
@@ -163,7 +162,12 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
     db.follow.count({ where: { followeeId: profile.userId } }),
     // «Ещё в этом городе» — кросс-линки для находимости (работает на текущих данных)
     db.photographerProfile.findMany({
-      where: { status: 'APPROVED', cityId: profile.cityId, id: { not: profile.id } },
+      where: {
+        status: 'APPROVED', cityId: profile.cityId, id: { not: profile.id },
+        // Та же планка, что в каталоге: автор без опубликованной работы
+        // показывался пустой серой плиткой — реклама пустоты вместо коллеги.
+        photos: { some: { status: 'APPROVED' } },
+      },
       orderBy: { ratingScore: 'desc' },
       take: 6,
       select: {
@@ -312,8 +316,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
           </Link>
           <div className="flex flex-wrap items-center gap-2 text-sm sm:ml-auto">
             <ShareButton path={`/ru/photographer/${profile.username}`} title={`${profile.user.firstName} ${profile.user.lastName}`} />
-            {/* «Показать номер» — только при опт-ине; номер раскрывается кликом через API */}
-            {profile.showPhone && profile.user.phone && <ShowPhoneButton profileId={profile.id} />}
+
             {(profile.whatsapp || profile.telegram || profile.siteUrl) && (
               <>
               {profile.whatsapp && (
@@ -379,6 +382,58 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
             )}
           </section>
         )}
+
+      {/* Факты доверия крупно (прототип v9): в доброжелательной системе они
+          заменяют звёздный рейтинг — не оценка, а то, что реально произошло. */}
+      {(shoots.count > 0 || profile.photos.length > 0 || profile.experienceYears != null) && (
+        <section className="mt-12">
+          <SectionHeading kicker={ru.profile.statsKicker} title={ru.profile.statsTitle} />
+          <div className="mt-5">
+            <ProfileStats
+              items={[
+                ...(shoots.count > 0
+                  ? [{ value: String(shoots.count), label: ru.profile.statsShoots, accent: true }]
+                  : []),
+                ...(shoots.returning > 0
+                  ? [{ value: String(shoots.returning), label: ru.profile.statsReturning }]
+                  : []),
+                ...(profile.photos.length > 0
+                  ? [{ value: String(profile.photos.length), label: ru.profile.statsWorks }]
+                  : []),
+                ...(profile.experienceYears != null
+                  ? [{ value: String(profile.experienceYears), unit: ru.profile.yearsUnit, label: ru.profile.statsYears }]
+                  : []),
+              ]}
+            />
+          </div>
+        </section>
+      )}
+
+      {/* Подтверждённые съёмки — три факта крупно (прототип v9) */}
+      {shoots.count > 0 && (
+        <section className="mt-12">
+          <SectionHeading kicker={ru.profile.shootsKicker} title={ru.profile.shootsTitle} />
+          <div className="mt-5">
+            <ConfirmedShoots
+              count={shoots.count}
+              returning={shoots.returning}
+              verifiedShare={reviews.items.length > 0
+                ? Math.round((reviews.items.filter((r) => r.verified).length / reviews.items.length) * 100)
+                : null}
+            />
+          </div>
+        </section>
+      )}
+
+      {/* Техника — карточками по группам (прототип v9) */}
+      {isPaid && gearGroups.some((g) => g.items.length > 0) && (
+        <section id="gear" className="mt-12 scroll-mt-20">
+          <SectionHeading kicker={ru.profile.gearKicker} title={ru.profile.gearTitle} />
+          <div className="mt-5">
+            <ProfileGear groups={gearGroups} />
+          </div>
+        </section>
+      )}
 
       {/* Полный прайс — перк Active (пакеты цен). На FREE публично скрыт. */}
       {isPaid && profile.packages.length > 1 && (

@@ -62,10 +62,16 @@ describe('matching.parseBriefHeuristic — разбор без ИИ', () => {
   });
 
   it('только жанр, без города/бюджета', () => {
-    const p = parseBriefHeuristic('фотограф на свадьбу');
+    const p = parseBriefHeuristic('фотограф на юбилей');
     expect(p.categorySlug).toBe('private-events');
     expect(p.citySlug).toBeUndefined();
     expect(p.maxBudgetMinor).toBeUndefined();
+  });
+
+  // Свадьбы — территория MyWed, мы туда не идём: слово не должно уводить
+  // заказчика в «частные события», иначе подбор пообещает то, чего нет.
+  it('свадьба жанром не считается', () => {
+    expect(parseBriefHeuristic('фотограф на свадьбу').categorySlug).toBeUndefined();
   });
 
   it('пустой/короткий — {}', () => {

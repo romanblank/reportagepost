@@ -107,7 +107,10 @@ describe.skipIf(!hasDb)('E2E: петля доверия (съёмка→отзы
     auditText('автор отзыва', pub.items[0].authorName);
 
     // valuedPhotographers — по рекомендациям (rating≥4+verified), без публичного среднего
-    const valued = await valuedPhotographers(20);
+    // Лимиты лент берём заведомо больше содержимого базы: на демо-наполнении
+    // (12 профилей с лайками) свежий тестовый кадр с одним лайком не попадал
+    // в топ-50 и тест падал не из-за логики, а из-за соседей по базе.
+    const valued = await valuedPhotographers(500);
     const mine = valued.find((v) => v.username === `e2e-tl-${stamp}`);
     expect(mine?.recommendCount).toBeGreaterThanOrEqual(1);
     auditText('ценят заказчики', `${mine!.firstName} ${mine!.lastName}`);
@@ -115,12 +118,12 @@ describe.skipIf(!hasDb)('E2E: петля доверия (съёмка→отзы
     // Discovery: лайк → bestOfWeek; отметка редакции → editorsChoice; превью категорий
     const photo = await db.photo.findFirstOrThrow({ where: { profileId: profile.id } });
     await togglePhotoLike(c1.id, photo.id);
-    const week = await bestOfWeek(50);
+    const week = await bestOfWeek(500);
     expect(week.some((p) => p.username === `e2e-tl-${stamp}`)).toBe(true);
     auditText('лучшее недели', `${week[0].firstName} ${week[0].lastName}`);
 
     await toggleEditorsChoice(photo.id);
-    const ec = await editorsChoice(50);
+    const ec = await editorsChoice(500);
     expect(ec.some((p) => p.photoId === photo.id)).toBe(true);
 
     const cats = await categoryPreviews();

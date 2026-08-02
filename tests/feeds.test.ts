@@ -116,11 +116,13 @@ describe.skipIf(!hasDb)('feeds: подписки и рекомендации (Б
       ],
     });
 
-    const week = await bestOfWeek();
+    // Лимит берём заведомо больше содержимого базы: на наполненной демо-данными
+    // БД дефолтные 60 позиций занимают соседи, и тест падал не из-за логики.
+    const week = await bestOfWeek(500);
     expect(week.find((p) => p.photoId === pFresh)?.scoreMilli).toBe(2000);
     expect(week.some((p) => p.photoId === pOld)).toBe(false); // лайк 20 дней назад — не в неделе
 
-    const year = await bestOfYear();
+    const year = await bestOfYear(500);
     expect(year.find((p) => p.photoId === pOld)?.scoreMilli).toBe(5000); // в году виден
 
     await db.like.deleteMany({ where: { photoId: { in: [pFresh, pOld] } } });

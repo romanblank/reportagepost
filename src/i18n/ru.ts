@@ -399,6 +399,7 @@ export const ru = {
     bookingFree: 'свободен',
     bookingBusy: 'занят',
     weekdayShort: ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'],
+    statsKicker: 'В цифрах',
     statsTitle: 'Статистика',
     statsShoots: 'подтверждённых съёмок',
     statsReturning: 'заказчиков вернулись повторно',
