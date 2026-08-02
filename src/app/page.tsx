@@ -110,7 +110,7 @@ export default async function Home() {
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="t-caption muted" style={{ fontFamily: 'var(--font-mono)' }}>{ru.landing.newAuthorsKicker}</p>
-              <h2 className="t-h2 mt-1">{ru.landing.newAuthorsTitle}</h2>
+              <h2 className="t-h2 mt-1">{ru.landing.newAuthorsTitle(cityNameRu('moscow'))}</h2>
             </div>
             <Link href="/ru/community" className="text-sm text-accent hover:underline">{ru.landing.newAuthorsMore}</Link>
           </div>
@@ -149,8 +149,8 @@ export default async function Home() {
       <section className="border-y border-line bg-surface">
         <div className="mx-auto grid w-full max-w-7xl items-center gap-12 px-4 py-16 lg:grid-cols-2">
           <div>
-            <p className="t-caption text-accent">{ru.landing.photographerBandEyebrow}</p>
-            <h2 className="t-h2 mt-4 max-w-[16ch]">{ru.landing.photographerBandTitle}</h2>
+            <p className="t-caption text-accent" style={{ fontFamily: 'var(--font-mono)' }}>{ru.landing.photographerBandEyebrow}</p>
+            <h2 className="t-h2 mt-3 max-w-[20ch]">{ru.landing.photographerBandTitle}</h2>
             <p className="t-body mt-4 max-w-prose muted">{ru.landing.photographerBandText}</p>
             <div className="mt-7 flex flex-wrap gap-3">
               <Link href="/ru/register" className="btn btn-accent btn-lg">{ru.landing.photographerBandJoin}</Link>

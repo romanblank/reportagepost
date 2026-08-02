@@ -216,7 +216,7 @@ export const ru = {
     featuredShotBy: 'Снял',
     featuredViewShot: 'Смотреть работу',
     // Новые авторы (автоматически по дате прихода — без курирования)
-    newAuthorsTitle: 'Новые авторы',
+    newAuthorsTitle: (city: string) => `Новые авторы — ${city}`,
     newAuthorBadge: 'новый автор',
     closedNote: 'Регистрация для фотографов открыта. Платформа в закрытой бете — публичный запуск впереди.',
     recentWork: 'Свежие работы',
@@ -239,7 +239,7 @@ export const ru = {
     forClientsText: 'Сравните авторов по городу, работам, цене и свободной дате. Пишите напрямую, без комиссии.',
     // Блок «Для фотографов» — ценность подписки Active/Active+ (антиклассизм: не двигает выдачу)
     photographerBandEyebrow: 'Для авторов',
-    photographerBandTitle: 'Заявите о себе там, где смотрят по делу',
+    photographerBandTitle: 'Вы фотограф? Заявите о себе там, где смотрят по делу',
     photographerBandText: 'Портфолио, подтверждённые съёмки и прямые заявки от заказчиков — на одной странице. Подписки Active и Active+ добавляют видимости и инструментов, но не двигают выдачу за деньги: место наверху всегда за работами.',
     photographerBandJoin: 'Присоединиться',
     photographerBandPricing: 'Смотреть тарифы',
@@ -305,7 +305,7 @@ export const ru = {
     allCategories: 'Все категории',
     perHourFrom: (price: string) => `от ${price}/час`,
     packageLabel: (hours: number, price: string) => `${hours} ч — ${price}`,
-    availableOn: 'Свободны в эту дату',
+    availableOn: 'Свободен на дату',
     maxPrice: 'Бюджет на съёмку, до ₽',
     applyDate: 'Показать',
     filtersTitle: 'Фильтры',
