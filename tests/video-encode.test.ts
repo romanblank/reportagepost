@@ -114,3 +114,47 @@ describe('видео: аргументы ffmpeg', () => {
     expect(args[args.indexOf('-frames:v') + 1]).toBe('3');
   });
 });
+
+// Видео по уровням подписки (решение 2026-08-02): гейтим объём, не факт.
+describe('видео: лимиты по уровню подписки', () => {
+  it('ролики доступны на всех уровнях — гейт по количеству, а не по факту', async () => {
+    const { videoLimit } = await import('@/lib/pricing');
+    // Профиль без видео — хуже выглядящая витрина, и наказан был бы заказчик
+    expect(videoLimit('FREE')).toBeGreaterThanOrEqual(1);
+    expect(videoLimit('PRIME')).toBeGreaterThan(videoLimit('FREE'));
+    expect(videoLimit('ELITE')).toBeGreaterThanOrEqual(videoLimit('PRIME'));
+  });
+
+  it('длительность на бесплатном уровне короче, на платных — одинаковая', async () => {
+    const { videoSecondsLimit, MAX_DURATION_SEC } = await import('@/lib/pricing').then(async (p) => ({
+      ...p, MAX_DURATION_SEC: (await import('@/lib/video-encode')).MAX_DURATION_SEC,
+    }));
+    expect(videoSecondsLimit('FREE')).toBeLessThan(videoSecondsLimit('PRIME'));
+    expect(videoSecondsLimit('PRIME')).toBe(videoSecondsLimit('ELITE'));
+    // Технический потолок пайплайна не ниже платного — иначе платный уровень
+    // обещал бы то, что гард отбракует
+    expect(videoSecondsLimit('ELITE')).toBeLessThanOrEqual(MAX_DURATION_SEC);
+  });
+
+  it('живая обложка — перк только верхнего уровня', async () => {
+    const { coverShowreelAllowed } = await import('@/lib/pricing');
+    expect(coverShowreelAllowed('FREE')).toBe(false);
+    expect(coverShowreelAllowed('PRIME')).toBe(false);
+    expect(coverShowreelAllowed('ELITE')).toBe(true);
+  });
+
+  it('гард длительности берёт потолок ролика, а не общий', () => {
+    const probe = { durationSec: 75, width: 1920, height: 1080, codec: 'h264', hasAudio: true };
+    // Ролик, принятый на платном уровне, остаётся годным
+    expect(rejectReason(probe, 90)).toBeNull();
+    // Тот же ролик на бесплатном потолке — слишком длинный
+    expect(rejectReason(probe, 60)).toBe('video_too_long');
+  });
+
+  it('качество не режется по уровням — экономия egress не стоит первого впечатления', async () => {
+    const { VARIANTS } = await import('@/lib/video-encode');
+    // Ступени зависят только от исходника; функции «варианты для тарифа» нет и
+    // быть не должно — это фиксируется здесь намеренно
+    expect(VARIANTS.map((v) => v.height)).toEqual([1080, 720]);
+  });
+});

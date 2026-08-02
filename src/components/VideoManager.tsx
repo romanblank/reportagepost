@@ -20,7 +20,14 @@ export interface ManagedVideo {
 
 // Управление загруженными видео автора (кабинет). Multipart-загрузка на
 // /api/profile/videos, удаление своих. Публикация — после модерации (как фото).
-export function VideoManager({ videos, limit }: { videos: ManagedVideo[]; limit: number }) {
+export function VideoManager({
+  videos, limit, tier, maxSeconds,
+}: {
+  videos: ManagedVideo[];
+  limit: number;
+  tier: string;
+  maxSeconds: number;
+}) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -45,7 +52,7 @@ export function VideoManager({ videos, limit }: { videos: ManagedVideo[]; limit:
       codeLabels: {
         file_too_large: ru.cabinetVideos.errTooLarge,
         unsupported_format: ru.cabinetVideos.errFormat,
-        video_limit: ru.cabinetVideos.errLimit,
+        video_limit: ru.cabinetVideos.limitReached(limit, tier),
       },
       fallback: ru.cabinetVideos.errGeneric,
     });
@@ -110,7 +117,9 @@ export function VideoManager({ videos, limit }: { videos: ManagedVideo[]; limit:
           className={`btn btn-outline ${busy || atLimit ? 'pointer-events-none opacity-40' : 'cursor-pointer'}`}>
           {busy ? ru.cabinetVideos.uploading : ru.cabinetVideos.uploadCta}
         </label>
-        <p className="field-hint mt-2">{atLimit ? ru.cabinetVideos.errLimit : ru.cabinetVideos.hint}</p>
+        <p className="field-hint mt-2">
+          {atLimit ? ru.cabinetVideos.limitReached(limit, tier) : ru.cabinetVideos.hint(limit, maxSeconds)}
+        </p>
         {error && <p className="field-error">{error}</p>}
       </div>
     </div>

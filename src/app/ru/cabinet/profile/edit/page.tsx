@@ -8,7 +8,8 @@ import { RU_CITIES } from '@/lib/geo-data';
 import { CATEGORIES } from '@/lib/category-data';
 import { ru } from '@/i18n/ru';
 import { storage } from '@/lib/storage';
-import { VIDEO_LIMIT_PER_PROFILE } from '@/lib/videos';
+import { videoLimit, videoSecondsLimit } from '@/lib/pricing';
+import { tierOf } from '@/lib/subscription';
 import { EditProfileForm } from './EditProfileForm';
 import { VideoManager } from '@/components/VideoManager';
 
@@ -35,6 +36,8 @@ export default async function EditProfilePage() {
   const cities = RU_CITIES.map((c) => ({ slug: c.slug, name: c.nameRu })).sort((a, b) => a.name.localeCompare(b.name, 'ru'));
   const categories = CATEGORIES.map((c) => ({ slug: c.slug, name: c.nameRu }));
   const catSlugById = new Map(await db.category.findMany().then((cs) => cs.map((c) => [c.id, c.slug] as const)));
+  // Сколько роликов и какой длительности доступно — зависит от уровня подписки
+  const tier = await tierOf(session.userId);
 
   return (
     <main className="mx-auto w-full max-w-xl flex-1 px-4 py-6 sm:py-10">
@@ -69,9 +72,10 @@ export default async function EditProfilePage() {
 
       <section className="mt-10 border-t border-line pt-8">
         <h2 className="t-h2">{ru.onboarding.videoUploadTitle}</h2>
-        <p className="field-hint mt-1 mb-4">{ru.cabinetVideos.hint}</p>
         <VideoManager
-          limit={VIDEO_LIMIT_PER_PROFILE}
+          limit={videoLimit(tier)}
+          tier={tier}
+          maxSeconds={videoSecondsLimit(tier)}
           videos={profile.videos.map((v) => ({
             id: v.id,
             // Исходник не показываем даже автору: пока нет web-варианта, играть

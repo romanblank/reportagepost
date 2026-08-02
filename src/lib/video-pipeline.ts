@@ -117,7 +117,7 @@ export async function processVideo(videoId: string): Promise<ProcessResult> {
 
     const probe = await ffprobe(source);
     if (!probe) return await fail('video_no_stream');
-    const rejected = rejectReason(probe);
+    const rejected = rejectReason(probe, video.maxSeconds);
     if (rejected) return await fail(rejected);
 
     const base = video.storageKey.replace(/\/source\.[^/]+$/, '');

@@ -78,6 +78,41 @@ export const PRIME_PORTFOLIO_LIMIT = 300; // «без ограничений» P
 export const ELITE_PORTFOLIO_LIMIT = 1000; // Elite — расширенный потолок
 export const FREE_STORIES_ALLOWED = false; // фотоистории — только подписка
 
+// Видео по уровням (решение 2026-08-02, design-record в vault).
+//
+// Гейтим количество и длительность, а не сам факт: ролик на странице нужен
+// прежде всего заказчику, и профиль без видео — хуже выглядящая витрина
+// платформы, а наказан был бы тот, кто выбирает исполнителя. Лимиты по объёму
+// в продукте уже приняты (портфолио), и видео ложится в ту же логику.
+//
+// Качество не режем ни на одном уровне: экономия egress на 720p для FREE —
+// копейки, а первое впечатление у искушённой аудитории единственное.
+//
+// Настоящий перк Active+ — не шестой ролик (он никому не нужен), а шоурил,
+// играющий в обложке профиля вместо статичного кадра: это видно заказчику с
+// первого экрана.
+export const FREE_VIDEO_LIMIT = 1;
+export const PRIME_VIDEO_LIMIT = 4;
+export const ELITE_VIDEO_LIMIT = 6;
+export const FREE_VIDEO_SECONDS = 60;
+export const PAID_VIDEO_SECONDS = 90;
+
+export function videoLimit(tier: PlanTier): number {
+  if (tier === 'ELITE') return ELITE_VIDEO_LIMIT;
+  if (tier === 'PRIME') return PRIME_VIDEO_LIMIT;
+  return FREE_VIDEO_LIMIT;
+}
+
+/** Потолок длительности ролика: у бесплатного уровня короче. */
+export function videoSecondsLimit(tier: PlanTier): number {
+  return tier === 'FREE' ? FREE_VIDEO_SECONDS : PAID_VIDEO_SECONDS;
+}
+
+/** Шоурил в обложке профиля — перк верхнего уровня. */
+export function coverShowreelAllowed(tier: PlanTier): boolean {
+  return tier === 'ELITE';
+}
+
 export function portfolioLimit(tier: PlanTier): number {
   if (tier === 'ELITE') return ELITE_PORTFOLIO_LIMIT;
   if (tier === 'PRIME') return PRIME_PORTFOLIO_LIMIT;
@@ -108,11 +143,14 @@ export const PLAN_FEATURES: PlanFeature[] = [
   { key: 'page', minTier: 'FREE' }, // публичная страница + профиль в каталоге
   { key: 'inquiries', minTier: 'FREE' }, // приём заявок от заказчиков — открыто всем
   { key: 'portfolioBasic', minTier: 'FREE' }, // портфолио до FREE_PORTFOLIO_LIMIT
+  { key: 'videoBasic', minTier: 'FREE' }, // один шоурил до FREE_VIDEO_SECONDS
   { key: 'portfolioUnlimited', minTier: 'PRIME' }, // портфолио без границ + фотоистории
+  { key: 'videoMore', minTier: 'PRIME' }, // до PRIME_VIDEO_LIMIT роликов, до PAID_VIDEO_SECONDS
   { key: 'richProfile', minTier: 'PRIME' }, // пакеты цен, FAQ, оборудование, команда
   { key: 'recognition', minTier: 'PRIME' }, // бейдж + участие в «Признании»
   { key: 'analytics', minTier: 'PRIME' }, // статистика просмотров и сохранений
   { key: 'fastReview', minTier: 'PRIME' }, // приоритетное рассмотрение изменений
+  { key: 'coverShowreel', minTier: 'ELITE' }, // шоурил играет в обложке профиля
   { key: 'recommended', minTier: 'ELITE' }, // ротация в «Рекомендуемых» + приоритет редподборок
   { key: 'analyticsPlus', minTier: 'ELITE' }, // кто смотрел/сохранял, тренды
   { key: 'earlyAccess', minTier: 'ELITE' }, // ранний доступ к фичам + персональный онбординг

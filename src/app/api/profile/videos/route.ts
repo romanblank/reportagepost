@@ -7,10 +7,11 @@ import { handleRoute } from '@/lib/errors';
 import type { ReadableStream as NodeWebReadable } from 'node:stream/web';
 import {
   storeVideoStream,
-  VIDEO_LIMIT_PER_PROFILE,
   MAX_VIDEO_BYTES,
   VIDEO_MIME_EXT,
 } from '@/lib/videos';
+import { tierOf } from '@/lib/subscription';
+import { videoLimit, videoSecondsLimit } from '@/lib/pricing';
 
 export const maxDuration = 60; // крупная загрузка
 
@@ -26,9 +27,13 @@ export function POST(req: Request) {
   const profile = await currentProfile(session.userId);
   if (!profile) return NextResponse.json({ error: 'no_profile' }, { status: 409 });
 
+  // Сколько роликов можно — зависит от уровня подписки: видео самая дорогая
+  // единица контента, и объём здесь гейтится так же, как объём портфолио.
+  const tier = await tierOf(session.userId);
+  const limit = videoLimit(tier);
   const count = await db.profileVideo.count({ where: { profileId: profile.id } });
-  if (count >= VIDEO_LIMIT_PER_PROFILE) {
-    return NextResponse.json({ error: 'video_limit', limit: VIDEO_LIMIT_PER_PROFILE }, { status: 409 });
+  if (count >= limit) {
+    return NextResponse.json({ error: 'video_limit', limit, tier }, { status: 409 });
   }
 
   // Тело идёт СЫРЫМ потоком, а не multipart (аудит 2026-08-01, P2).
@@ -86,10 +91,14 @@ export function POST(req: Request) {
         // Показывать ролик нечем, пока воркер не сделает web-варианты: исходник
         // наружу не отдаётся. UPLOADED — это позиция в очереди транскода.
         processing: 'UPLOADED',
+        // Потолок длительности фиксируем на момент загрузки: если автор потом
+        // сменит уровень, уже принятый ролик не должен задним числом стать
+        // «слишком длинным».
+        maxSeconds: videoSecondsLimit(tier),
       },
     });
     return NextResponse.json(
-      { videoId: video.id, uploaded: count + 1, limit: VIDEO_LIMIT_PER_PROFILE, processing: 'UPLOADED' },
+      { videoId: video.id, uploaded: count + 1, limit, processing: 'UPLOADED' },
       { status: 201 },
     );
   });

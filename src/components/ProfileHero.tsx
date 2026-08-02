@@ -14,6 +14,7 @@ import type { Tier } from '@/lib/subscription';
  */
 export function ProfileHero({
   coverSrc,
+  showreelSrc,
   avatarKey,
   firstName,
   lastName,
@@ -29,6 +30,12 @@ export function ProfileHero({
   replyText,
 }: {
   coverSrc: string | null;
+  /**
+   * Живая обложка — перк верхнего уровня подписки. Не «ещё один слот», а то,
+   * что заказчик видит с первого экрана: работа автора в движении вместо
+   * статичного кадра.
+   */
+  showreelSrc: string | null;
   avatarKey: string | null;
   firstName: string;
   lastName: string;
@@ -48,7 +55,16 @@ export function ProfileHero({
   return (
     <section className="relative isolate w-full overflow-hidden bg-paper"
       style={{ height: 'clamp(400px, 58vh, 620px)' }}>
-      {coverSrc ? (
+      {showreelSrc ? (
+        // Обложка играет беззвучно и зациклено: это фон, а не медиаплеер —
+        // управления нет, звук не включается, полноценный ролик ниже на странице.
+        // Постером служит тот же кадр, что был обложкой: пока видео грузится,
+        // первый экран уже выглядит законченным.
+        <video src={showreelSrc} poster={coverSrc ?? undefined}
+          autoPlay muted loop playsInline preload="none" aria-hidden
+          className="brand-grade absolute inset-0 h-full w-full object-cover"
+          style={{ filter: 'brightness(.62)' }} />
+      ) : coverSrc ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={coverSrc} alt="" aria-hidden
           className="brand-grade absolute inset-0 h-full w-full object-cover"

@@ -56,9 +56,15 @@ export function parseProbe(raw: unknown): VideoProbe | null {
   };
 }
 
-/** Гард после probe: почему ролик нельзя брать в работу. `null` — можно. */
-export function rejectReason(probe: VideoProbe): ProbeRejection | null {
-  if (probe.durationSec > MAX_DURATION_SEC) return 'video_too_long';
+/**
+ * Гард после probe: почему ролик нельзя брать в работу. `null` — можно.
+ *
+ * Потолок длительности приходит из записи ролика, а не из тарифа автора на
+ * момент обработки: уровень мог смениться между загрузкой и транскодом, и
+ * принятый ролик не должен задним числом стать «слишком длинным».
+ */
+export function rejectReason(probe: VideoProbe, maxSeconds = MAX_DURATION_SEC): ProbeRejection | null {
+  if (probe.durationSec > maxSeconds) return 'video_too_long';
   if (probe.durationSec < MIN_DURATION_SEC) return 'video_too_short';
   if (!ACCEPTED_CODECS.includes(probe.codec)) return 'video_codec_unsupported';
   return null;

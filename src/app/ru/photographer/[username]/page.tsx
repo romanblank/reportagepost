@@ -32,6 +32,7 @@ import { ProfileViewBeacon } from '@/components/ProfileViewBeacon';
 import { shootStats, hasShotWith } from '@/lib/shoots';
 import { ConfirmShootButton } from '@/components/ConfirmShootButton';
 import { ProfileHero } from '@/components/ProfileHero';
+import { coverShowreelAllowed } from '@/lib/pricing';
 import { ShareButton } from '@/components/ShareButton';
 import { ReportButton } from '@/components/ReportButton';
 
@@ -239,6 +240,12 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
     { title: ru.profile.gearTeam, items: profile.teamInfo ? [{ name: profile.teamInfo }] : [] },
   ];
 
+  // Живая обложка — перк Active+: первый готовый ролик автора играет вместо
+  // статичного кадра. Ниже уровня перк не выдаётся даже при наличии роликов.
+  const coverShowreel = coverShowreelAllowed(photographerTier)
+    ? profile.videos.find((v) => v.sdKey)?.sdKey ?? null
+    : null;
+
   return (
     <main className="flex-1">
       {!isSelf && <ProfileViewBeacon profileId={profile.id} />}
@@ -256,6 +263,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
 
       <ProfileHero
         coverSrc={coverPhoto ? webVariantUrl(coverPhoto.storageKey) : null}
+        showreelSrc={coverShowreel ? storage.publicUrl(coverShowreel) : null}
         avatarKey={profile.avatarKey}
         firstName={profile.user.firstName}
         lastName={profile.user.lastName}

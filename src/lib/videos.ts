@@ -13,7 +13,12 @@ export const VIDEO_MIME_EXT: Record<string, string> = {
 };
 
 export const MAX_VIDEO_BYTES = 200 * 1024 * 1024; // 200 МБ — разумный потолок шоурила
-export const VIDEO_LIMIT_PER_PROFILE = 6; // до 6 роликов на автора
+/**
+ * Технический потолок числа роликов — верхняя граница любого уровня.
+ * Сколько роликов доступно конкретному автору, решает `videoLimit(tier)`
+ * в @/lib/pricing: видео гейтится объёмом, как и портфолио.
+ */
+export const VIDEO_LIMIT_PER_PROFILE = 6;
 
 // Наследует DomainError (аудит 2026-08-01, P2): статус едет вместе с кодом,
 // роут больше не перемапливает 413/422 вручную.
