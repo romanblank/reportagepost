@@ -161,14 +161,49 @@ export function extractImageUrls(html: string, pageUrl: string): string[] {
   return found.filter((u) => !junk.test(u) && !notPhoto.test(u)).slice(0, MAX_CANDIDATES);
 }
 
+const MAX_REDIRECTS = 4;
+const UA = 'ReportagePostImporter/1.0 (+https://reportagepost.com)';
+
+/**
+ * Запрос с ручным следованием редиректам.
+ *
+ * `redirect: 'follow'` свёл бы весь гард на нет: проверить можно только тот
+ * адрес, который ввёл пользователь, а увести браузерный fetch на
+ * `169.254.169.254` умеет любой чужой сервер одним заголовком Location —
+ * проверка адреса осталась бы формальностью. Поэтому каждый переход
+ * проверяется заново, как если бы пользователь ввёл его сам.
+ *
+ * Полностью DNS-rebinding это не закрывает (между проверкой и соединением имя
+ * может смениться) — для этого нужна привязка соединения к проверенному IP,
+ * чего fetch не даёт. Осознанная граница: закрыт весь класс «редирект внутрь»,
+ * остаётся узкое окно гонки, требующее контроля над DNS домена.
+ */
+async function guardedFetch(startUrl: URL): Promise<Response> {
+  let url = startUrl;
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    const res = await fetch(url, {
+      redirect: 'manual',
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      headers: { 'user-agent': UA },
+    }).catch(() => null);
+    if (!res) throw new ImportError('import_unreachable');
+
+    if (res.status >= 300 && res.status < 400) {
+      const location = res.headers.get('location');
+      if (!location) throw new ImportError('import_unreachable');
+      // Каждый переход проходит ту же проверку, что и исходный адрес
+      url = await assertPublicUrl(new URL(location, url).toString());
+      continue;
+    }
+    if (!res.ok) throw new ImportError('import_unreachable');
+    return res;
+  }
+  throw new ImportError('import_unreachable'); // кольцо редиректов
+}
+
 /** Скачивает страницу с потолком веса и таймаутом. */
 export async function fetchPage(url: URL): Promise<string> {
-  const res = await fetch(url, {
-    redirect: 'follow',
-    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-    headers: { 'user-agent': 'ReportagePostImporter/1.0 (+https://reportagepost.com)' },
-  }).catch(() => null);
-  if (!res || !res.ok) throw new ImportError('import_unreachable');
+  const res = await guardedFetch(url);
 
   const declared = Number(res.headers.get('content-length') ?? 0);
   if (declared > MAX_PAGE_BYTES) throw new ImportError('import_too_large');
@@ -179,15 +214,9 @@ export async function fetchPage(url: URL): Promise<string> {
   return buf.toString('utf8');
 }
 
-/** Скачивает один кадр. Адрес проверяется отдельно: редирект мог увести внутрь сети. */
+/** Скачивает один кадр. Адрес проверяется отдельно: он пришёл из чужой разметки. */
 export async function fetchImage(rawUrl: string): Promise<Buffer> {
-  const url = await assertPublicUrl(rawUrl);
-  const res = await fetch(url, {
-    redirect: 'follow',
-    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-    headers: { 'user-agent': 'ReportagePostImporter/1.0 (+https://reportagepost.com)' },
-  }).catch(() => null);
-  if (!res || !res.ok) throw new ImportError('import_unreachable');
+  const res = await guardedFetch(await assertPublicUrl(rawUrl));
 
   const type = res.headers.get('content-type') ?? '';
   if (!type.startsWith('image/')) throw new ImportError('import_no_images');

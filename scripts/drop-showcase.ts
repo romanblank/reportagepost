@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { db } from '@/lib/db';
 import { storage } from '@/lib/storage';
+import { videoStorageKeys } from '@/lib/videos';
 
 /**
  * Удаляет демонстрационное наполнение целиком: профили `futazh-*`, их
@@ -29,7 +30,10 @@ async function main() {
 
   // Файлы: сначала собираем ключи, потом удаляем записи — иначе потеряем ссылки
   const photos = await db.photo.findMany({ where: { profileId: { in: profileIds } }, select: { storageKey: true } });
-  const videos = await db.profileVideo.findMany({ where: { profileId: { in: profileIds } }, select: { storageKey: true } });
+  const videos = await db.profileVideo.findMany({
+    where: { profileId: { in: profileIds } },
+    select: { storageKey: true, hdKey: true, sdKey: true, posterKey: true },
+  });
   const avatars = await db.photographerProfile.findMany({
     where: { id: { in: profileIds }, avatarKey: { not: null } },
     select: { avatarKey: true },
@@ -70,7 +74,7 @@ async function main() {
   // Хранилище чистим последним: осиротевший файл дешевле осиротевшей записи
   const keys = [
     ...photos.map((p) => p.storageKey),
-    ...videos.map((v) => v.storageKey),
+    ...videos.flatMap((v) => videoStorageKeys(v)),
     ...avatars.map((a) => a.avatarKey).filter((k): k is string => Boolean(k)),
   ];
   let removed = 0;

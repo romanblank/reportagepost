@@ -99,3 +99,32 @@ describe('импорт портфолио: разбор страницы', () =>
     expect(extractImageUrls('<html><body><p>ничего</p></body></html>', page)).toEqual([]);
   });
 });
+
+// Находка собственного ревью: гард проверял только адрес, введённый
+// пользователем. Чужой сервер уводит fetch куда угодно одним заголовком
+// Location — и проверка оставалась формальностью.
+describe('импорт портфолио: редирект не выводит из-под гарда', () => {
+  it('переход на внутренний адрес отсекается так же, как прямой ввод', async () => {
+    const { createServer } = await import('node:http');
+    const { fetchPage } = await import('@/lib/import-portfolio');
+
+    const server = createServer((_req, res) => {
+      res.writeHead(302, { location: 'http://169.254.169.254/latest/meta-data/' });
+      res.end();
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const port = (server.address() as { port: number }).port;
+
+    try {
+      await expect(fetchPage(new URL(`http://127.0.0.1:${port}/`))).rejects.toMatchObject({
+        code: 'import_blocked_host',
+      });
+    } finally {
+      server.close();
+    }
+  });
+
+  // Потолок переходов (MAX_REDIRECTS в import-portfolio.ts) локальным тестом не
+  // проверить: любое кольцо через localhost обрывается раньше — на гарде
+  // приватного адреса. Проверять это моком fetch значило бы тестировать мок.
+});

@@ -107,6 +107,10 @@ export async function processVideo(videoId: string): Promise<ProcessResult> {
       where: { id: videoId },
       data: { processing: 'FAILED', failureReason: reason, processedAt: new Date() },
     });
+    // Исходник отбракованного ролика не пригодится никому: повторная обработка
+    // даст тот же вердикт, а автору предлагается загрузить другой файл. Оставь
+    // мы его — платили бы за хранение сырого видео, которое никогда не откроют.
+    await storage.delete(video.storageKey).catch(() => {});
     return { id: videoId, ok: false, reason };
   };
 
@@ -173,9 +177,33 @@ export async function processVideo(videoId: string): Promise<ProcessResult> {
   }
 }
 
+/**
+ * Возвращает в очередь задачи, застрявшие в обработке.
+ *
+ * Пометка PROCESSING — это и захват задачи, и её блокировка. Если контейнер
+ * перезапустили посреди транскода (деплой, OOM, рестарт VM), пометка остаётся,
+ * а обрабатывать некому: очередь берёт только UPLOADED. Автор при этом видит
+ * «готовим ролик» вечно и не может ни удалить причину, ни понять, что случилось.
+ *
+ * Порог заведомо больше самого долгого транскода, чтобы не отобрать задачу у
+ * живого воркера.
+ */
+const STUCK_AFTER_MS = 30 * 60_000;
+
+export async function requeueStuck(now: Date = new Date()): Promise<number> {
+  const threshold = new Date(now.getTime() - STUCK_AFTER_MS);
+  const { count } = await db.profileVideo.updateMany({
+    where: { processing: 'PROCESSING', createdAt: { lt: threshold } },
+    data: { processing: 'UPLOADED' },
+  });
+  return count;
+}
+
 /** Разбирает очередь: до `limit` роликов подряд, самые старые вперёд. */
 export async function processVideoQueue(limit = VIDEO_BATCH): Promise<ProcessResult[]> {
   if (!(await hasFfmpeg())) return [];
+  await requeueStuck();
+
   const pending = await db.profileVideo.findMany({
     where: { processing: 'UPLOADED' },
     orderBy: { createdAt: 'asc' },
@@ -183,6 +211,16 @@ export async function processVideoQueue(limit = VIDEO_BATCH): Promise<ProcessRes
     select: { id: true },
   });
   const results: ProcessResult[] = [];
-  for (const v of pending) results.push(await processVideo(v.id));
+  for (const v of pending) {
+    // Ролик мог быть удалён автором прямо во время обработки — тогда запись
+    // исчезает, и попытка записать результат бросает. Без этой защиты один
+    // такой случай ронял бы разбор всей очереди, включая чужие ролики.
+    try {
+      results.push(await processVideo(v.id));
+    } catch (e) {
+      console.error(`[video] очередь: ${v.id}`, e instanceof Error ? e.message : e);
+      results.push({ id: v.id, ok: false, reason: 'queue_error' });
+    }
+  }
   return results;
 }

@@ -1,4 +1,5 @@
 import { Avatar } from '@/components/ui/Avatar';
+import { CoverShowreel } from '@/components/CoverShowreel';
 import { VerifiedBadge, TierBadge } from '@/components/ui/Badge';
 import type { Tier } from '@/lib/subscription';
 
@@ -58,10 +59,9 @@ export function ProfileHero({
       {showreelSrc ? (
         // Обложка играет беззвучно и зациклено: это фон, а не медиаплеер —
         // управления нет, звук не включается, полноценный ролик ниже на странице.
-        // Постером служит тот же кадр, что был обложкой: пока видео грузится,
-        // первый экран уже выглядит законченным.
-        <video src={showreelSrc} poster={coverSrc ?? undefined}
-          autoPlay muted loop playsInline preload="none" aria-hidden
+        // Решение «играть или показать кадр» принимает клиент: на телефоне и
+        // при просьбе уменьшить движение остаётся статичная обложка.
+        <CoverShowreel src={showreelSrc} poster={coverSrc}
           className="brand-grade absolute inset-0 h-full w-full object-cover"
           style={{ filter: 'brightness(.62)' }} />
       ) : coverSrc ? (

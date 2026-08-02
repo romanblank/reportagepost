@@ -6,6 +6,7 @@ import { Readable } from 'node:stream';
 import { handleRoute } from '@/lib/errors';
 import type { ReadableStream as NodeWebReadable } from 'node:stream/web';
 import {
+  videoStorageKeys,
   storeVideoStream,
   MAX_VIDEO_BYTES,
   VIDEO_MIME_EXT,
@@ -121,8 +122,8 @@ export async function DELETE(req: Request) {
   }
   // Удаляем ВСЕ артефакты ролика, а не только исходник: после транскода в
   // бакете лежат ещё два варианта и постер, и они пережили бы удаление записи.
-  for (const key of [video.storageKey, video.hdKey, video.sdKey, video.posterKey]) {
-    if (key) await storage.delete(key).catch(() => {});
+  for (const key of videoStorageKeys(video)) {
+    await storage.delete(key).catch(() => {});
   }
   await db.profileVideo.delete({ where: { id: video.id } });
   return NextResponse.json({ ok: true });

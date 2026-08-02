@@ -145,3 +145,60 @@ describe.skipIf(!hasDb || !hasFfmpeg)('видео: обработка загру
     }
   }, 180_000);
 });
+
+// Находки собственного ревью (2026-08-02): два способа «застрять навсегда».
+describe.skipIf(!hasDb)('видео: устойчивость очереди (БД)', () => {
+  it('ролик, брошенный в обработке, возвращается в очередь', async () => {
+    const { db } = await import('@/lib/db');
+    const { requeueStuck } = await import('@/lib/video-pipeline');
+
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const city = await db.city.findFirstOrThrow({ where: { slug: 'moscow' } });
+    const owner = await db.user.create({
+      data: { role: 'PHOTOGRAPHER', status: 'ACTIVE', firstName: 'С', lastName: 'Т', email: `stuck-${stamp}@test.local` },
+    });
+    const profile = await db.photographerProfile.create({
+      data: { userId: owner.id, username: `stuck-${stamp}`, cityId: city.id, status: 'APPROVED' },
+    });
+
+    try {
+      // Контейнер перезапустили посреди транскода: пометка осталась, обрабатывать некому
+      const oldStuck = await db.profileVideo.create({
+        data: {
+          profileId: profile.id, storageKey: `videos/stuck-old-${stamp}/source.mp4`, mimeType: 'video/mp4',
+          sizeBytes: 1000, processing: 'PROCESSING', createdAt: new Date(Date.now() - 2 * 60 * 60_000),
+        },
+      });
+      // А этот взят воркером только что — отбирать нельзя
+      const fresh = await db.profileVideo.create({
+        data: {
+          profileId: profile.id, storageKey: `videos/stuck-new-${stamp}/source.mp4`, mimeType: 'video/mp4',
+          sizeBytes: 1000, processing: 'PROCESSING',
+        },
+      });
+
+      const requeued = await requeueStuck();
+      expect(requeued).toBeGreaterThanOrEqual(1);
+
+      expect((await db.profileVideo.findUniqueOrThrow({ where: { id: oldStuck.id } })).processing).toBe('UPLOADED');
+      expect((await db.profileVideo.findUniqueOrThrow({ where: { id: fresh.id } })).processing).toBe('PROCESSING');
+
+      await db.profileVideo.deleteMany({ where: { profileId: profile.id } });
+    } finally {
+      await db.photographerProfile.delete({ where: { id: profile.id } }).catch(() => {});
+      await db.user.delete({ where: { id: owner.id } }).catch(() => {});
+    }
+  });
+
+  it('все объекты ролика перечисляются вместе — забыть вариант нельзя', async () => {
+    const { videoStorageKeys } = await import('@/lib/videos');
+    // После удаления аккаунта web-варианты и постер оставались в бакете и
+    // раздавались по прямой ссылке — материалы человека, потребовавшего удаления
+    expect(
+      videoStorageKeys({ storageKey: 's/source.mp4', hdKey: 's/hd.mp4', sdKey: 's/sd.mp4', posterKey: 's/poster.jpg' }),
+    ).toEqual(['s/source.mp4', 's/hd.mp4', 's/sd.mp4', 's/poster.jpg']);
+    // Необработанный ролик — только исходник, без пустых ключей
+    expect(videoStorageKeys({ storageKey: 's/source.mp4', hdKey: null, sdKey: null, posterKey: null }))
+      .toEqual(['s/source.mp4']);
+  });
+});

@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { videoStorageKeys } from '@/lib/videos';
 import { storage } from '@/lib/storage';
 
 // Удаление аккаунта и данных (ПнД, S4.2). Явное упорядоченное удаление даёт
@@ -9,7 +10,8 @@ export async function deleteAccount(userId: string): Promise<void> {
   // 1. Ключи хранилища собираем ДО удаления строк
   const profile = await db.photographerProfile.findUnique({
     where: { userId },
-    select: { id: true, avatarKey: true, photos: { select: { storageKey: true } }, videos: { select: { storageKey: true } } },
+    select: { id: true, avatarKey: true, photos: { select: { storageKey: true } },
+      videos: { select: { storageKey: true, hdKey: true, sdKey: true, posterKey: true } } },
   });
   const storageKeys: string[] = [];
   if (profile) {
@@ -24,7 +26,8 @@ export async function deleteAccount(userId: string): Promise<void> {
       }
     }
     if (profile.avatarKey) storageKeys.push(profile.avatarKey);
-    for (const v of profile.videos) storageKeys.push(v.storageKey);
+    // Ролик — это не один файл: исходник, два web-варианта и постер
+    for (const v of profile.videos) storageKeys.push(...videoStorageKeys(v));
   }
 
   await db.$transaction(async (tx) => {

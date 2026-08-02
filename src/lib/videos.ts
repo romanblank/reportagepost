@@ -70,3 +70,21 @@ export async function storeVideoStream(
   await storage.putStream(storageKey, body, mimeType, sizeBytes);
   return { storageKey, sizeBytes };
 }
+
+/**
+ * Все объекты хранилища, принадлежащие ролику.
+ *
+ * Отдельной функцией, потому что мест удаления три (автор, удаление аккаунта,
+ * чистка витрины), и каждое из них раньше знало только про исходник: после
+ * удаления аккаунта web-варианты и постер оставались в бакете и продолжали
+ * раздаваться по прямой ссылке — это и утечка материалов пользователя,
+ * потребовавшего удаления, и оплата хранения того, чего быть не должно.
+ */
+export function videoStorageKeys(v: {
+  storageKey: string;
+  hdKey?: string | null;
+  sdKey?: string | null;
+  posterKey?: string | null;
+}): string[] {
+  return [v.storageKey, v.hdKey, v.sdKey, v.posterKey].filter((k): k is string => Boolean(k));
+}
