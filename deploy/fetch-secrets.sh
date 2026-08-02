@@ -49,7 +49,9 @@ if "JOBS_SECRET" in entries:
 if "TELEGRAM_ALERT_CHAT_ID" in entries:
     lines.append(f"TELEGRAM_ALERT_CHAT_ID={entries['TELEGRAM_ALERT_CHAT_ID']}")
 # SMTP (транзакционная почта, Postbox). Пробрасываются, когда оператор заведёт.
-for k in ("SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASSWORD", "SMTP_FROM"):
+# EMAIL_GATE — рубильник требования подтверждённой почты: пока провайдер
+# отвергает отправку, гейт запер бы всех новых пользователей (2026-08-03)
+for k in ("SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASSWORD", "SMTP_FROM", "EMAIL_GATE"):
     if k in entries:
         lines.append(f"{k}={entries[k]}")
 # Yandex Vision (AI-премодерация) — авторизация через SA инстанса, нужен лишь folder id.

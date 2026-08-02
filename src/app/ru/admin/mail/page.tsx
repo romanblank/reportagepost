@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { requireAdmin } from '@/lib/admin';
 import { emailConfigured } from '@/lib/email';
+import { verificationRequired } from '@/lib/email-verification';
 import { MailCheck } from '@/components/admin/MailCheck';
 import { ru } from '@/i18n/ru';
 
@@ -21,6 +22,8 @@ export default async function AdminMailPage() {
   const configured = emailConfigured();
   const from = process.env.SMTP_FROM ?? 'no-reply@reportagepost.com';
   const host = process.env.SMTP_HOST ?? null;
+  // Пока письма не доходят, гейт можно снять переменной EMAIL_GATE=off
+  const gateOn = verificationRequired();
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6 sm:py-10">
@@ -43,6 +46,10 @@ export default async function AdminMailPage() {
         <div className="flex justify-between gap-3">
           <dt className="muted">{ru.adminMail.fromLabel}</dt>
           <dd>{from}</dd>
+        </div>
+        <div className="flex justify-between gap-3">
+          <dt className="muted">{ru.adminMail.gateLabel}</dt>
+          <dd>{gateOn ? ru.adminMail.gateOn : ru.adminMail.gateOff}</dd>
         </div>
       </dl>
 
