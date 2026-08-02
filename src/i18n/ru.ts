@@ -216,6 +216,15 @@ export const ru = {
   },
   catalog: {
     // alt карточки: его читают вслух скринридеры и видят при неудачной загрузке
+    breadcrumbLabel: 'Хлебные крошки',
+    breadcrumbCatalog: 'Каталог',
+    authorsWord: (n: number) => plural(n, ['автор', 'автора', 'авторов']),
+    filteredHint: 'показаны подходящие под фильтры',
+    priceFrom: 'от',
+    priceOnRequest: 'цена по запросу',
+    cardShoots: (n: number) => `${n} ${plural(n, ['подтв.', 'подтв.', 'подтв.'])}`,
+    cardReturning: (n: number) => `${n} ${plural(n, ['вернулся', 'вернулись', 'вернулись'])}`,
+    cardRecommends: (n: number) => `${n} ${plural(n, ['рекомендация', 'рекомендации', 'рекомендаций'])}`,
     cardAlt: (name: string, city: string) => `Репортажная съёмка — ${name}, ${city}`,
     title: (city: string) => `Репортажные фотографы — ${city}`,
     metaDescription: (city: string, count: number) =>

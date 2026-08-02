@@ -46,6 +46,11 @@ export interface CatalogCard {
   score: number;
   tier: Tier; // FREE/PRIME/ELITE — бейдж подписки (FREE не показывается)
   doesVideo: boolean; // снимает видео — бейдж «Фото · Видео» в каталоге
+  // Подтверждённые обеими сторонами съёмки — публичный факт доверия на карточке
+  // (прототип v9: бейдж «17 подтв.» поверх кадра). Заменяет звёздный рейтинг:
+  // не оценка, а то, что реально состоялось.
+  shootCount: number;
+  returningCount: number; // заказчиков, снимавшихся повторно
 }
 
 export function completenessScore(input: {
@@ -100,6 +105,22 @@ async function toCards(shown: CatalogRow[]): Promise<CatalogCard[]> {
     : [];
   const recMap = new Map(recAgg.map((r) => [r.profileId, r._count]));
 
+  // Подтверждённые съёмки и вернувшиеся заказчики — одним запросом на страницу
+  const shootRows = shown.length
+    ? await db.shootConfirmation.groupBy({
+        by: ['profileId', 'clientUserId'],
+        where: { profileId: { in: shown.map((p) => p.id) }, state: 'CONFIRMED' },
+        _count: true,
+      })
+    : [];
+  const shootMap = new Map<string, { total: number; returning: number }>();
+  for (const r of shootRows) {
+    const cur = shootMap.get(r.profileId) ?? { total: 0, returning: 0 };
+    cur.total += r._count;
+    if (r._count >= 2) cur.returning += 1;
+    shootMap.set(r.profileId, cur);
+  }
+
   // Обложки догружаем ЯВНО (аудит 2026-08-01, P2). Раньше выбранная автором
   // обложка искалась внутри уже усечённых 6 самых свежих кадров: у активно
   // публикующего автора она туда не попадала, find молча не находил её и
@@ -143,6 +164,8 @@ async function toCards(shown: CatalogRow[]): Promise<CatalogCard[]> {
     score: p.ratingScore,
     tier: activeTier(p.user.subscription),
     doesVideo: p.doesVideo,
+    shootCount: shootMap.get(p.id)?.total ?? 0,
+    returningCount: shootMap.get(p.id)?.returning ?? 0,
   } satisfies CatalogCard));
 }
 

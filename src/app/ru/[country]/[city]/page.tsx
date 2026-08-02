@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation';
 import { db } from '@/lib/db';
 import { catalogForCity, recommendedForCity, type CatalogCard } from '@/lib/catalog';
 import { visitingCity } from '@/lib/travel';
-import { cityNameRu } from '@/lib/geo-data';
+import { RU_COUNTRY, cityNameRu } from '@/lib/geo-data';
 import { CATEGORIES } from '@/lib/category-data';
 import { thumbVariantUrl } from '@/lib/photos';
 import { ru } from '@/i18n/ru';
@@ -103,9 +103,21 @@ export default async function CatalogPage(props: {
           )}
         />
       )}
-      <header className="border-b border-line pb-5">
-        <h1 className="t-h1">{ru.catalog.title(cityName)}</h1>
-        <p className="mt-1.5 text-sm muted">{ru.catalog.photographersCount(shown.length)}</p>
+      {/* Шапка каталога по прототипу v9: путь, крупный заголовок антиквой и
+          честная строка «сколько авторов и что именно показано». Раньше здесь
+          был только заголовок и число — человек не понимал, видит он весь
+          город или срез по фильтрам. */}
+      <nav aria-label={ru.catalog.breadcrumbLabel} className="text-sm muted">
+        <Link href="/ru/russia" className="transition hover:text-ink">{ru.catalog.breadcrumbCatalog}</Link>
+        <span> · {RU_COUNTRY.nameRu} · </span>
+        <span className="text-ink">{cityName}</span>
+      </nav>
+      <header className="mt-3 border-b border-line pb-5">
+        <h1 className="t-display">{ru.catalog.title(cityName)}</h1>
+        <p className="mt-2 text-sm muted">
+          <b className="tnum font-medium text-ink">{shown.length}</b> {ru.catalog.authorsWord(shown.length)}
+          {hasActiveFilters && ` · ${ru.catalog.filteredHint}`}
+        </p>
       </header>
 
       <div className="mt-6 grid items-start gap-8 lg:grid-cols-[248px_1fr]">

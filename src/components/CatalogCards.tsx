@@ -9,16 +9,29 @@ import { VerifiedBadge, TierBadge } from '@/components/ui/Badge';
 
 // Галерейная сетка карточек каталога. Общая для города и город×категория (SEO),
 // чтобы верстка/alt не расходились. alt осмысленный (SEO — половина модели).
+/**
+ * Сетка карточек каталога по прототипу v9 (scratchpad/designs/v9-catalog.html).
+ *
+ * Прежняя карточка была «картинка + подпись»: имя мелким шрифтом, под ним жанр
+ * капсом — и всё. Выбирать по такой карточке нельзя: ни цены, ни доверия, ни
+ * формата. Заказчик открывал профиль за профилем, чтобы узнать самое базовое.
+ *
+ * В прототипе карточка отвечает на четыре вопроса прямо в сетке: сколько стоит,
+ * работал ли автор на самом деле (подтверждённые съёмки), снимает ли видео и
+ * возвращаются ли к нему. Общая для города и для «город × категория», чтобы
+ * верстка и alt не расходились.
+ */
 export function CatalogCards({ cards, cityName }: { cards: CatalogCard[]; cityName: string }) {
   return (
-    <ul className="mt-6 grid grid-cols-1 gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+    <ul className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
       {cards.map((card) => {
         const catNames = card.categories.map((slug) => categoryNameRu(slug));
         const alt = ru.catalog.cardAlt(`${card.firstName} ${card.lastName}`, cityName);
         return (
-          <li key={card.username} className="group">
-            <Link href={`/ru/photographer/${card.username}`} className="block">
-              <div className="relative overflow-hidden rounded-media bg-surface-2 transition-shadow duration-300 group-hover:shadow-[0_14px_36px_-10px_rgba(0,0,0,0.28)]">
+          <li key={card.username}>
+            <Link href={`/ru/photographer/${card.username}`}
+              className="group flex h-full flex-col overflow-hidden rounded-media border border-line bg-surface transition-colors duration-300 hover:border-line-2">
+              <div className="relative overflow-hidden bg-surface-2">
                 {card.coverKey ? (
                   // thumb 640 вместо web 2048 (аудит P1): карточка ~380px на экране,
                   // а грузилось 300-700КБ — каталог весил ~10МБ. srcSet отдаёт
@@ -26,41 +39,63 @@ export function CatalogCards({ cards, cityName }: { cards: CatalogCard[]; cityNa
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={thumbVariantUrl(card.coverKey)}
                     srcSet={`${thumbVariantUrl(card.coverKey)} 640w, ${webVariantUrl(card.coverKey)} 2048w`}
-                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 380px"
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 380px"
                     alt={alt} loading="lazy"
-                    className="aspect-[4/5] w-full object-cover transition duration-[600ms] ease-out group-hover:scale-[1.04]" />
+                    className="aspect-[4/5] w-full object-cover transition duration-[600ms] ease-out group-hover:scale-[1.03]" />
                 ) : (
                   <div className="grid aspect-[4/5] w-full place-items-center">
                     <Avatar avatarKey={card.avatarKey} firstName={card.firstName} lastName={card.lastName} size={72} />
                   </div>
                 )}
-                {card.doesVideo && (
-                  <span className="absolute right-2.5 top-2.5 rounded-md border border-line bg-surface/75 px-2 py-1 text-[11px] backdrop-blur-sm">
-                    {ru.profile.formatsPhotoVideo}
+
+                {/* Факт доверия поверх кадра: съёмки, подтверждённые обеими
+                    сторонами. Точка-маркёр — тот же зелёный, что у verified. */}
+                {card.shootCount > 0 && (
+                  <span className="absolute left-2.5 top-2.5 inline-flex items-center gap-1.5 rounded-md bg-black/65 px-2 py-1 text-[11px] text-white backdrop-blur-sm">
+                    <i className="inline-block size-[5px] rounded-full bg-verified" />
+                    {ru.catalog.cardShoots(card.shootCount)}
                   </span>
                 )}
-                {card.minPackage && (
-                  // Цена на элегантном скриме снизу кадра (не «белая пилюля»)
-                  <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-end bg-gradient-to-t from-black/55 via-black/10 to-transparent px-3 pb-2.5 pt-10">
-                    <span className="tnum text-xs font-semibold text-white drop-shadow-sm">
-                      {ru.catalog.packageLabel(card.minPackage.hours, formatRubMinor(card.minPackage.priceMinor))}
-                    </span>
-                  </span>
-                )}
+                <span className="absolute right-2.5 top-2.5 rounded-md bg-black/65 px-2 py-1 text-[11px] text-white backdrop-blur-sm">
+                  {card.doesVideo ? ru.profile.formatsBoth : ru.profile.formatsPhoto}
+                </span>
               </div>
-              <div className="mt-3">
-                <div className="flex min-w-0 items-center gap-2">
-                  <Avatar avatarKey={card.avatarKey} firstName={card.firstName} lastName={card.lastName} size={24} />
-                  <span className="t-small truncate font-medium">{card.firstName} {card.lastName}</span>
+
+              <div className="flex flex-1 flex-col p-4">
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="truncate text-[17px]" style={{ fontFamily: 'var(--font-display)' }}>
+                    {card.firstName} {card.lastName}
+                  </span>
                   {card.verified && <VerifiedBadge label={ru.profile.verified} size={15} />}
                   {card.tier !== 'FREE' && <TierBadge tier={card.tier} label={ru.pro.tierName[card.tier]} />}
-                </div>
-                <div className="mt-1 flex items-center gap-1.5">
-                  <span className="t-caption truncate muted">{catNames.join(' · ')}</span>
-                  {card.saveCount > 0 && (
-                    <span className="t-caption shrink-0 tnum muted">· {ru.catalog.cardSaves(card.saveCount)}</span>
-                  )}
-                </div>
+                </span>
+                <span className="mt-1 truncate text-sm muted">
+                  {cityName}{catNames.length > 0 ? ` · ${catNames.join(', ')}` : ''}
+                </span>
+
+                {/* Нижняя строка: цена и факт доверия — то, по чему сравнивают */}
+                <span className="mt-auto flex items-baseline justify-between gap-3 border-t border-line pt-3 text-sm"
+                  style={{ marginTop: 'auto', paddingTop: '0.75rem' }}>
+                  <span className="tnum">
+                    {card.minPackage ? (
+                      <>
+                        <span className="muted">{ru.catalog.priceFrom} </span>
+                        <b className="font-medium">{formatRubMinor(card.minPackage.priceMinor)}</b>
+                      </>
+                    ) : (
+                      <span className="muted">{ru.catalog.priceOnRequest}</span>
+                    )}
+                  </span>
+                  <span className="shrink-0 tnum text-[13px] muted">
+                    {card.returningCount > 0
+                      ? ru.catalog.cardReturning(card.returningCount)
+                      : card.recommendCount > 0
+                        ? ru.catalog.cardRecommends(card.recommendCount)
+                        : card.saveCount > 0
+                          ? ru.catalog.cardSaves(card.saveCount)
+                          : ''}
+                  </span>
+                </span>
               </div>
             </Link>
           </li>
