@@ -111,6 +111,9 @@ export default async function CabinetPage() {
             <Link href="/ru/admin/audit" className="text-sm underline">
               {ru.adminAudit.title}
             </Link>
+            <Link href="/ru/admin/mail" className="text-sm underline">
+              {ru.adminMail.title}
+            </Link>
             <Link href="/ru/admin/photographers/new" className="btn btn-outline px-3 py-1.5">
               {ru.adminPhotographers.createTitle}
             </Link>

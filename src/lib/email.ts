@@ -74,3 +74,45 @@ export async function sendEmail(
     void alertOperator(`✉️ Письмо не отправлено (${subject}): ${e instanceof Error ? e.message : 'ошибка SMTP'}`);
   }
 }
+
+/**
+ * Проверка соединения и аутентификации SMTP, без отправки письма.
+ *
+ * Отделяет «сервер нас не пускает» от «сервер принял, но получатель не увидел»
+ * — это разные поломки с разным лечением, и без такого разделения починка
+ * начинается с гадания.
+ */
+export async function verifyMailTransport(): Promise<{ ok: true } | { ok: false; error: string }> {
+  const t = transport();
+  if (!t) return { ok: false, error: 'SMTP не сконфигурирован' };
+  try {
+    await t.verify();
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'неизвестная ошибка SMTP' };
+  }
+}
+
+/**
+ * Отправка с возвратом ошибки вместо её проглатывания.
+ *
+ * Обычный `sendEmail` не роняет поток намеренно: пользователь не должен терять
+ * регистрацию из-за недоступного почтового сервера. Но в диагностике нужна
+ * ровно противоположная вещь — точный текст отказа провайдера.
+ */
+export async function sendEmailStrict(
+  to: string,
+  subject: string,
+  text: string,
+  kind: 'transactional' | 'notification' = 'transactional',
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const t = transport();
+  if (!t) return { ok: false, error: 'SMTP не сконфигурирован' };
+  const from = process.env.SMTP_FROM ?? 'no-reply@reportagepost.com';
+  try {
+    await t.sendMail({ from, to, subject, text: `${text}\n${emailFooter(kind)}` });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'неизвестная ошибка SMTP' };
+  }
+}

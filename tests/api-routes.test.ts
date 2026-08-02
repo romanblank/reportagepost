@@ -235,3 +235,17 @@ describe('роуты: импорт портфолио по ссылке', () => 
     }
   });
 });
+
+// Проверка почты шлёт письмо и тратит квоту провайдера — ручка должна быть
+// закрыта так же, как остальные административные.
+describe('роуты: проверка почты в админке', () => {
+  it('недоступна без сессии и обычному пользователю', async () => {
+    const { POST } = await import('@/app/api/admin/mail-test/route');
+    session.current = null;
+    expect((await POST()).status).toBe(403);
+    session.current = { userId: 'u1', role: 'CLIENT', tokenVersion: 0 };
+    expect((await POST()).status).toBe(403);
+    session.current = { userId: 'u2', role: 'PHOTOGRAPHER', tokenVersion: 0 };
+    expect((await POST()).status).toBe(403);
+  });
+});
