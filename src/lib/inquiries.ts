@@ -161,6 +161,11 @@ async function deliverExternal(
     );
     if (i + BATCH < recipients.length) await new Promise((res) => setTimeout(res, PAUSE_MS));
   }
+
+  // Оператору — сразу: заявка заказчика это спрос, ради которого всё строится,
+  // и реакция на неё измеряется часами, а не сутками
+  const { alertOperator } = await import('@/lib/telegram');
+  void alertOperator(ru.operatorAlerts.newInquiry);
 }
 
 /**

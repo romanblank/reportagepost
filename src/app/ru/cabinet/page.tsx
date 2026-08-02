@@ -102,6 +102,9 @@ export default async function CabinetPage() {
           <p className="t-caption muted">{ru.cabinet.adminTitle}</p>
           <div className="mt-1 flex flex-wrap items-center gap-3">
             <span className="font-medium">{ru.cabinet.adminQueue(pendingCount)}</span>
+            <Link href="/ru/admin" className="btn btn-primary px-3 py-1.5">
+              {ru.adminHome.title}
+            </Link>
             <Link href="/ru/admin/moderation" className="btn btn-accent px-3 py-1.5">
               {ru.cabinet.adminOpenQueue}
             </Link>

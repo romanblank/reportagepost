@@ -71,7 +71,7 @@ export async function sendEmail(
     // отправила. Теперь о поломке узнаёт оператор — молчание не должно
     // выглядеть как успех.
     console.error('[email] send failed:', e);
-    void alertOperator(`✉️ Письмо не отправлено (${subject}): ${e instanceof Error ? e.message : 'ошибка SMTP'}`);
+    void alertOperator(ru.operatorAlerts.mailSendFailed(subject, e instanceof Error ? e.message : 'SMTP'));
   }
 }
 

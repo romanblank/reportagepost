@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { timingSafeEqual } from 'node:crypto';
 import { db } from '@/lib/db';
+import { ru } from '@/i18n/ru';
 import { recomputeRatings } from '@/lib/rating';
 import { handleRoute, jsonError } from '@/lib/errors';
 
@@ -31,12 +32,28 @@ export function POST(req: Request) {
     if (!authorized(req)) return jsonError('forbidden', 403);
 
     const startedAt = Date.now();
+    // Отметка о прогоне — панель администратора показывает, когда задача
+    // отработала в последний раз, и краснеет, если она молчит дольше порога
+    const { startJobRun, finishJobRun, pruneJobRuns } = await import('@/lib/job-run');
+    const runId = await startJobRun('maintenance');
     const profiles = await recomputeRatings();
 
     // Сверка веса подписки с её реальным состоянием (S5-блокер): proRank
     // проставляется при зачислении и сам по себе не сбрасывается, поэтому
     // истёкшая подписка иначе навсегда оставляла бы автору полку
     // «Рекомендуемые» и приоритет модерации.
+    // Почта: проверяем соединение раз в сутки. Настроенный, но неработающий
+    // SMTP выглядит снаружи так же, как работающий — письма просто не доходят,
+    // и узнаёт об этом первый пользователь, а не оператор (2026-08-03).
+    const { emailConfigured, verifyMailTransport } = await import('@/lib/email');
+    if (emailConfigured()) {
+      const mail = await verifyMailTransport();
+      if (!mail.ok) {
+        const { alertOperator } = await import('@/lib/telegram');
+        void alertOperator(ru.operatorAlerts.mailBroken(mail.error));
+      }
+    }
+
     const { reconcileSubRanks } = await import('@/lib/subscription');
     const ranksFixed = await reconcileSubRanks();
 
@@ -73,11 +90,36 @@ export function POST(req: Request) {
       if (batch.length < 5_000) break;
     }
 
+    // Суточная сводка оператору: высокочастотные события не должны звенеть
+    // поштучно, иначе канал превращается в шум и его перестают читать
+    const { adminDashboard } = await import('@/lib/admin-dashboard');
+    const daily = await adminDashboard(1);
+    const line = (arr: { key: string; value: number }[]) =>
+      arr.filter((k) => k.value > 0).map((k) => `${k.key}: ${k.value}`).join(', ');
+    const parts = [line(daily.money), line(daily.demand), line(daily.supply)].filter(Boolean);
+    const queues = Object.values(daily.queues).reduce((a, b) => a + b, 0);
+    const staleJobs = daily.jobs.filter((j) => j.stale).map((j) => j.name);
+    if (parts.length > 0 || queues > 0 || staleJobs.length > 0) {
+      const { alertOperator } = await import('@/lib/telegram');
+      void alertOperator(
+        [
+          ru.operatorAlerts.dailyTitle,
+          parts.length > 0 ? parts.join(' · ') : ru.operatorAlerts.dailyNothing,
+          queues > 0 ? ru.operatorAlerts.dailyQueues(queues) : null,
+          staleJobs.length > 0 ? ru.operatorAlerts.dailyStale(staleJobs.join(', ')) : null,
+          'https://reportagepost.com/ru/admin',
+        ].filter(Boolean).join('\n'),
+      );
+    }
+
+    const jobRuns = await pruneJobRuns();
+    await finishJobRun(runId, true, ru.operatorAlerts.maintenanceNote(profiles, rateLimitRows + resets + verifications + activityRows + jobRuns));
+
     return NextResponse.json({
       ok: true,
       profiles,
       ranksFixed,
-      cleaned: { rateLimitRows, resets, verifications, activityRows },
+      cleaned: { rateLimitRows, resets, verifications, activityRows, jobRuns },
       tookMs: Date.now() - startedAt,
     });
   });

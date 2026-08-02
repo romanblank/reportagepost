@@ -969,3 +969,21 @@ model RecoveryCode {
 
   @@index([userId])
 }
+
+/// Прогон фоновой задачи — heartbeat для админки.
+///
+/// Все периодические задачи (обслуживание, транскод, бэкап) до сих пор были
+/// «чёрными ящиками»: узнать, что задача не отработала, можно было только по
+/// последствиям. Порог тревоги задаётся под РЕАЛЬНУЮ частоту задачи, иначе
+/// либо ложные тревоги сразу после деплоя, либо тишина месяцами.
+model JobRun {
+  id         String    @id @default(cuid())
+  name       String // maintenance | video | backup | uptime
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  ok         Boolean?
+  note       String? // что сделано или чем упало — коротко, без ПДн
+  tookMs     Int?
+
+  @@index([name, startedAt(sort: Desc)])
+}

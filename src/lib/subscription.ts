@@ -1,5 +1,6 @@
 import type { Subscription, SubscriptionTier } from '@prisma/client';
 import { db } from '@/lib/db';
+import { ru } from '@/i18n/ru';
 import { priceForCity, foundingPrice, BETA_GRACE_DAYS, type PaidTier } from '@/lib/pricing';
 
 // Уровень подписки — единственный источник правды. Активна, если tier != FREE И
@@ -107,6 +108,11 @@ export async function requestSubscription(userId: string, now: Date = new Date()
     create: { userId, proRequestedAt: now },
     update: { proRequestedAt: now },
   });
+
+  // Запрос подписки — ближайшая к деньгам точка на закрытой платформе:
+  // активация пока ручная, и час ожидания здесь стоит дороже всего
+  const { alertOperator } = await import('@/lib/telegram');
+  void alertOperator(ru.operatorAlerts.subscriptionRequested);
 }
 
 /**

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { timingSafeEqual } from 'node:crypto';
 import { handleRoute, jsonError } from '@/lib/errors';
+import { ru } from '@/i18n/ru';
 import { processVideoQueue } from '@/lib/video-pipeline';
 
 /**
@@ -32,7 +33,13 @@ export function POST(req: Request) {
     if (!authorized(req)) return jsonError('forbidden', 403);
 
     const startedAt = Date.now();
+    // Отметка прогона: у транскода порог тревоги — час, потому что задача
+    // ходит раз в две минуты, и суточный порог скрыл бы поломку на сутки
+    const { startJobRun, finishJobRun } = await import('@/lib/job-run');
+    const runId = await startJobRun('video');
     const results = await processVideoQueue();
+    const failed = results.filter((r) => !r.ok).length;
+    await finishJobRun(runId, failed === 0, ru.operatorAlerts.videoNote(results.length, failed));
     return NextResponse.json({
       ok: true,
       processed: results.length,
