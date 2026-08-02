@@ -1,4 +1,8 @@
 import { cache } from 'react';
+import { monthLabelRu } from '@/lib/date-format';
+import { ProfileSubnav } from '@/components/ProfileSubnav';
+import { ProfileBooking } from '@/components/ProfileBooking';
+import { ProfileStats, ProfileGear, ConfirmedShoots } from '@/components/ProfileStats';
 import { SectionHeading } from '@/components/ui/SectionHeading';
 import { APP_NAME } from '@/lib/constants';
 import type { Metadata } from 'next';
@@ -205,6 +209,29 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
   // На FREE публично не показываем (заказчик пишет напрямую, цену уточняет в диалоге).
   const isPaid = photographerTier !== 'FREE';
 
+  // Техника — карточками (прототип v9). Парк оборудования для событийной
+  // съёмки professional-аргумент: второй корпус, светосильная оптика, свет.
+  // Занятость на текущий месяц — для панели обращения. Данные вёл сам автор в
+  // кабинете, но заказчик их не видел, хотя это его первый вопрос при дате.
+  const now = new Date();
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const monthEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+  const busyRows = await db.busyDate.findMany({
+    where: { profileId: profile.id, date: { gte: monthStart, lt: monthEnd } },
+    select: { date: true },
+  });
+  const busyDays = busyRows.map((b) => b.date.getUTCDate());
+  const daysInMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0)).getUTCDate();
+  // В России неделя начинается с понедельника, getUTCDay() — с воскресенья
+  const firstWeekday = (monthStart.getUTCDay() + 6) % 7;
+
+  const gearGroups = [
+    { title: ru.profile.gearCameras, items: profile.cameras.map((name) => ({ name })) },
+    { title: ru.profile.gearLenses, items: profile.lenses.map((name) => ({ name })) },
+    { title: ru.profile.gearLighting, items: profile.lighting.map((name) => ({ name })) },
+    { title: ru.profile.gearTeam, items: profile.teamInfo ? [{ name: profile.teamInfo }] : [] },
+  ];
+
   return (
     <main className="flex-1">
       {!isSelf && <ProfileViewBeacon profileId={profile.id} />}
@@ -225,43 +252,45 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
         avatarKey={profile.avatarKey}
         firstName={profile.user.firstName}
         lastName={profile.user.lastName}
-        username={profile.username}
         role={profile.doesVideo ? ru.profile.roleBoth : ru.profile.rolePhotographer}
         cityName={cityNameRu(profile.city.slug)}
         categories={profile.categories.map((c) => categoryNameRu(c.category.slug))}
         verified={profile.verified}
         verifiedHint={ru.profile.verifiedHint}
+        verifiedLabel={ru.profile.verifiedShort}
         tier={photographerTier}
         tierLabel={photographerTier !== 'FREE' ? label(ru.pro.tierName, photographerTier) : ''}
-        photosCount={profile.photos.length}
-        photosLabel={ru.profile.statPhotos}
-        facts={heroFacts}
-        onlineText={onlineText}
+        sinceText={profile.experienceYears != null
+          ? ru.profile.sinceYear(new Date().getFullYear() - profile.experienceYears)
+          : null}
+        replyText={onlineText}
       />
 
-      <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:py-7">
-        {/* Панель действий — сразу под героем (конверсия впереди) */}
+      <ProfileSubnav
+        items={[
+          { id: 'overview', label: ru.profile.navOverview },
+          { id: 'works', label: ru.profile.navWorks },
+          ...(profile.videos.length > 0 ? [{ id: 'video', label: ru.profile.navVideo }] : []),
+          ...(gearGroups.some((g) => g.items.length > 0) ? [{ id: 'gear', label: ru.profile.navGear }] : []),
+          { id: 'reviews', label: ru.profile.navReviews },
+        ]}
+        summary={shoots.count > 0
+          ? `${ru.profile.shootsCount(shoots.count)} · ${ru.profile.shootsReturning(shoots.returning)}`
+          : null}
+      />
+
+      {/* Разворот: контент слева, обращение к автору — липкой колонкой справа
+          (прототип v9). Раньше цены, контакты и занятость были размазаны по
+          странице, и заказчик собирал их скроллом. */}
+      <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-10 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_340px] lg:gap-12">
+        <div className="min-w-0">
         {!isSelf && (
-          <div className="flex flex-col gap-4 border-b border-line pb-6 sm:flex-row sm:items-center sm:justify-between">
-            {/* Одно главное действие — заявка. «Написать» дублировало его по
-                смыслу и растворяло акцент: две одинаково выглядящие кнопки
-                рядом заставляют выбирать вместо того, чтобы действовать. */}
-            <div className="flex flex-wrap items-center gap-2">
-              <Link href={`/ru/inquiry?photographer=${profile.username}`}
-                className="btn btn-accent px-7 py-2.5">{ru.profile.sendInquiry}</Link>
-              <MessageButton userId={profile.userId} />
-              <span className="mx-1 hidden h-5 w-px bg-line sm:block" />
-              <FollowButton userId={profile.userId} initialFollowing={Boolean(following)} authed={Boolean(session)} />
-              <FavoriteButton userId={profile.userId} initialFavorited={favorited} authed={Boolean(session)} />
-              {(!session || session.role === 'CLIENT') && (
-                <ConfirmShootButton profileId={profile.id} initialConfirmed={iShotWith} authed={Boolean(session)} />
-              )}
-            </div>
-            {isPaid && minPkg && (
-              <div className="flex shrink-0 items-baseline gap-2 sm:flex-col sm:items-end sm:gap-0.5">
-                <span className="t-caption muted">{ru.profile.packageHours(minPkg.hours)}</span>
-                <span className="tnum text-xl font-semibold">{formatRubMinor(minPkg.priceMinor)}</span>
-              </div>
+          <div className="flex flex-wrap items-center gap-2 border-b border-line pb-6">
+            <MessageButton userId={profile.userId} />
+            <FollowButton userId={profile.userId} initialFollowing={Boolean(following)} authed={Boolean(session)} />
+            <FavoriteButton userId={profile.userId} initialFavorited={favorited} authed={Boolean(session)} />
+            {(!session || session.role === 'CLIENT') && (
+              <ConfirmShootButton profileId={profile.id} initialConfirmed={iShotWith} authed={Boolean(session)} />
             )}
           </div>
         )}
@@ -314,7 +343,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
 
         {/* О фотографе. Оборудование/команда — расширенные поля (Active), гейтим. */}
         {(profile.bio || profile.experienceYears != null || profile.languages.length > 0 || (isPaid && (profile.equipment || profile.teamInfo))) && (
-          <section className="mt-10">
+          <section id="overview" className="mt-10 scroll-mt-20">
             <SectionHeading kicker={ru.profile.aboutKicker} title={ru.profile.aboutTitle} />
             {/* Лид разворота: крупнее основного текста, в узкой колонке —
                 строка длиной с журнальную, а не во всю ширину экрана */}
@@ -387,6 +416,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
 
       {(showreels.length > 0 || profile.videos.length > 0) && (
         <section className="mt-10">
+          <span id="video" className="block scroll-mt-20" />
           <SectionHeading kicker={ru.profile.videoKicker} title={ru.profile.videoTitle} />
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             {/* Загруженные видео (нативный плеер, Range-раздача) */}
@@ -407,6 +437,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
       )}
 
       <section className="mt-8 sm:mt-10">
+        <span id="works" className="block scroll-mt-20" />
         <SectionHeading kicker={ru.profile.portfolioKicker} title={ru.profile.portfolioTitle} />
         {/* Мобайл: edge-to-edge masonry (app-подача); десктоп: 3 колонки. Client-
             галерея принимает только сериализуемые данные (RSC-совместимо). */}
@@ -502,6 +533,27 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
           <ReportButton targetType="USER" targetId={profile.userId} authed={Boolean(session)} />
         </div>
       )}
+        </div>
+
+        {/* Правая колонка: цена, обращение, параметры работы и занятость */}
+        {!isSelf && (
+          <ProfileBooking
+            profileId={profile.id}
+            username={profile.username}
+            fromPriceMinor={isPaid && minPkg ? minPkg.priceMinor : null}
+            facts={[
+              { label: ru.profile.factCity, value: cityNameRu(profile.city.slug) },
+              ...(onlineText ? [{ label: ru.profile.factReply, value: onlineText }] : []),
+              { label: ru.profile.factFormats, value: profile.doesVideo ? ru.profile.formatsBoth : ru.profile.formatsPhoto },
+              ...(profile.verified ? [{ label: ru.profile.factIdentity, value: ru.profile.factIdentityOk }] : []),
+            ]}
+            busyDays={busyDays}
+            monthLabel={monthLabelRu(now)}
+            daysInMonth={daysInMonth}
+            firstWeekday={firstWeekday}
+            canShowPhone={Boolean(profile.showPhone && profile.user.phone)}
+          />
+        )}
       </div>
     </main>
   );

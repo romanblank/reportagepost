@@ -22,3 +22,17 @@ export function formatDateTimeRu(d: Date, now = new Date()): string {
   const mm = String(d.getUTCMinutes()).padStart(2, '0');
   return `${formatDateRu(d, now)}, ${hh}:${mm}`;
 }
+
+/**
+ * Название месяца в именительном падеже — для заголовка календаря занятости
+ * («Занятость · Август»). Существующий MONTHS склоняет («августа»), а в
+ * заголовке нужна форма без числа.
+ */
+const MONTHS_NOM = [
+  'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+  'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь',
+];
+
+export function monthLabelRu(d: Date): string {
+  return MONTHS_NOM[d.getUTCMonth()];
+}
