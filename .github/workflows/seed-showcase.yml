@@ -1,0 +1,35 @@
+name: Seed showcase (demo content)
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Впишите SHOWCASE, чтобы подтвердить заливку демо-контента на прод'
+        required: true
+
+# Наполняет прод демонстрационными профилями: кадры, шоурилы, серии, цены,
+# подтверждённые съёмки и отзывы. Нужен, чтобы платформа не выглядела пустой
+# на закрытом показе.
+#
+# ⚠️ Это НЕ реальные авторы. Перед публичным запуском (S4) демо-профили
+# обязаны быть удалены — иначе заказчик увидит несуществующих фотографов.
+# Все они помечены префиксом username `futazh-`, чистка по нему.
+#
+# Кадров в репозитории нет: скрипт скачивает их по манифесту
+# `scripts/showcase-manifest.json` и собирает шоурилы через ffmpeg, который
+# ставится в контейнер на время операции (в прод-образе его нет и не нужно).
+jobs:
+  seed:
+    if: ${{ github.event.inputs.confirm == 'SHOWCASE' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fill prod with showcase content
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: rp
+          key: ${{ secrets.PROD_SSH_KEY }}
+          command_timeout: 40m
+          script: |
+            docker exec reportagepost sh -c "apk add --no-cache ffmpeg >/dev/null 2>&1 || echo 'ffmpeg поставить не удалось — будет без роликов'"
+            docker exec reportagepost npx tsx scripts/fetch-showcase.ts
+            docker exec reportagepost npx tsx scripts/seed-showcase.ts
