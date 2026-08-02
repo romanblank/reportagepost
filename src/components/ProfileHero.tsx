@@ -2,9 +2,20 @@ import { Avatar } from '@/components/ui/Avatar';
 import { VerifiedBadge, TierBadge } from '@/components/ui/Badge';
 import type { Tier } from '@/lib/subscription';
 
-// Иммерсивный герой профиля (работа впереди метаданных). Кинематографичная
-// обложка из лучшего кадра автора + имя/факты поверх. Серверный компонент —
-// только сериализуемые данные (RSC-safe). Интерактив — в панели действий ниже.
+/**
+ * Шапка профиля — «разворот журнала» (арт-дирекшн, visual-identity §9 п.8).
+ *
+ * Прежняя версия была продуктовой карточкой: имя набрано `text-3xl
+ * font-semibold` с инлайновым font-family (спека прямо запрещает зашитые
+ * размеры вместо типо-ролей), факты — «пилюлями» на полупрозрачном стекле.
+ * Пилюли и стекло — регистр дашборда; для медиа о людях и событиях это ложный
+ * сигнал, ровно тот, из-за которого страница читалась как «ещё один сайт».
+ *
+ * Здесь: имя крупной антиквой через `.t-display`, кикер и метаданные —
+ * моноширинным в стиле контактного листа (`ЖАНР · ГОРОД · ГОД`), строка
+ * признания латунью, у медиа острые углы. Кадр автора занимает экран и
+ * работает первым — метаданные подчинены ему, а не наоборот.
+ */
 export function ProfileHero({
   coverSrc,
   avatarKey,
@@ -40,46 +51,66 @@ export function ProfileHero({
   facts: string[];
   onlineText: string | null;
 }) {
+  // Подпись в духе контактного листа: жанр · город · число работ.
+  // Верхний регистр и разрядка делают её меткой документа, а не текстом.
+  const credit = [categories[0], cityName].filter(Boolean).join(' · ');
+
   return (
     <section className="relative isolate w-full overflow-hidden bg-paper"
-      style={{ height: 'clamp(340px, 54vh, 560px)' }}>
+      style={{ height: 'clamp(420px, 68vh, 720px)' }}>
       {coverSrc ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={coverSrc} alt="" aria-hidden
-          className="absolute inset-0 h-full w-full scale-105 object-cover" />
+          className="brand-grade absolute inset-0 h-full w-full scale-[1.04] object-cover" />
       ) : (
         <div className="absolute inset-0"
           style={{ background: 'radial-gradient(120% 90% at 50% 15%, var(--recognition) 0%, #241a0e 45%, #0a0a0d 100%)' }} />
       )}
-      {/* Скрим: читаемость имени снизу + лёгкое затемнение сверху под шапку */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/45" />
+
+      {/* Скрим держит читаемость имени и уводит кадр в тень к низу разворота */}
+      <div className="absolute inset-0"
+        style={{ background: 'linear-gradient(to top, rgba(6,7,10,.92) 0%, rgba(6,7,10,.55) 34%, rgba(6,7,10,.12) 62%, rgba(6,7,10,.45) 100%)' }} />
 
       <div className="absolute inset-x-0 bottom-0">
-        <div className="anim-rise mx-auto flex max-w-5xl items-end gap-4 px-4 pb-6 sm:gap-5 sm:pb-8">
-          <Avatar avatarKey={avatarKey} firstName={firstName} lastName={lastName} size={88}
-            className="shrink-0 ring-2 ring-white/80 ring-offset-2 ring-offset-black/20" />
-          <div className="min-w-0 flex-1 pb-1">
-            <p className="mb-1.5 t-caption" style={{ color: 'var(--accent)' }}>{role}</p>
-            <h1 className="flex flex-wrap items-center gap-x-3 gap-y-1 text-3xl font-semibold leading-[1.05] text-white drop-shadow-sm sm:text-5xl"
-              style={{ fontFamily: 'var(--font-cormorant), Georgia, serif' }}>
-              <span className="[text-wrap:balance]">{firstName} {lastName}</span>
-              {verified && <VerifiedBadge label={verifiedHint} size={24} />}
+        <div className="anim-rise mx-auto w-full max-w-6xl px-4 pb-8 sm:px-6 sm:pb-12">
+          {/* Кикер: роль автора набрана как метка документа */}
+          <p className="t-caption" style={{ color: 'var(--recognition-hi)', fontFamily: 'var(--font-mono)' }}>
+            {role}
+          </p>
+
+          <h1 className="t-display mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-white">
+            <span className="[text-wrap:balance]">{firstName} {lastName}</span>
+            <span className="flex items-center gap-2 self-center">
+              {verified && <VerifiedBadge label={verifiedHint} size={22} />}
               {tier !== 'FREE' && <TierBadge tier={tier} label={tierLabel} />}
-            </h1>
-            <p className="mt-1.5 text-sm text-white/80 sm:text-[15px]">
-              @{username} · {cityName}{categories.length ? ` · ${categories.join(' · ')}` : ''}
+            </span>
+          </h1>
+
+          {/* Кредит под именем — как подпись под кадром в издании */}
+          {credit && (
+            <p className="mt-3 t-caption text-white/75" style={{ fontFamily: 'var(--font-mono)' }}>
+              {credit}
             </p>
-            {(facts.length > 0 || photosCount > 0 || onlineText) && (
-              <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-xs text-white/90">
-                {facts.map((f) => (
-                  <span key={f} className="rounded-full bg-white/15 px-2.5 py-1 backdrop-blur-sm">{f}</span>
-                ))}
-                {photosCount > 0 && (
-                  <span className="rounded-full bg-white/15 px-2.5 py-1 backdrop-blur-sm tnum">{photosCount} {photosLabel}</span>
-                )}
-                {onlineText && <span className="pl-1 text-white/65">{onlineText}</span>}
-              </div>
+          )}
+
+          <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-white/15 pt-4">
+            <span className="flex items-center gap-3">
+              <Avatar avatarKey={avatarKey} firstName={firstName} lastName={lastName} size={44}
+                className="shrink-0 ring-1 ring-white/30" />
+              <span className="text-sm text-white/80" style={{ fontFamily: 'var(--font-mono)' }}>@{username}</span>
+            </span>
+
+            {/* Факты — сухим списком через разделители, без «пилюль»:
+                достижение читается как строка выходных данных, а не как тег */}
+            {facts.map((f) => (
+              <span key={f} className="text-sm text-white/85">{f}</span>
+            ))}
+            {photosCount > 0 && (
+              <span className="tnum text-sm text-white/70" style={{ fontFamily: 'var(--font-mono)' }}>
+                {photosCount} {photosLabel}
+              </span>
             )}
+            {onlineText && <span className="text-sm text-white/55">{onlineText}</span>}
           </div>
         </div>
       </div>

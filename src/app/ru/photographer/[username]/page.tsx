@@ -1,4 +1,5 @@
 import { cache } from 'react';
+import { SectionHeading } from '@/components/ui/SectionHeading';
 import { APP_NAME } from '@/lib/constants';
 import type { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
@@ -242,10 +243,14 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
         {/* Панель действий — сразу под героем (конверсия впереди) */}
         {!isSelf && (
           <div className="flex flex-col gap-4 border-b border-line pb-6 sm:flex-row sm:items-center sm:justify-between">
-            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+            {/* Одно главное действие — заявка. «Написать» дублировало его по
+                смыслу и растворяло акцент: две одинаково выглядящие кнопки
+                рядом заставляют выбирать вместо того, чтобы действовать. */}
+            <div className="flex flex-wrap items-center gap-2">
               <Link href={`/ru/inquiry?photographer=${profile.username}`}
-                className="btn btn-accent col-span-2 py-2.5 sm:col-span-1 sm:px-7">{ru.profile.sendInquiry}</Link>
+                className="btn btn-accent px-7 py-2.5">{ru.profile.sendInquiry}</Link>
               <MessageButton userId={profile.userId} />
+              <span className="mx-1 hidden h-5 w-px bg-line sm:block" />
               <FollowButton userId={profile.userId} initialFollowing={Boolean(following)} authed={Boolean(session)} />
               <FavoriteButton userId={profile.userId} initialFavorited={favorited} authed={Boolean(session)} />
               {(!session || session.role === 'CLIENT') && (
@@ -269,11 +274,11 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
           {/* Счётчики кликабельны — follow-списки (паритет MyWed) */}
           <Link href={`/ru/photographer/${profile.username}/followers`}
             className="flex items-baseline gap-1.5 transition hover:opacity-80">
-            <b className="tnum text-lg font-semibold">{followers}</b><span className="t-caption muted">{ru.profile.statFollowers}</span>
+            <b className="tnum text-[15px] font-medium">{followers}</b><span className="t-caption muted">{ru.profile.statFollowers}</span>
           </Link>
           <Link href={`/ru/photographer/${profile.username}/following`}
             className="flex items-baseline gap-1.5 transition hover:opacity-80">
-            <b className="tnum text-lg font-semibold">{followingCount}</b><span className="t-caption muted">{ru.profile.statFollowing}</span>
+            <b className="tnum text-[15px] font-medium">{followingCount}</b><span className="t-caption muted">{ru.profile.statFollowing}</span>
           </Link>
           <div className="flex flex-wrap items-center gap-2 text-sm sm:ml-auto">
             <ShareButton path={`/ru/photographer/${profile.username}`} title={`${profile.user.firstName} ${profile.user.lastName}`} />
@@ -298,13 +303,6 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
           </div>
         </div>
 
-        {/* Пожаловаться на профиль — доступно и гостю (жалоба правообладателя) */}
-        {!isSelf && (
-          <div className="mt-3">
-            <ReportButton targetType="USER" targetId={profile.userId} authed={Boolean(session)} />
-          </div>
-        )}
-
         {/* Владельцу-FREE — почему часть его страницы скрыта + апгрейд */}
         {isSelf && !isPaid && (
           <Link href="/ru/pro"
@@ -316,8 +314,11 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
 
         {/* О фотографе. Оборудование/команда — расширенные поля (Active), гейтим. */}
         {(profile.bio || profile.experienceYears != null || profile.languages.length > 0 || (isPaid && (profile.equipment || profile.teamInfo))) && (
-          <section className="mt-6">
-            {profile.bio && <p className="max-w-2xl text-[15px] leading-relaxed">{profile.bio}</p>}
+          <section className="mt-10">
+            <SectionHeading kicker={ru.profile.aboutKicker} title={ru.profile.aboutTitle} />
+            {/* Лид разворота: крупнее основного текста, в узкой колонке —
+                строка длиной с журнальную, а не во всю ширину экрана */}
+            {profile.bio && <p className="t-body-lg mt-4 max-w-[58ch] text-ink/90">{profile.bio}</p>}
             {(profile.experienceYears != null || profile.languages.length > 0 || (isPaid && (profile.equipment || profile.teamInfo))) && (
               <dl className="mt-4 grid max-w-2xl grid-cols-1 gap-x-8 gap-y-1.5 text-sm sm:grid-cols-2">
                 {profile.experienceYears != null && (
@@ -352,7 +353,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
       {/* Полный прайс — перк Active (пакеты цен). На FREE публично скрыт. */}
       {isPaid && profile.packages.length > 1 && (
         <section className="mt-8">
-          <h2 className="t-caption muted">{ru.profile.pricesTitle}</h2>
+          <SectionHeading kicker={ru.profile.pricesKicker} title={ru.profile.pricesTitle} />
           <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {profile.packages.map((pkg) => (
               <li key={pkg.id} className="card p-4">
@@ -366,7 +367,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
 
       {profile.stories.length > 0 && (
         <section className="mt-10">
-          <h2 className="t-caption muted">{ru.profile.storiesTitle}</h2>
+          <SectionHeading kicker={ru.profile.storiesKicker} title={ru.profile.storiesTitle} />
           <ul className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {profile.stories.map((story) => (
               <li key={story.id} className="card card-hover overflow-hidden">
@@ -386,7 +387,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
 
       {(showreels.length > 0 || profile.videos.length > 0) && (
         <section className="mt-10">
-          <h2 className="t-caption muted">{ru.profile.videoTitle}</h2>
+          <SectionHeading kicker={ru.profile.videoKicker} title={ru.profile.videoTitle} />
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             {/* Загруженные видео (нативный плеер, Range-раздача) */}
             {profile.videos.map((v) => (
@@ -406,7 +407,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
       )}
 
       <section className="mt-8 sm:mt-10">
-        <h2 className="t-caption muted">{ru.profile.portfolioTitle}</h2>
+        <SectionHeading kicker={ru.profile.portfolioKicker} title={ru.profile.portfolioTitle} />
         {/* Мобайл: edge-to-edge masonry (app-подача); десктоп: 3 колонки. Client-
             галерея принимает только сериализуемые данные (RSC-совместимо). */}
         <PortfolioGallery
@@ -428,7 +429,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
       {/* FAQ — перк Active. На FREE публично скрыт. */}
       {isPaid && faq.length > 0 && (
         <section className="mt-10 border-t border-line pt-6">
-          <h2 className="text-lg font-medium">{ru.profile.faqTitle}</h2>
+          <SectionHeading title={ru.profile.faqTitle} />
           <dl className="mt-4 flex flex-col gap-4">
             {faq.map((item, i) => (
               <div key={i}>
@@ -464,27 +465,42 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
       />
 
       {moreInCity.length > 0 && (
-        <section className="mt-10 border-t border-line pt-6">
-          <h2 className="t-caption muted">
-            {ru.profile.moreInCity(cityNameRu(profile.city.slug))}
-          </h2>
-          <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
+        <section className="mt-14 border-t border-line pt-8">
+          {/* Метка раздела — моно, как рубрика в издании; сам заголовок ниже
+              набран антиквой: раньше вся секция была одной мелкой подписью */}
+          <p className="t-caption muted" style={{ fontFamily: 'var(--font-mono)' }}>
+            {ru.profile.moreInCityKicker}
+          </p>
+          <h2 className="t-h2 mt-1">{ru.profile.moreInCity(cityNameRu(profile.city.slug))}</h2>
+          <ul className="mt-5 grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4">
             {moreInCity.map((m) => (
               <li key={m.username}>
                 <Link href={`/ru/photographer/${m.username}`} className="group block">
-                  <div className="aspect-square overflow-hidden rounded-lg bg-surface-2">
+                  {/* Острые углы у медиа — кадр остаётся кадром, а не «плиткой» */}
+                  <div className="aspect-[4/5] overflow-hidden bg-surface-2">
                     {m.photos[0] && (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={thumbVariantUrl(m.photos[0].storageKey)} alt="" loading="lazy"
-                        className="h-full w-full object-cover transition group-hover:brightness-95" />
+                        className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]" />
                     )}
                   </div>
-                  <span className="mt-1 block truncate text-sm">{m.user.firstName} {m.user.lastName}</span>
+                  <span className="mt-2 block truncate text-[15px]"
+                    style={{ fontFamily: 'var(--font-display)' }}>
+                    {m.user.firstName} {m.user.lastName}
+                  </span>
                 </Link>
               </li>
             ))}
           </ul>
         </section>
+      )}
+
+      {/* Жалоба — внизу и тихо: это редкое служебное действие, а не элемент
+          знакомства с автором (раньше стояло сразу под шапкой профиля) */}
+      {!isSelf && (
+        <div className="mt-12 border-t border-line pt-5 text-sm opacity-60">
+          <ReportButton targetType="USER" targetId={profile.userId} authed={Boolean(session)} />
+        </div>
       )}
       </div>
     </main>

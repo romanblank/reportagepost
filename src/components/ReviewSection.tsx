@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { SectionHeading } from '@/components/ui/SectionHeading';
 import { apiFetch } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -88,7 +89,7 @@ export function ReviewSection({
   return (
     <section id="reviews" className="mt-10 scroll-mt-20 border-t border-line pt-6">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h2 className="text-lg font-medium">{ru.reviews.title}</h2>
+        <SectionHeading kicker={ru.reviews.kicker} title={ru.reviews.title} divider={false} />
         {aggregate.count > 0 && (
           <span className="text-sm muted">{ru.reviews.summary(aggregate.count)}</span>
         )}
