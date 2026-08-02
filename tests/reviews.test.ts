@@ -25,7 +25,7 @@ describe.skipIf(!hasDb)('reviews: правила и агрегат (БД)', () =
   it('клиент/не-себе/один-на-пару/verified/ответ владельца/агрегат', async () => {
     const { db } = await import('@/lib/db');
     const { addReview, replyToReview, reviewsForProfile } = await import('@/lib/reviews');
-    const { confirmShoot } = await import('@/lib/shoots');
+    const { confirmShoot, respondToShoot, pendingShootsForPhotographer } = await import('@/lib/shoots');
 
     const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
     const city = await db.city.findFirstOrThrow({ where: { slug: 'moscow' } });
@@ -48,11 +48,24 @@ describe.skipIf(!hasDb)('reviews: правила и агрегат (БД)', () =
     await expect(addReview(client.id, profile.id, 5, 'ещё раз')).rejects.toThrow('review_exists');
 
     // verified=true, если заказчик подтвердил реальную съёмку
-    const client2 = await db.user.create({ data: { role: 'CLIENT', status: 'ACTIVE', firstName: 'В', lastName: 'Е', email: `rv-c2-${stamp}@test.local` } });
+    const client2 = await db.user.create({
+      data: {
+        role: 'CLIENT', status: 'ACTIVE', firstName: 'В', lastName: 'Е', email: `rv-c2-${stamp}@test.local`,
+        // S4-гейт: отмечать съёмки может только заказчик с подтверждённой почтой
+        emailVerifiedAt: new Date(),
+      },
+    });
     // S4-гейт confirmShoot: нужна двусторонняя переписка client2↔owner
     await db.message.create({ data: { senderId: client2.id, recipientId: owner.id, body: 'здравствуйте' } });
     await db.message.create({ data: { senderId: owner.id, recipientId: client2.id, body: 'обсудим' } });
     await confirmShoot(client2.id, profile.id);
+    // Съёмка становится верифицирующей ТОЛЬКО после подтверждения автором
+    // (S4 trust-хардеринг): односторонняя отметка verified не даёт.
+    const r2pending = await addReview(client2.id, profile.id, 5, 'снимал у него, супер');
+    expect((await db.review.findUniqueOrThrow({ where: { id: r2pending.id } })).verified).toBe(false);
+    await db.review.delete({ where: { id: r2pending.id } }); // одна пара — один отзыв
+    const [pendingShoot] = await pendingShootsForPhotographer(owner.id);
+    await respondToShoot(owner.id, pendingShoot.id, true);
     const r2 = await addReview(client2.id, profile.id, 5, 'снимал у него, супер');
     expect((await db.review.findUniqueOrThrow({ where: { id: r2.id } })).verified).toBe(true);
 

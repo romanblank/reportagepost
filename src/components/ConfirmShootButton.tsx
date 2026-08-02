@@ -27,13 +27,17 @@ export function ConfirmShootButton({ profileId, initialConfirmed, authed }: {
     const res = await apiFetch('/api/shoots/confirm', {
       method: 'POST',
       body: { profileId },
-      codeLabels: { shoot_no_contact: ru.profile.shootNoContact },
+      codeLabels: {
+        shoot_no_contact: ru.profile.shootNoContact,
+        shoot_email_unverified: ru.profile.shootEmailUnverified,
+        shoot_already_marked: ru.profile.shootAlreadyMarked,
+      },
       fallback: ru.ui.toastError,
     });
     setBusy(false);
     if (res.ok) {
       setConfirmed(true);
-      toast(ru.profile.shootConfirmedThanks, 'success');
+      toast(ru.profile.shootMarked, 'success');
       router.refresh();
     } else {
       toast(res.error, 'danger');

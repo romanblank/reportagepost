@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+import { pendingShootsForPhotographer } from '@/lib/shoots';
+import { PendingShoots } from '@/components/PendingShoots';
 import { InquiryCard } from '@/components/InquiryCard';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -72,6 +74,10 @@ export default async function CabinetPage() {
 
   const me = await db.user.findUnique({ where: { id: session.userId }, select: { tgUserId: true, firstName: true, emailVerifiedAt: true } });
 
+  // Отметки съёмок, ждущие ответа автора (S4 trust-хардеринг): без его
+  // подтверждения отметка заказчика публичной не становится.
+  const pendingShoots = profile ? await pendingShootsForPhotographer(session.userId) : [];
+
   // PRO-статус (Метрика №1: поверхность оплаты в кабинете)
   const subStatus = session.role === 'PHOTOGRAPHER' && profile ? await subscriptionStatus(session.userId) : null;
   const lockedPerks = PLAN_FEATURES.filter((f) => f.minTier !== 'FREE').map((f) => label(ru.pro.features, f.key));
@@ -113,6 +119,16 @@ export default async function CabinetPage() {
             </Link>
           </div>
         </section>
+      )}
+
+      {profile && pendingShoots.length > 0 && (
+        <PendingShoots
+          items={pendingShoots.map((p) => ({
+            id: p.id,
+            clientName: `${p.client.firstName} ${p.client.lastName}`.trim(),
+            eventDate: p.eventDate ? formatDateRu(p.eventDate) : null,
+          }))}
+        />
       )}
 
       {session.role === 'PHOTOGRAPHER' && profile && (
