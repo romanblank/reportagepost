@@ -1,5 +1,6 @@
 'use client';
 
+import { ru } from '@/i18n/ru';
 import { usePathname } from 'next/navigation';
 
 // Хром сайта (шапка/подвал/таб-бар) прячется на auth-роутах — там своя брендовая
@@ -26,8 +27,12 @@ export function Chrome({
 
   return (
     <>
+      {/* Ссылка «к содержимому» — первое, что получает фокус. До неё
+          клавиатурному посетителю приходилось на КАЖДОЙ странице проходить
+          логотип, семь пунктов меню, поиск, колокол и две кнопки входа. */}
+      <a href="#main" className="skip-link">{ru.nav.skipToContent}</a>
       {header}
-      {children}
+      <div id="main">{children}</div>
       {footer}
       {cookie}
       {mobileTab}

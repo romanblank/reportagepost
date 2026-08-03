@@ -3,9 +3,10 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { db } from '@/lib/db';
-import { catalogForCity, categoryCountsForCity, brandCountsForCity, recommendedForCity, type CatalogCard } from '@/lib/catalog';
+import { catalogForCity } from '@/lib/catalog';
+import { cachedCityFacets } from '@/lib/catalog-cache';
+import { CitySelect } from '@/components/CitySelect';
 import { CAMERA_BRANDS } from '@/lib/gear-brands';
-import { RU_CITIES } from '@/lib/geo-data';
 import { visitingCity } from '@/lib/travel';
 import { RU_COUNTRY, cityNameRu } from '@/lib/geo-data';
 import { CATEGORIES, categoryNameRu } from '@/lib/category-data';
@@ -120,7 +121,7 @@ export default async function CatalogPage(props: {
   const hasActiveFilters = Boolean(
     categorySlug || availableOn || maxPriceRub || minPriceRub || videoOnly || trustedOnly || selectedBrands.length,
   );
-  const [{ cards, hasNext }, recommended, visiting, categoryCounts, brandCounts] = await Promise.all([
+  const [{ cards, hasNext }, facets, visiting] = await Promise.all([
     catalogForCity({
       citySlug: city.slug, categorySlug, availableOn, page, videoOnly,
       maxPackagePriceMinor: maxPriceRub ? maxPriceRub * 100 : undefined,
@@ -129,11 +130,16 @@ export default async function CatalogPage(props: {
       sort,
       cameraBrands: selectedBrands,
     }),
-    showRecommended ? recommendedForCity(city.slug) : Promise.resolve([] as CatalogCard[]),
+    // Счётчики фильтров и полка рекомендуемых не зависят от параметров в
+    // адресе — берём их из кэша, а не пересчитываем на каждый заход
+    cachedCityFacets(city.slug),
     page === 1 ? visitingCity(city.slug, availableOn) : Promise.resolve([]),
-    categoryCountsForCity(city.slug),
-    brandCountsForCity(city.slug),
   ]);
+  const { categories: categoryCounts, brands: brandCounts } = facets;
+  // Полка показывается только на первой странице без фильтров: с фильтрами она
+  // сбивала бы выбор посетителя
+  const recommended = showRecommended ? facets.recommended : [];
+
   // Полку исключаем из основного merit-списка (без дублей); shown — всё показанное
   // на странице (для счётчика и JSON-LD).
   const recSet = new Set(recommended.map((c) => c.username));
@@ -209,18 +215,12 @@ export default async function CatalogPage(props: {
         <aside className="hidden space-y-5 rounded-lg border border-line bg-surface p-4 lg:sticky lg:top-20 lg:block">
           <div>
             <h2 className="t-caption mb-2 muted" style={{ fontFamily: 'var(--font-mono)' }}>{ru.catalog.filterCity}</h2>
-            {/* Смена города прямо в панели: раньше для этого нужно было уйти в
-                общий каталог и начать выбор заново */}
-            <form method="get" action="/ru/russia" className="contents">
-              <select name="city" defaultValue={city.slug} aria-label={ru.catalog.filterCity}
-                className="input w-full text-sm"
-                // Переход выполняет форма ниже; select без JS отправляется кнопкой
-              >
-                {RU_CITIES.map((c) => (
-                  <option key={c.slug} value={c.slug}>{c.nameRu}</option>
-                ))}
-              </select>
-            </form>
+            {/* Смена города — список ссылок, а не форма. Прежний select стоял
+                в форме без кнопки отправки: сменить город им было нельзя ни
+                мышью, ни клавиатурой, а скринридер объявлял поле, которое
+                ничего не делает. Ссылки работают и без JS, и жанры рядом
+                сделаны так же. */}
+            <CitySelect countrySlug={params.country} activeCity={city.slug} />
           </div>
 
           <div className="border-t border-line pt-4">

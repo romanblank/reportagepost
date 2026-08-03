@@ -126,6 +126,9 @@ export const ru = {
     entityFallback: '[реквизиты ИП уточняются]',
   },
   pro: {
+    included: 'входит',
+    notIncluded: 'не входит',
+    featureColumn: 'Возможность',
     // Назначение платежа: видно в приложении банка и в чеке
     paymentDescription: (tier: string) => `Подписка ${tier}`,
     paymentItemName: (tier: string) => `Подписка ${tier} — доступ на 1 месяц`,
@@ -168,6 +171,7 @@ export const ru = {
     } as Record<string, string>,
   },
   nav: {
+    skipToContent: 'К содержимому',
     brand: 'Репортаж Пост',
     catalog: 'Каталог',
     match: 'Подбор',
@@ -499,6 +503,7 @@ export const ru = {
     error: 'Не удалось. Попробуйте ещё раз.',
   },
   story: {
+    openPhotoAt: (n: number, total: number) => `Открыть кадр ${n} из ${total}`,
     notFound: 'Серия не найдена',
     byLabel: 'Автор',
     photosCount: (n: number) => `${n} кадров`,

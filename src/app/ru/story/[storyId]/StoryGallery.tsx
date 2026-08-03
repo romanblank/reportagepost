@@ -1,5 +1,7 @@
 'use client';
 
+import { ru } from '@/i18n/ru';
+
 import { useState } from 'react';
 import { LightboxModal, type LightboxImage } from '@/components/Lightbox';
 
@@ -19,8 +21,14 @@ export function StoryGallery({ images }: { images: LightboxImage[] }) {
             loading="lazy"
             width={img.width}
             height={img.height}
+            role="button"
+            tabIndex={0}
+            // Порядковый номер в имени: сорок одинаковых «Открыть кадр» в
+            // списке не помогают выбрать, куда идти
+            aria-label={ru.story.openPhotoAt(i + 1, images.length)}
             onClick={() => setIndex(i)}
-            className="w-full cursor-zoom-in rounded-lg"
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIndex(i); } }}
+            className="w-full cursor-zoom-in rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
           />
         ))}
       </div>

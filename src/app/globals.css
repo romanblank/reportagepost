@@ -251,3 +251,18 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .anim-lb-fade, .anim-lb-zoom, .anim-rise { animation: none; }
 }
+
+/* Ссылка «к содержимому»: не видна, пока не получит фокус с клавиатуры */
+.skip-link {
+  position: absolute;
+  left: 0.5rem;
+  top: -3rem;
+  z-index: 100;
+  padding: 0.5rem 0.875rem;
+  border-radius: var(--radius-media, 0.5rem);
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  transition: top .15s ease-out;
+}
+.skip-link:focus-visible { top: 0.5rem; }

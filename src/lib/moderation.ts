@@ -1,5 +1,6 @@
 import { db } from '@/lib/db';
 import { logAudit } from '@/lib/audit';
+import { revalidateTag } from 'next/cache';
 
 // Модерация онбординга: профиль целиком (модель MyWed — портфолио оценивается
 // как единое целое). Пофотовая модерация после онбординга — отдельным шагом.
@@ -88,6 +89,10 @@ export async function approveProfile(profileId: string, actorUserId?: string): P
     await notifyProfileApproved(profileId).catch(() => {});
     return result;
   });
+  // Кэш города: без сброса одобренный автор появится в счётчиках жанров и в
+  // полке только через TTL — а человек ждёт результата сейчас
+  // В Next 16 у revalidateTag два аргумента; 'max' даёт stale-while-revalidate
+  revalidateTag('catalog', 'max');
 }
 
 /** Отклонение: профиль REJECTED с обязательной причиной (честность к фотографу). */

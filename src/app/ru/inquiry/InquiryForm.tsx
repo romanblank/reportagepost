@@ -77,7 +77,7 @@ export function InquiryForm({ cities, categories, prefill, contact }: { cities: 
       )}
       <label className="text-sm">
         {ru.inquiry.contactName}
-        <input name="contactName" required minLength={2} defaultValue={contact?.name ?? ''} className="input" />
+        <input name="contactName" required minLength={2} defaultValue={contact?.name ?? ''} className="input"  autoComplete="name"/>
       </label>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="text-sm">
@@ -86,7 +86,7 @@ export function InquiryForm({ cities, categories, prefill, contact }: { cities: 
         </label>
         <label className="text-sm">
           {ru.inquiry.contactEmail}
-          <input name="contactEmail" type="email" defaultValue={contact?.email ?? ''} className="input" />
+          <input name="contactEmail" type="email" defaultValue={contact?.email ?? ''} className="input"  autoComplete="email"/>
         </label>
       </div>
       <p className="text-xs muted">{ru.inquiry.contactHint}</p>

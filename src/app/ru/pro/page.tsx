@@ -10,11 +10,19 @@ import { ru, label } from '@/i18n/ru';
 export const metadata: Metadata = { title: ru.pro.kicker };
 export const dynamic = 'force-dynamic'; // цена/CTA зависят от сессии, города, роли
 
+/**
+ * Ячейка «есть / нет» в сравнении тарифов.
+ *
+ * Значок скрыт от экранных читалок, но само значение — нет: раньше все ячейки
+ * были `aria-hidden`, и страница, на которой фотограф решает платить, читалась
+ * как список возможностей без единого ответа, входят они в тариф или нет.
+ */
 function Check({ on }: { on: boolean }) {
-  return on ? (
-    <span aria-hidden className="text-recognition">✓</span>
-  ) : (
-    <span aria-hidden className="text-muted/40">—</span>
+  return (
+    <>
+      <span aria-hidden className={on ? 'text-recognition' : 'text-muted/40'}>{on ? '✓' : '—'}</span>
+      <span className="sr-only">{on ? ru.pro.included : ru.pro.notIncluded}</span>
+    </>
   );
 }
 
@@ -105,16 +113,16 @@ export default async function ProPage() {
           <table className="w-full min-w-[34rem] border-collapse text-sm">
             <thead>
               <tr className="border-b border-line text-left">
-                <th className="py-2.5 pr-4 font-normal muted">&nbsp;</th>
-                <th className="w-24 py-2.5 text-center font-medium">{ru.pro.planFree}</th>
-                <th className="w-24 py-2.5 text-center font-medium text-recognition">{ru.pro.planPrime}</th>
-                <th className="w-24 py-2.5 text-center font-medium text-recognition">{ru.pro.planElite}</th>
+                <th scope="col" className="py-2.5 pr-4 font-normal muted"><span className="sr-only">{ru.pro.featureColumn}</span></th>
+                <th scope="col" className="w-24 py-2.5 text-center font-medium">{ru.pro.planFree}</th>
+                <th scope="col" className="w-24 py-2.5 text-center font-medium text-recognition">{ru.pro.planPrime}</th>
+                <th scope="col" className="w-24 py-2.5 text-center font-medium text-recognition">{ru.pro.planElite}</th>
               </tr>
             </thead>
             <tbody>
               {PLAN_FEATURES.map((f) => (
                 <tr key={f.key} className="border-b border-line/60">
-                  <td className="py-2.5 pr-4">{label(ru.pro.features, f.key)}</td>
+                  <th scope="row" className="py-2.5 pr-4 text-left font-normal">{label(ru.pro.features, f.key)}</th>
                   {(['FREE', 'PRIME', 'ELITE'] as PlanTier[]).map((t) => (
                     <td key={t} className="py-2.5 text-center"><Check on={featureInTier(f, t)} /></td>
                   ))}

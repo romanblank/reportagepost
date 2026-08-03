@@ -149,16 +149,37 @@ export function completenessScore(input: {
   return score; // максимум 100
 }
 
-// Единый include + производный тип строки — одна форма данных для карточек.
+/**
+ * Единая форма данных для карточек каталога.
+ *
+ * Именно `select`, а не `include`: последний тянет ВСЕ скалярные поля анкеты —
+ * оборудование, объективы, свет, состав команды, FAQ, ссылки на шоурилы,
+ * языки. Карточке из них не нужно ничего, а на странице их двадцать четыре, и
+ * этот груз ездил между базой и приложением на каждый заход в каталог.
+ */
 const CATALOG_INCLUDE = {
-  user: { include: { subscription: true } },
-  categories: { include: { category: true } },
-  packages: { orderBy: { sortOrder: 'asc' } },
-  photos: { where: { status: 'APPROVED' }, orderBy: { publishedAt: 'desc' }, take: 6 },
+  id: true,
+  username: true,
+  verified: true,
+  avatarKey: true,
+  bio: true,
+  coverPhotoId: true,
+  ratingScore: true,
+  proRank: true,
+  doesVideo: true,
+  user: { select: { firstName: true, lastName: true, subscription: true } },
+  categories: { select: { category: { select: { slug: true } } } },
+  packages: { select: { hours: true, priceMinor: true, currency: true }, orderBy: { sortOrder: 'asc' } },
+  photos: {
+    where: { status: 'APPROVED' as const },
+    select: { id: true, storageKey: true },
+    orderBy: { publishedAt: 'desc' as const },
+    take: 6,
+  },
   _count: { select: { favoritedBy: true } },
-} satisfies Prisma.PhotographerProfileInclude;
+} satisfies Prisma.PhotographerProfileSelect;
 
-type CatalogRow = Prisma.PhotographerProfileGetPayload<{ include: typeof CATALOG_INCLUDE }>;
+type CatalogRow = Prisma.PhotographerProfileGetPayload<{ select: typeof CATALOG_INCLUDE }>;
 
 // Строки профилей → карточки (+ агрегат отзывов одним запросом). Общая сборка
 // для основного списка и полки «Открыты для новых заказов».
@@ -289,7 +310,7 @@ export async function catalogForCity(filters: CatalogFilters): Promise<CatalogPa
       orderBy: [{ scoreMilli: 'desc' }, { profileId: 'asc' }],
       skip: (page - 1) * CATALOG_PAGE_SIZE,
       take: CATALOG_PAGE_SIZE + 1, // +1 для hasNext
-      include: { profile: { include: CATALOG_INCLUDE } },
+      include: { profile: { select: CATALOG_INCLUDE } },
     });
     const hasNext = scoreRows.length > CATALOG_PAGE_SIZE;
     const cards = await toCards(scoreRows.slice(0, CATALOG_PAGE_SIZE).map((r) => r.profile));
@@ -308,7 +329,7 @@ export async function catalogForCity(filters: CatalogFilters): Promise<CatalogPa
     orderBy,
     skip: (page - 1) * CATALOG_PAGE_SIZE,
     take: CATALOG_PAGE_SIZE + 1, // +1 для hasNext
-    include: CATALOG_INCLUDE,
+    select: CATALOG_INCLUDE,
   });
 
   const hasNext = rows.length > CATALOG_PAGE_SIZE;
@@ -337,7 +358,7 @@ export async function recommendedForCity(citySlug: string, limit = 6): Promise<C
     where: { status: 'APPROVED', city: { slug: citySlug }, proRank: { gte: ELITE_RANK }, photos: { some: { status: 'APPROVED' } } },
     orderBy: [{ ratingScore: 'desc' }, { id: 'asc' }],
     take: limit * 2, // запас под фильтр активных
-    include: CATALOG_INCLUDE,
+    select: CATALOG_INCLUDE,
   });
   const active = rows.filter((p) => activeTier(p.user.subscription) === 'ELITE').slice(0, limit);
   return toCards(active);
