@@ -171,17 +171,38 @@ export async function recomputeOne(profileId: string, now = new Date()): Promise
  * ratingScore = engagement (милли) + completeness×1000.
  */
 export async function recomputeRatings(now = new Date()): Promise<number> {
-  const profiles = await db.photographerProfile.findMany({
-    where: { status: 'APPROVED' },
-    include: { packages: true, photos: true, categories: true },
-  });
-  // Батчами (не строго последовательно) — джоб не растягивается линейно с ростом
-  // каталога (аудит перф 2026-07-30). Кап конкуренции бережёт пул соединений.
+  // Идём КУРСОРОМ по id, а не грузим весь каталог в память сразу.
+  //
+  // Прежняя версия читала все одобренные анкеты со всеми их фотографиями одним
+  // запросом. На сотне авторов это незаметно, на нескольких тысячах — сотни
+  // мегабайт в единственном контейнере и растущий риск не уложиться в отведённые
+  // джобу пять минут. Причём молча: недосчитанный рейтинг ничем себя не выдаёт,
+  // каталог просто начинает отражать вчерашний день (аудит 2026-08-03).
+  const PAGE = 200;
   const CHUNK = 25;
-  for (let i = 0; i < profiles.length; i += CHUNK) {
-    await Promise.all(
-      profiles.slice(i, i + CHUNK).map(async (p) => persistScores(p.id, await scoreOne(p, now))),
-    );
+  let cursor: string | undefined;
+  let processed = 0;
+
+  for (;;) {
+    const page = await db.photographerProfile.findMany({
+      where: { status: 'APPROVED' },
+      include: { packages: true, photos: true, categories: true },
+      orderBy: { id: 'asc' },
+      take: PAGE,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    });
+    if (page.length === 0) break;
+
+    // Внутри страницы — батчами: кап конкуренции бережёт пул соединений
+    for (let i = 0; i < page.length; i += CHUNK) {
+      await Promise.all(
+        page.slice(i, i + CHUNK).map(async (p) => persistScores(p.id, await scoreOne(p, now))),
+      );
+    }
+    processed += page.length;
+    cursor = page[page.length - 1].id;
+    if (page.length < PAGE) break;
   }
-  return profiles.length;
+
+  return processed;
 }

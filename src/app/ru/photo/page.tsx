@@ -5,9 +5,14 @@ import { bestOfWeek, bestOfYear, editorsChoice, followingFeed, freshPhotos, reco
 import { getSession } from '@/lib/auth';
 import { webVariantUrl, avatarUrl } from '@/lib/photos';
 import { ru } from '@/i18n/ru';
+import { BASE_URL } from '@/lib/sitemap';
 import { EmptyState } from '@/components/EmptyState';
 
-export const metadata: Metadata = { title: ru.photoFeed.title };
+export const metadata: Metadata = {
+  title: ru.photoFeed.title,
+  description: ru.photoFeed.metaDescription,
+  alternates: { canonical: `${BASE_URL}/ru/photo` },
+};
 // Персональные табы требуют сессии — рендерим динамически
 export const dynamic = 'force-dynamic';
 

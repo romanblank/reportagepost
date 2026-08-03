@@ -54,7 +54,7 @@ export function ModerationCard(props: {
           {ru.admin.reject}
         </button>
       </div>
-      {error && <p role="alert" className="mt-2 text-sm text-accent">{error}</p>}
+      {error && <p role="alert" className="mt-2 text-sm text-danger">{error}</p>}
     </li>
   );
 }

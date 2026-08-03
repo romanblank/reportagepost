@@ -38,7 +38,7 @@ export function DeleteAccountButton() {
       <p className="text-sm muted">{ru.account.dangerHint}</p>
       <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
         placeholder={ru.account.passwordLabel} autoComplete="current-password" className="input max-w-xs" />
-      {error && <p role="alert" className="text-sm text-accent">{error}</p>}
+      {error && <p role="alert" className="text-sm text-danger">{error}</p>}
       <div className="flex gap-2">
         <button type="button" onClick={confirm} disabled={pending || !password}
           className="btn btn-accent px-4 py-2 text-sm">{pending ? ru.account.deleting : ru.account.confirm}</button>

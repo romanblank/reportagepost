@@ -89,7 +89,7 @@ export function CommentSection({ storyId, initial, me }: { storyId: string; init
         <form onSubmit={submit} className="mt-5">
           <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={3}
             placeholder={ru.comments.placeholder} className="input" maxLength={1000} />
-          {error && <p role="alert" className="mt-1 text-sm text-accent">{error}</p>}
+          {error && <p role="alert" className="mt-1 text-sm text-danger">{error}</p>}
           <button type="submit" disabled={pending || !body.trim()} className="btn btn-accent mt-2 px-4 py-2">
             {pending ? ru.comments.sending : ru.comments.submit}
           </button>

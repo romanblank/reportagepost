@@ -6,9 +6,14 @@ import { recentPhotographers } from '@/lib/widgets';
 import { webVariantUrl, thumbVariantUrl } from '@/lib/photos';
 import { cityNameRu } from '@/lib/geo-data';
 import { ru } from '@/i18n/ru';
+import { BASE_URL } from '@/lib/sitemap';
 import { FeedMasonry, StoryCards } from '@/components/FeedGallery';
 
-export const metadata: Metadata = { title: ru.journal.metaTitle };
+export const metadata: Metadata = {
+  title: ru.journal.metaTitle,
+  description: ru.journal.metaDescription,
+  alternates: { canonical: `${BASE_URL}/ru/journal` },
+};
 export const dynamic = 'force-dynamic';
 
 // Editorial-слой: кураторский «Журнал» — превращает каталог в место назначения.

@@ -84,7 +84,7 @@ export function ThreadClient({ peerId, selfId, initial }: { peerId: string; self
         </ul>
       )}
       <div ref={bottomRef} />
-      {error && <p role="alert" className="mt-2 text-sm text-accent">{error}</p>}
+      {error && <p role="alert" className="mt-2 text-sm text-danger">{error}</p>}
       <form onSubmit={onSubmit} className="mt-4 flex gap-2">
         <input name="body" required maxLength={4000} placeholder={ru.messages.placeholder}
           className="input flex-1" autoComplete="off" />

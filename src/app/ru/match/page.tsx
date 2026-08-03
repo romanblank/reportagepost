@@ -8,11 +8,16 @@ import { CATEGORIES, categoryNameRu } from '@/lib/category-data';
 import { thumbVariantUrl } from '@/lib/photos';
 import { formatRubMinor } from '@/lib/money';
 import { ru } from '@/i18n/ru';
+import { BASE_URL } from '@/lib/sitemap';
 import { Avatar } from '@/components/ui/Avatar';
 import { VerifiedBadge } from '@/components/ui/Badge';
 import { formatDateRu } from '@/lib/date-format';
 
-export const metadata: Metadata = { title: ru.match.metaTitle };
+export const metadata: Metadata = {
+  title: ru.match.metaTitle,
+  description: ru.match.metaDescription,
+  alternates: { canonical: `${BASE_URL}/ru/match` },
+};
 export const dynamic = 'force-dynamic'; // бриф в searchParams + запрос к БД
 
 const CITIES = [...RU_CITIES].sort(

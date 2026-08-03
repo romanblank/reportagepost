@@ -89,6 +89,10 @@ export function ProfileBooking({
               const isBusy = busy.has(day);
               return (
                 <span key={day}
+                  // Состояние читалось только цветом: экранная читалка
+                  // проговаривала «1 2 3 4…» без ответа на главный вопрос
+                  // заказчика — свободен ли автор в его дату
+                  aria-label={isBusy ? ru.profile.dayBusy(day) : ru.profile.dayFree(day)}
                   className={`grid aspect-square place-items-center rounded-[5px] text-[11px] ${
                     isBusy
                       ? 'bg-accent/15 text-accent line-through'

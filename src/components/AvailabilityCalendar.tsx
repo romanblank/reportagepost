@@ -117,7 +117,7 @@ export function AvailabilityCalendar({ initialBusy }: { initialBusy: string[] })
         <span className="flex items-center gap-2"><span className="inline-block h-3 w-3 rounded bg-accent" />{ru.availability.legendBusy}</span>
         <span className="flex items-center gap-2"><span className="inline-block h-3 w-3 rounded bg-surface-2" />{ru.availability.legendFree}</span>
       </div>
-      {error && <p className="mt-3 text-sm text-accent">{ru.availability.saveError}</p>}
+      {error && <p role="alert" className="mt-3 text-sm text-danger">{ru.availability.saveError}</p>}
     </div>
   );
 }

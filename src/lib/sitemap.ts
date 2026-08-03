@@ -34,6 +34,9 @@ export function sitemapEntries(
     { url: `${BASE_URL}/`, lastModified: now, changeFrequency: 'daily', priority: 1 },
     { url: `${BASE_URL}/ru/photo`, lastModified: now, changeFrequency: 'daily', priority: 0.9 },
     { url: `${BASE_URL}/ru/russia`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
+    // Журнал — отдельный редакционный раздел со своим содержимым; в карте его
+    // не было вовсе, хотя он задуман как самостоятельная точка входа
+    { url: `${BASE_URL}/ru/journal`, lastModified: now, changeFrequency: 'weekly', priority: 0.6 },
   ];
 
   for (const c of cities) {

@@ -133,7 +133,7 @@ export function InquiryForm({ cities, categories, prefill, contact }: { cities: 
           </Link>
         </span>
       </label>
-      {error && <p role="alert" className="text-sm text-accent">{error}</p>}
+      {error && <p role="alert" className="text-sm text-danger">{error}</p>}
       <button type="submit" disabled={pending} className="btn btn-accent">
         {ru.inquiry.submit}
       </button>

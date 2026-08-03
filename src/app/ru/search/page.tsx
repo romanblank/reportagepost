@@ -6,8 +6,13 @@ import { categoryNameRu, CATEGORIES } from '@/lib/category-data';
 import { thumbVariantUrl, avatarUrl } from '@/lib/photos';
 import { VerifiedBadge } from '@/components/ui/Badge';
 import { ru } from '@/i18n/ru';
+import { BASE_URL } from '@/lib/sitemap';
 
-export const metadata: Metadata = { title: ru.search.title };
+export const metadata: Metadata = {
+  title: ru.search.title,
+  description: ru.search.metaDescription,
+  alternates: { canonical: `${BASE_URL}/ru/search` },
+};
 export const dynamic = 'force-dynamic';
 
 // Поиск (аудит 2026-08-01, P2). Было: 24 результата без пагинации и фильтров,

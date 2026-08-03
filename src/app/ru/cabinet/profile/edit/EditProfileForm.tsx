@@ -319,7 +319,7 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
         )}
       </fieldset>
 
-      {error && <p role="alert" className="text-sm text-accent">{error}</p>}
+      {error && <p role="alert" className="text-sm text-danger">{error}</p>}
       {saved && <p className="text-sm text-accent">{ru.editProfile.saved}</p>}
       <button type="submit" disabled={pending} className="btn btn-accent w-fit px-5 py-2.5">
         {pending ? ru.editProfile.saving : ru.editProfile.save}

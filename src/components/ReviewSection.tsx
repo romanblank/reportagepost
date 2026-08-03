@@ -109,9 +109,13 @@ export function ReviewSection({
       {canReview && showForm && (
         <form onSubmit={submit} className="mt-4 card p-4">
           <span className="field-label">{ru.reviews.ratingLabel}</span>
-          <div className="mt-1 flex gap-1 text-2xl">
+          {/* Оценка кодировалась ТОЛЬКО цветом звезды, а имена кнопок были
+              «1», «2», … без единицы измерения: узнать текущую оценку без
+              зрения было невозможно. */}
+          <div role="radiogroup" aria-label={ru.reviews.ratingLabel} className="mt-1 flex gap-1 text-2xl">
             {[1, 2, 3, 4, 5].map((s) => (
-              <button key={s} type="button" onClick={() => setRating(s)} aria-label={`${s}`}
+              <button key={s} type="button" role="radio" aria-checked={s === rating}
+                onClick={() => setRating(s)} aria-label={ru.reviews.ratingOption(s)}
                 className={`text-xl ${s <= rating ? 'text-ink' : 'text-muted-2'}`}>★</button>
             ))}
           </div>

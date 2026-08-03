@@ -195,7 +195,7 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
               input.value = '';
             }} />
         </label>
-        {error && <p role="alert" className="mt-2 text-sm text-accent">{error}</p>}
+        {error && <p role="alert" className="mt-2 text-sm text-danger">{error}</p>}
 
         <button type="button"
           onClick={() => setStep('done')}
@@ -318,7 +318,7 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
           </button>
         )}
       </fieldset>
-      {error && <p role="alert" className="text-sm text-accent">{error}</p>}
+      {error && <p role="alert" className="text-sm text-danger">{error}</p>}
       {chosenCats.length === 0 && <p className="text-sm muted">{ru.onboarding.needCategory}</p>}
       <button type="submit" disabled={pending || chosenCats.length === 0} className="btn btn-accent">
         {ru.onboarding.submitProfile}

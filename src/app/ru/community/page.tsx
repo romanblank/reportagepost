@@ -5,8 +5,13 @@ import { bestOfWeek } from '@/lib/feeds';
 import { cityNameRu } from '@/lib/geo-data';
 import { webVariantUrl, thumbVariantUrl, avatarUrl } from '@/lib/photos';
 import { ru } from '@/i18n/ru';
+import { BASE_URL } from '@/lib/sitemap';
 
-export const metadata: Metadata = { title: ru.dashboard.title };
+export const metadata: Metadata = {
+  title: ru.dashboard.title,
+  description: ru.dashboard.metaDescription,
+  alternates: { canonical: `${BASE_URL}/ru/community` },
+};
 // dynamic: страница лезет в БД (виджеты) — статический пререндер в Docker-билде
 // падал без DATABASE_URL (урок ре-аудита 2026-07-14). Кэш вернём в S6 масштаба.
 export const dynamic = 'force-dynamic';

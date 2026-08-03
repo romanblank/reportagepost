@@ -95,7 +95,7 @@ export function TravelPlans({
           className="btn btn-outline mt-1 w-fit px-4 py-1.5 text-sm">
           {pending ? ru.travel.adding : ru.travel.add}
         </button>
-        {error && <p className="text-sm text-accent">{error}</p>}
+        {error && <p className="text-sm text-danger">{error}</p>}
       </div>
     </div>
   );

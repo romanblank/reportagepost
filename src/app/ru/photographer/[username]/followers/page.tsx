@@ -27,7 +27,11 @@ export async function generateMetadata(props: { params: Promise<{ username: stri
   const { username } = await props.params;
   const profile = await findProfile(username);
   if (!profile) return {};
-  return { title: `${ru.followList.followersTitle} — ${profile.user.firstName} ${profile.user.lastName}` };
+  return { title: `${ru.followList.followersTitle} — ${profile.user.firstName} ${profile.user.lastName}`,
+    // Служебный список: самостоятельной ценности для поиска нет, а бюджет
+    // обхода лучше потратить на анкеты и каталоги
+    robots: { index: false, follow: true },
+  };
 }
 
 export default async function FollowersPage(props: { params: Promise<{ username: string }> }) {
