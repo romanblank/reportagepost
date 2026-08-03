@@ -201,7 +201,8 @@ export default async function CatalogPage(props: {
                   defaultValue={searchParams.maxPrice ?? ''} placeholder={ru.catalog.priceToPh}
                   className="input w-full text-sm" aria-label={ru.catalog.priceToPh} />
               </div>
-              <input type="date" name="date" defaultValue={searchParams.date ?? ''} className="input w-full text-sm" />
+              <input type="date" name="date" defaultValue={searchParams.date ?? ''}
+                aria-label={ru.catalog.availableOn} className="input w-full text-sm" />
               <label className="flex cursor-pointer items-center justify-between gap-3 text-sm">
                 <span>{ru.catalog.filterTrusted}</span>
                 <input type="checkbox" name="trusted" value="1" defaultChecked={trustedOnly}

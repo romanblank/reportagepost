@@ -54,8 +54,12 @@ export function CoverShowreel({
 
   return (
     <video
-      src={src}
+      // Safari на iOS не запускает автоплей в режиме энергосбережения и при
+      // включённом «уменьшении движения» на уровне системы: тогда остаётся
+      // постер — тот же кадр, что служит статичной обложкой, поэтому вёрстка
+      // не меняется.
       poster={poster ?? undefined}
+      src={src}
       autoPlay
       muted
       loop

@@ -55,7 +55,7 @@ export function ProfileHero({
 }) {
   return (
     <section className="relative isolate w-full overflow-hidden bg-paper"
-      style={{ height: 'clamp(400px, 58vh, 620px)' }}>
+      style={{ height: 'clamp(400px, 58svh, 620px)' }}>
       {showreelSrc ? (
         // Обложка играет беззвучно и зациклено: это фон, а не медиаплеер —
         // управления нет, звук не включается, полноценный ролик ниже на странице.

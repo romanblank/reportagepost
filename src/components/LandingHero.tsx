@@ -13,7 +13,9 @@ export function LandingHero({ photographers, photos, backdropSrc, featured }: {
 }) {
   return (
     <section className="relative isolate flex items-center overflow-hidden bg-paper"
-      style={{ minHeight: 'clamp(560px, 88vh, 900px)' }}>
+      // svh вместо vh: в мобильном Safari vh не учитывает адресную строку —
+      // первый экран вылезал под неё и дёргался при скролле
+      style={{ minHeight: 'clamp(560px, 88svh, 900px)' }}>
       {backdropSrc ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={backdropSrc} alt="" aria-hidden
