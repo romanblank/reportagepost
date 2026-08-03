@@ -299,7 +299,29 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
           (прототип v9). Раньше цены, контакты и занятость были размазаны по
           странице, и заказчик собирал их скроллом. */}
       <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-10 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_340px] lg:gap-12">
-        <div className="order-2 min-w-0 lg:order-1">
+        {/* Правая колонка: цена, обращение, параметры работы и занятость */}
+        {!isSelf && (
+          <div id="booking" className="scroll-mt-[7.5rem] lg:col-start-2 lg:row-start-1">
+          <ProfileBooking
+            profileId={profile.id}
+            username={profile.username}
+            fromPriceMinor={isPaid && minPkg ? minPkg.priceMinor : null}
+            facts={[
+              { label: ru.profile.factCity, value: cityNameRu(profile.city.slug) },
+              ...(onlineText ? [{ label: ru.profile.factReply, value: onlineText }] : []),
+              { label: ru.profile.factFormats, value: profile.doesVideo ? ru.profile.formatsBoth : ru.profile.formatsPhoto },
+              ...(profile.verified ? [{ label: ru.profile.factIdentity, value: ru.profile.factIdentityOk }] : []),
+            ]}
+            busyDays={busyDays}
+            monthLabel={monthLabelRu(now)}
+            daysInMonth={daysInMonth}
+            firstWeekday={firstWeekday}
+            canShowPhone={Boolean(profile.showPhone && profile.user.phone)}
+          />
+          </div>
+        )}
+
+        <div className="min-w-0 lg:col-start-1 lg:row-start-1">
         {!isSelf && (
           <div className="flex flex-wrap items-center gap-2 border-b border-line pb-6">
             <MessageButton userId={profile.userId} />
@@ -358,7 +380,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
 
         {/* О фотографе. Оборудование/команда — расширенные поля (Active), гейтим. */}
         {(profile.bio || profile.experienceYears != null || profile.languages.length > 0 || (isPaid && (profile.equipment || profile.teamInfo))) && (
-          <section id="overview" className="mt-10 scroll-mt-20">
+          <section id="overview" className="mt-10 scroll-mt-[7.5rem]">
             <SectionHeading kicker={ru.profile.aboutKicker} title={ru.profile.aboutTitle} />
             {/* Лид разворота: крупнее основного текста, в узкой колонке —
                 строка длиной с журнальную, а не во всю ширину экрана */}
@@ -438,7 +460,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
 
       {/* Техника — карточками по группам (прототип v9) */}
       {isPaid && gearGroups.some((g) => g.items.length > 0) && (
-        <section id="gear" className="mt-12 scroll-mt-20">
+        <section id="gear" className="mt-12 scroll-mt-[7.5rem]">
           <SectionHeading kicker={ru.profile.gearKicker} title={ru.profile.gearTitle} />
           <div className="mt-5">
             <ProfileGear groups={gearGroups} />
@@ -483,7 +505,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
 
       {(showreels.length > 0 || profile.videos.length > 0) && (
         <section className="mt-10">
-          <span id="video" className="block scroll-mt-20" />
+          <span id="video" className="block scroll-mt-[7.5rem]" />
           <SectionHeading kicker={ru.profile.videoKicker} title={ru.profile.videoTitle} />
           {/* Раскладка прототипа: первый ролик крупно, остальные — колонкой
               рядом. Шоурил у событийного автора продающий, и ставить его в
@@ -542,7 +564,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
       )}
 
       <section className="mt-8 sm:mt-10">
-        <span id="works" className="block scroll-mt-20" />
+        <span id="works" className="block scroll-mt-[7.5rem]" />
         <SectionHeading kicker={ru.profile.portfolioKicker} title={ru.profile.portfolioTitle} />
         {/* Мобайл: edge-to-edge masonry (app-подача); десктоп: 3 колонки. Client-
             галерея принимает только сериализуемые данные (RSC-совместимо). */}
@@ -640,27 +662,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
       )}
         </div>
 
-        {/* Правая колонка: цена, обращение, параметры работы и занятость */}
-        {!isSelf && (
-          <div id="booking" className="order-1 scroll-mt-20 lg:order-2">
-          <ProfileBooking
-            profileId={profile.id}
-            username={profile.username}
-            fromPriceMinor={isPaid && minPkg ? minPkg.priceMinor : null}
-            facts={[
-              { label: ru.profile.factCity, value: cityNameRu(profile.city.slug) },
-              ...(onlineText ? [{ label: ru.profile.factReply, value: onlineText }] : []),
-              { label: ru.profile.factFormats, value: profile.doesVideo ? ru.profile.formatsBoth : ru.profile.formatsPhoto },
-              ...(profile.verified ? [{ label: ru.profile.factIdentity, value: ru.profile.factIdentityOk }] : []),
-            ]}
-            busyDays={busyDays}
-            monthLabel={monthLabelRu(now)}
-            daysInMonth={daysInMonth}
-            firstWeekday={firstWeekday}
-            canShowPhone={Boolean(profile.showPhone && profile.user.phone)}
-          />
-          </div>
-        )}
+
       </div>
     </main>
   );

@@ -11,6 +11,7 @@ import { RU_COUNTRY, cityNameRu } from '@/lib/geo-data';
 import { CATEGORIES, categoryNameRu } from '@/lib/category-data';
 import { thumbVariantUrl } from '@/lib/photos';
 import { ru } from '@/i18n/ru';
+import { BASE_URL } from '@/lib/sitemap';
 import { formatDateRu } from '@/lib/date-format';
 import { EmptyState } from '@/components/EmptyState';
 import { JsonLd } from '@/components/JsonLd';
@@ -53,6 +54,12 @@ export async function generateMetadata(props: { params: Promise<Params> }): Prom
   return {
     title: ru.catalog.title(name),
     description: ru.catalog.metaDescription(name, count),
+    // Канонический адрес — чистый, без фильтров. Страница принимает восемь
+    // независимых параметров (жанр, дата, цена, формат, бренд, сортировка,
+    // страница), и их комбинации дают тысячи адресов с почти одинаковым
+    // содержимым. Без canonical при открытой индексации это распыление веса
+    // и мусор в выдаче.
+    alternates: { canonical: `${BASE_URL}/ru/${params.country}/${params.city}` },
   };
 }
 

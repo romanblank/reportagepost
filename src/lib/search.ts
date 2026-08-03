@@ -167,7 +167,13 @@ async function runSearch(
     ? Prisma.sql`OR c.slug = ANY(${citySlugs})`
     : Prisma.empty;
 
-  const rows = await db.$queryRaw<SearchRow[]>`
+  // Порог похожести и сам запрос — в одной транзакции: SET LOCAL действует
+  // только внутри неё, а без него оператор % возьмёт значение по умолчанию
+  const [, rows] = await db.$transaction([
+    // SET не принимает параметры-плейсхолдеры, поэтому set_config:
+    // третий аргумент true = действует до конца транзакции
+    db.$executeRaw`SELECT set_config('pg_trgm.similarity_threshold', ${String(minSimilarity)}, true)`,
+    db.$queryRaw<SearchRow[]>`
     SELECT p.id,
            p.username,
            u."firstName",
@@ -189,9 +195,12 @@ async function runSearch(
         OR replace(lower(u."firstName"), 'ё', 'е') LIKE ${like}
         OR replace(lower(u."lastName"), 'ё', 'е') LIKE ${like}
         -- Опечатка и другое окончание: «Ивонов», «Иванову»
-        OR similarity(replace(lower(u."firstName"), 'ё', 'е'), ${qn}) > ${minSimilarity}
-        OR similarity(replace(lower(u."lastName"), 'ё', 'е'), ${qn}) > ${minSimilarity}
-        OR similarity(p.username, ${qn}) > ${minSimilarity}
+        -- Оператор %, а не функция similarity(): GIN-индекс умеет только его.
+        -- Порог задаётся ниже через pg_trgm.similarity_threshold в той же
+        -- транзакции — иначе планировщик читает всю таблицу (было Seq Scan).
+        OR replace(lower(u."firstName"), 'ё', 'е') % ${qn}
+        OR replace(lower(u."lastName"), 'ё', 'е') % ${qn}
+        OR lower(p.username) % ${qn}
         ${cityMatch}
       )
     ORDER BY
@@ -206,7 +215,8 @@ async function runSearch(
       ) DESC,
       p."ratingScore" DESC
     LIMIT ${pageSize} OFFSET ${offset}
-  `;
+  `,
+  ]);
 
   const total = rows.length > 0 ? Number(rows[0].total) : 0;
   if (rows.length === 0) return { items: [], total: 0, page, pageSize, hasNext: false };

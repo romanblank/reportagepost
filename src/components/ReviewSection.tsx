@@ -87,7 +87,7 @@ export function ReviewSection({
   }
 
   return (
-    <section id="reviews" className="mt-10 scroll-mt-20 border-t border-line pt-6">
+    <section id="reviews" className="mt-10 scroll-mt-[7.5rem] border-t border-line pt-6">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <SectionHeading kicker={ru.reviews.kicker} title={ru.reviews.title} divider={false} />
         {aggregate.count > 0 && (

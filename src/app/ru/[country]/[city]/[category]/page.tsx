@@ -6,6 +6,7 @@ import { catalogForCity } from '@/lib/catalog';
 import { cityNameRu } from '@/lib/geo-data';
 import { CATEGORIES, categoryNameRu } from '@/lib/category-data';
 import { ru } from '@/i18n/ru';
+import { BASE_URL } from '@/lib/sitemap';
 import { EmptyState } from '@/components/EmptyState';
 import { JsonLd } from '@/components/JsonLd';
 import { CatalogCards, CategoryLinks } from '@/components/CatalogCards';
@@ -48,6 +49,10 @@ export async function generateMetadata(props: { params: Promise<Params> }): Prom
   return {
     title: ru.catalog.categoryTitle(catName, cityName),
     description: ru.catalog.categoryMetaDescription(catName, cityName, count),
+    // Тот же довод, что у страницы города: фильтры и пагинация не должны
+    // плодить самостоятельные адреса. Это главная страница входа по органике,
+    // и распылять её вес особенно жаль.
+    alternates: { canonical: `${BASE_URL}/ru/${params.country}/${params.city}/${params.category}` },
   };
 }
 

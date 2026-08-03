@@ -121,3 +121,37 @@ describe.skipIf(!hasDb)('search: опечатки, раскладка, филь�
     expect(res.total).toBe(0);
   });
 });
+
+// Индексы поиска однажды уже были мёртвыми: объявлены по сырым колонкам, а
+// запрос сравнивал выражение replace(lower(col),'ё','е') — планировщик их не
+// брал, и каждый поиск шёл полным сканом. Здесь это фиксируется структурно.
+describe.skipIf(!hasDb)('поиск: индексы соответствуют запросу (БД)', () => {
+  it('существуют индексы по нормализованному выражению, а не только по колонке', async () => {
+    const { db } = await import('@/lib/db');
+    const rows = await db.$queryRaw<{ indexdef: string }[]>`
+      SELECT indexdef FROM pg_indexes
+      WHERE tablename IN ('User', 'PhotographerProfile') AND indexdef LIKE '%gin_trgm_ops%'
+    `;
+    const defs = rows.map((r) => r.indexdef).join('\n');
+    // Ровно то выражение, которым ищет search.ts
+    expect(defs, 'нет индекса по replace(lower(firstName))').toMatch(/replace\(lower\(.?firstName.?\)/);
+    expect(defs, 'нет индекса по replace(lower(lastName))').toMatch(/replace\(lower\(.?lastName.?\)/);
+  });
+
+  it('запрос использует оператор %, а не функцию similarity в условии', async () => {
+    const { readFileSync } = await import('node:fs');
+    const path = await import('node:path');
+    const src = readFileSync(path.join(process.cwd(), 'src/lib/search.ts'), 'utf8');
+    // Комментарии выкидываем: слово similarity в пояснении — не вызов функции
+    const whereBlock = src
+      .slice(src.indexOf('AND ('), src.indexOf('ORDER BY'))
+      .split('\n')
+      .filter((l) => !l.trim().startsWith('--'))
+      .join('\n');
+    // similarity() в WHERE не индексируется в принципе — только оператор %
+    expect(whereBlock).not.toMatch(/similarity\(/);
+    expect(whereBlock).toMatch(/%\s*\$\{qn\}/);
+    // Порог обязан задаваться в той же транзакции, иначе % берёт дефолт 0.3
+    expect(src).toContain("set_config('pg_trgm.similarity_threshold'");
+  });
+});

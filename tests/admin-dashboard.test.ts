@@ -76,7 +76,10 @@ describe.skipIf(!hasDb)('панель администратора: правда
     });
 
     try {
-      const items = await adminActivity(200);
+      // Лимит с запасом и отсчёт от начала теста: при параллельном прогоне
+      // другие тесты успевают насыпать событий, и наши выпадали за окно
+      const startedAt = new Date(Date.now() - 60_000);
+      const items = (await adminActivity(1000)).filter((i) => i.at >= startedAt);
       for (let i = 1; i < items.length; i++) {
         expect(items[i - 1].at.getTime()).toBeGreaterThanOrEqual(items[i].at.getTime());
       }
