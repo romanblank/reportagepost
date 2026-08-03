@@ -26,12 +26,17 @@ describe.skipIf(!hasDb)('catalog: инвариант — подписка не �
     const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
     const city = await db.city.findFirstOrThrow({ where: { slug: 'moscow' } });
     const cat = await db.category.findFirstOrThrow({ where: { slug: 'concerts-festivals' } });
-    // Оба — равный ВЫСОКИЙ ratingScore (гарантированно на 1-й странице, вверху, tie).
+    // Merit задаём ЯВНО и по-разному: у «a» он выше. Раньше оба профиля имели
+    // одинаковый score, и проверка «порядок не изменился» проходила даже когда
+    // подписка реально двигала выдачу — если подписчик и так стоял первым.
+    // Мутационная проверка 2026-08-03 это поймала: добавление proRank в
+    // сортировку каталога не уронило ни один тест.
     // С фото — иначе каталог фильтрует пустые профили (планка качества).
+    const score = (n: string) => (n === 'a' ? 9_000_000 : 8_000_000);
     const mk = async (n: string) => {
       const u = await db.user.create({ data: { role: 'PHOTOGRAPHER', status: 'ACTIVE', firstName: n, lastName: 'Инв', email: `inv-${n}-${stamp}@test.local` } });
       ids.push(u.id);
-      const p = await db.photographerProfile.create({ data: { userId: u.id, username: `inv-${n}-${stamp}`, cityId: city.id, status: 'APPROVED', ratingScore: 9_000_000 } });
+      const p = await db.photographerProfile.create({ data: { userId: u.id, username: `inv-${n}-${stamp}`, cityId: city.id, status: 'APPROVED', ratingScore: score(n) } });
       await db.photo.create({ data: { profileId: p.id, categoryId: cat.id, storageKey: `photos/inv-${n}-${stamp}/original.jpg`, width: 2400, height: 1600, status: 'APPROVED', publishedAt: new Date() } });
       return p.username;
     };
@@ -40,13 +45,14 @@ describe.skipIf(!hasDb)('catalog: инвариант — подписка не �
 
     const orderOf = (cards: { username: string }[]) => cards.map((c) => c.username).filter((x) => x === ua || x === ub);
     const before = orderOf((await catalogForCity({ citySlug: 'moscow' })).cards);
-    expect(before).toHaveLength(2); // оба на первой странице
+    expect(before).toEqual([ua, ub]); // выше merit — выше в выдаче
 
-    // грант Active одному — proRank поднимается
+    // Подписку получает ВТОРОЙ по merit: если бы она двигала порядок, он бы
+    // поднялся. Именно это и должно быть невозможно (антиклассизм).
     await grantFoundingSub(ids[1], 'moscow', 'PRIME');
     const after = orderOf((await catalogForCity({ citySlug: 'moscow' })).cards);
 
-    expect(after).toEqual(before); // порядок НЕ изменился — подписка не двигает merit
+    expect(after, 'подписка подняла автора в выдаче — merit-порядок продаётся').toEqual([ua, ub]);
   });
 
   it('профиль без одобренных фото НЕ попадает в каталог (планка качества)', async () => {
