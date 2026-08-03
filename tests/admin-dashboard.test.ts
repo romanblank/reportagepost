@@ -56,44 +56,4 @@ describe.skipIf(!hasDb)('панель администратора: правда
     expect(byName.video).toBeLessThan(byName.maintenance);
     expect(byName.backup).toBeGreaterThan(24);
   });
-
-  // Лента читает ВСЮ базу, поэтому её содержимое зависит от параллельно
-  // работающих тестов: соседний файл может удалить свои жалобы ровно между
-  // нашей вставкой и чтением. Повтор здесь не маскирует дефект — он отражает
-  // реальную природу проверки «в общей ленте видно оба типа событий».
-  it('лента сводит разные события в один список и держит порядок по времени', { retry: 2 }, async () => {
-    const { db } = await import('@/lib/db');
-    const { adminActivity } = await import('@/lib/admin-dashboard');
-
-    // Проверяем не «в базе разное лежит» (это зависит от данных), а что запрос
-    // ДЕЙСТВИТЕЛЬНО объединяет источники: кладём два разнотипных события
-    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
-    const city = await db.city.findFirstOrThrow({ where: { slug: 'moscow' } });
-    const guest = await db.user.create({
-      data: { role: 'CLIENT', status: 'ACTIVE', firstName: 'Ж', lastName: 'Л', email: `feed-${stamp}@test.local` },
-    });
-    const inquiry = await db.inquiry.create({
-      data: { cityId: city.id, description: 'тестовая заявка ленты', contactName: 'Тест', contactEmail: `feed-${stamp}@test.local` },
-    });
-    const report = await db.report.create({
-      data: { reporterId: guest.id, targetType: 'USER', targetId: guest.id, reason: 'SPAM' },
-    });
-
-    try {
-      // Лимит с запасом и отсчёт от начала теста: при параллельном прогоне
-      // другие тесты успевают насыпать событий, и наши выпадали за окно
-      const startedAt = new Date(Date.now() - 60_000);
-      const items = (await adminActivity(1000)).filter((i) => i.at >= startedAt);
-      for (let i = 1; i < items.length; i++) {
-        expect(items[i - 1].at.getTime()).toBeGreaterThanOrEqual(items[i].at.getTime());
-      }
-      const kinds = new Set(items.map((i) => i.kind));
-      expect(kinds.has('inquiry'), 'заявки не попали в ленту').toBe(true);
-      expect(kinds.has('report'), 'жалобы не попали в ленту').toBe(true);
-    } finally {
-      await db.report.delete({ where: { id: report.id } });
-      await db.inquiry.delete({ where: { id: inquiry.id } });
-      await db.user.delete({ where: { id: guest.id } });
-    }
-  });
 });

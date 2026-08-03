@@ -249,3 +249,60 @@ describe('роуты: проверка почты в админке', () => {
     expect((await POST()).status).toBe(403);
   });
 });
+
+// Управление людьми: закрыть доступ может только администратор, и никогда —
+// другому администратору или самому себе (снимать блокировку было бы некому).
+describe('роуты: управление пользователями', () => {
+  const userReq = (body: unknown) =>
+    new Request('http://localhost/api/admin/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+  it('недоступно без роли администратора', async () => {
+    const { POST } = await import('@/app/api/admin/users/route');
+    session.current = null;
+    expect((await POST(userReq({ userId: 'x', action: 'block', reason: 'спам' }))).status).toBe(403);
+    session.current = { userId: 'u1', role: 'PHOTOGRAPHER', tokenVersion: 0 };
+    expect((await POST(userReq({ userId: 'x', action: 'block', reason: 'спам' }))).status).toBe(403);
+  });
+
+  it('блокировка отзывает сессии, требует причину и не трогает администраторов', async () => {
+    if (!hasDb) return;
+    const { db } = await import('@/lib/db');
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const admin = await db.user.create({
+      data: { role: 'ADMIN', status: 'ACTIVE', firstName: 'А', lastName: 'Д', email: `adm-${stamp}@test.local` },
+    });
+    const victim = await db.user.create({
+      data: { role: 'CLIENT', status: 'ACTIVE', firstName: 'С', lastName: 'П', email: `vic-${stamp}@test.local` },
+    });
+    session.current = { userId: admin.id, role: 'ADMIN', tokenVersion: 0 };
+
+    try {
+      const { POST } = await import('@/app/api/admin/users/route');
+
+      // Без причины блокировать нельзя — решение должно быть объяснимо позже
+      expect((await POST(userReq({ userId: victim.id, action: 'block', reason: '' }))).status).toBe(400);
+
+      expect((await POST(userReq({ userId: victim.id, action: 'block', reason: 'рассылка спама' }))).status).toBe(200);
+      const after = await db.user.findUniqueOrThrow({ where: { id: victim.id } });
+      expect(after.status).toBe('BANNED');
+      // Живая вкладка должна перестать работать сразу, а не со следующего входа
+      expect(after.tokenVersion).toBeGreaterThan(0);
+
+      // Действие обязано остаться в журнале
+      expect(await db.adminAudit.count({ where: { targetId: victim.id, action: 'user.block' } })).toBe(1);
+
+      // Администратора закрыть нельзя, себя — тоже
+      expect((await POST(userReq({ userId: admin.id, action: 'block', reason: 'проверка' }))).status).toBe(400);
+
+      expect((await POST(userReq({ userId: victim.id, action: 'unblock', reason: '' }))).status).toBe(200);
+      expect((await db.user.findUniqueOrThrow({ where: { id: victim.id } })).status).toBe('ACTIVE');
+    } finally {
+      await db.adminAudit.deleteMany({ where: { actorUserId: admin.id } });
+      await db.user.deleteMany({ where: { id: { in: [admin.id, victim.id] } } });
+    }
+  });
+});

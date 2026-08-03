@@ -141,6 +141,7 @@ export default async function AdminHomePage() {
       <section className="mt-10 border-t border-line pt-6">
         <h2 className="t-title">{ru.adminHome.toolsTitle}</h2>
         <div className="mt-3 flex flex-wrap gap-3 text-sm">
+          <Link href="/ru/admin/users" className="underline">{ru.adminUsers.title}</Link>
           <Link href="/ru/admin/moderation" className="underline">{ru.admin.moderationTitle}</Link>
           <Link href="/ru/admin/reports" className="underline">{ru.adminReports.title}</Link>
           <Link href="/ru/admin/invites" className="underline">{ru.adminInvites.title}</Link>
