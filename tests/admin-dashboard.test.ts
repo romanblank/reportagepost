@@ -57,3 +57,37 @@ describe.skipIf(!hasDb)('панель администратора: правда
     expect(byName.backup).toBeGreaterThan(24);
   });
 });
+
+/**
+ * Воронка обязана считаться по КОГОРТЕ: заявки периода и то, что случилось
+ * именно с ними. Иначе сравниваются тёплое с мягким — заявки этого месяца
+ * против съёмок, выросших из заявок прошлого, — и вывод получается ложным.
+ */
+describe.skipIf(!hasDb)('панель: воронка и удержание (БД)', () => {
+  it('шаги идут по убыванию и считают долю от предыдущего', async () => {
+    const { adminAnalysis } = await import('@/lib/admin-analysis');
+    const a = await adminAnalysis(30);
+
+    expect(a.funnel.map((f) => f.key)).toEqual(['inquiries', 'answered', 'taken', 'shoots']);
+    // Первый шаг не с чем сравнивать — доля обязана быть пустой, а не 100%
+    expect(a.funnel[0].ofPrev).toBeNull();
+    for (let i = 1; i < a.funnel.length; i++) {
+      if (a.funnel[i - 1].count > 0 && a.funnel[i].key !== 'shoots') {
+        // Реакций не может быть больше, чем заявок; взятых — больше, чем реакций
+        expect(a.funnel[i].count).toBeLessThanOrEqual(a.funnel[i - 1].count);
+      }
+    }
+  });
+
+  it('возвраты считаются как заказчики с более чем одной съёмкой', async () => {
+    const { adminAnalysis } = await import('@/lib/admin-analysis');
+    const a = await adminAnalysis(365);
+    expect(a.repeatClients.returning).toBeLessThanOrEqual(a.repeatClients.withShoot);
+  });
+
+  it('активация не может превышать число одобренных анкет', async () => {
+    const { adminAnalysis } = await import('@/lib/admin-analysis');
+    const a = await adminAnalysis(30);
+    expect(a.activation.published).toBeLessThanOrEqual(a.activation.approved);
+  });
+});

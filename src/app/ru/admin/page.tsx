@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { requireAdmin } from '@/lib/admin';
 import { adminDashboard, adminActivity } from '@/lib/admin-dashboard';
+import { adminAnalysis } from '@/lib/admin-analysis';
 import { formatDateTimeRu } from '@/lib/date-format';
 import { ru } from '@/i18n/ru';
 
@@ -39,7 +40,7 @@ function KpiCard({ labelKey, value, delta }: { labelKey: string; value: number; 
 export default async function AdminHomePage() {
   if (!(await requireAdmin())) redirect('/ru/login');
 
-  const [data, activity] = await Promise.all([adminDashboard(30), adminActivity(40)]);
+  const [data, activity, analysis] = await Promise.all([adminDashboard(30), adminActivity(40), adminAnalysis(30)]);
   const queueTotal =
     data.queues.profiles + data.queues.photos + data.queues.videos +
     data.queues.stories + data.queues.reports + data.queues.proRequests;
@@ -70,6 +71,47 @@ export default async function AdminHomePage() {
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           {data.supply.map((k) => <KpiCard key={k.key} labelKey={k.key} value={k.value} delta={k.delta} />)}
         </div>
+      </section>
+
+      {/* Воронка: панель отвечает «что происходит», воронка — «где рвётся».
+          Без неё «заявок 40, съёмок 2» это цифры без вывода. */}
+      <section className="mt-8">
+        <h2 className="t-title">{ru.adminHome.funnelTitle}</h2>
+        <p className="mt-1 t-caption muted">{ru.adminHome.funnelHint}</p>
+        <ol className="mt-3 grid gap-2">
+          {analysis.funnel.map((f) => (
+            <li key={f.key}
+              className="flex items-center justify-between gap-3 rounded-media border border-line bg-surface-2 px-4 py-3">
+              <span className="t-small">{ru.adminHome.funnel[f.key] ?? f.key}</span>
+              <span className="flex items-baseline gap-3">
+                <span className="t-title tabular-nums">{f.count}</span>
+                {f.ofPrev !== null && <span className="t-caption muted tabular-nums">{f.ofPrev}%</span>}
+              </span>
+            </li>
+          ))}
+        </ol>
+        <dl className="mt-3 grid gap-2 sm:grid-cols-3">
+          <div className="rounded-media border border-line bg-surface-2 p-3">
+            <dt className="t-caption muted">{ru.adminHome.responseTime}</dt>
+            <dd className="t-title tabular-nums">
+              {analysis.medianResponseHours === null
+                ? '—'
+                : ru.adminHome.hours(Math.round(analysis.medianResponseHours))}
+            </dd>
+          </div>
+          <div className="rounded-media border border-line bg-surface-2 p-3">
+            <dt className="t-caption muted">{ru.adminHome.activation}</dt>
+            <dd className="t-title tabular-nums">
+              {analysis.activation.published} / {analysis.activation.approved}
+            </dd>
+          </div>
+          <div className="rounded-media border border-line bg-surface-2 p-3">
+            <dt className="t-caption muted">{ru.adminHome.returning}</dt>
+            <dd className="t-title tabular-nums">
+              {analysis.repeatClients.returning} / {analysis.repeatClients.withShoot}
+            </dd>
+          </div>
+        </dl>
       </section>
 
       {/* Очереди — единственное место, где нужен именно администратор */}
