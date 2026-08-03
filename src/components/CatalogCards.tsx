@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { CatalogCard } from '@/lib/catalog';
-import { webVariantUrl, thumbVariantUrl } from '@/lib/photos';
+import { webVariantUrl, thumbVariantUrl, webpVariantUrl } from '@/lib/photos';
 import { formatRubMinor } from '@/lib/money';
 import { CATEGORIES, categoryNameRu } from '@/lib/category-data';
 import { ru } from '@/i18n/ru';
@@ -36,12 +36,24 @@ export function CatalogCards({ cards, cityName }: { cards: CatalogCard[]; cityNa
                   // thumb 640 вместо web 2048 (аудит P1): карточка ~380px на экране,
                   // а грузилось 300-700КБ — каталог весил ~10МБ. srcSet отдаёт
                   // полноразмерный вариант только retina-экранам.
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={thumbVariantUrl(card.coverKey)}
-                    srcSet={`${thumbVariantUrl(card.coverKey)} 640w, ${webVariantUrl(card.coverKey)} 2048w`}
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 380px"
-                    alt={alt} loading="lazy"
-                    className="aspect-[4/5] w-full object-cover transition duration-[600ms] ease-out group-hover:scale-[1.03]" />
+                  <picture>
+                    {/* WebP там, где он есть: тот же кадр примерно на треть
+                        легче. Источник добавляем ТОЛЬКО при hasWebp — браузер
+                        не откатывается на <img>, если файл из <source> отдал
+                        404, и картинка была бы просто битой. */}
+                    {card.coverHasWebp && (
+                      <source
+                        type="image/webp"
+                        srcSet={`${webpVariantUrl(card.coverKey, 'thumb')} 640w, ${webpVariantUrl(card.coverKey, 'web')} 2048w`}
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 380px"
+                      />
+                    )}
+                    <img src={thumbVariantUrl(card.coverKey)}
+                      srcSet={`${thumbVariantUrl(card.coverKey)} 640w, ${webVariantUrl(card.coverKey)} 2048w`}
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 380px"
+                      alt={alt} loading="lazy"
+                      className="aspect-[4/5] w-full object-cover transition duration-[600ms] ease-out group-hover:scale-[1.03]" />
+                  </picture>
                 ) : (
                   <div className="grid aspect-[4/5] w-full place-items-center">
                     <Avatar avatarKey={card.avatarKey} firstName={card.firstName} lastName={card.lastName} size={72} />

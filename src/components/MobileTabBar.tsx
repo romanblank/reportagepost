@@ -48,7 +48,7 @@ export function MobileTabBar({ authed, cabinetHref }: { authed: boolean; cabinet
       {tabs.map((t) => {
         const active = t.match(pathname);
         return (
-          <Link key={t.href} href={t.href}
+          <Link key={t.href} href={t.href} aria-current={active ? "page" : undefined}
             className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] ${active ? 'text-accent' : 'text-muted'}`}>
             {t.icon}
             <span>{t.label}</span>

@@ -58,3 +58,25 @@ describe('photo pipeline', () => {
     expect(thumbVariantUrl(key)).toBe('/files/photos/abc/thumb.jpg');
   });
 });
+
+// WebP отдаётся через <picture>, а браузер НЕ откатывается на <img>, если файл
+// из <source> вернул 404 — картинка будет просто битой. Поэтому признак
+// наличия варианта обязан быть честным.
+describe('варианты изображений', () => {
+  it('адрес WebP строится только для кадров с известной структурой ключа', async () => {
+    const { webpVariantUrl } = await import('@/lib/photos');
+    expect(webpVariantUrl('photos/abc/original.jpg', 'web')).toContain('/photos/abc/web.webp');
+    expect(webpVariantUrl('photos/abc/original.jpg', 'thumb')).toContain('/photos/abc/thumb.webp');
+    // Ключ другой формы (старая схема, аватар) — варианта нет, и врать нельзя
+    expect(webpVariantUrl('avatars/xyz.jpg')).toBeNull();
+  });
+
+  it('карточка каталога сообщает наличие WebP, а не догадывается о нём', async () => {
+    const { readFileSync } = await import('node:fs');
+    const path = await import('node:path');
+    const card = readFileSync(path.join(process.cwd(), 'src/components/CatalogCards.tsx'), 'utf8');
+    // source добавляется под условием, иначе старые кадры сломаются
+    expect(card).toMatch(/card\.coverHasWebp && \(/);
+    expect(card).toContain('type="image/webp"');
+  });
+});

@@ -109,6 +109,8 @@ export interface CatalogCard {
   categories: string[];
   minPackage: { hours: number; priceMinor: number; currency: string } | null;
   coverKey: string | null; // обложка каталога (выбранная или лучший кадр)
+  /** Есть ли WebP рядом с JPEG: у кадров, загруженных до появления формата, его нет */
+  coverHasWebp: boolean;
   photoKeys: string[]; // до 6 превью (запас под hover-полосу)
   recommendCount: number; // отзывы rating≥4 & verified — публичный положительный сигнал (не звезда)
   saveCount: number; // в избранном у заказчиков
@@ -172,7 +174,7 @@ const CATALOG_INCLUDE = {
   packages: { select: { hours: true, priceMinor: true, currency: true }, orderBy: { sortOrder: 'asc' } },
   photos: {
     where: { status: 'APPROVED' as const },
-    select: { id: true, storageKey: true },
+    select: { id: true, storageKey: true, hasWebp: true },
     orderBy: { publishedAt: 'desc' as const },
     take: 6,
   },
@@ -226,7 +228,7 @@ async function toCards(shown: CatalogRow[]): Promise<CatalogCard[]> {
         // Обложка должна оставаться опубликованной: снятая с публикации не
         // может подменять карточку в каталоге
         where: { id: { in: missingCoverIds }, status: 'APPROVED' },
-        select: { id: true, storageKey: true },
+        select: { id: true, storageKey: true, hasWebp: true },
       })
     : [];
   const coverMap = new Map(extraCovers.map((c) => [c.id, c.storageKey]));
@@ -248,6 +250,8 @@ async function toCards(shown: CatalogRow[]): Promise<CatalogCard[]> {
         (p.photos.find((ph) => ph.id === p.coverPhotoId)?.storageKey ?? coverMap.get(p.coverPhotoId))) ||
       p.photos[0]?.storageKey ||
       null,
+    coverHasWebp:
+      (p.coverPhotoId ? p.photos.find((ph) => ph.id === p.coverPhotoId)?.hasWebp : p.photos[0]?.hasWebp) ?? false,
     photoKeys: p.photos.map((ph) => ph.storageKey),
     recommendCount: recMap.get(p.id) ?? 0,
     saveCount: p._count.favoritedBy,

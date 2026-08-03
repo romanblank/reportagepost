@@ -17,6 +17,9 @@ export function LandingHero({ photographers, photos, backdropSrc, featured }: {
       {backdropSrc ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={backdropSrc} alt="" aria-hidden
+          // Самый крупный элемент первого экрана — грузим его первым, иначе
+          // браузер ставит фон в общую очередь позади шрифтов и скриптов
+          fetchPriority="high" decoding="async"
           className="absolute inset-0 h-full w-full scale-105 object-cover"
           style={{ filter: 'brightness(0.42)' }} />
       ) : (

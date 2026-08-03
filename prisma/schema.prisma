@@ -378,6 +378,8 @@ model Photo {
   @@index([categoryId, status])
   // Страница серии тянет фото по storyId — FK без индекса Postgres не создаёт (аудит P1)
   @@index([storyId])
+  hasWebp     Boolean @default(false)
+
 }
 
 // Загруженное видео автора (шоурил/промо). Файл в Object Storage за абстракцией

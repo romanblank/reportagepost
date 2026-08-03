@@ -110,6 +110,7 @@ export function POST(req: Request) {
             height: analyzed.height,
             phash: analyzed.phash,
             blurhash: analyzed.blurData,
+            hasWebp: true, // storePhotoVariants кладёт web.webp/thumb.webp рядом
             aiVerdict: verdict ? (verdict as unknown as Prisma.InputJsonObject) : undefined,
             // status PENDING по умолчанию — импорт не публикует ничего сам
           },

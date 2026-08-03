@@ -28,7 +28,7 @@ export function ShowPhoneButton({ profileId }: { profileId: string }) {
   }
   if (phone) {
     return (
-      <a href={`tel:${phone}`} className="rounded-full border border-line px-3 py-1.5 tnum transition hover:bg-surface-2">
+      <a href={`tel:${phone}`} className="rounded-full border border-line px-3 min-h-11 py-1.5 tnum transition hover:bg-surface-2">
         {formatPhone(phone)}
       </a>
     );

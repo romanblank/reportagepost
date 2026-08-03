@@ -79,7 +79,7 @@ export function AvailabilityCalendar({ initialBusy }: { initialBusy: string[] })
       <div className="flex items-center justify-between">
         <button type="button" onClick={() => shift(-1)} disabled={atCurrentMonth}
           aria-label={ru.availability.prevMonth}
-          className="btn btn-outline px-3 py-1.5 text-sm disabled:opacity-40">‹</button>
+          className="btn btn-outline px-3 min-h-11 min-w-11 py-1.5 text-sm disabled:opacity-40">‹</button>
         <span className="font-medium">{ru.availability.months[view.month]} {view.year}</span>
         <button type="button" onClick={() => shift(1)}
           aria-label={ru.availability.nextMonth}

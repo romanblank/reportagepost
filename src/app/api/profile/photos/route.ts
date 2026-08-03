@@ -107,6 +107,7 @@ export function POST(req: Request) {
         height: analyzed.height,
         phash: analyzed.phash,
         blurhash: analyzed.blurData,
+        hasWebp: true, // storePhotoVariants кладёт web.webp/thumb.webp рядом
         // Prisma Json-поле требует индекс-сигнатуру — типизированный вердикт
         // сериализуем через каст (структура плоская, JSON-совместимая).
         aiVerdict: verdict ? (verdict as unknown as Prisma.InputJsonObject) : undefined,

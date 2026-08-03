@@ -78,10 +78,17 @@ export async function storePhotoVariants(input: Buffer): Promise<{ storageKey: s
   const original = await img(input).rotate().jpeg({ quality: 92 }).toBuffer();
   const web = await img(input).rotate().resize(2048, 2048, { fit: 'inside' }).jpeg({ quality: 82 }).toBuffer();
   const thumb = await img(input).rotate().resize(640, 640, { fit: 'inside' }).jpeg({ quality: 78 }).toBuffer();
+  // WebP рядом с JPEG: тот же кадр весит примерно на треть меньше, а трафик за
+  // просмотр каталога платит заказчик. Формат отдаётся через <picture>, поэтому
+  // браузеры без поддержки просто возьмут JPEG.
+  const webWebp = await img(input).rotate().resize(2048, 2048, { fit: 'inside' }).webp({ quality: 80 }).toBuffer();
+  const thumbWebp = await img(input).rotate().resize(640, 640, { fit: 'inside' }).webp({ quality: 76 }).toBuffer();
 
   await storage.put(`${base}/original.jpg`, original, 'image/jpeg');
   await storage.put(`${base}/web.jpg`, web, 'image/jpeg');
   await storage.put(`${base}/thumb.jpg`, thumb, 'image/jpeg');
+  await storage.put(`${base}/web.webp`, webWebp, 'image/webp');
+  await storage.put(`${base}/thumb.webp`, thumbWebp, 'image/webp');
 
   return { storageKey: `${base}/original.jpg` };
 }
@@ -126,4 +133,15 @@ export function photoStorageKeys(storageKey: string): string[] {
     return [`${base}/original.jpg`, `${base}/web.jpg`, `${base}/thumb.jpg`];
   }
   return [storageKey];
+}
+
+/**
+ * Адрес WebP-варианта. `null`, если кадр загружен до появления формата —
+ * такие показываются JPEG-ом, и это нормально: перекодировать архив ради
+ * нескольких процентов трафика дороже, чем оставить как есть.
+ */
+export function webpVariantUrl(storageKey: string, kind: 'web' | 'thumb' = 'web'): string | null {
+  if (!storageKey.endsWith('/original.jpg')) return null;
+  const base = storageKey.slice(0, -'/original.jpg'.length);
+  return storage.publicUrl(`${base}/${kind}.webp`);
 }

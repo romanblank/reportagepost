@@ -66,7 +66,7 @@ export function ProfileHero({
           style={{ filter: 'brightness(.62)' }} />
       ) : coverSrc ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={coverSrc} alt="" aria-hidden
+        <img src={coverSrc} alt="" aria-hidden fetchPriority="high" decoding="async"
           className="brand-grade absolute inset-0 h-full w-full object-cover"
           style={{ filter: 'brightness(.62)' }} />
       ) : (
