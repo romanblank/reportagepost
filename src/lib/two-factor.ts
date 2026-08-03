@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { db } from '@/lib/db';
+import { decryptSecret, encryptSecret } from '@/lib/secret-box';
 import { generateTotpSecret, verifyTotp, otpauthUri } from '@/lib/totp';
 import { DomainError } from '@/lib/errors';
 
@@ -29,7 +30,9 @@ export async function beginEnroll(userId: string): Promise<{ secret: string; uri
   const user = await loadUser(userId);
   if (user.twoFactorEnabledAt) throw new DomainError('already_enabled', 409);
   const secret = generateTotpSecret();
-  await db.user.update({ where: { id: userId }, data: { totpSecret: secret } });
+  // Секрет шифруем: база ежедневно уезжает в бэкап, и открытый TOTP там
+  // означал бы второй фактор всех пользователей в чужих руках
+  await db.user.update({ where: { id: userId }, data: { totpSecret: encryptSecret(secret) } });
   return { secret, uri: otpauthUri(secret, user.email ?? userId) };
 }
 
@@ -38,7 +41,7 @@ export async function confirmEnroll(userId: string, code: string): Promise<strin
   const user = await loadUser(userId);
   if (user.twoFactorEnabledAt) throw new DomainError('already_enabled', 409);
   if (!user.totpSecret) throw new DomainError('not_started', 409);
-  if (!verifyTotp(user.totpSecret, code)) throw new DomainError('bad_code', 400);
+  if (!verifyTotp(decryptSecret(user.totpSecret), code)) throw new DomainError('bad_code', 400);
 
   const codes = Array.from({ length: BACKUP_COUNT }, genBackupCode);
   await db.$transaction([
@@ -54,7 +57,7 @@ export async function verifySecondFactor(userId: string, code: string): Promise<
   const user = await loadUser(userId);
   if (!user.twoFactorEnabledAt || !user.totpSecret) return false;
 
-  if (verifyTotp(user.totpSecret, code)) return true;
+  if (verifyTotp(decryptSecret(user.totpSecret), code)) return true;
 
   // резервный код (одноразовый)
   const normalized = code.trim().toLowerCase();

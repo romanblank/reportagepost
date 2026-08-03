@@ -112,6 +112,40 @@ export function POST(req: Request) {
       );
     }
 
+    // ── Сроки хранения персональных данных (аудит 152-ФЗ 2026-08-03) ──────
+    // Политика обещает уничтожение «по достижении целей», но в коде срок не был
+    // задан НИ ДЛЯ ОДНОЙ таблицы. Самое острое — гостевые заявки: имя, телефон
+    // и почта человека, у которого нет аккаунта, а значит нет и способа их
+    // удалить. Цель обработки достигается за дни, хранились они вечно.
+    const INQUIRY_DAYS = 180;
+    const REPORT_DAYS = 365;
+    const NOTIFICATION_DAYS = 180;
+
+    // Заявку не удаляем целиком: она нужна для рыночной статистики (спрос по
+    // городам и жанрам). Обезличиваем — контакты уходят, факт остаётся.
+    const { count: inquiriesAnon } = await db.inquiry.updateMany({
+      where: {
+        createdAt: { lt: new Date(Date.now() - INQUIRY_DAYS * 86_400_000) },
+        // contactName обязателен по схеме — заменяем на метку, остальное чистим
+        OR: [{ contactPhone: { not: null } }, { contactEmail: { not: null } }, { contactName: { not: '—' } }],
+      },
+      data: { contactName: '—', contactPhone: null, contactEmail: null },
+    });
+
+    // Разобранные жалобы: свободный текст и контакт заявителя дальше не нужны
+    const { count: reportsAnon } = await db.report.updateMany({
+      where: {
+        status: { in: ['RESOLVED', 'DISMISSED'] },
+        createdAt: { lt: new Date(Date.now() - REPORT_DAYS * 86_400_000) },
+        OR: [{ comment: { not: null } }, { contactEmail: { not: null } }],
+      },
+      data: { comment: null, contactEmail: null },
+    });
+
+    const { count: notificationsGone } = await db.notification.deleteMany({
+      where: { createdAt: { lt: new Date(Date.now() - NOTIFICATION_DAYS * 86_400_000) } },
+    });
+
     const jobRuns = await pruneJobRuns();
     await finishJobRun(runId, true, ru.operatorAlerts.maintenanceNote(profiles, rateLimitRows + resets + verifications + activityRows + jobRuns));
 
@@ -119,7 +153,7 @@ export function POST(req: Request) {
       ok: true,
       profiles,
       ranksFixed,
-      cleaned: { rateLimitRows, resets, verifications, activityRows, jobRuns },
+      cleaned: { rateLimitRows, resets, verifications, activityRows, jobRuns, inquiriesAnon, reportsAnon, notificationsGone },
       tookMs: Date.now() - startedAt,
     });
   });

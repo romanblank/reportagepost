@@ -71,7 +71,10 @@ export async function sendEmail(
     // отправила. Теперь о поломке узнаёт оператор — молчание не должно
     // выглядеть как успех.
     console.error('[email] send failed:', e);
-    void alertOperator(ru.operatorAlerts.mailSendFailed(subject, e instanceof Error ? e.message : 'SMTP'));
+    // В ответе SMTP штатно фигурирует адрес получателя — в служебный канал
+    // он попадать не должен: это персональные данные третьего лица
+    const raw = e instanceof Error ? e.message : 'SMTP';
+    void alertOperator(ru.operatorAlerts.mailSendFailed(subject, maskEmails(raw)));
   }
 }
 
@@ -115,4 +118,9 @@ export async function sendEmailStrict(
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'неизвестная ошибка SMTP' };
   }
+}
+
+/** Маскирует адреса почты в тексте: `и***@домен` вместо полного адреса. */
+function maskEmails(text: string): string {
+  return text.replace(/([\w.+-])[\w.+-]*@([\w.-]+)/g, '$1***@$2');
 }

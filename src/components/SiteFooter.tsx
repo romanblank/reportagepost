@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ru } from '@/i18n/ru';
+import { CookieSettingsLink } from '@/components/CookieSettingsLink';
 import { CATALOG_ROOT } from '@/lib/nav';
 
 /**
@@ -75,10 +76,12 @@ export function SiteFooter() {
           <span className="flex flex-wrap items-center gap-5">
             <Link href="/ru/register" className="transition-colors hover:text-ink">{ru.footer.becomeAuthor}</Link>
             <Link href="/ru/faq" className="transition-colors hover:text-ink">{ru.footer.writeUs}</Link>
+            {/* Отзыв решения по cookie — не сложнее его дачи */}
+            <CookieSettingsLink />
           </span>
         </div>
 
-        <p className="max-w-[80ch] pb-7 text-[11.5px] leading-relaxed" style={{ color: 'var(--muted-2)' }}>
+        <p className="max-w-[80ch] pb-7 text-[11.5px] leading-relaxed muted">
           {ru.footer.metaDisclaimer} {ru.footer.disclaimerExtra}
         </p>
       </div>

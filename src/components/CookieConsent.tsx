@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useSyncExternalStore } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { ru } from '@/i18n/ru';
 import { apiOk } from '@/lib/api';
@@ -33,13 +33,40 @@ function readDecision(): boolean {
   }
 }
 
+/**
+ * Открыть баннер заново.
+ *
+ * Отзыв решения должен быть не сложнее его дачи: до этого баннер исчезал
+ * навсегда, и передумать было нельзя нигде в интерфейсе. Ссылка «Настройки
+ * cookie» в подвале вызывает эту функцию.
+ */
+export function reopenCookieBanner(): void {
+  try {
+    localStorage.removeItem(KEY);
+  } catch {
+    /* приватный режим: баннер и так покажется */
+  }
+  window.dispatchEvent(new Event(REOPEN_EVENT));
+}
+
+export const REOPEN_EVENT = 'rp:cookie-reopen';
+
 export function CookieConsent() {
   const decided = useSyncExternalStore(
-    () => () => {},
+    (onChange) => {
+      window.addEventListener(REOPEN_EVENT, onChange);
+      return () => window.removeEventListener(REOPEN_EVENT, onChange);
+    },
     readDecision,
     () => true,
   );
   const [dismissed, setDismissed] = useState(false);
+  // Повторный вызов из подвала должен показать баннер, даже если его уже закрывали
+  useEffect(() => {
+    const reopen = () => setDismissed(false);
+    window.addEventListener(REOPEN_EVENT, reopen);
+    return () => window.removeEventListener(REOPEN_EVENT, reopen);
+  }, []);
 
   if (decided || dismissed) return null;
 

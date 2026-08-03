@@ -42,7 +42,7 @@ export const PDN_CONSENT_VERSION = '2026-08-03';
  * Сторож против бесшумного расхождения «текст поменяли, версию забыли».
  * Обновляется ВМЕСТЕ с `PDN_CONSENT_VERSION`, а не вместо неё.
  */
-export const LEGAL_CONTENT_SHA = 'fd33b96b0d9100b2';
+export const LEGAL_CONTENT_SHA = 'b118a7b8c527801b';
 
 // Имя cookie с решением по трекингу (аудит 2026-08-01, P2). Живёт здесь, а не
 // в route-файле: Next.js разрешает роутам экспортировать только свои

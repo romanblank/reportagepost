@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { COOKIE_CONSENT_NAME, PDN_CONSENT_VERSION } from '@/lib/constants';
 import { handleRoute, jsonError } from '@/lib/errors';
+import { createHash } from 'node:crypto';
+import { db } from '@/lib/db';
+import { getSession } from '@/lib/auth';
+import { clientIp } from '@/lib/rate-limit';
 
 // Фиксация решения по cookie (аудит 2026-08-01, P2).
 //
@@ -21,7 +25,27 @@ export function POST(req: Request) {
     const parsed = Schema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) return jsonError('validation', 400);
 
-    const value = `${parsed.data.analytics ? 'all' : 'necessary'}:${PDN_CONSENT_VERSION}`;
+    const decision = parsed.data.analytics ? 'all' : 'necessary';
+
+    // След на стороне оператора: cookie в браузере субъекта доказательством не
+    // является — она стирается очисткой браузера, и предъявить нечего.
+    // Адрес храним хешем: сам по себе он тоже персональные данные, а для сверки
+    // достаточно совпадения. Запись не должна ронять сам ответ — решение
+    // пользователя важнее, чем наша бухгалтерия по нему.
+    const session = await getSession().catch(() => null);
+    const ip = clientIp(req);
+    void db.cookieConsent
+      .create({
+        data: {
+          decision,
+          policyVersion: PDN_CONSENT_VERSION,
+          ipHash: ip ? createHash('sha256').update(`${ip}:${PDN_CONSENT_VERSION}`).digest('hex') : null,
+          userId: session?.userId ?? null,
+        },
+      })
+      .catch((e) => console.error('[consent] trail not written:', e));
+
+    const value = `${decision}:${PDN_CONSENT_VERSION}`;
     const res = NextResponse.json({ ok: true });
     res.cookies.set(COOKIE_CONSENT_NAME, value, {
       path: '/',
