@@ -25,8 +25,32 @@ async function recomputeAfterLike(profileId: string): Promise<void> {
   }
 }
 
+/**
+ * Вес голоса — по доверию к аккаунту, а не по факту клика.
+ *
+ * Лайки двигают порядок каталога, а стоят они атакующему ноль: регистрация
+ * открыта, подтверждение почты для лайка не требуется, лимит — 200 в сутки.
+ * Двадцать свежих аккаунтов давали больше, чем идеально заполненная анкета и
+ * годы работы честного автора.
+ *
+ * Мера намеренно мягкая: лайк ставится всегда (человек видит отклик), просто
+ * не двигает merit, пока аккаунт ничем себя не подтвердил. Живому зрителю это
+ * не мешает; накрутчику ломает экономику — ему нужны выдержанные и
+ * подтверждённые аккаунты, а не свежая пачка.
+ */
+const TRUSTED_AFTER_MS = 48 * 3600_000;
+
 async function actorWeight(userId: string): Promise<number> {
-  const profile = await db.photographerProfile.findUnique({ where: { userId }, select: { status: true } });
+  const [profile, user] = await Promise.all([
+    db.photographerProfile.findUnique({ where: { userId }, select: { status: true } }),
+    db.user.findUnique({ where: { id: userId }, select: { createdAt: true, emailVerifiedAt: true } }),
+  ]);
+
+  const trusted =
+    Boolean(user?.emailVerifiedAt) ||
+    Boolean(user && Date.now() - user.createdAt.getTime() > TRUSTED_AFTER_MS);
+  if (!trusted) return 0;
+
   return likeWeightFor(profile?.status);
 }
 

@@ -37,6 +37,17 @@ export async function POST(req: NextRequest) {
   if (profile.email) {
     const byEmail = await db.user.findUnique({ where: { email: profile.email } });
     if (byEmail) {
+      // Связывать можно только с аккаунтом, который заведомо принадлежит
+      // этому же человеку: подтверждённым адресом или созданным через вход
+      // без пароля. Иначе получается захват: злоумышленник регистрирует
+      // аккаунт на ЧУЖУЮ почту (подтверждение при регистрации не требуется),
+      // задаёт свой пароль — и когда настоящий владелец адреса входит через
+      // Яндекс, он попадает в аккаунт, пароль от которого знает чужой человек.
+      const safeToLink = Boolean(byEmail.emailVerifiedAt) || !byEmail.passwordHash;
+      if (!safeToLink) {
+        return clearPending(NextResponse.json({ error: 'email_taken' }, { status: 409 }));
+      }
+
       await db.user.update({
         where: { id: byEmail.id },
         data: {

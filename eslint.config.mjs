@@ -31,6 +31,10 @@ const eslintConfig = defineConfig([
       "src/components/ProfileViewBeacon.tsx",
     ],
     rules: {
+      // Мёртвый код после return однажды уже прошёл гейт: сброс кэша каталога
+      // стоял ниже возврата из функции и не выполнялся никогда, а правило было
+      // отключено в базовом конфиге Next.
+      'no-unreachable': 'error',
       "no-restricted-globals": [
         "error",
         {

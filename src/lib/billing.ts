@@ -23,11 +23,23 @@ export interface Checkout {
  *  (идемпотентность вебхука). Возвращает данные для вызова Init. */
 export async function prepareCheckout(userId: string, tier: PaidTier, citySlug: string): Promise<Checkout> {
   const price = priceForCity(citySlug, tier);
+
+  // Цена основателя действует и при оплате. Раньше здесь брался ПОЛНЫЙ прайс,
+  // а `priceMinorLocked`, зафиксированная грантом «навсегда», игнорировалась:
+  // первый же платёж выставлял founding-фотографу полную сумму. И это ударило
+  // бы ровно по тем людям, на которых держится запуск, — по кругу амбассадора.
+  const sub = await db.subscription.findUnique({
+    where: { userId },
+    select: { tier: true, priceMinorLocked: true },
+  });
+  const locked = sub?.priceMinorLocked && sub.tier === tier ? sub.priceMinorLocked : null;
+  const amountMinor = locked ?? price.monthlyMinor;
+
   const orderId = `sub_${userId.slice(0, 8)}_${randomUUID().slice(0, 8)}`;
   await db.payment.create({
-    data: { userId, orderId, amountMinor: price.monthlyMinor, currency: DEFAULT_CURRENCY, tier, status: 'NEW' },
+    data: { userId, orderId, amountMinor, currency: DEFAULT_CURRENCY, tier, status: 'NEW' },
   });
-  return { orderId, amountMinor: price.monthlyMinor };
+  return { orderId, amountMinor };
 }
 
 /** Идемпотентно применяет статус платежа из вебхука. На CONFIRMED — зачисляет/
@@ -112,10 +124,18 @@ export async function applyPaymentStatus(
     });
     const cityTier = profile ? cityTierOf(profile.city.slug) : null;
 
+    // Оплата ПРОДЛЕВАЕТ период, а не переопределяет условия. Раньше здесь
+    // безусловно писалось `grandfathered: false` и новая цена — то есть первый
+    // же платёж стирал пожизненный грант основателя и перезакреплял полную
+    // стоимость. Условия, обещанные «навсегда», должны переживать оплату.
+    const existing = await tx.subscription.findUnique({
+      where: { userId: payment.userId },
+      select: { grandfathered: true, priceMinorLocked: true },
+    });
     const data = {
       tier,
-      grandfathered: false, // оплаченная (не founding)
-      priceMinorLocked: payment.amountMinor,
+      grandfathered: existing?.grandfathered ?? false,
+      priceMinorLocked: existing?.priceMinorLocked ?? payment.amountMinor,
       cityTier,
       currentPeriodEnd,
       proRequestedAt: null, // заявка удовлетворена оплатой

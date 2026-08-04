@@ -344,6 +344,7 @@ export const ru = {
     },
   },
   profile: {
+    shootDateLabel: 'Когда была съёмка',
     dayBusy: (d: number) => `${d} — занят`,
     dayFree: (d: number) => `${d} — свободен`,
     notFound: 'Фотограф не найден',
