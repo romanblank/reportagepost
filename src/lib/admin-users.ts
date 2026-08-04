@@ -177,6 +177,21 @@ export async function setUserBlocked(
     });
     await logAudit(tx, actorUserId, blocked ? 'user.block' : 'user.unblock', 'USER', userId, { reason: reason.trim().slice(0, 200) });
   });
+
+  if (blocked) {
+    // Наказание должно откатывать вред, а не только закрывать дверь. Лайки
+    // накрутчика двигают merit-порядок, и, поймав кольцо аккаунтов, оператор
+    // не мог вернуть выдачу к честной: голоса жили дальше сами по себе.
+    const liked = await db.like.findMany({
+      where: { userId },
+      select: { photo: { select: { profileId: true } } },
+    });
+    const profileIds = [...new Set(liked.map((l) => l.photo?.profileId).filter((id): id is string => Boolean(id)))];
+    await db.like.deleteMany({ where: { userId } });
+
+    const { recomputeOne } = await import('@/lib/rating');
+    for (const id of profileIds) await recomputeOne(id).catch(() => {});
+  }
 }
 
 /** Сколько всего людей на платформе — без демо и тестов. */

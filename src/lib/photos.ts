@@ -33,6 +33,11 @@ export class PhotoValidationError extends DomainError {
 // единственного контейнера. 50 Мпикс — с большим запасом над любой камерой
 // (даже 100-мегапиксельный кадр среднего формата = 100 Мпикс, но такие в
 // репортаже не грузят; при нужде поднять осознанно).
+// libvips по умолчанию берёт столько потоков, сколько ядер, и каждый держит
+// свои промежуточные буферы. На машине с двумя гигабайтами это прямой путь к
+// OOM при паре одновременных загрузок.
+sharp.concurrency(1);
+
 const MAX_INPUT_PIXELS = 50_000_000;
 const img = (input: Buffer) => sharp(input, { limitInputPixels: MAX_INPUT_PIXELS, sequentialRead: true });
 
@@ -75,14 +80,21 @@ export async function analyzePhoto(input: Buffer): Promise<AnalyzedPhoto> {
 export async function storePhotoVariants(input: Buffer): Promise<{ storageKey: string }> {
   const id = randomUUID();
   const base = `photos/${id}`;
-  const original = await img(input).rotate().jpeg({ quality: 92 }).toBuffer();
-  const web = await img(input).rotate().resize(2048, 2048, { fit: 'inside' }).jpeg({ quality: 82 }).toBuffer();
-  const thumb = await img(input).rotate().resize(640, 640, { fit: 'inside' }).jpeg({ quality: 78 }).toBuffer();
-  // WebP рядом с JPEG: тот же кадр весит примерно на треть меньше, а трафик за
-  // просмотр каталога платит заказчик. Формат отдаётся через <picture>, поэтому
-  // браузеры без поддержки просто возьмут JPEG.
-  const webWebp = await img(input).rotate().resize(2048, 2048, { fit: 'inside' }).webp({ quality: 80 }).toBuffer();
-  const thumbWebp = await img(input).rotate().resize(640, 640, { fit: 'inside' }).webp({ quality: 76 }).toBuffer();
+  // Каскад, а не пять независимых обработок исходника.
+  //
+  // Раньше каждый вариант декодировал ИСХОДНЫЙ буфер заново: пять проходов на
+  // storePhotoVariants плюс два в analyzePhoto. На 50-мегапиксельном кадре один
+  // распакованный слой — сотни мегабайт, а память контейнера всего два
+  // гигабайта: три одновременные загрузки клали прод. Теперь исходник
+  // разбирается один раз, дальше уменьшенные варианты строятся из веб-версии.
+  const rotated = await img(input).rotate().toBuffer();
+  const original = await img(rotated).jpeg({ quality: 92 }).toBuffer();
+  const web = await img(rotated).resize(2048, 2048, { fit: 'inside' }).jpeg({ quality: 82 }).toBuffer();
+  // Миниатюра и WebP — уже из веб-варианта: он меньше исходника на порядок, а
+  // визуальная разница на 640px неразличима
+  const thumb = await img(web).resize(640, 640, { fit: 'inside' }).jpeg({ quality: 78 }).toBuffer();
+  const webWebp = await img(web).webp({ quality: 80 }).toBuffer();
+  const thumbWebp = await img(thumb).webp({ quality: 76 }).toBuffer();
 
   await storage.put(`${base}/original.jpg`, original, 'image/jpeg');
   await storage.put(`${base}/web.jpg`, web, 'image/jpeg');

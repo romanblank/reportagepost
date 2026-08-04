@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getSession } from '@/lib/auth';
+import { rateLimit } from '@/lib/rate-limit';
 import { storage } from '@/lib/storage';
 import { Readable } from 'node:stream';
-import { handleRoute } from '@/lib/errors';
+import { DomainError, handleRoute } from '@/lib/errors';
 import type { ReadableStream as NodeWebReadable } from 'node:stream/web';
 import {
   videoStorageKeys,
@@ -16,8 +17,15 @@ import { videoLimit, videoSecondsLimit } from '@/lib/pricing';
 
 export const maxDuration = 60; // крупная загрузка
 
+/** Лимит выбрали параллельные загрузки — отдельный тип, чтобы откатить файл. */
+class VideoLimitError extends DomainError {
+  constructor(public limit: number) {
+    super('video_limit', 409);
+  }
+}
+
 async function currentProfile(userId: string) {
-  return db.photographerProfile.findUnique({ where: { userId }, select: { id: true } });
+  return db.photographerProfile.findUnique({ where: { userId }, select: { id: true, status: true } });
 }
 
 // Загрузка видео автора (multipart: file, title?). Публикация после модерации (как фото).
@@ -30,9 +38,25 @@ export function POST(req: Request) {
 
   // Сколько роликов можно — зависит от уровня подписки: видео самая дорогая
   // единица контента, и объём здесь гейтится так же, как объём портфолио.
+  // Ролик — самая дорогая единица контента: сотни мегабайт трафика, запись в
+  // хранилище и ядро процессора на транскод. Без ограничения частоты цикл
+  // «загрузил — удалил — загрузил» ничем не сдерживался, а очередь забивалась
+  // чужими роликами впереди шоурилов настоящих авторов.
+  await rateLimit(`video-upload:user:${session.userId}`, 6, 86_400);
+
+  // И только у автора, прошедшего модерацию: до одобрения анкеты показывать
+  // ролик всё равно негде, а транскод уже занят
+  if (profile.status !== 'APPROVED') {
+    return NextResponse.json({ error: 'profile_not_approved' }, { status: 409 });
+  }
+
   const tier = await tierOf(session.userId);
   const limit = videoLimit(tier);
-  const count = await db.profileVideo.count({ where: { profileId: profile.id } });
+  // Отбракованные ролики слот не занимают: один неудачный файл иначе
+  // блокировал бы бесплатному автору единственную возможность навсегда
+  const count = await db.profileVideo.count({
+    where: { profileId: profile.id, processing: { not: 'FAILED' } },
+  });
   if (count >= limit) {
     return NextResponse.json({ error: 'video_limit', limit, tier }, { status: 409 });
   }
@@ -76,7 +100,15 @@ export function POST(req: Request) {
     mimeType,
     sizeBytes,
   );
-    const video = await db.profileVideo.create({
+    // Повторная проверка ВНУТРИ транзакции: между ранней проверкой и вставкой
+    // прошла заливка сотен мегабайт, и параллельные запросы все видели
+    // «лимит не исчерпан» (у фотографий эта защита давно есть)
+    const video = await db.$transaction(async (tx) => {
+      const current = await tx.profileVideo.count({
+        where: { profileId: profile.id, processing: { not: 'FAILED' } },
+      });
+      if (current >= limit) throw new VideoLimitError(limit);
+      return tx.profileVideo.create({
       data: {
         profileId: profile.id,
         storageKey: stored.storageKey,
@@ -97,6 +129,15 @@ export function POST(req: Request) {
         // «слишком длинным».
         maxSeconds: videoSecondsLimit(tier),
       },
+      });
+    }).catch(async (e) => {
+      // Лимит выбрали параллельные загрузки — убираем уже залитый файл, иначе
+      // в хранилище остаётся объект, за который платим и который никому не
+      // принадлежит (тот же приём, что у фотографий)
+      if (e instanceof VideoLimitError) {
+        await storage.delete(stored.storageKey).catch(() => {});
+      }
+      throw e;
     });
     return NextResponse.json(
       { videoId: video.id, uploaded: count + 1, limit, processing: 'UPLOADED' },

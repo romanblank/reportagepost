@@ -12,6 +12,22 @@ import { formatRubMinor } from '@/lib/money';
 import { ru } from '@/i18n/ru';
 import { PDN_CONSENT_VERSION } from '@/lib/constants';
 
+/**
+ * Маскирует контакты в тексте заявки.
+ *
+ * Заявка веером уходит всем авторам города вместе с описанием, а заказчики
+ * массово пишут телефон и мессенджер прямо в текст. Без маскировки вся
+ * механика раскрытия контактов (маскировка, лимит, аудит-лог) обходится
+ * чтением описания, а домен и бот платформы становятся каналом рассылки
+ * чужих ссылок. У отзывов такой фильтр стоит с самого начала.
+ */
+const CONTACT_LINK_RE = /(https?:\/\/|www\.|t\.me\/|@[a-z0-9_]{4,}|[a-zа-яё0-9-]{2,}\.(ru|com|net|org|io|me|tg|рф|su|info|biz))/gi;
+const CONTACT_PHONE_RE = /(?:\+?\d[\s()\-–—.]*){7,}/g;
+
+export function maskContactsInText(text: string): string {
+  return text.replace(CONTACT_LINK_RE, '[ссылка скрыта]').replace(CONTACT_PHONE_RE, '[контакт скрыт]');
+}
+
 export interface CreateInquiryInput {
   clientUserId?: string;
   contactName: string;
@@ -111,7 +127,9 @@ export async function createInquiry(
     category: input.categorySlug ? categoryNameRu(input.categorySlug) : ru.lifecycle.inquiryNoValue,
     date: input.eventDate ? input.eventDate.toISOString().slice(0, 10) : ru.lifecycle.inquiryNoValue,
     budget: input.budgetMinor != null ? formatRubMinor(input.budgetMinor) : ru.lifecycle.inquiryNoValue,
-    excerpt: input.description.slice(0, 160),
+    // Контакты из текста не уходят веером: их место — в раскрытии по
+    // «беру в работу», под лимитом и с записью в журнал
+    excerpt: maskContactsInText(input.description).slice(0, 160),
     link,
   });
   // fire-and-forget: не ждём — сервер персистентный (не serverless), промисы

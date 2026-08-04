@@ -54,6 +54,11 @@ async function bestOfWindow(sinceDays: number, limit: number): Promise<FeedPhoto
     by: ['photoId'],
     where: { photoId: { not: null }, createdAt: { gte: since } },
     _sum: { weightMilli: true },
+    // Сортировка и отсечение — в базе, а не в приложении. Иначе «лучшее за
+    // год» означало перенос ВСЕХ сгруппированных лайков в память процесса;
+    // рядом, в recommendedFeed, этот же класс проблемы уже был исправлен.
+    orderBy: { _sum: { weightMilli: 'desc' } },
+    take: limit,
   });
 
   const scores = new Map<string, number>();
