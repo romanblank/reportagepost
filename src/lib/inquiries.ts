@@ -3,13 +3,14 @@ import { resolveCity } from '@/lib/geo-resolve';
 import { rateLimit } from '@/lib/rate-limit';
 import { DomainError } from '@/lib/errors';
 import { notifyManyInApp } from '@/lib/notifications';
-import { ELITE_RANK, PRIME_RANK } from '@/lib/subscription';
+import { ELITE_RANK, PRIME_RANK, tierOf } from '@/lib/subscription';
 import { sendEmail } from '@/lib/email';
 import { tgSend } from '@/lib/telegram';
 import { APP_DOMAIN } from '@/lib/constants';
 import { cityNameRu } from '@/lib/geo-data';
 import { categoryNameRu } from '@/lib/category-data';
 import { formatRubMinor } from '@/lib/money';
+import { inquiryVisibleAfterHours } from '@/lib/pricing';
 import { ru } from '@/i18n/ru';
 import { PDN_CONSENT_VERSION } from '@/lib/constants';
 
@@ -227,12 +228,22 @@ function maskEmail(email: string): string {
  * поэтому общий статус закрыл бы лид всем сразу. Отработанные уезжают вниз —
  * сверху то, чем ещё никто не занимался.
  */
-export async function inquiriesForPhotographer(userId: string) {
+export async function inquiriesForPhotographer(userId: string, now: Date = new Date()) {
   const profile = await db.photographerProfile.findUnique({ where: { userId } });
   if (!profile || profile.status !== 'APPROVED') return null;
 
+  // Фора подписчика действует и здесь, а не только в уведомлениях. Иначе она
+  // дырявая: письмо придёт позже, но фотограф без подписки просто откроет
+  // кабинет и увидит тот же заказ в ту же минуту — а мы будем продавать
+  // преимущество, которого нет.
+  // Уровень берём из самой подписки, а не из proRank: ранг обновляется
+  // фоновой сверкой и после окончания оплаченного периода какое-то время
+  // остаётся высоким — фору получал бы тот, кто уже не платит.
+  const headStartHours = inquiryVisibleAfterHours(await tierOf(userId));
+  const visibleFrom = new Date(now.getTime() - headStartHours * 3_600_000);
+
   const rows = await db.inquiry.findMany({
-    where: { cityId: profile.cityId, status: 'OPEN' },
+    where: { cityId: profile.cityId, status: 'OPEN', createdAt: { lte: visibleFrom } },
     orderBy: { createdAt: 'desc' },
     take: 50,
     include: {

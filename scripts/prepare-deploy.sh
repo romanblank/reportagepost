@@ -42,8 +42,36 @@ npm run lint >/dev/null 2>&1 || say "Lint падает (ошибки ESLint — 
 echo "→ npm run typecheck"
 npm run typecheck --silent || say "Ошибки типов (tsc --noEmit)"
 
+# Батареи гоняем на ОДНОРАЗОВОЙ чистой базе — ровно как CI (урок 2026-08-04).
+# Дважды подряд гейт был зелёным, а раннер красным: тест полагался на то, что
+# в dev-базе кто-то уже есть. Насыщенная база маскирует такую зависимость по
+# определению, поэтому лечится не внимательностью, а средой прогона.
+GATE_DB_CONTAINER=rp-gate-db
+GATE_DB_PORT=5439
+CLEAN_DB_URL=""
+if docker info >/dev/null 2>&1; then
+  echo "→ поднимаю чистую БД для батарей (как в CI)"
+  docker rm -f "$GATE_DB_CONTAINER" >/dev/null 2>&1 || true
+  docker run -d --name "$GATE_DB_CONTAINER" -e POSTGRES_USER=rp -e POSTGRES_PASSWORD=rp \
+    -e POSTGRES_DB=reportagepost -p "$GATE_DB_PORT":5432 postgres:17 >/dev/null
+  trap 'docker rm -f "$GATE_DB_CONTAINER" >/dev/null 2>&1 || true' EXIT
+  for _ in $(seq 1 40); do docker exec "$GATE_DB_CONTAINER" pg_isready -U rp >/dev/null 2>&1 && break; sleep 2; done
+  # Расширения ставит администратор кластера, не миграция (урок 2026-08-02)
+  docker exec "$GATE_DB_CONTAINER" psql -U rp -d reportagepost -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;" >/dev/null
+  CLEAN_DB_URL="postgresql://rp:rp@localhost:$GATE_DB_PORT/reportagepost"
+  DATABASE_URL="$CLEAN_DB_URL" npx prisma migrate deploy >/dev/null 2>&1 || say "Миграции не применяются на чистой БД"
+  DATABASE_URL="$CLEAN_DB_URL" npm run db:seed >/dev/null 2>&1 || say "Сид не проходит на чистой БД"
+else
+  echo "⚠️  docker недоступен: батареи пойдут на dev-базе — это СЛАБЕЕ, чем CI"
+fi
+
+run_battery() {
+  if [ -n "$CLEAN_DB_URL" ]; then DATABASE_URL="$CLEAN_DB_URL" npm run "$1" --silent
+  else npm run "$1" --silent; fi
+}
+
 echo "→ npm test"
-npm test --silent || say "Тесты падают"
+run_battery test || say "Тесты падают"
 # Билд БЕЗ DATABASE_URL — как реальный Docker-билд в CI (урок 2026-07-14:
 # страница со static/ISR, лезущая в БД, падает на пререндере; локальный .env
 # это маскировал). Ловим класс ошибки здесь, а не в пайплайне.
@@ -52,7 +80,7 @@ npm test --silent || say "Тесты падают"
 # а деплой красный. Гейт обязан ловить то же, что CI, иначе он даёт ложное
 # чувство готовности. Без DATABASE_URL батарея сама пропускается.
 echo "→ npm run e2e"
-npm run e2e --silent || say "E2E-батарея падает"
+run_battery e2e || say "E2E-батарея падает"
 
 echo "→ npm run build (без DATABASE_URL, как в Docker)"
 env -u DATABASE_URL npm run build >/dev/null 2>&1 || say "Билд падает (проверь static-страницы, лезущие в БД → force-dynamic)"

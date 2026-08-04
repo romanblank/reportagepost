@@ -31,10 +31,15 @@ describe.skipIf(!hasDb)('inquiries: создание и доставка (БД)'
         firstName: 'Инк', lastName: 'Тестов', email: `inq-${stamp}@test.local`,
       },
     });
+    const { ELITE_RANK } = await import('@/lib/subscription');
     const profile = await db.photographerProfile.create({
       data: {
         userId: photographer.id, username: `inq-${stamp}`, cityId: city.id,
-        status: 'APPROVED', categories: { create: [{ categoryId: category.id }] },
+        // Ранг задаём явно: с появлением форы на заявку адресата первой волны
+        // определяет уровень подписки, а не только город с жанром. Без этого
+        // тест был бы зелёным лишь на базе, где случайно живёт чей-то Elite
+        status: 'APPROVED', proRank: ELITE_RANK,
+        categories: { create: [{ categoryId: category.id }] },
       },
     });
 
@@ -49,7 +54,7 @@ describe.skipIf(!hasDb)('inquiries: создание и доставка (БД)'
     });
 
     expect(inquiryId).toBeTruthy();
-    // В БД есть минимум один APPROVED фотограф Москвы этой категории (из live-прогонов)
+    // Наш собственный Elite-фотограф города и жанра — он и есть первая волна
     expect(notified).toBeGreaterThanOrEqual(1);
 
     // Новая модель: durable-доставка через notifyInApp (канал IN_APP), не QUEUED
@@ -146,4 +151,60 @@ describe.skipIf(!hasDb)('заявки: фора подписчиков, но н�
       await db.user.deleteMany({ where: { id: { in: [elite, prime, free] } } });
     }
   });
+
+  it('фора действует и в кабинете, а не только в уведомлениях', async () => {
+    const { db } = await import('@/lib/db');
+    const { createInquiry, inquiriesForPhotographer } = await import('@/lib/inquiries');
+    const { ELITE_RANK } = await import('@/lib/subscription');
+
+    // Фора, которую видно только в письмах, — не фора: фотограф без подписки
+    // откроет кабинет и увидит тот же заказ в ту же минуту. Проверяем ленту
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const city = await db.city.findFirstOrThrow({ where: { slug: 'chita' } });
+    const category = await db.category.findFirstOrThrow({ where: { slug: 'sports' } });
+
+    const make = async (tag: string, rank: number) => {
+      const u = await db.user.create({
+        data: { role: 'PHOTOGRAPHER', status: 'ACTIVE', firstName: 'Лента', lastName: tag, email: `feed-${tag}-${stamp}@test.local` },
+      });
+      const p = await db.photographerProfile.create({
+        data: {
+          userId: u.id, username: `feed-${tag}-${stamp}`, cityId: city.id,
+          status: 'APPROVED', proRank: rank, categories: { create: [{ categoryId: category.id }] },
+        },
+      });
+      if (rank >= ELITE_RANK) {
+        await db.subscription.create({
+          data: { userId: u.id, tier: 'ELITE', currentPeriodEnd: new Date(Date.now() + 30 * 86_400_000) },
+        });
+      }
+      return { u, p };
+    };
+
+    const elite = await make('elite', ELITE_RANK);
+    const free = await make('free', 0);
+
+    const { inquiryId } = await createInquiry({
+      contactName: 'Заказчик Форы', contactEmail: 'headstart@test.local',
+      citySlug: 'chita', categorySlug: 'sports',
+      description: 'Съёмка матча, нужен фотограф на весь день, тестовая заявка.',
+    });
+
+    const seen = async (userId: string) =>
+      (await inquiriesForPhotographer(userId))?.some((i) => i.id === inquiryId) ?? false;
+
+    expect(await seen(elite.u.id)).toBe(true);
+    expect(await seen(free.u.id)).toBe(false);
+
+    await db.inquiry.delete({ where: { id: inquiryId } });
+    await db.notification.deleteMany({ where: { type: 'notification.inquiry.new' } });
+    await db.subscription.deleteMany({ where: { userId: elite.u.id } });
+    for (const { u, p } of [elite, free]) {
+      await db.profileCategory.deleteMany({ where: { profileId: p.id } });
+      await db.profileCategoryScore.deleteMany({ where: { profileId: p.id } });
+      await db.photographerProfile.delete({ where: { id: p.id } });
+      await db.user.delete({ where: { id: u.id } });
+    }
+  });
+
 });

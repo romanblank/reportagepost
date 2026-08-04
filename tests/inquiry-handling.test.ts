@@ -23,6 +23,9 @@ describe.skipIf(!hasDb)('заявки: отметка фотографа лич�
   it('отметка одного фотографа не видна другому; заявку чужого города отметить нельзя', async () => {
     const { db } = await import('@/lib/db');
     const { setInquiryHandling, inquiriesForPhotographer } = await import('@/lib/inquiries');
+    // Смотрим лентой из будущего: тест про отметки и маскировку контактов, а
+    // не про фору подписчика — без сдвига свежая заявка просто не видна FREE
+    const later = new Date(Date.now() + 12 * 3_600_000);
 
     const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
     const moscow = await db.city.findFirstOrThrow({ where: { slug: 'moscow' } });
@@ -53,26 +56,29 @@ describe.skipIf(!hasDb)('заявки: отметка фотографа лич�
 
     await setInquiryHandling(first, inquiry.id, 'IN_PROGRESS');
 
-    const forFirst = await inquiriesForPhotographer(first);
-    const forSecond = await inquiriesForPhotographer(second);
+    const forFirst = await inquiriesForPhotographer(first, later);
+    const forSecond = await inquiriesForPhotographer(second, later);
     expect(forFirst?.find((i) => i.id === inquiry.id)?.handling).toBe('IN_PROGRESS');
     // Ключевое: у соседа заявка осталась новой — лид не закрыт за него
     expect(forSecond?.find((i) => i.id === inquiry.id)?.handling).toBeNull();
 
     // Фотограф другого города эту заявку даже не видит — и отметить не может
-    const forForeign = await inquiriesForPhotographer(foreign);
+    const forForeign = await inquiriesForPhotographer(foreign, later);
     expect(forForeign?.some((i) => i.id === inquiry.id)).toBe(false);
     await expect(setInquiryHandling(foreign, inquiry.id, 'IN_PROGRESS'))
       .rejects.toMatchObject({ code: 'forbidden', status: 403 });
 
     // Снятие отметки возвращает заявку в новые
     await setInquiryHandling(first, inquiry.id, null);
-    const afterUndo = await inquiriesForPhotographer(first);
+    const afterUndo = await inquiriesForPhotographer(first, later);
     expect(afterUndo?.find((i) => i.id === inquiry.id)?.handling).toBeNull();
   });
   it('контакты заказчика скрыты до отклика, раскрытие оставляет след в аудите', async () => {
     const { db } = await import('@/lib/db');
     const { setInquiryHandling, inquiriesForPhotographer } = await import('@/lib/inquiries');
+    // Смотрим лентой из будущего: тест про отметки и маскировку контактов, а
+    // не про фору подписчика — без сдвига свежая заявка просто не видна FREE
+    const later = new Date(Date.now() + 12 * 3_600_000);
 
     const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
     const moscow = await db.city.findFirstOrThrow({ where: { slug: 'moscow' } });
@@ -93,7 +99,7 @@ describe.skipIf(!hasDb)('заявки: отметка фотографа лич�
     inquiryIds.push(inquiry.id);
 
     // До отклика — маска: отличить заявки можно, связаться в обход нельзя
-    const before = (await inquiriesForPhotographer(u.id))?.find((i) => i.id === inquiry.id);
+    const before = (await inquiriesForPhotographer(u.id, later))?.find((i) => i.id === inquiry.id);
     expect(before?.contactsRevealed).toBe(false);
     expect(before?.contactPhone).not.toBe('+79161234567');
     expect(before?.contactPhone).toContain('•');
@@ -102,7 +108,7 @@ describe.skipIf(!hasDb)('заявки: отметка фотографа лич�
 
     await setInquiryHandling(u.id, inquiry.id, 'IN_PROGRESS');
 
-    const after = (await inquiriesForPhotographer(u.id))?.find((i) => i.id === inquiry.id);
+    const after = (await inquiriesForPhotographer(u.id, later))?.find((i) => i.id === inquiry.id);
     expect(after?.contactsRevealed).toBe(true);
     expect(after?.contactPhone).toBe('+79161234567');
     expect(after?.contactEmail).toBe('zakazchik@example.com');

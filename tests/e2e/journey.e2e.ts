@@ -53,7 +53,7 @@ describe.skipIf(!hasDb)('E2E: полный цикл фотографа и зак
     const { hashPassword } = await import('@/lib/auth');
     const { approveProfile } = await import('@/lib/moderation');
     const { catalogForCity } = await import('@/lib/catalog');
-    const { createInquiry, inquiriesForPhotographer } = await import('@/lib/inquiries');
+    const { createInquiry, inquiriesForPhotographer, releaseInquiries } = await import('@/lib/inquiries');
     const { togglePhotoLike } = await import('@/lib/engagement');
     const { createStory, approveStory } = await import('@/lib/stories');
     const { cityNameRu } = await import('@/lib/geo-data');
@@ -104,8 +104,17 @@ describe.skipIf(!hasDb)('E2E: полный цикл фотографа и зак
       citySlug: 'moscow', categorySlug: 'concerts-festivals', description: 'Нужен фотограф на фестиваль, полный день, две сцены.',
     });
     expect(inquiryId).toBeTruthy();
-    expect(notified).toBeGreaterThanOrEqual(1);
-    const feed = await inquiriesForPhotographer(photographer.id);
+    // Наш фотограф без подписки, и заявка до него доходит НЕ сразу: первые
+    // часы она у подписчиков. Сквозной путь обязан показывать именно это —
+    // иначе фора существует в коде, но не в том, что мы считаем нормой
+    expect(notified).toBe(0);
+    expect((await inquiriesForPhotographer(photographer.id))?.some((i) => i.id === inquiryId)).toBe(false);
+
+    // …а после окончания форы — доходит, и это тот же самый заказ
+    const { INQUIRY_HEAD_START_HOURS } = await import('@/lib/pricing');
+    const afterHeadStart = new Date(Date.now() + (INQUIRY_HEAD_START_HOURS.ELITE + 1) * 3_600_000);
+    await releaseInquiries(afterHeadStart);
+    const feed = await inquiriesForPhotographer(photographer.id, afterHeadStart);
     expect(feed?.some((i) => i.id === inquiryId)).toBe(true);
     auditText('описание заявки', feed![0].description);
 
