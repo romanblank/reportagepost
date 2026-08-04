@@ -152,7 +152,10 @@ export const PLAN_FEATURES: PlanFeature[] = [
   { key: 'recognition', minTier: 'PRIME' }, // бейдж + участие в «Признании»
   { key: 'analytics', minTier: 'PRIME' }, // статистика просмотров и сохранений
   { key: 'fastReview', minTier: 'PRIME' }, // приоритетное рассмотрение изменений
+  { key: 'presentationPdf', minTier: 'PRIME' }, // презентация портфолио одним файлом
   { key: 'inquiryHeadStartPlus', minTier: 'ELITE' },
+  { key: 'salesKit', minTier: 'PRIME' }, // документы для работы с компаниями
+  { key: 'presentationPdfPlus', minTier: 'ELITE' },
   { key: 'coverShowreel', minTier: 'ELITE' }, // шоурил играет в обложке профиля
   { key: 'recommended', minTier: 'ELITE' }, // ротация в «Рекомендуемых» + приоритет редподборок
   { key: 'analyticsPlus', minTier: 'ELITE' }, // кто смотрел/сохранял, тренды
@@ -180,6 +183,16 @@ export const INQUIRY_HEAD_START_HOURS: Record<PlanTier, number> = {
 };
 
 /** Через сколько часов после создания заявка становится видна этому уровню. */
+/**
+ * Сколько кадров уходит в презентацию портфолио.
+ *
+ * Бесплатный уровень получает её не урезанной «пробником», а короткой: шесть
+ * кадров — это нормальная визитка, которую не стыдно отправить. Смысл
+ * подписки здесь не в том, чтобы разблокировать файл, а в том, что на встрече
+ * с компанией показывают серию, а не превью.
+ */
+export const PDF_PHOTO_LIMIT: Record<PlanTier, number> = { FREE: 6, PRIME: 20, ELITE: 40 };
+
 export function inquiryVisibleAfterHours(tier: PlanTier): number {
   return INQUIRY_HEAD_START_HOURS.ELITE - INQUIRY_HEAD_START_HOURS[tier];
 }

@@ -208,6 +208,7 @@ export default async function CabinetPage() {
                       { href: '/ru/cabinet/stories', title: ru.cabinetStories.tileTitle, desc: ru.cabinetStories.tileDesc },
                       { href: '/ru/cabinet/availability', title: ru.cabinet.availabilityLink, desc: ru.cabinet.tileAvailabilityDesc },
                       { href: '/ru/cabinet/sales-kit', title: ru.salesKit.title, desc: ru.cabinet.tileSalesKitDesc },
+                      { href: '/ru/cabinet/presentation', title: ru.presentation.title, desc: ru.cabinet.tilePresentationDesc },
                     ]
                   : []),
                 { href: '/ru/cabinet/settings', title: ru.cabinet.settingsLink, desc: ru.cabinet.tileSettingsDesc },
