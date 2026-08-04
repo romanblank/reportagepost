@@ -1,0 +1,83 @@
+name: Restore prod DB (ОПАСНО)
+on:
+  workflow_dispatch:
+    inputs:
+      dump:
+        description: 'Имя файла дампа в бакете (db-backups/...). Пусто = последний'
+        required: false
+      confirm:
+        description: 'Впишите ВОССТАНОВИТЬ — иначе ничего не произойдёт'
+        required: true
+
+# Восстановление боевой базы из резервной копии.
+#
+# До этого workflow бэкапы были проверены (restore-drill разворачивает их
+# еженедельно), а ПУТИ ОБРАТНО не существовало: чтобы вернуть данные в прод,
+# пришлось бы писать этот сценарий в момент аварии, под стрессом, с лежащим
+# сайтом и без доступа к машине с ноутбука. Проверенный бэкап без проверенного
+# восстановления — это надежда, а не резервная копия.
+#
+# Порядок намеренно недружелюбный: сначала разворачиваем во временную базу и
+# сверяем, что в ней есть данные, и только потом трогаем боевую.
+jobs:
+  restore:
+    if: ${{ github.event.inputs.confirm == 'ВОССТАНОВИТЬ' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Restore into prod
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: rp
+          key: ${{ secrets.PROD_SSH_KEY }}
+          command_timeout: 40m
+          script: |
+            set -euo pipefail
+            cd /opt/reportagepost
+
+            ID=$(grep '^S3_ACCESS_KEY_ID=' .env.prod | cut -d= -f2-)
+            SEC=$(grep '^S3_SECRET_ACCESS_KEY=' .env.prod | cut -d= -f2-)
+            EP=$(grep '^S3_ENDPOINT=' .env.prod | cut -d= -f2-)
+            BUCKET=$(grep -E '^S3_BACKUP_BUCKET=' .env.prod | cut -d= -f2-)
+            [ -z "$BUCKET" ] && BUCKET=$(grep '^S3_BUCKET=' .env.prod | cut -d= -f2-)
+            DB=$(grep '^DATABASE_URL=' .env.prod | cut -d= -f2-)
+
+            aws() { docker run --rm -v /tmp:/w -e AWS_ACCESS_KEY_ID="$ID" -e AWS_SECRET_ACCESS_KEY="$SEC" \
+              -e AWS_DEFAULT_REGION=ru-central1 amazon/aws-cli --endpoint-url "$EP" "$@"; }
+
+            NAME="${{ github.event.inputs.dump }}"
+            if [ -z "$NAME" ]; then
+              NAME=$(aws s3 ls "s3://$BUCKET/db-backups/" | sort | tail -1 | awk '{print $4}')
+            fi
+            echo "Восстанавливаем из: $NAME"
+
+            # Места должно хватить на архив и распакованный дамп с запасом
+            AVAIL=$(df --output=avail -k / | tail -1)
+            [ "$AVAIL" -lt 5000000 ] && { echo "Мало места на диске"; exit 1; }
+
+            aws s3 cp "s3://$BUCKET/db-backups/$NAME" /w/restore.sql.gz
+            gunzip -f /tmp/restore.sql.gz
+
+            # Шаг 1: разворачиваем во ВРЕМЕННУЮ базу и убеждаемся, что дамп живой
+            docker rm -f rp-restore-check >/dev/null 2>&1 || true
+            docker run -d --name rp-restore-check -e POSTGRES_PASSWORD=check -e POSTGRES_DB=check postgres:17-alpine >/dev/null
+            for i in $(seq 1 30); do docker exec rp-restore-check pg_isready -U postgres >/dev/null 2>&1 && break; sleep 2; done
+            docker cp /tmp/restore.sql rp-restore-check:/tmp/restore.sql
+            docker exec rp-restore-check psql -U postgres -d check -q -f /tmp/restore.sql >/dev/null 2>&1 || true
+            USERS=$(docker exec rp-restore-check psql -U postgres -d check -tAc 'SELECT count(*) FROM "User"')
+            docker rm -f rp-restore-check >/dev/null 2>&1 || true
+            echo "В дампе пользователей: $USERS"
+            [ "${USERS:-0}" -lt 1 ] && { echo "Дамп пуст — восстанавливать нечего"; rm -f /tmp/restore.sql; exit 1; }
+
+            # Шаг 2: снимаем сайт, чтобы никто не писал в базу во время заливки
+            docker compose --env-file .env.prod -f docker-compose.prod.yml down
+
+            # Шаг 3: заливаем в боевую базу
+            docker run --rm -v /tmp:/w postgres:17-alpine \
+              psql "$DB" -v ON_ERROR_STOP=0 -f /w/restore.sql
+
+            # Шаг 4: поднимаем обратно
+            IMAGE=$(grep -E '^IMAGE=' .deploy.env | cut -d= -f2-)
+            IMAGE="$IMAGE" docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
+            for i in $(seq 1 20); do sleep 6; curl -sf http://127.0.0.1:3000/health >/dev/null && { echo "ВОССТАНОВЛЕНО"; break; }; done
+            rm -f /tmp/restore.sql

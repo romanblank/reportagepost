@@ -145,3 +145,48 @@ describe('пост-деплой smoke', () => {
     expect(deploy).toMatch(/chmod \+x[^\n]*smoke\.sh/);
   });
 });
+
+/**
+ * Откат образа не должен ломаться о применённую миграцию.
+ *
+ * Деплой умеет откатываться на прошлый образ, но миграции при этом остаются
+ * применёнными. Для аддитивных изменений это безопасно, а вот DROP или
+ * RENAME превращают откат в поломку: прежний код обращается к тому, чего
+ * больше нет. Дисциплина «expand-contract» была записана в комментарии
+ * деплоя, но ничем не проверялась.
+ */
+describe('миграции: откат образа безопасен', () => {
+  it('деструктивные операции несут явное обоснование', async () => {
+    const { readdirSync, readFileSync, existsSync } = await import('node:fs');
+    const path = await import('node:path');
+    const dir = path.join(process.cwd(), 'prisma/migrations');
+    if (!existsSync(dir)) return;
+
+    const risky = /(DROP\s+TABLE|DROP\s+COLUMN|RENAME\s+COLUMN|RENAME\s+VALUE|ALTER\s+COLUMN[^;]*SET\s+NOT\s+NULL)/i;
+
+    /**
+     * Исторические миграции, применённые до появления этой проверки.
+     *
+     * Дописать в них обоснование нельзя: изменение файла меняет контрольную
+     * сумму, и `migrate dev` потребует сброса базы — а в ней живые аккаунты
+     * (урок 2026-08-01). Откат к образу той эпохи всё равно невозможен по
+     * множеству других причин, так что риск теоретический.
+     */
+    const historical = new Set(['20260725000000_subscription_prime_elite']);
+    const offenders: string[] = [];
+
+    for (const name of readdirSync(dir)) {
+      const file = path.join(dir, name, 'migration.sql');
+      if (!existsSync(file)) continue;
+      const sql = readFileSync(file, 'utf8');
+      if (historical.has(name)) continue;
+      if (risky.test(sql) && !/SAFE-TO-ROLLBACK/i.test(sql)) offenders.push(name);
+    }
+
+    expect(
+      offenders,
+      `эти миграции ломают откат на прошлый образ. Добавьте в файл строку ` +
+        `«-- SAFE-TO-ROLLBACK: <почему прежний код переживёт эту схему>»:\n${offenders.join('\n')}`,
+    ).toEqual([]);
+  });
+});

@@ -34,17 +34,35 @@ jobs:
             exit 1
           }
           # 1. HTTP + тело
-          BODY=$(curl -s -m 20 -w "\n%{http_code}" "$URL") || alert "сайт недоступен (curl fail)"
+          # Одна повторная попытка: сетевой сбой раннера GitHub не должен
+          # выглядеть как падение прода — иначе канал наполняется ложными
+          # тревогами и его перестают читать
+          BODY=$(curl -s -m 20 -w "\n%{http_code}" "$URL") || { sleep 20; BODY=$(curl -s -m 20 -w "\n%{http_code}" "$URL") || alert "сайт недоступен (две попытки)"; }
           CODE=$(echo "$BODY" | tail -1)
           JSON=$(echo "$BODY" | sed '$d')
           [ "$CODE" = "200" ] || alert "HTTP ${CODE} на /health"
           echo "$JSON" | grep -q '"db":"ok"' || alert "БД недоступна (health: ${JSON})"
+          # Хранилище: при его отказе сайт рендерится, но все фотографии битые —
+          # без этой проверки о таком узнавал первый пользователь
+          echo "$JSON" | grep -q '"storage":"ok"' || alert "хранилище недоступно (health: ${JSON})"
           # 2. SSL: предупредить, если ≤14 дней до истечения
           END=$(echo | openssl s_client -servername reportagepost.com -connect reportagepost.com:443 2>/dev/null | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2)
           if [ -n "$END" ]; then
             END_TS=$(date -d "$END" +%s 2>/dev/null || echo 0)
             NOW_TS=$(date +%s)
             DAYS=$(( (END_TS - NOW_TS) / 86400 ))
-            if [ "$END_TS" -gt 0 ] && [ "$DAYS" -le 14 ]; then alert "SSL истекает через ${DAYS} дн."; fi
+            # Предупреждение, а не авария: раньше оно уходило КАЖДЫЕ 10 минут
+            # в течение двух недель — две тысячи одинаковых красных сообщений
+            # вперемешку с настоящими падениями. Теперь только на рубежах и
+            # спокойным тоном, без падения самой проверки.
+            case "$DAYS" in
+              14|7|3|2|1|0)
+                if [ -n "${TG_TOKEN:-}" ] && [ -n "${TG_CHAT:-}" ]; then
+                  curl -s -m 15 "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+                    --data-urlencode "chat_id=${TG_CHAT}" \
+                    --data-urlencode "text=⚠️ Reportage Post: сертификат истекает через ${DAYS} дн." >/dev/null || true
+                fi
+                ;;
+            esac
           fi
           echo "OK: ${JSON}"

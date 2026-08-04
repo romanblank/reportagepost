@@ -175,7 +175,17 @@ jobs:
                 # был «в использовании» → не удалялся) + exit 0 сразу. За 17 деплоев
                 # образы Next.js (~1.5ГБ) накопились → диск забит. ФИКС: чистим образы
                 # ПОСЛЕ успешного up — на диске остаётся только рабочий (откат re-pull'ит).
-                docker image prune -af >/dev/null 2>&1 || true
+                # Удаляем старые образы, КРОМЕ текущего и предыдущего: иначе
+                # откат зависит от доступности GHCR ровно в тот момент, когда
+                # всё плохо. Полтора гигабайта на диске дешевле неработающего
+                # отката.
+                PREV_IMG=$(grep -E '^IMAGE=' .previous-deploy 2>/dev/null | cut -d= -f2-)
+                docker images --format '{{.Repository}}:{{.Tag}} {{.ID}}' \
+                  | grep -F "$(echo "$IMAGE" | cut -d: -f1)" \
+                  | grep -v -F "$IMAGE" \
+                  | { [ -n "$PREV_IMG" ] && grep -v -F "$PREV_IMG" || cat; } \
+                  | awk '{print $2}' | xargs -r docker rmi -f >/dev/null 2>&1 || true
+                docker image prune -f >/dev/null 2>&1 || true
                 # Диагностика диска → в бакет (Actions-логи агенту недоступны, PAT 403)
                 { echo "== df =="; df -h /; echo; echo "== docker system df =="; docker system df; \
                   echo; echo "== du (top dirs) =="; sudo du -sh /var/lib/docker /var/log /var/log/journal /opt/reportagepost 2>/dev/null; \

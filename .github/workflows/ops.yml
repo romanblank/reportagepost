@@ -1,0 +1,68 @@
+name: Prod ops
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Что сделать'
+        required: true
+        type: choice
+        options:
+          - refresh-secrets
+          - migrate-status
+          - migrate-resolve-rolled-back
+          - restart
+      arg:
+        description: 'Аргумент (имя миграции для resolve)'
+        required: false
+
+# Мелкие операции с продом, ради которых раньше пришлось бы гонять полный
+# деплой или лезть на машину — а доступа к ней у оператора нет.
+#
+# Зачем каждая:
+# - refresh-secrets: ротация ключа применялась ТОЛЬКО полным прогоном CI
+#   (тесты + сборка образа + деплой ≈ 15 минут, и только если main зелёный).
+#   В момент компрометации ключа это неприемлемо.
+# - migrate-resolve: прерванная миграция остаётся failed и блокирует ВСЕ
+#   последующие деплои (P3018). Это уже случалось, и чинилось вручную.
+# - migrate-status / restart: рутина, ради которой не нужен деплой.
+jobs:
+  ops:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: rp
+          key: ${{ secrets.PROD_SSH_KEY }}
+          command_timeout: 15m
+          envs: ACTION,ARG
+          script: |
+            set -uo pipefail
+            cd /opt/reportagepost
+            case "$ACTION" in
+              refresh-secrets)
+                ./fetch-secrets.sh
+                IMAGE=$(grep -E '^IMAGE=' .deploy.env | cut -d= -f2-)
+                IMAGE="$IMAGE" docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --force-recreate
+                for i in $(seq 1 20); do sleep 5; curl -sf http://127.0.0.1:3000/health >/dev/null && { echo OK; exit 0; }; done
+                echo "не поднялся"; exit 1
+                ;;
+              migrate-status)
+                IMAGE=$(grep -E '^IMAGE=' .deploy.env | cut -d= -f2-)
+                docker run --rm --env-file .env.prod "$IMAGE" npx prisma migrate status
+                ;;
+              migrate-resolve-rolled-back)
+                [ -z "${ARG:-}" ] && { echo "нужно имя миграции"; exit 1; }
+                IMAGE=$(grep -E '^IMAGE=' .deploy.env | cut -d= -f2-)
+                docker run --rm --env-file .env.prod "$IMAGE" npx prisma migrate resolve --rolled-back "$ARG"
+                ;;
+              restart)
+                IMAGE=$(grep -E '^IMAGE=' .deploy.env | cut -d= -f2-)
+                IMAGE="$IMAGE" docker compose --env-file .env.prod -f docker-compose.prod.yml restart
+                ;;
+              *) echo "неизвестное действие"; exit 1 ;;
+            esac
+        env:
+          ACTION: ${{ github.event.inputs.action }}
+          ARG: ${{ github.event.inputs.arg }}

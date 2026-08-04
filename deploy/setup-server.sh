@@ -88,7 +88,14 @@ PROXY_BLOCK='
         client_max_body_size 45m;
     }'
 
-if sudo test -f "$CERT_DIR/fullchain.pem"; then
+# Если сертификат пропал, а HTTPS-конфиг уже был — НЕ откатываемся на голый
+# HTTP. Приложение отдаёт HSTS на два года: для всех, кто заходил раньше,
+# браузер откажется открывать сайт по HTTP вовсе. Лучше оставить прежний
+# конфиг и громко сказать, чем тихо превратить сайт в недоступный.
+if ! sudo test -f "$CERT_DIR/fullchain.pem" && sudo grep -q "listen 443" /etc/nginx/sites-available/reportagepost 2>/dev/null; then
+  echo "setup-server: сертификата нет, но HTTPS-конфиг уже был — оставляю как есть" >&2
+  sudo nginx -t && sudo systemctl reload nginx
+elif sudo test -f "$CERT_DIR/fullchain.pem"; then
   sudo tee /etc/nginx/sites-available/reportagepost >/dev/null <<NGINX
 server {
     listen 80;
@@ -182,6 +189,11 @@ set -uo pipefail
 cd /opt/reportagepost || exit 0
 SECRET=$(grep -E '^JOBS_SECRET=' .env.prod 2>/dev/null | cut -d= -f2-)
 [ -z "$SECRET" ] && exit 0   # секрет ещё не заведён — тихо выходим
+
+# Один прогон зараз: полный пересчёт рейтингов на выросшем каталоге может
+# длиться дольше суток, и тогда два прогона наложились бы друг на друга
+exec 9>/var/lock/rp-maintenance.lock
+flock -n 9 || exit 0
 
 RESP=$(curl -s -m 300 -w '\n%{http_code}' -X POST \
   -H "Authorization: Bearer ${SECRET}" \
