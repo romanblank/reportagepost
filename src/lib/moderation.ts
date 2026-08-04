@@ -297,13 +297,20 @@ export async function rejectVideo(videoId: string, reason: string, actorUserId?:
   const { storage } = await import('@/lib/storage');
   const keys = videoStorageKeys(video);
 
-  await db.$transaction(async (tx) => {
-    await tx.profileVideo.update({
-      where: { id: videoId },
+  const rejected = await db.$transaction(async (tx) => {
+    // Проверка статуса ВНУТРИ транзакции: между внешним чтением и этим
+    // моментом другой администратор мог ролик одобрить, и мы бы сняли с
+    // публикации уже показанное видео, а следом удалили его файлы.
+    const { count } = await tx.profileVideo.updateMany({
+      where: { id: videoId, status: 'PENDING' },
       data: { status: 'REJECTED', failureReason: trimmed.slice(0, 200) },
     });
+    if (count === 0) return false;
     if (actorUserId) await logAudit(tx, actorUserId, 'video.reject', 'VIDEO', videoId);
+    return true;
   });
+  // Проиграли гонку — ролик уже одобрен кем-то другим, ничего не трогаем
+  if (!rejected) return;
 
   // Автор должен узнать причину — тем же каналом, что и по отклонённому кадру
   const owner = await db.photographerProfile.findUnique({

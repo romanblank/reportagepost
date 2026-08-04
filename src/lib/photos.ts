@@ -130,10 +130,16 @@ export function thumbVariantUrl(storageKey: string): string {
 export function photoStorageKeys(storageKey: string): string[] {
   if (storageKey.endsWith('/original.jpg')) {
     const base = storageKey.slice(0, -'/original.jpg'.length);
-    return [`${base}/original.jpg`, `${base}/web.jpg`, `${base}/thumb.jpg`];
+    // Ровно то, что кладёт storePhotoVariants — список сверяется тестом.
+    // WebP тут не роскошь: именно его предпочитает каталог, и именно он
+    // раздавался вечно после отклонения кадра и удаления аккаунта.
+    return PHOTO_VARIANTS.map((v) => `${base}/${v}`);
   }
   return [storageKey];
 }
+
+/** Имена объектов, которые создаёт `storePhotoVariants`. Единственный список. */
+export const PHOTO_VARIANTS = ['original.jpg', 'web.jpg', 'thumb.jpg', 'web.webp', 'thumb.webp'] as const;
 
 /**
  * Адрес WebP-варианта. `null`, если кадр загружен до появления формата —

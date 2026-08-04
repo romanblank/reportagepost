@@ -28,7 +28,7 @@ export default function AppError({ error, reset }: { error: Error & { digest?: s
   return (
     <main className="mx-auto flex w-full max-w-xl flex-1 flex-col items-center justify-center px-4 py-24 text-center">
       <p className="text-5xl font-semibold text-accent">!</p>
-      <h1 className="mt-4 text-2xl font-semibold">{ru.errorPage.title}</h1>
+      <h1 className="mt-4 t-h2">{ru.errorPage.title}</h1>
       <p className="mt-2 muted">{ru.errorPage.text}</p>
       <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
         <button type="button" onClick={reset} className="btn btn-accent">{ru.errorPage.retry}</button>

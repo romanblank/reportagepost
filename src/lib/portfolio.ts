@@ -1,5 +1,6 @@
 import { db } from '@/lib/db';
 import { storage } from '@/lib/storage';
+import { photoStorageKeys } from '@/lib/photos';
 import { DomainError } from '@/lib/errors';
 
 // Управление портфолио фотографа: удаление, пересортировка, выбор обложки.
@@ -12,13 +13,9 @@ async function ownProfile(userId: string) {
 }
 
 /** Ключи всех вариантов фото (гард формата — как в account.ts, ревью №8). */
-function variantKeys(storageKey: string): string[] {
-  if (storageKey.endsWith('/original.jpg')) {
-    const base = storageKey.slice(0, -'/original.jpg'.length);
-    return [`${base}/original.jpg`, `${base}/web.jpg`, `${base}/thumb.jpg`];
-  }
-  return [storageKey];
-}
+// Список вариантов — один на весь проект (photoStorageKeys). Своя копия здесь
+// уже приводила к тому, что WebP оставался в бакете навсегда.
+const variantKeys = photoStorageKeys;
 
 export async function deletePhoto(userId: string, photoId: string): Promise<void> {
   const profile = await ownProfile(userId);

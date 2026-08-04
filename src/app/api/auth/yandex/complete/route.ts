@@ -37,7 +37,14 @@ export async function POST(req: NextRequest) {
   if (profile.email) {
     const byEmail = await db.user.findUnique({ where: { email: profile.email } });
     if (byEmail) {
-      await db.user.update({ where: { id: byEmail.id }, data: { yandexId: profile.yandexId } });
+      await db.user.update({
+        where: { id: byEmail.id },
+        data: {
+          yandexId: profile.yandexId,
+          // Вход через Яндекс — доказательство владения адресом
+          ...(byEmail.emailVerifiedAt ? {} : { emailVerifiedAt: new Date() }),
+        },
+      });
       return finish(byEmail.id, byEmail.role, byEmail.tokenVersion, '/ru/cabinet');
     }
   }
@@ -52,6 +59,10 @@ export async function POST(req: NextRequest) {
       yandexId: profile.yandexId,
       pdnConsentAt: new Date(),
       pdnConsentVersion: PDN_CONSENT_VERSION,
+      // Яндекс подтверждает владение адресом при выдаче профиля — значит для
+      // нас он подтверждён. Иначе такой человек навсегда заперт: подтвердить
+      // съёмку и оставить отзыв нельзя, а письма ему никто не отправлял.
+      emailVerifiedAt: profile.email ? new Date() : null,
     },
   });
   return finish(user.id, user.role, user.tokenVersion, role === 'PHOTOGRAPHER' ? '/ru/onboarding' : '/ru/cabinet');

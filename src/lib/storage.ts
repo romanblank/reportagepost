@@ -43,6 +43,30 @@ export interface ObjectStorage {
   publicUrl(key: string): string;
 }
 
+
+/**
+ * «Объекта нет» против «хранилище недоступно».
+ *
+ * Раньше S3-адаптер глотал ЛЮБУЮ ошибку и возвращал null, а раздатчик
+ * превращал null в 404. То есть недоступность хранилища выглядела снаружи как
+ * «файла не существует»: страницы рендерились, картинки были битыми, smoke
+ * оставался зелёным (он как раз проверяет, что неизвестный ключ даёт 404), и
+ * узнать об этом можно было только от пользователя.
+ */
+export class StorageUnavailableError extends Error {
+  constructor(cause: unknown) {
+    super(`Хранилище недоступно: ${cause instanceof Error ? cause.message : 'неизвестная ошибка'}`);
+    this.name = 'StorageUnavailableError';
+  }
+}
+
+function isMissingObject(e: unknown): boolean {
+  const name = (e as { name?: string })?.name ?? '';
+  const code = (e as { Code?: string })?.Code ?? '';
+  const status = (e as { $metadata?: { httpStatusCode?: number } })?.$metadata?.httpStatusCode;
+  return name === 'NoSuchKey' || name === 'NotFound' || code === 'NoSuchKey' || status === 404;
+}
+
 const UPLOADS_DIR = process.env.UPLOADS_DIR ?? '.uploads';
 
 // Ключи вида photos/<uuid>/web.jpg — только [a-z0-9/._-], защита от traversal.
@@ -163,8 +187,9 @@ class S3Storage implements ObjectStorage {
     try {
       const res = await this.client.send(new HeadObjectCommand({ Bucket: this.bucket, Key: key }));
       return res.ContentLength ?? null;
-    } catch {
-      return null;
+    } catch (e) {
+      if (isMissingObject(e)) return null;
+      throw new StorageUnavailableError(e);
     }
   }
 
@@ -190,8 +215,9 @@ class S3Storage implements ObjectStorage {
         length: res.ContentLength ?? 0,
         total: Number.isFinite(total) && total > 0 ? total : (res.ContentLength ?? 0),
       };
-    } catch {
-      return null;
+    } catch (e) {
+      if (isMissingObject(e)) return null;
+      throw new StorageUnavailableError(e);
     }
   }
 

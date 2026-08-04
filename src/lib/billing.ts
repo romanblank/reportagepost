@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { priceForCity, cityTierOf, type PaidTier } from '@/lib/pricing';
 import { rankForTier } from '@/lib/subscription';
@@ -42,10 +43,43 @@ export async function applyPaymentStatus(
     const payment = await tx.payment.findUnique({ where: { orderId } });
     if (!payment) return { found: false, credited: false };
 
-    // Не-финальные статусы — просто фиксируем.
     if (status !== 'CONFIRMED') {
-      await tx.payment.update({
-        where: { id: payment.id },
+      // Возврат денег обязан отзывать и оплаченный уровень. Раньше REFUNDED
+      // только менял статус платежа: человек получал деньги обратно и
+      // продолжал пользоваться подпиской до конца оплаченного периода.
+      if (status === 'REFUNDED' && payment.userId) {
+        const sub = await tx.subscription.findUnique({
+          where: { userId: payment.userId },
+          select: { currentPeriodEnd: true },
+        });
+        if (sub?.currentPeriodEnd) {
+          // Отматываем ровно тот месяц, который был выдан этим платежом.
+          // Если после отката период уже в прошлом — уровень падает до FREE.
+          const rolled = new Date(sub.currentPeriodEnd.getTime() - MONTH_MS);
+          const expired = rolled <= now;
+          await tx.subscription.update({
+            where: { userId: payment.userId },
+            data: {
+              currentPeriodEnd: rolled,
+              ...(expired ? { tier: 'FREE' as const } : {}),
+            },
+          });
+          if (expired) {
+            await tx.photographerProfile.updateMany({
+              where: { userId: payment.userId },
+              data: { proRank: 0 },
+            });
+          }
+        }
+      }
+
+      // Статусы монотонны: подтверждённый платёж не может «расподтвердиться»
+      // из-за переупорядоченного вебхука. Иначе бухгалтерский след разойдётся
+      // с реальностью — деньги получены, а в базе REJECTED.
+      const allowed: Prisma.PaymentWhereInput =
+        status === 'REFUNDED' ? { id: payment.id } : { id: payment.id, status: 'NEW' };
+      await tx.payment.updateMany({
+        where: allowed,
         data: { status, tinkoffPaymentId: tinkoffPaymentId ?? payment.tinkoffPaymentId },
       });
       return { found: true, credited: false };

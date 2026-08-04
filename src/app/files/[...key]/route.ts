@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { storage } from '@/lib/storage';
+import { storage, StorageUnavailableError } from '@/lib/storage';
 import { contentTypeForKey } from '@/lib/videos';
 
 // Раздатчик объектов хранилища (бакет приватный, поэтому через свой роут; на
@@ -29,7 +29,14 @@ export async function GET(
   let total: number | null;
   try {
     total = await storage.size(joined);
-  } catch {
+  } catch (e) {
+    // Недоступность хранилища — это 503 «попробуйте позже», а не 404 «нет
+    // такого файла». Разница принципиальная: 404 браузер и поисковик кэшируют
+    // и считают окончательным ответом, а мониторинг видит здоровую систему.
+    if (e instanceof StorageUnavailableError) {
+      console.error('[files] storage unavailable:', e.message);
+      return NextResponse.json({ error: 'storage_unavailable' }, { status: 503 });
+    }
     return NextResponse.json({ error: 'bad_key' }, { status: 400 });
   }
   if (total === null) return NextResponse.json({ error: 'not_found' }, { status: 404 });

@@ -95,22 +95,31 @@ export async function processVideo(videoId: string): Promise<ProcessResult> {
 
   // Захват задачи: пометка PROCESSING одновременно и статус, и блокировка —
   // второй воркер, стартовавший по тому же расписанию, эту запись не возьмёт.
+  const claimedAt = new Date();
   const claimed = await db.profileVideo.updateMany({
     where: { id: videoId, processing: 'UPLOADED' },
-    data: { processing: 'PROCESSING' },
+    data: { processing: 'PROCESSING', claimedAt },
   });
   if (claimed.count === 0) return { id: videoId, ok: false, reason: 'already_claimed' };
 
   const dir = await mkdtemp(path.join(tmpdir(), 'rp-video-'));
+  // Вердикты о СОДЕРЖИМОМ: повторная обработка даст тот же ответ, файл больше
+  // не нужен. Всё остальное — инфраструктура, и удалять по ней исходник нельзя:
+  // минута недоступности хранилища уничтожала бы ролик автора безвозвратно.
+  const CONTENT_VERDICTS = new Set(['video_no_stream', 'video_too_long', 'video_too_short', 'video_codec_unsupported']);
+
   const fail = async (reason: string): Promise<ProcessResult> => {
-    await db.profileVideo.update({
-      where: { id: videoId },
+    // Финализируем ТОЛЬКО если задача всё ещё наша: пока шёл транскод, её мог
+    // перехватить другой воркер, и тогда его результат затирать нельзя
+    const { count } = await db.profileVideo.updateMany({
+      where: { id: videoId, processing: 'PROCESSING', claimedAt: claimedAt },
       data: { processing: 'FAILED', failureReason: reason, processedAt: new Date() },
     });
-    // Исходник отбракованного ролика не пригодится никому: повторная обработка
-    // даст тот же вердикт, а автору предлагается загрузить другой файл. Оставь
-    // мы его — платили бы за хранение сырого видео, которое никогда не откроют.
-    await storage.delete(video.storageKey).catch(() => {});
+    if (count === 0) return { id: videoId, ok: false, reason: 'lost_claim' };
+
+    if (CONTENT_VERDICTS.has(reason)) {
+      await storage.delete(video.storageKey).catch(() => {});
+    }
     return { id: videoId, ok: false, reason };
   };
 
@@ -143,8 +152,8 @@ export async function processVideo(videoId: string): Promise<ProcessResult> {
 
     const review = await needsReview(dir, source, probe);
 
-    await db.profileVideo.update({
-      where: { id: videoId },
+    const finalized = await db.profileVideo.updateMany({
+      where: { id: videoId, processing: 'PROCESSING', claimedAt },
       data: {
         processing: 'READY',
         ...keys,
@@ -160,6 +169,9 @@ export async function processVideo(videoId: string): Promise<ProcessResult> {
         ...(review ? { status: 'PENDING' as const } : {}),
       },
     });
+    // Задачу перехватили, пока мы кодировали: чужой результат уже опубликован,
+    // и наш затирать нельзя — просто выходим
+    if (finalized.count === 0) return { id: videoId, ok: false, reason: 'lost_claim' };
 
     // Исходник больше не нужен: раздаём только варианты, а держать сырое 4K в
     // бакете — платить за хранение того, что никто никогда не откроет.
@@ -193,8 +205,12 @@ const STUCK_AFTER_MS = 30 * 60_000;
 export async function requeueStuck(now: Date = new Date()): Promise<number> {
   const threshold = new Date(now.getTime() - STUCK_AFTER_MS);
   const { count } = await db.profileVideo.updateMany({
-    where: { processing: 'PROCESSING', createdAt: { lt: threshold } },
-    data: { processing: 'UPLOADED' },
+    // ОТ МОМЕНТА ЗАХВАТА, а не от загрузки: считая от createdAt, порог
+    // срабатывал на любом ролике, пролежавшем в очереди дольше получаса, —
+    // в том числе на том, который прямо сейчас кодирует живой воркер. Двойной
+    // ffmpeg на одну запись, гонка за одни и те же ключи, стёртый результат.
+    where: { processing: 'PROCESSING', claimedAt: { lt: threshold } },
+    data: { processing: 'UPLOADED', claimedAt: null },
   });
   return count;
 }

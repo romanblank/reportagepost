@@ -17,12 +17,12 @@ export default async function AdminInvitesPage() {
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 sm:py-10">
-      <h1 className="text-2xl font-semibold sm:text-3xl">{ru.adminInvites.title}</h1>
+      <h1 className="t-h2">{ru.adminInvites.title}</h1>
 
-      <h2 className="mt-6 text-lg font-medium">{ru.adminInvites.createTitle}</h2>
+      <h2 className="mt-6 t-title">{ru.adminInvites.createTitle}</h2>
       <InviteCreator />
 
-      <h2 className="mt-8 text-lg font-medium">{ru.adminInvites.listTitle}</h2>
+      <h2 className="mt-8 t-title">{ru.adminInvites.listTitle}</h2>
       {invites.length === 0 ? (
         <p className="mt-3 text-sm muted">{ru.adminInvites.empty}</p>
       ) : (

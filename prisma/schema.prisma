@@ -422,6 +422,7 @@ model ProfileVideo {
   // берётся из тарифа при обработке: иначе смена уровня задним числом делала бы
   // уже принятый ролик «слишком длинным».
   maxSeconds     Int             @default(90)
+  claimedAt      DateTime?       @db.Timestamptz(3) // когда воркер взял задачу — от него считается «застряло»
   processedAt    DateTime? @db.Timestamptz(3)
   processedBytes Int? // суммарный вес вариантов: видно, во что обходится хранение
 

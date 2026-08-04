@@ -81,7 +81,7 @@ export default async function Home() {
           ].map((p) => (
             <li key={p.t} className="border-t border-line pt-4">
               <span className="tnum text-sm" style={{ fontFamily: 'var(--font-mono)', color: 'var(--recognition)' }}>{p.n}</span>
-              <h3 className="mt-2 text-[17px]" style={{ fontFamily: 'var(--font-display)' }}>{p.t}</h3>
+              <h3 className="t-h3 mt-2">{p.t}</h3>
               <p className="mt-2 text-sm leading-relaxed muted">{p.d}</p>
             </li>
           ))}

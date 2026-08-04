@@ -59,7 +59,7 @@ export function CommentSection({ storyId, initial, me }: { storyId: string; init
 
   return (
     <section className="mt-10 border-t border-line pt-6">
-      <h2 className="text-lg font-medium">{ru.comments.count(items.length)}</h2>
+      <h2 className="t-title">{ru.comments.count(items.length)}</h2>
 
       {items.length === 0 ? (
         <p className="mt-3 text-sm muted">{ru.comments.empty}</p>

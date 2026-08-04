@@ -17,7 +17,7 @@ export default async function MessagesPage() {
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6 sm:py-10">
-      <h1 className="text-2xl font-semibold sm:text-3xl">{ru.messages.title}</h1>
+      <h1 className="t-h2">{ru.messages.title}</h1>
       {dialogs.length === 0 ? (
         <EmptyState
           icon={<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M4 5h16v11H8l-4 4V5z" /></svg>}

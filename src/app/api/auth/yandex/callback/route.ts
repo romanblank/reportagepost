@@ -52,7 +52,14 @@ export async function GET(req: NextRequest) {
     const byEmail = await db.user.findUnique({ where: { email: profile.email } });
     if (byEmail) {
       if (byEmail.status === 'BANNED') return clearState(NextResponse.redirect(abs('/ru/login?error=banned')));
-      await db.user.update({ where: { id: byEmail.id }, data: { yandexId: profile.yandexId } });
+      await db.user.update({
+        where: { id: byEmail.id },
+        data: {
+          yandexId: profile.yandexId,
+          // Вход через Яндекс — доказательство владения адресом
+          ...(byEmail.emailVerifiedAt ? {} : { emailVerifiedAt: new Date() }),
+        },
+      });
       return login(byEmail.id, byEmail.role, byEmail.tokenVersion, '/ru/cabinet');
     }
   }

@@ -166,14 +166,17 @@ describe.skipIf(!hasDb)('видео: устойчивость очереди (Б
       const oldStuck = await db.profileVideo.create({
         data: {
           profileId: profile.id, storageKey: `videos/stuck-old-${stamp}/source.mp4`, mimeType: 'video/mp4',
-          sizeBytes: 1000, processing: 'PROCESSING', createdAt: new Date(Date.now() - 2 * 60 * 60_000),
+          sizeBytes: 1000, processing: 'PROCESSING',
+          // Застревание считается от МОМЕНТА ЗАХВАТА: ролик, давно лежащий в
+          // очереди, но взятый в работу только что, отбирать нельзя
+          claimedAt: new Date(Date.now() - 2 * 60 * 60_000),
         },
       });
       // А этот взят воркером только что — отбирать нельзя
       const fresh = await db.profileVideo.create({
         data: {
           profileId: profile.id, storageKey: `videos/stuck-new-${stamp}/source.mp4`, mimeType: 'video/mp4',
-          sizeBytes: 1000, processing: 'PROCESSING',
+          sizeBytes: 1000, processing: 'PROCESSING', claimedAt: new Date(),
         },
       });
 

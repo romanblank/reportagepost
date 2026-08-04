@@ -27,7 +27,15 @@ export async function confirmShoot(clientUserId: string, profileId: string, even
   if (actor?.role !== 'CLIENT') throw new DomainError('shoot_clients_only', 403);
   // Sybil-фрикция: подтверждённый адрес почты. Без неё завести десяток
   // «заказчиков» стоит ноль усилий — а каждый из них выдаёт verified-отзыв.
-  if (!actor.emailVerifiedAt) throw new DomainError('shoot_email_unverified', 403);
+  // Требование подтверждённой почты — Sybil-фрикция, но она осмысленна только
+  // если письмо ВООБЩЕ можно получить. Пока почта не настроена или не работает,
+  // это требование запирает механику целиком: ни одной подтверждённой съёмки, а
+  // значит ни одного verified-отзыва и пустой фильтр «с подтверждёнными» в
+  // каталоге. Тот же рубильник, что у гейта лички и отзывов.
+  const { verificationRequired } = await import('@/lib/email-verification');
+  if (verificationRequired() && !actor.emailVerifiedAt) {
+    throw new DomainError('shoot_email_unverified', 403);
+  }
   // Анти-форж (S4): подтвердить съёмку можно только при РЕАЛЬНОМ контакте на
   // платформе — двусторонней переписке (клиент писал автору И автор отвечал).
   // Блокирует нулевой-эффорт фейк-verified (создать клиента → сразу подтвердить

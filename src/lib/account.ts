@@ -1,5 +1,6 @@
 import { db } from '@/lib/db';
 import { videoStorageKeys } from '@/lib/videos';
+import { photoStorageKeys } from '@/lib/photos';
 import { storage } from '@/lib/storage';
 
 // Удаление аккаунта и данных (ПнД, S4.2). Явное упорядоченное удаление даёт
@@ -18,12 +19,9 @@ export async function deleteAccount(userId: string): Promise<void> {
     for (const ph of profile.photos) {
       // Ключ всегда photos/<id>/original.jpg — но гардим формат (ревью №8):
       // при неожиданном ключе не плодим неверные варианты-сироты.
-      if (ph.storageKey.endsWith('/original.jpg')) {
-        const base = ph.storageKey.slice(0, -'/original.jpg'.length);
-        storageKeys.push(`${base}/original.jpg`, `${base}/web.jpg`, `${base}/thumb.jpg`);
-      } else {
-        storageKeys.push(ph.storageKey);
-      }
+      // Через общий список: своя копия знала только про JPEG, и фотографии
+      // удалённого человека оставались в бакете в формате WebP
+      storageKeys.push(...photoStorageKeys(ph.storageKey));
     }
     if (profile.avatarKey) storageKeys.push(profile.avatarKey);
     // Ролик — это не один файл: исходник, два web-варианта и постер

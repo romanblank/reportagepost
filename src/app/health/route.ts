@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { storage } from '@/lib/storage';
 import { emailConfigured } from '@/lib/email';
 import { telegramConfigured } from '@/lib/telegram';
 import { getPremoderationProvider } from '@/lib/premoderation';
@@ -20,9 +21,28 @@ export async function GET() {
     telegram: telegramConfigured() ? 'on' : 'off',
     vision: getPremoderationProvider() ? 'on' : 'off',
   };
+  // Проба хранилища: раньше health спрашивал только базу, и отказ S3 —
+  // при котором сайт рендерится, но все фотографии битые — не был виден
+  // вообще ничем. Ключа заведомо нет, нам важен не ответ, а факт связи.
+  let storageState = 'ok';
+  try {
+    await Promise.race([
+      storage.size('photos/_health_probe'),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)),
+    ]);
+  } catch {
+    storageState = 'unreachable';
+  }
+
   try {
     await db.$queryRaw`SELECT 1`;
-    return NextResponse.json({ status: 'ok', app: 'reportage-post', db: 'ok', version, integrations });
+    if (storageState !== 'ok') {
+      return NextResponse.json(
+        { status: 'degraded', app: 'reportage-post', db: 'ok', storage: storageState, version, integrations },
+        { status: 503 },
+      );
+    }
+    return NextResponse.json({ status: 'ok', app: 'reportage-post', db: 'ok', storage: storageState, version, integrations });
   } catch {
     return NextResponse.json(
       { status: 'degraded', app: 'reportage-post', db: 'unreachable', version, integrations },

@@ -78,11 +78,35 @@ describe.skipIf(!hasDb)('shoots: подтверждённая съёмка — �
     await respondToShoot(owner.id, pending3[0].id, false);
     expect(await shootStats(profile.id)).toEqual({ count: 2, clients: 1, returning: 1 });
 
-    // Заказчик без подтверждённой почты отмечать съёмки не может
+    // Заказчик без подтверждённой почты отмечать съёмки не может — НО только
+    // когда почта в принципе работает. Иначе требование запирало бы механику
+    // целиком: подтвердиться неоткуда, и ни одной подтверждённой съёмки на
+    // платформе не появилось бы вовсе (найдено аудитом 2026-08-04).
     const unverified = await db.user.create({ data: { role: 'CLIENT', status: 'ACTIVE', firstName: 'Н', lastName: 'П', email: `sh-unv-${stamp}@test.local` } });
     await db.message.create({ data: { senderId: unverified.id, recipientId: owner.id, body: 'добрый день' } });
     await db.message.create({ data: { senderId: owner.id, recipientId: unverified.id, body: 'здравствуйте' } });
-    await expect(confirmShoot(unverified.id, profile.id)).rejects.toMatchObject({ code: 'shoot_email_unverified' });
+
+    const savedSmtp = { host: process.env.SMTP_HOST, user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD, gate: process.env.EMAIL_GATE };
+    try {
+      // Почта работает → фрикция включена
+      process.env.SMTP_HOST = 'smtp.test';
+      process.env.SMTP_USER = 'u';
+      process.env.SMTP_PASSWORD = 'p';
+      delete process.env.EMAIL_GATE;
+      await expect(confirmShoot(unverified.id, profile.id)).rejects.toMatchObject({ code: 'shoot_email_unverified' });
+
+      // Почта не настроена → требование снято, механика жива
+      delete process.env.SMTP_HOST;
+      delete process.env.SMTP_USER;
+      delete process.env.SMTP_PASSWORD;
+      await expect(confirmShoot(unverified.id, profile.id)).resolves.toBeUndefined();
+      await db.shootConfirmation.deleteMany({ where: { clientUserId: unverified.id } });
+    } finally {
+      if (savedSmtp.host === undefined) delete process.env.SMTP_HOST; else process.env.SMTP_HOST = savedSmtp.host;
+      if (savedSmtp.user === undefined) delete process.env.SMTP_USER; else process.env.SMTP_USER = savedSmtp.user;
+      if (savedSmtp.pass === undefined) delete process.env.SMTP_PASSWORD; else process.env.SMTP_PASSWORD = savedSmtp.pass;
+      if (savedSmtp.gate === undefined) delete process.env.EMAIL_GATE; else process.env.EMAIL_GATE = savedSmtp.gate;
+    }
 
     // Владелец не может отметить съёмку у себя; фотограф не «клиент»
     await expect(confirmShoot(owner.id, profile.id)).rejects.toThrow(DomainError);
@@ -97,6 +121,7 @@ describe.skipIf(!hasDb)('shoots: подтверждённая съёмка — �
 
     // cleanup (FK-порядок)
     await db.notification.deleteMany({ where: { userId: { in: [owner.id, client.id, unverified.id, stranger.id] } } });
+    await db.shootConfirmation.deleteMany({ where: { clientUserId: { in: [client.id, unverified.id] } } });
     await db.review.deleteMany({ where: { profileId: profile.id } });
     await db.shootConfirmation.deleteMany({ where: { profileId: profile.id } });
     await db.message.deleteMany({ where: { OR: [{ senderId: owner.id }, { recipientId: owner.id }] } });

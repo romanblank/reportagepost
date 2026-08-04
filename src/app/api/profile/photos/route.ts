@@ -5,6 +5,7 @@ import { getSession } from '@/lib/auth';
 import {
   analyzePhoto,
   storePhotoVariants,
+  photoStorageKeys,
 } from '@/lib/photos';
 import { findNearDuplicate } from '@/lib/photo-dedup';
 import { premoderate } from '@/lib/premoderation';
@@ -118,12 +119,8 @@ export function POST(req: Request) {
       // Лимит выбрали параллельные загрузки — убираем уже записанные варианты,
       // иначе в хранилище останутся осиротевшие файлы, за которые платим.
       if (e instanceof PhotoLimitError) {
-        const base = stored.storageKey.replace(/\/original\.jpg$/, '');
-        await Promise.all([
-          storage.delete(`${base}/original.jpg`),
-          storage.delete(`${base}/web.jpg`),
-          storage.delete(`${base}/thumb.jpg`),
-        ]).catch(() => {});
+        // Через общий список вариантов: своя копия знала только про JPEG
+        await Promise.all(photoStorageKeys(stored.storageKey).map((k) => storage.delete(k))).catch(() => {});
       }
       throw e;
     });

@@ -50,7 +50,12 @@ export async function findNearDuplicate(
            bit_count(('x' || "phash")::bit(64) # ('x' || ${phash})::bit(64))::int AS distance
     FROM "Photo"
     WHERE "phash" IS NOT NULL
-      AND "status" IN ('PENDING', 'APPROVED')
+      -- Только ОПУБЛИКОВАННЫЕ чужие кадры. Раньше сюда попадали и PENDING:
+      -- достаточно было залить чужое портфолио первым, и настоящий автор
+      -- получал «вы загружаете чужое» на каждый свой кадр и не мог собрать
+      -- портфолио вообще. Свои же неопубликованные кадры проверяются отдельно
+      -- ниже — там дубликат безвреден.
+      AND ("status" = 'APPROVED' OR "profileId" = ${uploaderProfileId})
       AND bit_count(('x' || "phash")::bit(64) # ('x' || ${phash})::bit(64)) <= ${threshold}
     -- Чужое совпадение (возможная кража) важнее своего повтора, дальше — ближайшее
     ORDER BY ("profileId" <> ${uploaderProfileId}) DESC, distance ASC

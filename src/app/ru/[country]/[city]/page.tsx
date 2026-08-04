@@ -364,14 +364,14 @@ export default async function CatalogPage(props: {
           )}
       {recommended.length > 0 && (
         <section className="mt-7">
-          <h2 className="flex items-center gap-2 text-lg font-medium text-recognition">{ru.catalog.recommendedTitle}</h2>
+          <h2 className="flex items-center gap-2 t-title text-recognition">{ru.catalog.recommendedTitle}</h2>
           <CatalogCards cards={recommended} cityName={cityName} />
         </section>
       )}
 
       {visiting.length > 0 && (
         <section className="mt-6">
-          <h2 className="text-lg font-medium">{ru.catalog.visitingTitle}</h2>
+          <h2 className="t-title">{ru.catalog.visitingTitle}</h2>
           <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {visiting.map((plan) => (
               <li key={plan.id} className="card border-dashed p-4">
@@ -423,7 +423,7 @@ export default async function CatalogPage(props: {
         )
       ) : mainCards.length === 0 ? null : (
         <>
-          {recommended.length > 0 && <h2 className="mt-8 text-lg font-medium">{ru.catalog.allInCity}</h2>}
+          {recommended.length > 0 && <h2 className="mt-8 t-title">{ru.catalog.allInCity}</h2>}
           <CatalogCards cards={mainCards} cityName={cityName} />
         </>
       )}

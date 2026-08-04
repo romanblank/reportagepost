@@ -72,7 +72,7 @@ export default async function CommunityPage() {
 
       {recent.length > 0 && (
         <section className="mt-8">
-          <h2 className="text-lg font-medium">{ru.dashboard.recentTitle}</h2>
+          <h2 className="t-title">{ru.dashboard.recentTitle}</h2>
           <ul className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {recent.map((p) => (
               <li key={p.id} className="card p-3">
@@ -93,7 +93,7 @@ export default async function CommunityPage() {
 
       {best.length > 0 && (
         <section className="mt-8">
-          <h2 className="text-lg font-medium">{ru.dashboard.bestWeekTitle}</h2>
+          <h2 className="t-title">{ru.dashboard.bestWeekTitle}</h2>
           <div className="mt-3 columns-2 gap-2 md:columns-3 lg:columns-4">
             {best.map((p) => (
               <Link key={p.photoId} href={`/ru/photographer/${p.username}`} className="mb-2 block">

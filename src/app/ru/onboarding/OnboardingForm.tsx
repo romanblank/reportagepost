@@ -141,7 +141,7 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
     const pct = uploadProgress ? Math.round((uploadProgress.done / uploadProgress.total) * 100) : 0;
     return (
       <section>
-        <h2 className="text-lg font-medium">{ru.onboarding.photosTitle}</h2>
+        <h2 className="t-title">{ru.onboarding.photosTitle}</h2>
         <p className="mt-1 text-sm opacity-60">
           {ru.onboarding.photosHint(ONBOARDING_PHOTOS_MIN, ONBOARDING_PHOTOS_MAX, MIN_LONG_SIDE)}
         </p>

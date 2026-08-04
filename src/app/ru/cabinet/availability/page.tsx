@@ -43,7 +43,7 @@ export default async function AvailabilityPage() {
   return (
     <main className="mx-auto w-full max-w-lg flex-1 px-4 py-6 sm:py-10">
       <Link href="/ru/cabinet" className="text-sm underline muted">← {ru.cabinet.title}</Link>
-      <h1 className="mt-3 text-2xl font-semibold sm:text-3xl">{ru.availability.title}</h1>
+      <h1 className="mt-3 t-h2">{ru.availability.title}</h1>
 
       {!approved ? (
         <p className="mt-4 text-sm muted">{ru.availability.locked}</p>
@@ -54,7 +54,7 @@ export default async function AvailabilityPage() {
             <AvailabilityCalendar initialBusy={busy.map((b) => b.date.toISOString().slice(0, 10))} />
           </div>
 
-          <h2 className="mt-8 text-lg font-medium">{ru.travel.title}</h2>
+          <h2 className="mt-8 t-title">{ru.travel.title}</h2>
           <p className="mt-1 text-sm muted">{ru.travel.lead}</p>
           <div className="mt-4 card p-4">
             <TravelPlans

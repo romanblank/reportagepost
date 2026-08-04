@@ -36,7 +36,7 @@ export default async function ClientCabinetPage() {
       </div>
 
       <section className="mt-6">
-        <h2 className="text-lg font-medium">{ru.clientCabinet.favoritesTitle}</h2>
+        <h2 className="t-title">{ru.clientCabinet.favoritesTitle}</h2>
         {favorites.length === 0 ? (
           <p className="mt-2 text-sm muted">{ru.clientCabinet.favoritesEmpty}</p>
         ) : (
@@ -62,7 +62,7 @@ export default async function ClientCabinetPage() {
 
       {shoots.length > 0 && (
         <section className="mt-8">
-          <h2 className="text-lg font-medium">{ru.clientCabinet.shootsTitle}</h2>
+          <h2 className="t-title">{ru.clientCabinet.shootsTitle}</h2>
           <ul className="mt-3 flex flex-col gap-2.5">
             {shoots.map((s) => (
               <li key={s.profileId} className="card flex items-center gap-3 p-3">
@@ -87,7 +87,7 @@ export default async function ClientCabinetPage() {
       )}
 
       <section className="mt-8">
-        <h2 className="text-lg font-medium">{ru.clientCabinet.myInquiriesTitle}</h2>
+        <h2 className="t-title">{ru.clientCabinet.myInquiriesTitle}</h2>
         {inquiries.length === 0 ? (
           <p className="mt-2 text-sm muted">{ru.clientCabinet.myInquiriesEmpty}</p>
         ) : (

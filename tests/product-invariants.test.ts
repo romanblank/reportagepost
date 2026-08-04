@@ -93,3 +93,51 @@ describe('инвариант: голос платформы без слов-ге
     expect(found, `слова-геткиперы в словаре:\n${found.join('\n')}`).toEqual([]);
   });
 });
+
+/**
+ * Типо-роли вместо зашитых размеров у заголовков.
+ *
+ * Инвариант спеки дизайна: `.t-display / .t-h1 / .t-h2 / .t-title` существуют
+ * именно для того, чтобы шрифтовая система была одна. Однажды ребрендинг уже
+ * вернули на доработку ровно из-за этого: новый шрифт прилепили инлайном
+ * поверх старой вёрстки, типо-роли на профиле не использовались ни разу, и
+ * оператор увидел это с первого взгляда — «ты только тему поменял».
+ *
+ * Проверка структурная: у заголовка не должно быть собственного text-размера.
+ */
+describe('инвариант: заголовки используют типо-роли, а не зашитые размеры', () => {
+  it('ни один h1/h2/h3 не задаёт размер шрифта вручную', async () => {
+    const { readdirSync, readFileSync, statSync } = await import('node:fs');
+    const path = await import('node:path');
+
+    const files: string[] = [];
+    const walk = (dir: string) => {
+      for (const name of readdirSync(dir)) {
+        const full = path.join(dir, name);
+        if (statSync(full).isDirectory()) walk(full);
+        else if (full.endsWith('.tsx')) files.push(full);
+      }
+    };
+    walk(path.join(process.cwd(), 'src'));
+
+    const offenders: string[] = [];
+    for (const file of files) {
+      const src = readFileSync(file, 'utf8');
+      // Разбираем ИМЕННО открывающий тег заголовка (он может занимать
+      // несколько строк), а не соседние строки: абзац под заголовком имеет
+      // полное право на свой размер
+      for (const m of src.matchAll(/<h[123]\b([^>]*)>/g)) {
+        const cls = m[1].match(/className="([^"]*)"/)?.[1] ?? '';
+        if (/\btext-(xs|sm|base|lg|xl|\dxl|\[)/.test(cls)) {
+          const line = src.slice(0, m.index).split('\n').length;
+          offenders.push(`${path.relative(process.cwd(), file)}:${line} → ${cls.slice(0, 60)}`);
+        }
+      }
+    }
+
+    expect(
+      offenders,
+      `заголовки с зашитым размером (используйте .t-display/.t-h1/.t-h2/.t-title):\n${offenders.join('\n')}`,
+    ).toEqual([]);
+  });
+});

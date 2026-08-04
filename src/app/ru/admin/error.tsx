@@ -13,7 +13,7 @@ export default function SegmentError({ error, reset }: { error: Error & { digest
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-16 text-center">
-      <h2 className="text-xl font-semibold">{ru.errorPage.title}</h2>
+      <h2 className="t-title">{ru.errorPage.title}</h2>
       <p className="mt-2 text-sm muted">{ru.errorPage.text}</p>
       <button type="button" onClick={reset} className="btn btn-accent mt-5 px-4 py-2 text-sm">
         {ru.errorPage.retry}
