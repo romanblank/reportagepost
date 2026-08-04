@@ -112,6 +112,11 @@ export function POST(req: Request) {
       );
     }
 
+    // Волны доставки заявок: подписчики получают фору, остальные —
+    // по расписанию. Заявка доходит до всех, вопрос только в очерёдности.
+    const { releaseInquiries } = await import('@/lib/inquiries');
+    const inquiriesDelivered = await releaseInquiries();
+
     // ── Сроки хранения персональных данных (аудит 152-ФЗ 2026-08-03) ──────
     // Политика обещает уничтожение «по достижении целей», но в коде срок не был
     // задан НИ ДЛЯ ОДНОЙ таблицы. Самое острое — гостевые заявки: имя, телефон
@@ -154,6 +159,7 @@ export function POST(req: Request) {
       profiles,
       ranksFixed,
       cleaned: { rateLimitRows, resets, verifications, activityRows, jobRuns, inquiriesAnon, reportsAnon, notificationsGone },
+      inquiriesDelivered,
       tookMs: Date.now() - startedAt,
     });
   });

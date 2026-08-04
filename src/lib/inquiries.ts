@@ -3,6 +3,7 @@ import { resolveCity } from '@/lib/geo-resolve';
 import { rateLimit } from '@/lib/rate-limit';
 import { DomainError } from '@/lib/errors';
 import { notifyManyInApp } from '@/lib/notifications';
+import { ELITE_RANK, PRIME_RANK } from '@/lib/subscription';
 import { sendEmail } from '@/lib/email';
 import { tgSend } from '@/lib/telegram';
 import { APP_DOMAIN } from '@/lib/constants';
@@ -92,11 +93,17 @@ export async function createInquiry(
     },
   });
 
+  // Первыми узнают подписчики: Active+ сразу, Active через два часа, остальные
+  // через шесть. Здесь отбираем тех, кому уведомление уходит СЕЙЧАС; всем
+  // прочим заявка станет видна по расписанию (см. releaseInquiries).
   const recipients = await db.photographerProfile.findMany({
     where: {
       status: 'APPROVED',
       cityId: city.id,
       ...(categoryId ? { categories: { some: { categoryId } } } : {}),
+      // proRank отражает уровень подписки; сверка с реальным состоянием идёт
+      // отдельной джобой, поэтому здесь достаточно денормализованного значения
+      proRank: { gte: ELITE_RANK },
     },
     select: {
       userId: true,
@@ -117,7 +124,8 @@ export async function createInquiry(
   await notifyManyInApp(
     recipients.map((r) => r.userId),
     'notification.inquiry.new',
-    { citySlug: input.citySlug },
+    // inquiryId нужен волнам доставки: по нему видно, кому уже уходило
+    { citySlug: input.citySlug, inquiryId: inquiry.id },
   );
 
   const link = `https://${APP_DOMAIN}/ru/cabinet`;
@@ -304,4 +312,69 @@ export async function setInquiryHandling(
     create: { inquiryId, profileId: profile.id, state },
     update: { state },
   });
+}
+
+
+/**
+ * Открывает заявки следующей волне авторов.
+ *
+ * Заявка не «принадлежит» подписчикам — она лишь доходит до них раньше.
+ * Джоба вызывается плановым обслуживанием и досылает уведомления тем, чьё
+ * время пришло: Active через два часа после создания, все остальные через
+ * шесть. Заказчик от этого ничего не теряет: его заявку в итоге видят все, а
+ * подписчики просто успевают ответить первыми.
+ *
+ * Повторно одному и тому же автору не шлём: отметка о доставке — сам факт
+ * наличия уведомления по этой заявке.
+ */
+export async function releaseInquiries(now: Date = new Date()): Promise<number> {
+  const { INQUIRY_HEAD_START_HOURS } = await import('@/lib/pricing');
+  const waves: { after: number; minRank: number; maxRank: number }[] = [
+    { after: INQUIRY_HEAD_START_HOURS.ELITE - INQUIRY_HEAD_START_HOURS.PRIME, minRank: PRIME_RANK, maxRank: ELITE_RANK - 1 },
+    { after: INQUIRY_HEAD_START_HOURS.ELITE, minRank: 0, maxRank: PRIME_RANK - 1 },
+  ];
+
+  let delivered = 0;
+
+  for (const wave of waves) {
+    const since = new Date(now.getTime() - wave.after * 3_600_000);
+    const inquiries = await db.inquiry.findMany({
+      where: { createdAt: { lte: since, gte: new Date(since.getTime() - 24 * 3_600_000) } },
+      select: { id: true, cityId: true, categoryId: true, city: { select: { slug: true } } },
+    });
+
+    for (const inquiry of inquiries) {
+      const recipients = await db.photographerProfile.findMany({
+        where: {
+          status: 'APPROVED',
+          cityId: inquiry.cityId,
+          ...(inquiry.categoryId ? { categories: { some: { categoryId: inquiry.categoryId } } } : {}),
+          proRank: { gte: wave.minRank, lte: wave.maxRank },
+        },
+        select: { userId: true },
+      });
+      if (recipients.length === 0) continue;
+
+      // Кому уже уходило уведомление по этой заявке — пропускаем
+      const already = await db.notification.findMany({
+        where: {
+          userId: { in: recipients.map((r) => r.userId) },
+          type: 'notification.inquiry.new',
+          payload: { path: ['inquiryId'], equals: inquiry.id },
+        },
+        select: { userId: true },
+      });
+      const seen = new Set(already.map((a) => a.userId));
+      const targets = recipients.map((r) => r.userId).filter((id) => !seen.has(id));
+      if (targets.length === 0) continue;
+
+      await notifyManyInApp(targets, 'notification.inquiry.new', {
+        citySlug: inquiry.city.slug,
+        inquiryId: inquiry.id,
+      });
+      delivered += targets.length;
+    }
+  }
+
+  return delivered;
 }

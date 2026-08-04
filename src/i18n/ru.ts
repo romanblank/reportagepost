@@ -158,6 +158,8 @@ export const ru = {
       page: 'Страница в каталоге города',
       inquiries: 'Заявки от заказчиков напрямую',
       portfolioBasic: 'Портфолио до 20 кадров',
+      inquiryHeadStart: 'Заявки заказчиков приходят на четыре часа раньше',
+      inquiryHeadStartPlus: 'Заявки приходят первыми — раньше всех на платформе',
       videoBasic: 'Шоурил на странице — один ролик до минуты',
       portfolioUnlimited: 'Портфолио без ограничений и серии',
       videoMore: 'До четырёх роликов, каждый до полутора минут',
@@ -887,6 +889,7 @@ export const ru = {
     dailyQueues: (n: number) => `ждёт решения: ${n}`,
     dailyStale: (names: string) => `молчат задачи: ${names}`,
     maintenanceNote: (profiles: number, cleaned: number) => `профилей ${profiles}, чистка ${cleaned}`,
+    inquiriesNote: (n: number) => `разослано ${n}`,
     videoNote: (done: number, failed: number) => `обработано ${done}, с ошибкой ${failed}`,
   },
   adminHome: {
@@ -940,6 +943,7 @@ export const ru = {
     job: {
       maintenance: 'Обслуживание: пересчёт рейтингов и чистка',
       video: 'Транскод роликов',
+      inquiries: 'Доставка заявок по волнам',
       backup: 'Резервная копия базы',
     } as Record<string, string>,
     glossary: [
@@ -1503,7 +1507,7 @@ export const ru = {
     budget: 'Бюджет, ₽ (необязательно)',
     description: 'Что снимаем? (минимум 20 символов)',
     submit: 'Отправить заявку',
-    sent: 'Заявка отправлена. Фотографы города увидят её и свяжутся с вами.',
+    sent: 'Заявка отправлена. Фотографы города увидят её и свяжутся с вами — первыми её видят авторы с подпиской, в течение дня она дойдёт до всех.',
     sentNotified: (n: number) => `Уведомлено фотографов: ${n}.`,
     consentText: 'Согласен на обработку персональных данных для передачи заявки фотографам выбранного города и жанра —',
     consentPolicyLink: 'политика обработки данных',

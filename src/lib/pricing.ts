@@ -143,6 +143,8 @@ export const PLAN_FEATURES: PlanFeature[] = [
   { key: 'page', minTier: 'FREE' }, // публичная страница + профиль в каталоге
   { key: 'inquiries', minTier: 'FREE' }, // приём заявок от заказчиков — открыто всем
   { key: 'portfolioBasic', minTier: 'FREE' }, // портфолио до FREE_PORTFOLIO_LIMIT
+  // Первый перк, ценность которого не зависит от посещаемости каталога
+  { key: 'inquiryHeadStart', minTier: 'PRIME' },
   { key: 'videoBasic', minTier: 'FREE' }, // один шоурил до FREE_VIDEO_SECONDS
   { key: 'portfolioUnlimited', minTier: 'PRIME' }, // портфолио без границ + фотоистории
   { key: 'videoMore', minTier: 'PRIME' }, // до PRIME_VIDEO_LIMIT роликов, до PAID_VIDEO_SECONDS
@@ -150,8 +152,34 @@ export const PLAN_FEATURES: PlanFeature[] = [
   { key: 'recognition', minTier: 'PRIME' }, // бейдж + участие в «Признании»
   { key: 'analytics', minTier: 'PRIME' }, // статистика просмотров и сохранений
   { key: 'fastReview', minTier: 'PRIME' }, // приоритетное рассмотрение изменений
+  { key: 'inquiryHeadStartPlus', minTier: 'ELITE' },
   { key: 'coverShowreel', minTier: 'ELITE' }, // шоурил играет в обложке профиля
   { key: 'recommended', minTier: 'ELITE' }, // ротация в «Рекомендуемых» + приоритет редподборок
   { key: 'analyticsPlus', minTier: 'ELITE' }, // кто смотрел/сохранял, тренды
   { key: 'earlyAccess', minTier: 'ELITE' }, // ранний доступ к фичам + персональный онбординг
 ];
+
+/**
+ * Фора на заявку — единственный перк, ценность которого не зависит от нашей
+ * посещаемости.
+ *
+ * Заявка первые часы видна только подписчикам города и жанра, дальше — всем.
+ * Ценность растёт от числа заявок, а не от размера каталога: то есть перк
+ * работает уже на пустой платформе и одновременно заставляет нас заниматься
+ * спросом — без заявок он сам себя обесценивает, и это видно сразу.
+ *
+ * Заказчику это не вредит: заявка всё равно доходит до всех авторов, просто
+ * подписчики успевают ответить первыми. Продавать эксклюзив НАВСЕГДА мы не
+ * будем — это превратило бы платформу в платный доступ к лидам, а заказчика
+ * оставило бы с меньшим выбором.
+ */
+export const INQUIRY_HEAD_START_HOURS: Record<PlanTier, number> = {
+  ELITE: 6, // видит сразу
+  PRIME: 4, // через 2 часа после Active+
+  FREE: 0, // через 6 часов, вместе со всеми
+};
+
+/** Через сколько часов после создания заявка становится видна этому уровню. */
+export function inquiryVisibleAfterHours(tier: PlanTier): number {
+  return INQUIRY_HEAD_START_HOURS.ELITE - INQUIRY_HEAD_START_HOURS[tier];
+}

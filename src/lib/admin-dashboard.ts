@@ -96,6 +96,7 @@ async function withDelta(
 const JOB_THRESHOLDS: Record<string, number> = {
   maintenance: 26, // раз в сутки
   video: 1, // раз в 2 минуты — час молчания это уже поломка
+  inquiries: 2, // раз в 15 минут; два часа тишины = фора подписчиков не работает
   backup: 36, // ночной бэкап
 };
 

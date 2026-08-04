@@ -236,6 +236,23 @@ VID
 sudo chmod +x /usr/local/bin/rp-video.sh
 echo '*/2 * * * * root /usr/local/bin/rp-video.sh >/dev/null 2>&1' | sudo tee /etc/cron.d/rp-video >/dev/null
 
+# ── Волны доставки заявок ────────────────────────────────────────────────────
+# Фора подписчиков измеряется часами, поэтому задача ходит каждые 15 минут:
+# в суточном обслуживании «фора в два часа» растянулась бы на сутки.
+sudo tee /usr/local/bin/rp-inquiries.sh >/dev/null <<'INQ'
+#!/usr/bin/env bash
+set -uo pipefail
+cd /opt/reportagepost || exit 0
+SECRET=$(grep -E '^JOBS_SECRET=' .env.prod 2>/dev/null | cut -d= -f2-)
+[ -z "$SECRET" ] && exit 0
+exec 9>/var/lock/rp-inquiries.lock
+flock -n 9 || exit 0
+curl -s -m 120 -o /dev/null -X POST -H "Authorization: Bearer ${SECRET}" \
+  http://127.0.0.1:3000/api/jobs/inquiries
+INQ
+sudo chmod +x /usr/local/bin/rp-inquiries.sh
+echo '*/15 * * * * root /usr/local/bin/rp-inquiries.sh >/dev/null 2>&1' | sudo tee /etc/cron.d/rp-inquiries >/dev/null
+
 # ── Сторож самих сторожей (аудит 2026-08-01) ─────────────────────────────────
 # Проблема: ВСЯ система наблюдения жила в GitHub Actions, а GitHub отключает
 # scheduled workflows после 60 дней без коммитов в репозиторий — молча. Плюс

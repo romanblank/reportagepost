@@ -81,3 +81,69 @@ describe.skipIf(!hasDb)('inquiries: создание и доставка (БД)'
     await db.inquiry.delete({ where: { id: inquiryId } });
   });
 });
+
+/**
+ * Фора подписчиков на заявку.
+ *
+ * Единственный перк, ценность которого не зависит от нашей посещаемости: она
+ * растёт от числа заявок. Проверяем главное — что заявка в итоге доходит ДО
+ * ВСЕХ, а подписка влияет только на очерёдность. Продавать эксклюзив навсегда
+ * означало бы оставить заказчика с меньшим выбором.
+ */
+describe.skipIf(!hasDb)('заявки: фора подписчиков, но не эксклюзив (БД)', () => {
+  it('первыми узнают Active+, остальные — следующей волной', async () => {
+    const { db } = await import('@/lib/db');
+    const { createInquiry, releaseInquiries } = await import('@/lib/inquiries');
+    const { ELITE_RANK, PRIME_RANK } = await import('@/lib/subscription');
+
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const city = await db.city.findFirstOrThrow({ where: { slug: 'moscow' } });
+
+    const mk = async (tag: string, rank: number) => {
+      const u = await db.user.create({
+        data: { role: 'PHOTOGRAPHER', status: 'ACTIVE', firstName: tag, lastName: 'В', email: `wave-${tag}-${stamp}@test.local` },
+      });
+      await db.photographerProfile.create({
+        data: { userId: u.id, username: `wave-${tag}-${stamp}`, cityId: city.id, status: 'APPROVED', proRank: rank },
+      });
+      return u.id;
+    };
+    const elite = await mk('e', ELITE_RANK);
+    const prime = await mk('p', PRIME_RANK);
+    const free = await mk('f', 0);
+
+    try {
+      const { inquiryId } = await createInquiry({
+        citySlug: 'moscow', description: 'Нужен фотограф на конференцию, полный день',
+        contactName: 'Тест', contactEmail: `cl-${stamp}@test.local`,
+      });
+
+      const got = async (userId: string) =>
+        db.notification.count({ where: { userId, type: 'notification.inquiry.new' } });
+
+      // Сразу после создания уведомление есть только у верхнего уровня
+      expect(await got(elite)).toBe(1);
+      expect(await got(prime)).toBe(0);
+      expect(await got(free)).toBe(0);
+
+      // Отматываем создание на семь часов назад — прошли обе волны
+      await db.inquiry.update({
+        where: { id: inquiryId },
+        data: { createdAt: new Date(Date.now() - 7 * 3_600_000) },
+      });
+      await releaseInquiries();
+
+      // Заявка дошла до ВСЕХ — подписка влияет только на очерёдность
+      expect(await got(prime)).toBe(1);
+      expect(await got(free)).toBe(1);
+      // И никому не продублировалась
+      expect(await got(elite)).toBe(1);
+
+      await db.inquiry.delete({ where: { id: inquiryId } });
+    } finally {
+      await db.notification.deleteMany({ where: { userId: { in: [elite, prime, free] } } });
+      await db.photographerProfile.deleteMany({ where: { userId: { in: [elite, prime, free] } } });
+      await db.user.deleteMany({ where: { id: { in: [elite, prime, free] } } });
+    }
+  });
+});

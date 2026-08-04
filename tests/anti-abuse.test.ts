@@ -24,7 +24,7 @@ describe.skipIf(!hasDb)('анти-накрутка: самолайк (БД)', ()
       data: { role: 'PHOTOGRAPHER', status: 'ACTIVE', firstName: 'С', lastName: 'Амолайк', email: `sl-o-${stamp}@test.local` },
     });
     const profile = await db.photographerProfile.create({
-      data: { userId: owner.id, username: `sl-${stamp}`, cityId: city.id, status: 'APPROVED' },
+      data: { userId: owner.id, username: `sl-${stamp}`, cityId: city.id, status: 'APPROVED', proRank: 200 /* Active+: тест про каналы, а не про очерёдность волн */ },
     });
     const photo = await db.photo.create({
       data: { profileId: profile.id, categoryId: cat.id, storageKey: `photos/sl-${stamp}/original.jpg`, width: 2400, height: 1600, status: 'APPROVED', publishedAt: new Date() },
@@ -248,7 +248,7 @@ describe.skipIf(!hasDb)('уведомления: отписка и настро�
         },
       });
       const p = await db.photographerProfile.create({
-        data: { userId: u.id, username: `unsub-${tag}-${stamp}`, cityId: city.id, status: 'APPROVED' },
+        data: { userId: u.id, username: `unsub-${tag}-${stamp}`, cityId: city.id, status: 'APPROVED', proRank: 200 /* Active+: тест про каналы, а не про очерёдность волн */ },
       });
       return { u, p };
     };
