@@ -212,6 +212,7 @@ export default async function CabinetPage() {
                       { href: '/ru/cabinet/articles', title: ru.articles.title, desc: ru.cabinet.tileArticlesDesc },
                     ]
                   : []),
+                { href: '/ru/cabinet/moderation', title: ru.forum.myRejected, desc: ru.cabinet.tileModerationDesc },
                 { href: '/ru/cabinet/settings', title: ru.cabinet.settingsLink, desc: ru.cabinet.tileSettingsDesc },
               ].map((t) => (
                 <Link key={t.href} href={t.href} className="card p-4 transition-colors hover:border-accent">

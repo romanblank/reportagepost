@@ -190,4 +190,61 @@ describe.skipIf(!hasDb)('форум: публикация и автомодер�
 
     await cleanup(user.id, profile.id);
   });
+
+  it('отклонённую ТЕМУ можно исправить и отправить снова', async () => {
+    const { createThread, resubmitThread, threadBySlug, myRejected } = await import('@/lib/forum');
+    const { user, profile } = await makePhotographer('rethread');
+
+    const bad = await createThread(user.id, {
+      sectionSlug: 'clients',
+      title: 'Ищу напарника на съёмку в июле месяце',
+      body: 'Нужен второй фотограф на свадьбу, пишите на почту naparnik@example.com, обсудим условия и гонорар.',
+    });
+    expect(bad.status).toBe('REJECTED');
+
+    // Отказ обязан быть виден и после закрытия вкладки — иначе объяснение
+    // существует ровно одну минуту
+    const mine = await myRejected(user.id);
+    expect(mine.threads.some((t) => t.id === bad.id)).toBe(true);
+
+    const fixed = await resubmitThread(user.id, bad.id, {
+      title: 'Ищу напарника на съёмку в июле месяце',
+      body: 'Нужен второй фотограф на свадьбу в Подмосковье, дата двенадцатое июля. Условия обсудим в личных сообщениях.',
+    });
+    expect(fixed.status).toBe('PUBLISHED');
+    const view = await threadBySlug(bad.slug!);
+    expect(view?.posts).toHaveLength(1);
+
+    await cleanup(user.id, profile.id);
+  });
+
+  it('автор темы узнаёт об ответе', async () => {
+    const { createThread, createPost } = await import('@/lib/forum');
+    const { db } = await import('@/lib/db');
+    const owner = await makePhotographer('owner');
+    const guest = await makePhotographer('guest');
+
+    const thread = await createThread(owner.user.id, {
+      sectionSlug: 'gear',
+      title: 'Какой объектив брать на репортаж в зале',
+      body: 'Снимаю конференции в небольших залах, света мало. Думаю между зумом и фиксом — что берёте вы и почему?',
+    });
+    await createPost(guest.user.id, thread.id, 'Беру фикс 35 мм: в тесном зале зум всё равно стоит на широком конце, а светосила выигрывает.');
+
+    const notes = await db.notification.findMany({
+      where: { userId: owner.user.id, type: 'notification.forum.reply' },
+    });
+    // Вопрос, на который ответили молча, останется незамеченным, и разговор
+    // оборвётся на первом же круге
+    expect(notes.length).toBe(1);
+
+    // На свой же ответ уведомления быть не должно
+    await createPost(owner.user.id, thread.id, 'Спасибо, попробую фикс на ближайшей съёмке и напишу, что вышло.');
+    expect(await db.notification.count({ where: { userId: owner.user.id, type: 'notification.forum.reply' } })).toBe(1);
+
+    await db.notification.deleteMany({ where: { userId: owner.user.id } });
+    await cleanup(guest.user.id, guest.profile.id);
+    await cleanup(owner.user.id, owner.profile.id);
+  });
+
 });

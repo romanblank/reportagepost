@@ -178,6 +178,20 @@ export async function createPost(userId: string, threadId: string, rawBody: stri
       where: { id: threadId },
       data: { postCount: { increment: 1 }, lastPostAt: new Date() },
     });
+    // Автор темы должен узнать об ответе: вопрос, на который ответили через
+    // три дня, останется незамеченным, и разговор оборвётся на первом же круге
+    const owner = await db.forumThread.findUnique({
+      where: { id: threadId },
+      select: { authorUserId: true, slug: true, sectionSlug: true, title: true },
+    });
+    if (owner && owner.authorUserId !== userId) {
+      const { notifyInApp } = await import('@/lib/notifications');
+      await notifyInApp(owner.authorUserId, 'notification.forum.reply', {
+        threadSlug: owner.slug,
+        sectionSlug: owner.sectionSlug,
+        title: owner.title,
+      }).catch(() => {});
+    }
   }
 
   const violations =
@@ -244,6 +258,70 @@ export async function resubmitPost(userId: string, postId: string, rawBody: stri
   return {
     status: 'IN_REVIEW',
     id: postId,
+    reason: 'reason' in verdict ? verdict.reason : undefined,
+    quote: 'quote' in verdict ? verdict.quote : undefined,
+  };
+}
+
+/**
+ * Переотправить отклонённую ТЕМУ после правки.
+ *
+ * Отдельно от сообщения: у темы правится и заголовок, и первое сообщение, а
+ * без этой возможности отказ по теме был бы окончательным — что противоречит
+ * самому смыслу объяснять причину.
+ */
+export async function resubmitThread(
+  userId: string,
+  threadId: string,
+  input: { title: string; body: string },
+): Promise<PublishOutcome> {
+  const thread = await db.forumThread.findUnique({
+    where: { id: threadId },
+    select: { id: true, authorUserId: true, status: true, title: true, slug: true },
+  });
+  if (!thread || thread.authorUserId !== userId) throw new DomainError('forbidden', 403);
+  if (thread.status !== 'REJECTED') throw new DomainError('not_rejected', 409);
+
+  const title = input.title.trim().replace(/\s+/g, ' ');
+  const body = input.body.trim();
+  if (title.length < 10 || title.length > 140) throw new DomainError('validation', 400);
+  if (body.length < 40 || body.length > MAX_LENGTH.thread) throw new DomainError('validation', 400);
+
+  await rateLimit(`forum-resubmit:user:${userId}`, 10, 86_400);
+
+  const verdict = await moderateText({ text: `${title}\n${body}`, kind: 'thread' });
+  const status = verdict.action === 'publish' ? 'PUBLISHED' : 'IN_REVIEW';
+
+  await db.$transaction(async (tx) => {
+    await tx.forumThread.update({
+      where: { id: threadId },
+      data: {
+        title,
+        status,
+        resubmitted: status === 'IN_REVIEW',
+        reasonCode: 'reason' in verdict ? verdict.reason : null,
+        reasonQuote: 'quote' in verdict ? verdict.quote : null,
+        postCount: status === 'PUBLISHED' ? 1 : 0,
+        lastPostAt: new Date(),
+      },
+    });
+    const first = await tx.forumPost.findFirst({
+      where: { threadId },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true },
+    });
+    if (first) {
+      await tx.forumPost.update({
+        where: { id: first.id },
+        data: { body, status, resubmitted: status === 'IN_REVIEW' },
+      });
+    }
+  });
+
+  return {
+    status,
+    id: threadId,
+    slug: thread.slug,
     reason: 'reason' in verdict ? verdict.reason : undefined,
     quote: 'quote' in verdict ? verdict.quote : undefined,
   };
