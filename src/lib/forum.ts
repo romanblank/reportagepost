@@ -5,6 +5,7 @@ import { slugifyWithId } from '@/lib/slugify';
 import { isForumSection } from '@/lib/forum-sections';
 import { moderateText, MAX_LENGTH, type TextVerdict, type TextKind } from '@/lib/text-moderation';
 import { createId } from '@/lib/ids';
+import { EDIT_WINDOW_MS } from '@/lib/forum-constants';
 
 /**
  * Форум: темы и сообщения.
@@ -327,6 +328,82 @@ export async function resubmitThread(
   };
 }
 
+
+
+/**
+ * Правка своего сообщения.
+ *
+ * Окно короткое и намеренно: правка опечатки через минуту — нормальная
+ * вежливость, а переписывание реплики, на которую уже ответили, превращает
+ * обсуждение в спор о том, что было сказано.
+ *
+ * Отредактированный текст проходит модерацию заново — иначе правка стала бы
+ * дырой, через которую в опубликованное сообщение вносится что угодно.
+ */
+export async function editPost(userId: string, postId: string, rawBody: string): Promise<PublishOutcome> {
+  const post = await db.forumPost.findUnique({
+    where: { id: postId },
+    select: { id: true, authorUserId: true, status: true, createdAt: true, threadId: true },
+  });
+  if (!post || post.authorUserId !== userId) throw new DomainError('forbidden', 403);
+  if (post.status !== 'PUBLISHED') throw new DomainError('not_published', 409);
+  if (Date.now() - post.createdAt.getTime() > EDIT_WINDOW_MS) throw new DomainError('edit_window_over', 409);
+
+  const body = rawBody.trim();
+  if (body.length === 0 || body.length > MAX_LENGTH.post) throw new DomainError('validation', 400);
+
+  const verdict = await moderateText({ text: body, kind: 'post' });
+  const status = verdictToStatus(verdict);
+
+  await db.forumPost.update({
+    where: { id: postId },
+    data: {
+      body,
+      status,
+      reasonCode: 'reason' in verdict ? verdict.reason : null,
+      reasonQuote: 'quote' in verdict ? verdict.quote : null,
+    },
+  });
+
+  // Правка, не прошедшая проверку, снимает сообщение с публикации — и счётчик
+  // темы обязан это отразить, иначе он начнёт врать
+  if (status !== 'PUBLISHED') {
+    await db.forumThread.update({
+      where: { id: post.threadId },
+      data: { postCount: { decrement: 1 } },
+    });
+  }
+
+  return {
+    status,
+    id: postId,
+    reason: 'reason' in verdict ? verdict.reason : undefined,
+    quote: 'quote' in verdict ? verdict.quote : undefined,
+  };
+}
+
+/**
+ * Закрыть, открыть или закрепить тему — действие администратора.
+ *
+ * Закрытие не удаляет разговор: он остаётся читаемым, просто дописать в него
+ * нельзя. Удалять обсуждение из-за того, что оно закончилось спором, значит
+ * стирать и полезную часть.
+ */
+export async function setThreadFlags(
+  adminUserId: string,
+  threadId: string,
+  flags: { closed?: boolean; pinned?: boolean },
+): Promise<void> {
+  const thread = await db.forumThread.findUnique({ where: { id: threadId }, select: { id: true } });
+  if (!thread) throw new DomainError('not_found', 404);
+
+  const { logAudit } = await import('@/lib/audit');
+  await db.$transaction(async (tx) => {
+    await tx.forumThread.update({ where: { id: threadId }, data: flags });
+    await logAudit(tx, adminUserId, 'forum.thread.flags', 'FORUM_THREAD', threadId, flags);
+  });
+}
+
 export type ThreadListItem = {
   id: string;
   slug: string;
@@ -370,6 +447,7 @@ export type ThreadView = {
   title: string;
   sectionSlug: string;
   closed: boolean;
+  pinned: boolean;
   createdAt: Date;
   posts: {
     id: string;
@@ -385,7 +463,7 @@ export async function threadBySlug(slug: string): Promise<ThreadView | null> {
   const t = await db.forumThread.findUnique({
     where: { slug },
     select: {
-      id: true, slug: true, title: true, sectionSlug: true, closed: true, createdAt: true, status: true,
+      id: true, slug: true, title: true, sectionSlug: true, closed: true, pinned: true, createdAt: true, status: true,
       posts: {
         where: { status: 'PUBLISHED' },
         orderBy: { createdAt: 'asc' },
@@ -404,6 +482,7 @@ export async function threadBySlug(slug: string): Promise<ThreadView | null> {
     title: t.title,
     sectionSlug: t.sectionSlug,
     closed: t.closed,
+    pinned: t.pinned,
     createdAt: t.createdAt,
     posts: t.posts.map((p) => ({
       id: p.id,

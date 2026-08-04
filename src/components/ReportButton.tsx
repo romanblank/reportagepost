@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { apiFetch } from '@/lib/api';
 import { ru } from '@/i18n/ru';
 
-type TargetType = 'USER' | 'PHOTO' | 'STORY' | 'REVIEW' | 'COMMENT' | 'MESSAGE';
+type TargetType = 'USER' | 'PHOTO' | 'STORY' | 'REVIEW' | 'COMMENT' | 'MESSAGE' | 'FORUM_POST';
 
 // «Пожаловаться» (аудит 2026-07-31, P0): у пользователя не было способа
 // сообщить о нарушении. Доступно и гостю — жалоба правообладателя на украденный

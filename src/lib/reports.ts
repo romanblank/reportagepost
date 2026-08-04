@@ -26,6 +26,7 @@ async function targetExists(type: ReportTargetType, id: string): Promise<boolean
     case 'REVIEW': return Boolean(await db.review.findUnique({ where: { id }, select: { id: true } }));
     case 'COMMENT': return Boolean(await db.comment.findUnique({ where: { id }, select: { id: true } }));
     case 'MESSAGE': return Boolean(await db.message.findUnique({ where: { id }, select: { id: true } }));
+    case 'FORUM_POST': return Boolean(await db.forumPost.findUnique({ where: { id }, select: { id: true } }));
   }
 }
 

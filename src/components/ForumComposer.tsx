@@ -80,11 +80,7 @@ export function ForumComposer({
 
   if (outcome && outcome.status !== 'PUBLISHED') {
     return (
-      <ModerationNotice
-        outcome={outcome}
-        body={body}
-        onEdit={() => setOutcome(null)}
-      />
+      <ModerationNotice outcome={outcome} onEdit={() => setOutcome(null)} />
     );
   }
 
@@ -121,15 +117,7 @@ export function ForumComposer({
  * отправить снова. Пятая — путь к человеку: если автор считает решение
  * ошибочным, у него должен быть адрес, а не тупик.
  */
-export function ModerationNotice({
-  outcome,
-  body,
-  onEdit,
-}: {
-  outcome: Outcome;
-  body: string;
-  onEdit: () => void;
-}) {
+export function ModerationNotice({ outcome, onEdit }: { outcome: Outcome; onEdit: () => void }) {
   const reason = outcome.reason ?? 'off_topic';
   return (
     <div className="mt-6 rounded-media border border-warning/40 bg-warning-soft px-4 py-4">

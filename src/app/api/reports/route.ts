@@ -10,7 +10,7 @@ import { clientIp, rateLimit } from '@/lib/rate-limit';
 // заставлять его регистрироваться, чтобы сообщить о нарушении, неправильно.
 // Гостю обязателен контакт для ответа и действует более жёсткий лимит.
 const ReportSchema = z.object({
-  targetType: z.enum(['USER', 'PHOTO', 'STORY', 'REVIEW', 'COMMENT', 'MESSAGE']),
+  targetType: z.enum(['USER', 'PHOTO', 'STORY', 'REVIEW', 'COMMENT', 'MESSAGE', 'FORUM_POST']),
   targetId: z.string().trim().min(1).max(64),
   reason: z.enum(['SPAM', 'ABUSE', 'ADULT', 'COPYRIGHT', 'PERSONAL_DATA', 'FRAUD', 'OTHER']),
   comment: z.string().trim().max(2000).optional(),

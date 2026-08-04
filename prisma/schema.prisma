@@ -775,6 +775,7 @@ model Inquiry {
 // (и для позиции информационного посредника) это обязательный минимум.
 
 enum ReportTargetType {
+  FORUM_POST
   USER
   PHOTO
   STORY

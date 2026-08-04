@@ -59,7 +59,7 @@ export function NewThreadForm({
   }
 
   if (outcome) {
-    return <ModerationNotice outcome={outcome} body={body} onEdit={() => setOutcome(null)} />;
+    return <ModerationNotice outcome={outcome} onEdit={() => setOutcome(null)} />;
   }
 
   return (

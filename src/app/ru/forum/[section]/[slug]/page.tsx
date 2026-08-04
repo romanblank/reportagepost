@@ -6,6 +6,8 @@ import { isForumSection } from '@/lib/forum-sections';
 import { getSession } from '@/lib/auth';
 import { formatDateTimeRu } from '@/lib/date-format';
 import { ForumComposer } from '@/components/ForumComposer';
+import { PostTools } from '@/components/PostTools';
+import { ThreadAdminTools } from '@/components/ThreadAdminTools';
 import { ru } from '@/i18n/ru';
 import { BASE_URL } from '@/lib/sitemap';
 import { JsonLd } from '@/components/JsonLd';
@@ -60,6 +62,9 @@ export default async function ThreadPage({ params }: Params) {
         ← {ru.forum.sections[section]}
       </Link>
       <h1 className="t-h2 mt-3 text-balance">{thread.title}</h1>
+      {session?.role === 'ADMIN' ? (
+        <ThreadAdminTools threadId={thread.id} closed={thread.closed} pinned={thread.pinned} />
+      ) : null}
 
       <ol className="mt-6 grid gap-3">
         {thread.posts.map((p) => (
@@ -75,6 +80,13 @@ export default async function ThreadPage({ params }: Params) {
               <span className="t-caption muted">{formatDateTimeRu(p.createdAt)}</span>
             </div>
             <p className="mt-2 whitespace-pre-wrap text-sm">{p.body}</p>
+            <PostTools
+              postId={p.id}
+              body={p.body}
+              createdAt={p.createdAt.toISOString()}
+              mine={session?.userId === p.authorUserId}
+              authed={Boolean(session)}
+            />
           </li>
         ))}
       </ol>

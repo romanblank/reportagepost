@@ -247,4 +247,63 @@ describe.skipIf(!hasDb)('форум: публикация и автомодер�
     await cleanup(owner.user.id, owner.profile.id);
   });
 
+
+  it('правка сообщения проходит модерацию заново и закрывается по времени', async () => {
+    const { createThread, createPost, editPost } = await import('@/lib/forum');
+    const { db } = await import('@/lib/db');
+    const { user, profile } = await makePhotographer('edit');
+
+    const thread = await createThread(user.id, {
+      sectionSlug: 'craft',
+      title: 'Как держите фокус на движении в зале',
+      body: 'Снимаю танцы на свадьбах, следящий автофокус промахивается на каждом третьем кадре. Что настраиваете?',
+    });
+    const post = await createPost(user.id, thread.id, 'Ставлю зону автофокуса поменьше и снимаю сериями по три кадра.');
+    expect(post.status).toBe('PUBLISHED');
+
+    // Правка — дыра, через которую в опубликованное сообщение можно внести
+    // что угодно, если не проверять её заново
+    const sneaky = await editPost(user.id, post.id, 'Пишите мне на +7 999 555-44-33, всё расскажу лично.');
+    expect(sneaky.status).toBe('REJECTED');
+    const afterBad = await db.forumThread.findUniqueOrThrow({ where: { id: thread.id } });
+    // Снятое с публикации сообщение обязано уйти и из счётчика
+    expect(afterBad.postCount).toBe(1);
+
+    // Окно правки короткое: переписать реплику, на которую уже ответили, нельзя
+    const old = await db.forumPost.create({
+      data: {
+        threadId: thread.id, authorUserId: user.id, status: 'PUBLISHED',
+        body: 'Старое сообщение, отправленное давно.',
+        createdAt: new Date(Date.now() - 3 * 3_600_000),
+      },
+    });
+    await expect(editPost(user.id, old.id, 'Совершенно другой текст задним числом.')).rejects.toThrow();
+
+    await cleanup(user.id, profile.id);
+  });
+
+  it('закрытая тема не принимает сообщений, но остаётся читаемой', async () => {
+    const { createThread, createPost, setThreadFlags, threadBySlug } = await import('@/lib/forum');
+    const { db } = await import('@/lib/db');
+    const { user, profile } = await makePhotographer('closed');
+    const admin = await db.user.create({
+      data: { role: 'ADMIN', status: 'ACTIVE', firstName: 'Ад', lastName: 'Мин', email: `fadm-${Date.now()}@test.local` },
+    });
+
+    const thread = await createThread(user.id, {
+      sectionSlug: 'platform',
+      title: 'Предложение по разделам форума платформы',
+      body: 'Кажется, не хватает раздела про обработку и каталогизацию — сейчас такие вопросы расходятся по всем разделам.',
+    });
+    await setThreadFlags(admin.id, thread.id, { closed: true });
+
+    await expect(createPost(user.id, thread.id, 'Ещё одно сообщение в закрытую тему.')).rejects.toThrow();
+    // Закрытие не стирает разговор: полезная часть остаётся читаемой
+    expect((await threadBySlug(thread.slug!))?.posts.length).toBe(1);
+
+    await db.adminAudit.deleteMany({ where: { actorUserId: admin.id } });
+    await db.user.delete({ where: { id: admin.id } });
+    await cleanup(user.id, profile.id);
+  });
+
 });
