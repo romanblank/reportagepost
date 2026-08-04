@@ -17,6 +17,13 @@ export const ProfileEditSchema = z.object({
   // Только http/https — zod .url() пропускает javascript:/data: (stored XSS в href).
   siteUrl: z.string().trim().url().max(200).refine((u) => /^https?:\/\//i.test(u), 'только http(s)').optional().or(z.literal('')),
   whatsapp: z.string().trim().regex(/^\+[1-9]\d{7,14}$/, 'E.164').optional().or(z.literal('')),
+  // Реквизиты для документов, которые автор скачивает себе. Публично не
+  // показываются нигде: они существуют, чтобы не вбивать их в каждый файл.
+  legalName: z.string().trim().max(200).optional().or(z.literal('')),
+  inn: z.string().trim().regex(/^\d{10}$|^\d{12}$/, 'ИНН — 10 или 12 цифр').optional().or(z.literal('')),
+  bankAccount: z.string().trim().regex(/^\d{20}$/, 'счёт — 20 цифр').optional().or(z.literal('')),
+  bankName: z.string().trim().max(200).optional().or(z.literal('')),
+  bic: z.string().trim().regex(/^\d{9}$/, 'БИК — 9 цифр').optional().or(z.literal('')),
   telegram: z.string().trim().regex(/^@?[A-Za-z0-9_]{5,32}$/).optional().or(z.literal('')),
   experienceYears: z.number().int().min(0).max(70).nullable().optional(),
   equipment: z.string().trim().max(500).optional(),
@@ -94,6 +101,11 @@ export async function applyProfileEdit(
           ...(newCityId ? { cityId: newCityId } : {}),
           bio: d.bio?.trim() || null,
           siteUrl: site || null,
+          legalName: d.legalName?.trim() || null,
+          inn: d.inn?.trim() || null,
+          bankAccount: d.bankAccount?.trim() || null,
+          bankName: d.bankName?.trim() || null,
+          bic: d.bic?.trim() || null,
           whatsapp: d.whatsapp?.trim() || null,
           telegram: d.telegram?.trim().replace(/^@/, '') || null,
           experienceYears: d.experienceYears ?? null,

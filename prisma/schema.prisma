@@ -287,6 +287,15 @@ model PhotographerProfile {
   // удалить — рано или поздно это молча уехало бы в миграцию и поиск потерял
   // бы индексы, не сломавшись заметно (просто стал бы медленным).
   @@index([username(ops: raw("gin_trgm_ops"))], type: Gin, name: "PhotographerProfile_username_trgm_idx")
+  /// Реквизиты для документов, которые автор скачивает себе (счёт, акт,
+  /// договор). Публично НЕ показываются нигде и никогда — они существуют
+  /// только чтобы не заставлять человека вбивать их в каждый файл руками.
+  legalName        String? // ИП Иванов Иван Иванович / самозанятый
+  inn              String?
+  bankAccount      String?
+  bankName         String?
+  bic              String?
+
 }
 
 model ProfileCategory {
