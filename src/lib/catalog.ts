@@ -201,7 +201,9 @@ async function toCards(shown: CatalogRow[]): Promise<CatalogCard[]> {
   const shootRows = shown.length
     ? await db.shootConfirmation.groupBy({
         by: ['profileId', 'clientUserId'],
-        where: { profileId: { in: shown.map((p) => p.id) }, state: 'CONFIRMED' },
+        // Только проверенные подтверждения: бейдж «N подтв.» — публичный
+        // сигнал доверия, и цепочка свежих аккаунтов его давать не должна
+        where: { profileId: { in: shown.map((p) => p.id) }, state: 'CONFIRMED', needsReview: false },
         _count: true,
       })
     : [];
@@ -241,8 +243,17 @@ async function toCards(shown: CatalogRow[]): Promise<CatalogCard[]> {
     lastName: p.user.lastName,
     bio: p.bio,
     categories: p.categories.map((c) => c.category.slug),
-    // Цена — перк Active (пакеты цен). На FREE в карточке не показываем (как на профиле).
-    minPackage: activeTier(p.user.subscription) !== 'FREE' && p.packages[0]
+    // Цена видна у ВСЕХ авторов (решение 2026-08-04).
+    //
+    // Прежде она скрывалась у бесплатных — и это оказалось геткипингом жёстче
+    // того самого ранжирования, которое инвариант запрещает: заказчик,
+    // сравнивающий по бюджету, бесплатного автора просто не видел в
+    // сравнении, а фильтр цены его отбрасывал. То есть видимость всё-таки
+    // продавалась — способом, который бьёт по заказчику и которого мы себе не
+    // признавали. Перком подписки остаётся НАБОР пакетов на странице автора
+    // (несколько вариантов, состав, условия), а базовая цена «от» — общая
+    // информация, без которой каталог бесполезен.
+    minPackage: p.packages[0]
       ? { hours: p.packages[0].hours, priceMinor: p.packages[0].priceMinor, currency: p.packages[0].currency }
       : null,
     coverKey:
@@ -293,7 +304,9 @@ export async function catalogForCity(filters: CatalogFilters): Promise<CatalogPa
     ...(filters.videoOnly ? { doesVideo: true } : {}),
     // Фильтр доверия: только те, у кого есть подтверждённая обеими сторонами
     // съёмка. Самоотметки заказчика недостаточно (S4 trust-хардеринг).
-    ...(filters.withShootsOnly ? { shootConfirmations: { some: { state: 'CONFIRMED' as const } } } : {}),
+    ...(filters.withShootsOnly
+      ? { shootConfirmations: { some: { state: 'CONFIRMED' as const, needsReview: false } } }
+      : {}),
     ...(filters.cameraBrands?.length ? { cameraBrands: { hasSome: filters.cameraBrands } } : {}),
   };
 

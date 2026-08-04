@@ -305,7 +305,10 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
           <ProfileBooking
             profileId={profile.id}
             username={profile.username}
-            fromPriceMinor={isPaid && minPkg ? minPkg.priceMinor : null}
+            // Базовая цена «от» — у всех авторов: скрывать её значит мешать
+            // заказчику сравнивать, то есть портить продукт ради перка.
+            // Перк подписки — НАБОР пакетов ниже на странице.
+            fromPriceMinor={minPkg ? minPkg.priceMinor : null}
             facts={[
               { label: ru.profile.factCity, value: cityNameRu(profile.city.slug) },
               ...(onlineText ? [{ label: ru.profile.factReply, value: onlineText }] : []),

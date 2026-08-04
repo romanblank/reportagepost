@@ -1,18 +1,88 @@
 import { db } from '@/lib/db';
 import { DomainError } from '@/lib/errors';
 import { rateLimit } from '@/lib/rate-limit';
+import { ru } from '@/i18n/ru';
+
+/** Планка «выдержанного» аккаунта — та же, что у веса лайка. */
+const TRUSTED_CLIENT_AGE_MS = 48 * 3600_000;
 
 // Подтверждённая съёмка — честный якорь доверия (доброжелательная система).
-// Заказчик отмечает, что съёмка состоялась, ФОТОГРАФ подтверждает. Только после
-// этого появляются публичные факты «снимали вместе»/«клиенты возвращаются» и
-// признак verified у отзыва.
 //
-// Двусторонность введена S4-хардерингом (2026-08-02): односторонняя отметка
-// была self-attested, и после снятия инвайт-гейта автор мог бы завести фейковых
-// «заказчиков» и накрутить себе доверие. Трение работает в правильную сторону —
-// подтверждать съёмку выгодно самому фотографу.
+// ИНИЦИИРУЕТ ФОТОГРАФ, подтверждает ЗАКАЗЧИК (переворот 2026-08-04).
+//
+// Раньше отмечал заказчик, а фотограф подтверждал — и механика была мертва:
+// у заказчика нет никакой мотивации возвращаться на платформу после съёмки,
+// деньги уплачены, сделка закрыта. Пять шагов, четыре из них на его стороне.
+// Прогноз был «ноль подтверждённых съёмок у всех профилей», а вместе с ними —
+// ноль verified-отзывов и пустой фильтр «с подтверждёнными» в каталоге.
+//
+// Теперь отмечает тот, кто заинтересован: фотограф, для которого это витрина.
+// Заказчику остаётся одно действие — «да, снимали» или «нет».
+//
+// Двусторонность при этом СОХРАНЕНА и усилена: без ответа заказчика факт не
+// публичен, а сам ответ принимается только от аккаунта, которому есть основания
+// доверять. Иначе переворот открыл бы прямую дорогу к самонакрутке: автор
+// заводит «заказчиков» и подтверждает себе съёмки сам.
 
-/** Заказчик отмечает съёмку. Публичной она станет после подтверждения автором. */
+/**
+ * Фотограф отмечает съёмку с заказчиком. Публичной она станет после его ответа.
+ *
+ * Отдельная функция от `confirmShoot`: та осталась для случая, когда заказчик
+ * сам захотел отметить съёмку со своей стороны — это по-прежнему допустимо и
+ * работает так же, просто не является основным путём.
+ */
+export async function requestShootConfirmation(
+  photographerUserId: string,
+  clientUserId: string,
+  eventDate?: Date | null,
+): Promise<void> {
+  const profile = await db.photographerProfile.findUnique({
+    where: { userId: photographerUserId },
+    select: { id: true, status: true },
+  });
+  if (!profile || profile.status !== 'APPROVED') throw new DomainError('target_not_found', 404);
+  if (photographerUserId === clientUserId) throw new DomainError('shoot_self', 400);
+
+  const client = await db.user.findUnique({
+    where: { id: clientUserId },
+    select: { role: true, status: true },
+  });
+  if (!client || client.status === 'BANNED') throw new DomainError('target_not_found', 404);
+
+  // Тот же гард реального контакта, что и раньше: переписка в обе стороны
+  const [clientToAuthor, authorToClient] = await Promise.all([
+    db.message.count({ where: { senderId: clientUserId, recipientId: photographerUserId } }),
+    db.message.count({ where: { senderId: photographerUserId, recipientId: clientUserId } }),
+  ]);
+  if (clientToAuthor === 0 || authorToClient === 0) throw new DomainError('shoot_no_contact', 403);
+
+  // Фотограф инициирует — значит и лимит на нём: иначе один автор мог бы
+  // засыпать запросами всех, с кем когда-либо переписывался
+  await rateLimit(`shoot-request:user:${photographerUserId}`, 20, 86_400);
+
+  const duplicate = await db.shootConfirmation.findFirst({
+    where: { clientUserId, profileId: profile.id, eventDate: eventDate ?? null },
+    select: { id: true },
+  });
+  if (duplicate) throw new DomainError('shoot_already_marked', 409);
+
+  const shoot = await db.shootConfirmation.create({
+    data: {
+      clientUserId,
+      profileId: profile.id,
+      eventDate: eventDate ?? undefined,
+      // Кто инициировал — важно для разбора: подтверждения, начатые автором,
+      // и подтверждения, начатые заказчиком, имеют разный вес доверия
+      initiatedBy: 'PHOTOGRAPHER',
+    },
+  });
+
+  // Заказчику — одно действие: «да, снимали» или «нет»
+  const { notifyInApp } = await import('@/lib/notifications');
+  void notifyInApp(clientUserId, 'notification.shoot.confirm_request_client', { shootId: shoot.id }).catch(() => {});
+}
+
+/** Заказчик отмечает съёмку сам. Публичной она станет после подтверждения автором. */
 export async function confirmShoot(clientUserId: string, profileId: string, eventDate?: Date | null): Promise<void> {
   const profile = await db.photographerProfile.findUnique({
     where: { id: profileId },
@@ -88,6 +158,108 @@ export async function respondToShoot(
   });
 }
 
+/**
+ * Ответ ЗАКАЗЧИКА на отметку фотографа: подтвердить или отклонить.
+ *
+ * Здесь же — защита от самонакрутки, ради которой переворот вообще возможен.
+ * Раз инициирует фотограф, соблазн очевиден: завести десяток «заказчиков» и
+ * подтвердить себе съёмки с них. Поэтому ответ засчитывается публично только
+ * от аккаунта, которому есть основания доверять:
+ *
+ *  - подтверждённая почта ИЛИ аккаунт старше двух суток — та же планка, что у
+ *    веса лайка: свежая пачка регистраций ничего не даёт;
+ *  - аккаунт не создан ПОЗЖЕ первого контакта с этим автором — иначе картина
+ *    «завёл клиента и сразу подтвердился» проходит по всем прочим проверкам.
+ *
+ * Не прошедший планку ответ не отвергается: съёмка становится подтверждённой,
+ * но помечается как требующая проверки — публичного факта не даёт, а редакция
+ * видит её в очереди. Наказывать человека за то, что он новый, нельзя;
+ * пропускать накрутку — тоже.
+ */
+export async function respondToShootRequest(
+  clientUserId: string,
+  shootId: string,
+  accept: boolean,
+): Promise<void> {
+  const shoot = await db.shootConfirmation.findUnique({
+    where: { id: shootId },
+    select: {
+      id: true, state: true, clientUserId: true, createdAt: true,
+      profile: { select: { id: true, userId: true } },
+    },
+  });
+  if (!shoot) throw new DomainError('target_not_found', 404);
+  if (shoot.clientUserId !== clientUserId) throw new DomainError('forbidden', 403);
+  if (shoot.state !== 'PENDING') throw new DomainError('shoot_already_answered', 409);
+
+  if (!accept) {
+    await db.shootConfirmation.update({
+      where: { id: shootId },
+      data: { state: 'DISPUTED', respondedAt: new Date() },
+    });
+    return;
+  }
+
+  const client = await db.user.findUnique({
+    where: { id: clientUserId },
+    select: { createdAt: true, emailVerifiedAt: true },
+  });
+  const firstContact = await db.message.findFirst({
+    where: {
+      OR: [
+        { senderId: clientUserId, recipientId: shoot.profile.userId },
+        { senderId: shoot.profile.userId, recipientId: clientUserId },
+      ],
+    },
+    orderBy: { createdAt: 'asc' },
+    select: { createdAt: true },
+  });
+
+  const seasoned =
+    Boolean(client?.emailVerifiedAt) ||
+    Boolean(client && Date.now() - client.createdAt.getTime() > TRUSTED_CLIENT_AGE_MS);
+  // Аккаунт заведён уже после начала переписки с этим автором — типичная
+  // картина накрутки: «создал заказчика → написал себе → подтвердил»
+  const bornBeforeContact =
+    !firstContact || !client || client.createdAt.getTime() <= firstContact.createdAt.getTime();
+
+  const trustworthy = seasoned && bornBeforeContact;
+
+  await db.shootConfirmation.update({
+    where: { id: shootId },
+    data: {
+      state: 'CONFIRMED',
+      respondedAt: new Date(),
+      // Съёмка подтверждена, но публичного веса не имеет, пока её не посмотрит
+      // человек: показывать «снимали вместе» по цепочке из свежих аккаунтов
+      // значит обесценить единственный честный сигнал платформы
+      needsReview: !trustworthy,
+    },
+  });
+
+  if (!trustworthy) {
+    const { alertOperator } = await import('@/lib/telegram');
+    void alertOperator(ru.operatorAlerts.shootNeedsReview);
+  }
+}
+
+/** Запросы фотографа, ожидающие ответа заказчика (его кабинет). */
+export async function pendingShootsForClient(clientUserId: string) {
+  return db.shootConfirmation.findMany({
+    where: { clientUserId, state: 'PENDING', initiatedBy: 'PHOTOGRAPHER' },
+    orderBy: { createdAt: 'desc' },
+    take: 20,
+    select: {
+      id: true,
+      eventDate: true,
+      createdAt: true,
+      profile: {
+        select: { username: true, user: { select: { firstName: true, lastName: true } } },
+      },
+    },
+  });
+}
+
 /** Отметки, ожидающие ответа фотографа (кабинет). */
 export async function pendingShootsForPhotographer(photographerUserId: string) {
   const profile = await db.photographerProfile.findUnique({
@@ -124,7 +296,9 @@ export interface ShootStats {
  */
 export async function shootStats(profileId: string): Promise<ShootStats> {
   const rows = await db.shootConfirmation.findMany({
-    where: { profileId, state: 'CONFIRMED' },
+    // needsReview — подтверждение пришло с аккаунта без признаков доверия:
+    // в публичные факты такое не идёт, пока его не посмотрит человек
+    where: { profileId, state: 'CONFIRMED', needsReview: false },
     select: { clientUserId: true, eventDate: true },
   });
 
@@ -153,7 +327,7 @@ export async function shootStats(profileId: string): Promise<ShootStats> {
 export async function hasShotWith(clientUserId: string, profileId: string): Promise<boolean> {
   return (
     (await db.shootConfirmation.count({
-      where: { clientUserId, profileId, state: 'CONFIRMED' },
+      where: { clientUserId, profileId, state: 'CONFIRMED', needsReview: false },
     })) > 0
   );
 }

@@ -129,3 +129,74 @@ describe.skipIf(!hasDb)('shoots: подтверждённая съёмка — �
     await db.user.deleteMany({ where: { id: { in: [owner.id, client.id, unverified.id, stranger.id] } } });
   });
 });
+
+/**
+ * Переворот подтверждения: инициирует ФОТОГРАФ, отвечает заказчик.
+ *
+ * Раз инициатива у автора, соблазн очевиден — завести «заказчиков» и
+ * подтвердить себе съёмки. Поэтому ответ засчитывается публично только от
+ * аккаунта с признаками доверия; остальные подтверждаются, но уходят к
+ * человеку на проверку и публичного факта не дают.
+ */
+describe.skipIf(!hasDb)('shoots: инициатива фотографа и защита от самонакрутки (БД)', () => {
+  it('свежий «заказчик», заведённый после начала переписки, не даёт публичного факта', async () => {
+    const { db } = await import('@/lib/db');
+    const { requestShootConfirmation, respondToShootRequest, shootStats } = await import('@/lib/shoots');
+
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const city = await db.city.findFirstOrThrow({ where: { slug: 'moscow' } });
+    const owner = await db.user.create({
+      data: { role: 'PHOTOGRAPHER', status: 'ACTIVE', firstName: 'Ф', lastName: 'Т', email: `sr-own-${stamp}@test.local` },
+    });
+    const profile = await db.photographerProfile.create({
+      data: { userId: owner.id, username: `sr-${stamp}`, cityId: city.id, status: 'APPROVED' },
+    });
+
+    // Честный заказчик: подтверждённая почта, аккаунт существовал до переписки
+    const real = await db.user.create({
+      data: {
+        role: 'CLIENT', status: 'ACTIVE', firstName: 'Р', lastName: 'К', email: `sr-real-${stamp}@test.local`,
+        emailVerifiedAt: new Date(), createdAt: new Date(Date.now() - 30 * 86_400_000),
+      },
+    });
+    // Подставной: создан ПОСЛЕ первого контакта, почта не подтверждена
+    const fake = await db.user.create({
+      data: { role: 'CLIENT', status: 'ACTIVE', firstName: 'П', lastName: 'Д', email: `sr-fake-${stamp}@test.local` },
+    });
+
+    try {
+      for (const client of [real, fake]) {
+        await db.message.create({ data: { senderId: client.id, recipientId: owner.id, body: 'здравствуйте' } });
+        await db.message.create({ data: { senderId: owner.id, recipientId: client.id, body: 'добрый день' } });
+      }
+      // У подставного переписка датируется РАНЬШЕ его регистрации — ровно та
+      // картина, которую даёт «создал клиента и сразу подтвердил»
+      await db.message.updateMany({
+        where: { senderId: fake.id },
+        data: { createdAt: new Date(fake.createdAt.getTime() - 3_600_000) },
+      });
+
+      await requestShootConfirmation(owner.id, real.id, new Date('2026-05-10T00:00:00Z'));
+      await requestShootConfirmation(owner.id, fake.id, new Date('2026-06-10T00:00:00Z'));
+
+      const pending = await db.shootConfirmation.findMany({ where: { profileId: profile.id }, select: { id: true, clientUserId: true } });
+      for (const p of pending) await respondToShootRequest(p.clientUserId, p.id, true);
+
+      const rows = await db.shootConfirmation.findMany({ where: { profileId: profile.id }, select: { clientUserId: true, needsReview: true } });
+      expect(rows.find((r) => r.clientUserId === real.id)?.needsReview, 'честный заказчик отправлен на проверку').toBe(false);
+      expect(rows.find((r) => r.clientUserId === fake.id)?.needsReview, 'подставной прошёл как настоящий').toBe(true);
+
+      // Публичный факт — только по проверенному
+      const stats = await shootStats(profile.id);
+      expect(stats.count).toBe(1);
+      expect(stats.clients).toBe(1);
+    } finally {
+      // Уведомления ссылаются на пользователя (FK RESTRICT) — чистим первыми
+      await db.notification.deleteMany({ where: { userId: { in: [owner.id, real.id, fake.id] } } });
+      await db.shootConfirmation.deleteMany({ where: { profileId: profile.id } });
+      await db.message.deleteMany({ where: { OR: [{ senderId: owner.id }, { recipientId: owner.id }] } });
+      await db.photographerProfile.delete({ where: { id: profile.id } });
+      await db.user.deleteMany({ where: { id: { in: [owner.id, real.id, fake.id] } } });
+    }
+  });
+});

@@ -573,12 +573,28 @@ model Like {
 //
 // Трение здесь работает в правильную сторону: подтверждать съёмку выгодно
 // самому фотографу — это его репутация.
+
+/// Кто начал подтверждение съёмки.
+///
+/// Различие не косметическое: подтверждение, начатое ФОТОГРАФОМ, требует
+/// ответа заказчика и потому весит больше — заказчик не станет подтверждать
+/// съёмку, которой не было. Подтверждение, начатое заказчиком, ждёт ответа
+/// автора. Для разбора накрутки важно знать, с какой стороны пришёл запрос.
+enum ShootInitiator {
+  CLIENT
+  PHOTOGRAPHER
+}
+
 model ShootConfirmation {
   id           String            @id @default(cuid())
   clientUserId String // заказчик, отметивший съёмку
   profileId    String // фотограф (профиль)
   eventDate    DateTime? @db.Timestamptz(3) // когда была съёмка (опционально)
   state        ShootConfirmState @default(PENDING)
+  initiatedBy  ShootInitiator    @default(CLIENT)
+  /// Подтверждено, но ответ пришёл с аккаунта без признаков доверия —
+  /// публичного факта не даёт до проверки человеком
+  needsReview  Boolean           @default(false)
   // Момент реакции фотографа: подтвердил или оспорил
   respondedAt  DateTime? @db.Timestamptz(3)
   createdAt    DateTime          @default(now()) @db.Timestamptz(3)

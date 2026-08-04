@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import { threadWith } from '@/lib/messages';
 import { ru } from '@/i18n/ru';
 import { ThreadClient } from './ThreadClient';
+import { MarkShootButton } from '@/components/MarkShootButton';
 import { BlockButton } from '@/components/BlockButton';
 import { ReportButton } from '@/components/ReportButton';
 import { db as _db } from '@/lib/db';
@@ -36,7 +37,10 @@ export default async function ThreadPage({ params }: { params: Promise<{ peerId:
         <h1 className="t-title">
           {ru.messages.writeTo(`${peer.firstName} ${peer.lastName}`)}
         </h1>
-        <span className="flex items-center gap-3">
+        <span className="flex flex-wrap items-center gap-3">
+          {/* Отметить съёмку может только автор и только в переписке с
+              заказчиком: там, где он и вспоминает о состоявшейся работе */}
+          {session.role === 'PHOTOGRAPHER' && <MarkShootButton clientUserId={peer.id} />}
           <BlockButton userId={peer.id} initialBlocked={Boolean(myBlock)} />
           <ReportButton targetType="USER" targetId={peer.id} authed />
         </span>

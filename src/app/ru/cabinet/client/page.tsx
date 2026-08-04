@@ -3,7 +3,9 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 import { favoritesFor, inquiriesByClient } from '@/lib/favorites';
-import { shootsByClient } from '@/lib/shoots';
+import { shootsByClient, pendingShootsForClient } from '@/lib/shoots';
+import { ShootRequestsForClient } from '@/components/ShootRequestsForClient';
+import { formatDateRu } from '@/lib/date-format';
 import { cityNameRu } from '@/lib/geo-data';
 import { categoryNameRu } from '@/lib/category-data';
 import { thumbVariantUrl } from '@/lib/photos';
@@ -20,10 +22,11 @@ export default async function ClientCabinetPage() {
   const session = await getSession();
   if (!session) redirect('/ru/login');
 
-  const [favorites, inquiries, shoots] = await Promise.all([
+  const [favorites, inquiries, shoots, shootRequests] = await Promise.all([
     favoritesFor(session.userId),
     inquiriesByClient(session.userId),
     shootsByClient(session.userId),
+    pendingShootsForClient(session.userId),
   ]);
 
   return (
@@ -34,6 +37,17 @@ export default async function ClientCabinetPage() {
           {ru.clientCabinet.newInquiry}
         </Link>
       </div>
+
+      {/* Запросы на подтверждение — первым делом: это единственное, что от
+          заказчика нужно платформе, и он должен увидеть это сразу */}
+      <ShootRequestsForClient
+        requests={shootRequests.map((r) => ({
+          id: r.id,
+          authorName: `${r.profile.user.firstName} ${r.profile.user.lastName}`.trim(),
+          username: r.profile.username,
+          eventDate: r.eventDate ? formatDateRu(r.eventDate) : null,
+        }))}
+      />
 
       <section className="mt-6">
         <h2 className="t-title">{ru.clientCabinet.favoritesTitle}</h2>

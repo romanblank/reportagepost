@@ -161,7 +161,7 @@ export const ru = {
       videoBasic: 'Шоурил на странице — один ролик до минуты',
       portfolioUnlimited: 'Портфолио без ограничений и серии',
       videoMore: 'До четырёх роликов, каждый до полутора минут',
-      richProfile: 'Расширенная страница: пакеты цен, оборудование, команда, FAQ',
+      richProfile: 'Расширенная страница: несколько пакетов съёмки, оборудование, команда, FAQ',
       recognition: 'Участие в «Находках редакции» — подборке работ, которые заметила редакция',
       analytics: 'Сколько раз открывали вашу страницу, сохранения',
       fastReview: 'Правки страницы смотрят в первую очередь',
@@ -342,6 +342,14 @@ export const ru = {
       if ([2, 3, 4].includes(mod10) && ![12, 13, 14].includes(mod100)) return `${n} фотографа`;
       return `${n} фотографов`;
     },
+  },
+  shoots: {
+    markCta: 'Мы снимали вместе',
+    requestSent: 'Отправлено заказчику на подтверждение',
+    clientTitle: 'Подтвердите съёмку',
+    clientLead: 'Фотограф отметил, что снимал для вас. Подтвердите — это единственный честный знак доверия на платформе.',
+    yes: 'Да, снимали',
+    no: 'Нет',
   },
   profile: {
     shootDateLabel: 'Когда была съёмка',
@@ -873,6 +881,7 @@ export const ru = {
     mailSendFailed: (subject: string, error: string) => `✉️ Письмо не отправлено (${subject}): ${error}`,
     newInquiry: '📨 Новая заявка заказчика. Разбор: https://reportagepost.com/ru/admin',
     subscriptionRequested: '💳 Фотограф запросил подписку. Активировать: https://reportagepost.com/ru/admin',
+    shootNeedsReview: '🔍 Подтверждение съёмки пришло с аккаунта без признаков доверия — проверьте в модерации',
     dailyTitle: '📊 Сводка за сутки',
     dailyNothing: 'событий не было',
     dailyQueues: (n: number) => `ждёт решения: ${n}`,
