@@ -19,6 +19,7 @@ import { getSession } from '@/lib/auth';
 import { FavoriteButton, FollowButton, MessageButton } from '@/components/EngagementButtons';
 import { PortfolioGallery } from '@/components/PortfolioGallery';
 import { JsonLd } from '@/components/JsonLd';
+import { faqLd } from '@/lib/structured-data';
 import { personLd } from '@/lib/structured-data';
 import { BASE_URL } from '@/lib/sitemap';
 import { ReviewSection } from '@/components/ReviewSection';
@@ -249,6 +250,9 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
   return (
     <main className="flex-1">
       {!isSelf && <ProfileViewBeacon profileId={profile.id} />}
+      {/* Вопросы автора — то, ради чего заказчик открывает страницу вторым
+          заходом; разметка выводит ответы прямо в выдачу */}
+      {isPaid && faq.length > 0 && <JsonLd data={faqLd(faq)} />}
       <JsonLd
         data={personLd({
           firstName: profile.user.firstName,

@@ -8,6 +8,8 @@ import { formatDateTimeRu } from '@/lib/date-format';
 import { ForumComposer } from '@/components/ForumComposer';
 import { ru } from '@/i18n/ru';
 import { BASE_URL } from '@/lib/sitemap';
+import { JsonLd } from '@/components/JsonLd';
+import { forumPostingLd, breadcrumbLd } from '@/lib/structured-data';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,33 +34,27 @@ export default async function ThreadPage({ params }: Params) {
   const [thread, session] = await Promise.all([threadBySlug(slug), getSession()]);
   if (!thread || thread.sectionSlug !== section) notFound();
 
-  // Разметка обсуждения для поисковиков: тема с ответами — ровно то, что
-  // описывает DiscussionForumPosting, и без неё сотни страниц форума выглядят
-  // для робота как случайный текст
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'DiscussionForumPosting',
-    headline: thread.title,
-    datePublished: thread.createdAt.toISOString(),
-    url: `${BASE_URL}/ru/forum/${section}/${slug}`,
-    author: { '@type': 'Person', name: thread.posts[0]?.authorName ?? '' },
-    articleBody: thread.posts[0]?.body ?? '',
-    interactionStatistic: {
-      '@type': 'InteractionCounter',
-      interactionType: 'https://schema.org/CommentAction',
-      userInteractionCount: Math.max(0, thread.posts.length - 1),
-    },
-    comment: thread.posts.slice(1, 20).map((p) => ({
-      '@type': 'Comment',
-      text: p.body.slice(0, 500),
-      datePublished: p.createdAt.toISOString(),
-      author: { '@type': 'Person', name: p.authorName },
-    })),
-  };
+  const url = `${BASE_URL}/ru/forum/${section}/${slug}`;
+  const first = thread.posts[0];
+  const crumbs = breadcrumbLd([
+    { name: ru.forum.title, path: '/ru/forum' },
+    { name: ru.forum.sections[section], path: `/ru/forum/${section}` },
+    { name: thread.title, path: `/ru/forum/${section}/${slug}` },
+  ]);
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:py-12">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <JsonLd
+        data={forumPostingLd({
+          title: thread.title,
+          url,
+          createdAt: thread.createdAt,
+          authorName: first?.authorName ?? '',
+          body: first?.body ?? '',
+          replies: thread.posts.slice(1),
+        })}
+      />
+      <JsonLd data={crumbs} />
 
       <Link href={`/ru/forum/${section}`} className="text-sm underline muted">
         ← {ru.forum.sections[section]}

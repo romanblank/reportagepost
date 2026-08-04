@@ -10,6 +10,9 @@ import { MobileTabBar } from "@/components/MobileTabBar";
 import { LiveUpdates } from "@/components/LiveUpdates";
 import { SiteFooter } from "@/components/SiteFooter";
 import { CookieConsent } from "@/components/CookieConsent";
+import { JsonLd } from "@/components/JsonLd";
+import { websiteLd, organizationLd } from "@/lib/structured-data";
+import { BASE_URL } from "@/lib/sitemap";
 import { ToastProvider } from "@/components/ui/Toast";
 import { Chrome } from "@/components/Chrome";
 
@@ -73,6 +76,10 @@ export default async function RootLayout({
     >
       {/* pb-16 на мобиле — под нижнюю таб-навигацию */}
       <body className="min-h-full flex flex-col pb-16 sm:pb-0">
+        {/* Разметка уровня домена: без неё поисковик показывает голый адрес
+            вместо имени площадки и не знает, что у нас есть поиск */}
+        <JsonLd data={websiteLd(BASE_URL)} />
+        <JsonLd data={organizationLd(BASE_URL)} />
         <ToastProvider>
           {/* id — цель для inert на время открытой модалки (лайтбокс рендерится
               порталом в body, поэтому сам под inert не попадает). display:contents
