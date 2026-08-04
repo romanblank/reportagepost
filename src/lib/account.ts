@@ -52,6 +52,14 @@ export async function deleteAccount(userId: string): Promise<void> {
     await tx.follow.deleteMany({ where: { OR: [{ followerId: userId }, { followeeId: userId }] } });
     await tx.like.deleteMany({ where: { userId } });
     await tx.comment.deleteMany({ where: { authorUserId: userId } });
+    // Форум и журнал уходят вместе с аккаунтом. Обезличить не получится:
+    // имя автора рядом с сообщением — те самые данные, ради удаления которых
+    // человек и пришёл. Обсуждение потеряет реплики, и это цена права на
+    // удаление, а не недосмотр.
+    await tx.forumPost.deleteMany({ where: { authorUserId: userId } });
+    await tx.forumThread.deleteMany({ where: { authorUserId: userId } });
+    await tx.article.deleteMany({ where: { authorUserId: userId } });
+    await tx.contentViolation.deleteMany({ where: { userId } });
     await tx.review.deleteMany({ where: { authorUserId: userId } });
     await tx.inquiry.deleteMany({ where: { clientUserId: userId } });
     // Второй заход на те же грабли (аудит 2026-08-03, P0): обе связи —

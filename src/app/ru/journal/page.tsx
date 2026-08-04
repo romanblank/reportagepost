@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { editorsChoice, bestOfWeek } from '@/lib/feeds';
 import { freshStories } from '@/lib/discovery';
+import { publishedArticles } from '@/lib/articles';
+import { formatDateRu } from '@/lib/date-format';
 import { recentPhotographers } from '@/lib/widgets';
 import { webVariantUrl, thumbVariantUrl } from '@/lib/photos';
 import { cityNameRu } from '@/lib/geo-data';
@@ -19,16 +21,17 @@ export const dynamic = 'force-dynamic';
 // Editorial-слой: кураторский «Журнал» — превращает каталог в место назначения.
 // Кураторский ВИД существующих данных (выбор редакции/лучшее/истории/новые имена).
 export default async function JournalPage() {
-  const [editors, week, stories, newcomers] = await Promise.all([
+  const [editors, week, stories, newcomers, articles] = await Promise.all([
     editorsChoice(24),
     bestOfWeek(1),
     freshStories(6),
     recentPhotographers(6),
+    publishedArticles(12),
   ]);
 
   const featured = editors[0] ?? week[0] ?? null;
   const editorsRest = featured ? editors.filter((p) => p.photoId !== featured.photoId) : editors;
-  const isEmpty = !featured && stories.length === 0 && newcomers.length === 0;
+  const isEmpty = !featured && stories.length === 0 && newcomers.length === 0 && articles.length === 0;
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:py-12">
@@ -45,6 +48,30 @@ export default async function JournalPage() {
         </div>
       ) : (
         <>
+          {/* Статьи авторов идут первыми: это единственное на странице, что
+              написано словами, а не собрано алгоритмом из чужих кадров */}
+          {articles.length > 0 && (
+            <section className="mt-9">
+              <h2 className="t-caption text-recognition">{ru.journal.articlesTitle}</h2>
+              <ul className="mt-3 grid gap-3 sm:grid-cols-2">
+                {articles.map((a) => (
+                  <li key={a.slug}>
+                    <Link
+                      href={`/ru/journal/${a.slug}`}
+                      className="block h-full rounded-media border border-line bg-surface-2 p-4 transition-colors hover:border-accent"
+                    >
+                      <span className="t-small block text-balance">{a.title}</span>
+                      <span className="t-caption mt-1 block muted">{a.lead}</span>
+                      <span className="t-caption mt-2 block muted">
+                        {a.authorName} · {formatDateRu(a.publishedAt)}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
           {featured && (
             <section className="mt-9">
               <h2 className="t-caption text-recognition">{ru.journal.featuredTitle}</h2>

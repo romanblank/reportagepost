@@ -154,7 +154,8 @@ export const PLAN_FEATURES: PlanFeature[] = [
   { key: 'fastReview', minTier: 'PRIME' }, // приоритетное рассмотрение изменений
   { key: 'presentationPdf', minTier: 'PRIME' }, // презентация портфолио одним файлом
   { key: 'inquiryHeadStartPlus', minTier: 'ELITE' },
-  { key: 'salesKit', minTier: 'PRIME' }, // документы для работы с компаниями
+  { key: 'salesKit', minTier: 'PRIME' },
+  { key: 'articles', minTier: 'PRIME' }, // документы для работы с компаниями
   { key: 'presentationPdfPlus', minTier: 'ELITE' },
   { key: 'coverShowreel', minTier: 'ELITE' }, // шоурил играет в обложке профиля
   { key: 'recommended', minTier: 'ELITE' }, // ротация в «Рекомендуемых» + приоритет редподборок
@@ -191,6 +192,16 @@ export const INQUIRY_HEAD_START_HOURS: Record<PlanTier, number> = {
  * подписки здесь не в том, чтобы разблокировать файл, а в том, что на встрече
  * с компанией показывают серию, а не превью.
  */
+/**
+ * Сколько статей в журнал можно подать за месяц.
+ *
+ * Ноль здесь не стоит намеренно: право высказаться не продаётся, поэтому
+ * бесплатный уровень пишет одну статью в месяц, а подписка снимает потолок
+ * постепенно. Ограничение количественное и по причине, а не для витрины —
+ * редакционный разбор статьи стоит времени, и поток должен быть посильным.
+ */
+export const ARTICLE_QUOTA: Record<PlanTier, number> = { FREE: 1, PRIME: 2, ELITE: 6 };
+
 export const PDF_PHOTO_LIMIT: Record<PlanTier, number> = { FREE: 6, PRIME: 20, ELITE: 40 };
 
 export function inquiryVisibleAfterHours(tier: PlanTier): number {

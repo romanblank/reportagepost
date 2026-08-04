@@ -110,8 +110,9 @@ describe('роуты: админ-гейт на всех администрати
       import('@/app/api/admin/photographers/route'),
       import('@/app/api/admin/photos/[photoId]/editors-choice/route'),
       import('@/app/api/admin/photographers/[id]/grant-pro/route'),
+      import('@/app/api/admin/queue/route'),
     ]);
-    const paramsFor = [undefined, undefined, undefined, undefined, undefined, undefined, undefined, { photoId: 'x' }, { id: 'x' }];
+    const paramsFor = [undefined, undefined, undefined, undefined, undefined, undefined, undefined, { photoId: 'x' }, { id: 'x' }, undefined];
 
     for (const who of [null, { userId: 'u1', role: 'CLIENT', tokenVersion: 0 }, { userId: 'u2', role: 'PHOTOGRAPHER', tokenVersion: 0 }]) {
       session.current = who;

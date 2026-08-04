@@ -87,6 +87,10 @@ model User {
   reportsResolved    Report[]               @relation("reportResolver")
   blocksMade         UserBlock[]            @relation("blocker")
   blockedBy          UserBlock[]            @relation("blocked")
+  forumThreads       ForumThread[]
+  forumPosts         ForumPost[]
+  articles           Article[]
+  violations         ContentViolation[]
 
   // См. комментарий у PhotographerProfile: индексы поиска описаны в схеме,
   // чтобы migrate diff не пытался их снести.
@@ -389,6 +393,7 @@ model Photo {
   @@index([storyId])
   hasWebp     Boolean @default(false)
 
+  articleCovers Article[]
 }
 
 // Загруженное видео автора (шоурил/промо). Файл в Object Storage за абстракцией
@@ -488,6 +493,8 @@ enum ActivityType {
 enum CommentStatus {
   VISIBLE
   HIDDEN
+  /// Автомодерация не уверена: не показываем и не отказываем, ждём человека.
+  IN_REVIEW
 }
 
 enum TargetType {
@@ -1040,4 +1047,120 @@ model CookieConsent {
 
   @@index([createdAt])
   @@index([userId])
+}
+
+
+/// Статус публикуемого текста (форум, журнал).
+///
+/// IN_REVIEW — не «ждёт очереди», а «автомат не уверен». Первичный поток
+/// разбирается автоматически целиком; человек смотрит только спорное и
+/// переотправленное после правки, иначе очередь съест оператора.
+enum ContentStatus {
+  PUBLISHED
+  REJECTED
+  IN_REVIEW
+  /// Скрыто администратором после публикации.
+  HIDDEN
+}
+
+/// Тема форума.
+///
+/// Разделы живут в коде (`src/lib/forum-sections.ts`), а не в базе: их
+/// полдюжины, они меняются раз в год, и таблица ради них потребовала бы сида,
+/// админки и миграции на каждое переименование.
+model ForumThread {
+  id           String        @id @default(cuid())
+  sectionSlug  String
+  authorUserId String
+  title        String
+  /// Адрес темы: заголовок в транслите + короткий хвост от id.
+  slug         String        @unique
+  status       ContentStatus @default(PUBLISHED)
+  /// Причина отказа/спорности — код, не текст: формулировка живёт в словаре
+  reasonCode   String?
+  /// Фрагмент, к которому претензия: без него автор правит наугад
+  reasonQuote  String?
+  /// Автор отправил на повторную проверку после правки — только такие и
+  /// смотрит человек
+  resubmitted  Boolean       @default(false)
+  pinned       Boolean       @default(false)
+  closed       Boolean       @default(false)
+  postCount    Int           @default(0)
+  lastPostAt   DateTime      @default(now()) @db.Timestamptz(3)
+  createdAt    DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime      @updatedAt @db.Timestamptz(3)
+
+  author User        @relation(fields: [authorUserId], references: [id])
+  posts  ForumPost[]
+
+  @@index([sectionSlug, status, pinned, lastPostAt])
+  @@index([authorUserId, createdAt])
+  @@index([status, resubmitted])
+}
+
+model ForumPost {
+  id           String        @id @default(cuid())
+  threadId     String
+  authorUserId String
+  body         String
+  status       ContentStatus @default(PUBLISHED)
+  reasonCode   String?
+  reasonQuote  String?
+  resubmitted  Boolean       @default(false)
+  createdAt    DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime      @updatedAt @db.Timestamptz(3)
+
+  thread ForumThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  author User        @relation(fields: [authorUserId], references: [id])
+
+  @@index([threadId, status, createdAt])
+  @@index([authorUserId, createdAt])
+  @@index([status, resubmitted])
+}
+
+/// Статья журнала.
+///
+/// Право написать статью — перк подписки, но градация по КОЛИЧЕСТВУ в месяц,
+/// а не по факту доступа: право высказаться не продаётся.
+model Article {
+  id           String        @id @default(cuid())
+  authorUserId String
+  title        String
+  slug         String        @unique
+  /// Врезка: она же описание для выдачи и соцсетей
+  lead         String
+  body         String
+  coverPhotoId String?
+  status       ContentStatus @default(IN_REVIEW)
+  reasonCode   String?
+  reasonQuote  String?
+  resubmitted  Boolean       @default(false)
+  publishedAt  DateTime?     @db.Timestamptz(3)
+  createdAt    DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime      @updatedAt @db.Timestamptz(3)
+
+  author User   @relation(fields: [authorUserId], references: [id])
+  cover  Photo? @relation(fields: [coverPhotoId], references: [id], onDelete: SetNull)
+
+  @@index([status, publishedAt])
+  @@index([authorUserId, createdAt])
+}
+
+/// Отказ автомодерации — след для накопления.
+///
+/// Однократное нарушение остаётся объяснением и ничем больше. Систематическое
+/// ограничивает публикации, а затем закрывает доступ. Счётчик смотрит только
+/// на недавнее окно: человек, оступившийся однажды, не должен носить это
+/// вечно — иначе система наказывает за прошлое, а не защищает настоящее.
+model ContentViolation {
+  id        String   @id @default(cuid())
+  userId    String
+  /// thread | post | article | comment
+  kind      String
+  reason    String
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }

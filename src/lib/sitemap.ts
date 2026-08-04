@@ -24,11 +24,18 @@ export interface SitemapCityCategory {
 
 export const BASE_URL = `https://${APP_DOMAIN}`;
 
+/** Тема форума: адрес и время последнего сообщения. */
+export type SitemapThread = { section: string; slug: string; lastMod: Date };
+export type SitemapArticle = { slug: string; lastMod: Date };
+
 export function sitemapEntries(
   cities: SitemapCity[],
   profiles: SitemapProfile[],
   now: Date,
   cityCategories: SitemapCityCategory[] = [],
+  threads: SitemapThread[] = [],
+  forumSections: string[] = [],
+  articles: SitemapArticle[] = [],
 ): MetadataRoute.Sitemap {
   const entries: MetadataRoute.Sitemap = [
     { url: `${BASE_URL}/`, lastModified: now, changeFrequency: 'daily', priority: 1 },
@@ -38,6 +45,35 @@ export function sitemapEntries(
     // не было вовсе, хотя он задуман как самостоятельная точка входа
     { url: `${BASE_URL}/ru/journal`, lastModified: now, changeFrequency: 'weekly', priority: 0.6 },
   ];
+
+  // Форум — то, ради чего у платформы вообще появляется содержимое, которое
+  // растёт без нашего участия: разделы и каждая тема отдельной страницей
+  entries.push({ url: `${BASE_URL}/ru/forum`, lastModified: now, changeFrequency: 'daily', priority: 0.7 });
+  for (const section of forumSections) {
+    entries.push({
+      url: `${BASE_URL}/ru/forum/${section}`,
+      lastModified: now,
+      changeFrequency: 'daily',
+      priority: 0.6,
+    });
+  }
+  for (const t of threads) {
+    entries.push({
+      url: `${BASE_URL}/ru/forum/${t.section}/${t.slug}`,
+      lastModified: t.lastMod,
+      changeFrequency: 'weekly',
+      priority: 0.5,
+    });
+  }
+
+  for (const a of articles) {
+    entries.push({
+      url: `${BASE_URL}/ru/journal/${a.slug}`,
+      lastModified: a.lastMod,
+      changeFrequency: 'monthly',
+      priority: 0.6,
+    });
+  }
 
   for (const c of cities) {
     if (c.approvedCount <= 0) continue; // пустой город — не в карту

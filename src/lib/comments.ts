@@ -41,12 +41,26 @@ export async function addComment(userId: string, target: CommentTarget, rawBody:
   await assertTargetApproved(target);
   await rateLimit(`comment:user:${userId}`, 10, 60); // 10/мин на пользователя
 
+  // Программный guard выше ловит контакты и ссылки, но грубость без единой
+  // ссылки он пропускает — а под работой человека это ранит сильнее спама.
+  // Третий уровень (модель + guard) добирает именно такие случаи; без ключа
+  // модели он молчит, и комментарий публикуется как раньше.
+  const { moderateText } = await import('@/lib/text-moderation');
+  const verdict = await moderateText({ text: body, kind: 'comment' });
+  if (verdict.action === 'reject') {
+    await db.contentViolation.create({ data: { userId, kind: 'comment', reason: verdict.reason } });
+    throw new DomainError(`comment_${verdict.reason}`, 400);
+  }
+
   const created = await db.comment.create({
     data: {
       authorUserId: userId,
       photoId: 'photoId' in target ? target.photoId : null,
       storyId: 'storyId' in target ? target.storyId : null,
       body,
+      // Спорное не показываем и не отклоняем: ошибочный отказ под чужой
+      // работой дороже задержки
+      status: verdict.action === 'review' ? 'IN_REVIEW' : 'VISIBLE',
     },
   });
   await db.activityEvent.create({

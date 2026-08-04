@@ -39,6 +39,7 @@ const APP_SECTIONS = new Set([
   'cabinet',
   'community',
   'forgot',
+  'forum',
   'inquiry',
   'journal',
   'legal',

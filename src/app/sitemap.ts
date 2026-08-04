@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { db } from '@/lib/db';
 import { sitemapEntries, type SitemapCity, type SitemapCityCategory } from '@/lib/sitemap';
+import { forumSectionSlugs } from '@/lib/forum-sections';
 
 // force-dynamic: sitemap лезет в БД — иначе пререндер в Docker-билде без
 // DATABASE_URL падает (урок 2026-07-14, как /ru/community).
@@ -43,10 +44,29 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     cityCategories.push({ citySlug: r.profile.city.slug, categorySlug: r.category.slug });
   }
 
+  // Темы форума: каждая — отдельная страница с содержимым, которого нет
+  // больше нигде. Ради этого форум и заводился
+  const articles = await db.article.findMany({
+    where: { status: 'PUBLISHED', publishedAt: { not: null } },
+    select: { slug: true, publishedAt: true },
+    orderBy: { publishedAt: 'desc' },
+    take: 2000,
+  });
+
+  const threads = await db.forumThread.findMany({
+    where: { status: 'PUBLISHED' },
+    select: { sectionSlug: true, slug: true, lastPostAt: true },
+    orderBy: { lastPostAt: 'desc' },
+    take: 5000,
+  });
+
   return sitemapEntries(
     cities,
     profiles.map((p) => ({ username: p.username, lastMod: p.createdAt })),
     new Date(),
     cityCategories,
+    threads.map((t) => ({ section: t.sectionSlug, slug: t.slug, lastMod: t.lastPostAt })),
+    forumSectionSlugs(),
+    articles.map((a) => ({ slug: a.slug, lastMod: a.publishedAt as Date })),
   );
 }
