@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { JOB_THRESHOLDS } from '@/lib/job-thresholds';
 import { Prisma } from '@prisma/client';
 
 /**
@@ -93,12 +94,6 @@ async function withDelta(
  * Общий порог даёт либо ложные тревоги (задача раз в неделю), либо тишину при
  * поломке (задача раз в две минуты «протухнет» только через сутки).
  */
-const JOB_THRESHOLDS: Record<string, number> = {
-  maintenance: 26, // раз в сутки
-  video: 1, // раз в 2 минуты — час молчания это уже поломка
-  inquiries: 2, // раз в 15 минут; два часа тишины = фора подписчиков не работает
-  backup: 36, // ночной бэкап
-};
 
 export async function adminDashboard(periodDays = 30): Promise<Dashboard> {
   const [money, demand, supply, queues, jobs] = await Promise.all([
