@@ -1,7 +1,69 @@
+import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { videoStorageKeys } from '@/lib/videos';
 import { photoStorageKeys } from '@/lib/photos';
 import { storage } from '@/lib/storage';
+
+/**
+ * Всё, что висит на анкете фотографа.
+ *
+ * Единственный список: удаление аккаунта и удаление одной лишь анкеты обязаны
+ * ходить одним и тем же путём. Вторая копия перечня разъезжается с первой —
+ * на удалении аккаунта это случалось трижды, каждый раз одинаково: новая
+ * таблица со ссылкой ON DELETE RESTRICT валила операцию с 500.
+ */
+async function purgeProfile(tx: Prisma.TransactionClient, profileId: string): Promise<void> {
+  const photoIds = (await tx.photo.findMany({ where: { profileId }, select: { id: true } })).map((p) => p.id);
+  const storyIds = (await tx.story.findMany({ where: { profileId }, select: { id: true } })).map((s) => s.id);
+  await tx.like.deleteMany({ where: { OR: [{ photoId: { in: photoIds } }, { storyId: { in: storyIds } }] } });
+  await tx.comment.deleteMany({ where: { OR: [{ photoId: { in: photoIds } }, { storyId: { in: storyIds } }] } });
+  await tx.article.updateMany({ where: { coverPhotoId: { in: photoIds } }, data: { coverPhotoId: null } });
+  await tx.review.deleteMany({ where: { profileId } });
+  await tx.favoritePhotographer.deleteMany({ where: { profileId } });
+  await tx.busyDate.deleteMany({ where: { profileId } });
+  await tx.travelPlan.deleteMany({ where: { profileId } });
+  await tx.pricePackage.deleteMany({ where: { profileId } });
+  await tx.profileCategory.deleteMany({ where: { profileId } });
+  await tx.profileCategoryScore.deleteMany({ where: { profileId } });
+  await tx.shootConfirmation.deleteMany({ where: { profileId } });
+  await tx.profileVideo.deleteMany({ where: { profileId } });
+  await tx.photo.deleteMany({ where: { profileId } }); // до stories (photo.storyId FK)
+  await tx.story.deleteMany({ where: { profileId } });
+  await tx.photographerProfile.delete({ where: { id: profileId } });
+}
+
+/**
+ * Удалить ТОЛЬКО анкету фотографа, оставив аккаунт.
+ *
+ * Нужно, чтобы пройти путь «подать анкету» заново, не теряя вход, почту и
+ * пароль. Роль возвращать не нужно: анкета подаётся из того же кабинета.
+ */
+export async function deletePhotographerProfile(userId: string): Promise<void> {
+  const profile = await db.photographerProfile.findUnique({
+    where: { userId },
+    select: {
+      id: true, avatarKey: true,
+      photos: { select: { storageKey: true } },
+      videos: { select: { storageKey: true, hdKey: true, sdKey: true, posterKey: true } },
+    },
+  });
+  if (!profile) return;
+
+  const storageKeys: string[] = [];
+  for (const ph of profile.photos) storageKeys.push(...photoStorageKeys(ph.storageKey));
+  if (profile.avatarKey) storageKeys.push(profile.avatarKey);
+  for (const v of profile.videos) storageKeys.push(...videoStorageKeys(v));
+
+  await db.$transaction(async (tx) => {
+    await purgeProfile(tx, profile.id);
+  }, { timeout: 30_000 });
+
+  await Promise.all(
+    storageKeys.map((k) =>
+      storage.delete(k).catch((e) => console.error('[account] storage cleanup failed:', k, e)),
+    ),
+  );
+}
 
 // Удаление аккаунта и данных (ПнД, S4.2). Явное упорядоченное удаление даёт
 // КОНТРОЛИРУЕМЫЙ blast radius (безопаснее массовых onDelete-каскадов). Записи
@@ -78,24 +140,7 @@ export async function deleteAccount(userId: string): Promise<void> {
     });
 
     // 4. Профиль фотографа + поддерево (+ чужие данные на нём)
-    if (profile) {
-      const photoIds = (await tx.photo.findMany({ where: { profileId: profile.id }, select: { id: true } })).map((p) => p.id);
-      const storyIds = (await tx.story.findMany({ where: { profileId: profile.id }, select: { id: true } })).map((s) => s.id);
-      await tx.like.deleteMany({ where: { OR: [{ photoId: { in: photoIds } }, { storyId: { in: storyIds } }] } });
-      await tx.comment.deleteMany({ where: { OR: [{ photoId: { in: photoIds } }, { storyId: { in: storyIds } }] } });
-      await tx.review.deleteMany({ where: { profileId: profile.id } });
-      await tx.favoritePhotographer.deleteMany({ where: { profileId: profile.id } });
-      await tx.busyDate.deleteMany({ where: { profileId: profile.id } });
-      await tx.travelPlan.deleteMany({ where: { profileId: profile.id } });
-      await tx.pricePackage.deleteMany({ where: { profileId: profile.id } });
-      await tx.profileCategory.deleteMany({ where: { profileId: profile.id } });
-      await tx.profileCategoryScore.deleteMany({ where: { profileId: profile.id } });
-      await tx.shootConfirmation.deleteMany({ where: { profileId: profile.id } });
-      await tx.profileVideo.deleteMany({ where: { profileId: profile.id } });
-      await tx.photo.deleteMany({ where: { profileId: profile.id } }); // до stories (photo.storyId FK)
-      await tx.story.deleteMany({ where: { profileId: profile.id } });
-      await tx.photographerProfile.delete({ where: { id: profile.id } });
-    }
+    if (profile) await purgeProfile(tx, profile.id);
 
     // 5. Сам пользователь
     await tx.user.delete({ where: { id: userId } });

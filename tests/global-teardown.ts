@@ -60,6 +60,23 @@ export async function teardown(): Promise<void> {
   await db.payment.deleteMany({ where: { userId: { in: ids } } });
   await db.subscription.deleteMany({ where: { userId: { in: ids } } });
 
+  // Форум и журнал: связи на User — RESTRICT, поэтому забытая тема не даёт
+  // удалить тестовый аккаунт и роняет уборку целиком (тот же класс, что трижды
+  // ломал удаление аккаунта). Сообщения снимаем и свои, и чужие в своих темах
+  const ownThreads = (await db.forumThread.findMany({
+    where: { authorUserId: { in: ids } },
+    select: { id: true },
+  })).map((t) => t.id);
+  await db.forumSubscription.deleteMany({
+    where: { OR: [{ userId: { in: ids } }, { threadId: { in: ownThreads } }] },
+  });
+  await db.forumPost.deleteMany({
+    where: { OR: [{ authorUserId: { in: ids } }, { threadId: { in: ownThreads } }] },
+  });
+  await db.forumThread.deleteMany({ where: { id: { in: ownThreads } } });
+  await db.article.deleteMany({ where: { authorUserId: { in: ids } } });
+  await db.contentViolation.deleteMany({ where: { userId: { in: ids } } });
+
   // Содержимое профилей
   if (profileIds.length > 0) {
     await db.photo.deleteMany({ where: { profileId: { in: profileIds } } });

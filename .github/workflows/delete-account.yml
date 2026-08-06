@@ -1,0 +1,51 @@
+name: Prod delete account
+
+on:
+  workflow_dispatch:
+    inputs:
+      query:
+        description: 'Кого: email, username или «Имя Фамилия»'
+        required: true
+      mode:
+        description: 'Что удалить'
+        required: true
+        type: choice
+        default: profile
+        options:
+          - profile   # только анкету фотографа, аккаунт и пароль остаются
+          - account   # аккаунт целиком (освобождает почту для регистрации заново)
+      confirm:
+        description: 'Введите DELETE, чтобы подтвердить. Пусто = только показать, кого нашли'
+        required: false
+
+# Удаление данных живого человека с прода.
+#
+# Отдельным воркфлоу, а не пунктом в Prod ops: там рутина (перезапуск, статус
+# миграций), и необратимое удаление рядом с ней рано или поздно нажмут не глядя.
+#
+# Без confirm=DELETE запуск ничего не удаляет, а печатает, кого нашёл. Это
+# главная защита: перепутанный email — это чужой удалённый аккаунт, и отката
+# у него нет. Второй эшелон — сам скрипт: несколько совпадений он не трогает.
+jobs:
+  delete:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          QUERY: ${{ inputs.query }}
+          MODE: ${{ inputs.mode }}
+          CONFIRM: ${{ inputs.confirm }}
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: rp
+          key: ${{ secrets.PROD_SSH_KEY }}
+          command_timeout: 15m
+          envs: QUERY,MODE,CONFIRM
+          script: |
+            set -uo pipefail
+            cd /opt/reportagepost
+            IMAGE=$(grep -E '^IMAGE=' .deploy.env | cut -d= -f2-)
+            docker run --rm --env-file .env.prod \
+              -e QUERY="$QUERY" -e MODE="$MODE" -e CONFIRM="$CONFIRM" \
+              "$IMAGE" npx tsx scripts/prod-delete-account.ts
