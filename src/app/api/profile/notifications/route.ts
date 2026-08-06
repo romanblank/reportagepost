@@ -10,6 +10,7 @@ import { handleRoute, jsonError } from '@/lib/errors';
 const Schema = z.object({
   notifyInquiriesEmail: z.boolean().optional(),
   notifyInquiriesTg: z.boolean().optional(),
+  notifyForumEmail: z.boolean().optional(),
 });
 
 export function PATCH(req: Request) {
@@ -34,6 +35,9 @@ export function PATCH(req: Request) {
           : {}),
         ...(parsed.data.notifyInquiriesTg !== undefined
           ? { notifyInquiriesTg: parsed.data.notifyInquiriesTg }
+          : {}),
+        ...(parsed.data.notifyForumEmail !== undefined
+          ? { notifyForumEmail: parsed.data.notifyForumEmail }
           : {}),
         ...(current?.unsubToken ? {} : { unsubToken: randomBytes(24).toString('base64url') }),
       },

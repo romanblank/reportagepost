@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { programmaticVerdict, MAX_LENGTH } from '@/lib/text-moderation-rules';
 import { apiFetch } from '@/lib/api';
@@ -42,6 +42,26 @@ export function ForumComposer({
 }) {
   const router = useRouter();
   const [body, setBody] = useState(initialBody);
+  const area = useRef<HTMLTextAreaElement | null>(null);
+
+  // Цитата приходит от кнопки у сообщения. Через событие, а не через общий
+  // стор: две независимые ветки дерева, и заводить ради одной строки контекст
+  // на всю страницу — дороже задачи
+  useEffect(() => {
+    function onQuote(e: Event) {
+      const detail = (e as CustomEvent<{ author: string; text: string }>).detail;
+      if (!detail) return;
+      const quoted = detail.text
+        .split('\n')
+        .slice(0, 6)
+        .map((line) => `> ${line}`)
+        .join('\n');
+      setBody((prev) => `${prev ? `${prev}\n\n` : ''}${detail.author}:\n${quoted}\n\n`);
+      area.current?.focus();
+    }
+    window.addEventListener('forum:quote', onQuote);
+    return () => window.removeEventListener('forum:quote', onQuote);
+  }, []);
   const [busy, setBusy] = useState(false);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -87,6 +107,7 @@ export function ForumComposer({
   return (
     <div className="mt-6">
       <textarea
+        ref={area}
         value={body}
         onChange={(e) => setBody(e.target.value)}
         maxLength={MAX_LENGTH.post}

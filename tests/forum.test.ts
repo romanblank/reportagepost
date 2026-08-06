@@ -25,6 +25,7 @@ describe.skipIf(!hasDb)('форум: публикация и автомодер�
     await db.forumPost.deleteMany({ where: { authorUserId: userId } });
     const own = await db.forumThread.findMany({ where: { authorUserId: userId }, select: { id: true } });
     await db.forumPost.deleteMany({ where: { threadId: { in: own.map((t) => t.id) } } });
+    await db.forumSubscription.deleteMany({ where: { userId } });
     await db.forumThread.deleteMany({ where: { authorUserId: userId } });
     await db.notification.deleteMany({ where: { userId } });
     await db.contentViolation.deleteMany({ where: { userId } });
@@ -392,6 +393,75 @@ describe.skipIf(!hasDb)('форум: публикация и автомодер�
     await expect(createPost(user.id, thread.id, 'Звоните на +7 999 000-00-00, договоримся быстро.')).rejects.toThrow();
 
     await db.notification.deleteMany({ where: { userId: user.id } });
+    await cleanup(user.id, profile.id);
+  });
+
+
+  it('подписка на тему: автор подписан сам, ответивший — тоже, отписка работает', async () => {
+    const { createThread, createPost, isSubscribed, unsubscribeFromThread } = await import('@/lib/forum');
+    const { db } = await import('@/lib/db');
+    const owner = await makePhotographer('sub-owner');
+    const guest = await makePhotographer('sub-guest');
+
+    const thread = await createThread(owner.user.id, {
+      sectionSlug: 'craft',
+      title: 'Съёмка в контровом свете на закате',
+      body: 'Постоянно ловлю блики от солнца в кадре и не понимаю, когда это украшает кадр, а когда его портит.',
+    });
+
+    // Спрашивать «хотите ли знать ответ на свой вопрос» бессмысленно
+    expect(await isSubscribed(owner.user.id, thread.id)).toBe(true);
+    expect(await isSubscribed(guest.user.id, thread.id)).toBe(false);
+
+    await createPost(guest.user.id, thread.id, 'Снимаю с блендой и ловлю блик специально — но только когда он не перекрывает лица.');
+    // Человек, вложившийся в разговор, по умолчанию хочет знать, чем он кончился
+    expect(await isSubscribed(guest.user.id, thread.id)).toBe(true);
+
+    // Уведомление ушло автору темы, но не самому ответившему
+    expect(await db.notification.count({ where: { userId: owner.user.id, type: 'notification.forum.reply' } })).toBe(1);
+    expect(await db.notification.count({ where: { userId: guest.user.id, type: 'notification.forum.reply' } })).toBe(0);
+
+    // Отписка обязана работать: уведомления, от которых нельзя уйти, — рассылка
+    await unsubscribeFromThread(owner.user.id, thread.id);
+    expect(await isSubscribed(owner.user.id, thread.id)).toBe(false);
+    await createPost(guest.user.id, thread.id, 'Ещё одно сообщение в ту же тему после отписки автора темы.');
+    expect(await db.notification.count({ where: { userId: owner.user.id, type: 'notification.forum.reply' } })).toBe(1);
+
+    await db.notification.deleteMany({ where: { userId: { in: [owner.user.id, guest.user.id] } } });
+    await cleanup(guest.user.id, guest.profile.id);
+    await cleanup(owner.user.id, owner.profile.id);
+  });
+
+  it('длинная тема читается страницами, и вторая страница существует', async () => {
+    const { createThread, threadBySlug, POSTS_PER_PAGE } = await import('@/lib/forum');
+    const { db } = await import('@/lib/db');
+    const { user, profile } = await makePhotographer('paging');
+
+    const thread = await createThread(user.id, {
+      sectionSlug: 'business',
+      title: 'Длинная тема про расчёты с заказчиками',
+      body: 'Первое сообщение длинной темы, к которому будет много ответов, чтобы проверить постраничное чтение.',
+    });
+
+    // Пишем прямо в базу: цель теста — чтение страницами, а не модерация
+    await db.forumPost.createMany({
+      data: Array.from({ length: POSTS_PER_PAGE + 5 }, (_, i) => ({
+        threadId: thread.id,
+        authorUserId: user.id,
+        status: 'PUBLISHED' as const,
+        body: `Ответ номер ${i + 1} в длинной теме про расчёты.`,
+      })),
+    });
+
+    const first = await threadBySlug(thread.slug!, 1);
+    const second = await threadBySlug(thread.slug!, 2);
+    expect(first?.posts).toHaveLength(POSTS_PER_PAGE);
+    // Раньше сообщения за пределами первой страницы просто переставали
+    // существовать — их нельзя было ни прочитать, ни найти
+    expect(second?.posts.length).toBeGreaterThan(0);
+    expect(first?.totalPosts).toBe(POSTS_PER_PAGE + 6);
+    expect(second?.posts[0].id).not.toBe(first?.posts[0].id);
+
     await cleanup(user.id, profile.id);
   });
 

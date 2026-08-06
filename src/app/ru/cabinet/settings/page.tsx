@@ -21,7 +21,7 @@ export default async function SettingsPage() {
       where: { id: session.userId },
       select: {
         firstName: true, lastName: true, email: true, passwordHash: true,
-        notifyInquiriesEmail: true, notifyInquiriesTg: true, tgUserId: true,
+        notifyInquiriesEmail: true, notifyInquiriesTg: true, notifyForumEmail: true, tgUserId: true,
       },
     }),
     twoFactorStatus(session.userId),
@@ -50,6 +50,7 @@ export default async function SettingsPage() {
         <NotifyPrefs
           initialEmail={user.notifyInquiriesEmail}
           initialTg={user.notifyInquiriesTg}
+          initialForum={user.notifyForumEmail}
           hasTelegram={Boolean(user.tgUserId)}
         />
       </section>

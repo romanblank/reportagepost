@@ -73,6 +73,7 @@ describe('i18n: карты покрывают все ключи, использ�
 // присваиваться и сборка упадёт — ровно то, что раньше не ловилось.
 type EnMeta = Dictionary['meta'];
 const enMeta: EnMeta = {
+  ogKicker: 'Reportage photography',
   title: 'Reportage Post',
   description: 'A community of reportage photographers: work, client gratitude and direct booking requests.',
 };

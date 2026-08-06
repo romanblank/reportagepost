@@ -173,6 +173,9 @@ export async function createThread(
         },
       },
       postCount: status === 'PUBLISHED' ? 1 : 0,
+      // Автор подписан на собственную тему сразу: спрашивать «хотите ли знать
+      // ответ на свой вопрос» бессмысленно
+      subscriptions: status === 'PUBLISHED' ? { create: { userId } } : undefined,
     },
   });
 
@@ -231,20 +234,10 @@ export async function createPost(userId: string, threadId: string, rawBody: stri
       where: { id: threadId },
       data: { postCount: { increment: 1 }, lastPostAt: new Date() },
     });
-    // Автор темы должен узнать об ответе: вопрос, на который ответили через
-    // три дня, останется незамеченным, и разговор оборвётся на первом же круге
-    const owner = await db.forumThread.findUnique({
-      where: { id: threadId },
-      select: { authorUserId: true, slug: true, sectionSlug: true, title: true },
-    });
-    if (owner && owner.authorUserId !== userId) {
-      const { notifyInApp } = await import('@/lib/notifications');
-      await notifyInApp(owner.authorUserId, 'notification.forum.reply', {
-        threadSlug: owner.slug,
-        sectionSlug: owner.sectionSlug,
-        title: owner.title,
-      }).catch(() => {});
-    }
+    // Человек, вложившийся в разговор, по умолчанию хочет знать, чем он
+    // кончился: отвечающий подписывается на тему сам собой
+    await subscribeToThread(userId, threadId).catch(() => {});
+    await notifyThreadSubscribers(threadId, userId).catch(() => {});
   }
 
   const violations =
@@ -257,6 +250,68 @@ export async function createPost(userId: string, threadId: string, rawBody: stri
     quote: 'quote' in verdict ? verdict.quote : undefined,
     violations,
   };
+}
+
+/** Подписка на тему — идемпотентная. */
+export async function subscribeToThread(userId: string, threadId: string): Promise<void> {
+  await db.forumSubscription.upsert({
+    where: { userId_threadId: { userId, threadId } },
+    create: { userId, threadId },
+    update: {},
+  });
+}
+
+export async function unsubscribeFromThread(userId: string, threadId: string): Promise<void> {
+  await db.forumSubscription.deleteMany({ where: { userId, threadId } });
+}
+
+export async function isSubscribed(userId: string, threadId: string): Promise<boolean> {
+  return (await db.forumSubscription.count({ where: { userId, threadId } })) > 0;
+}
+
+/**
+ * Сообщить подписчикам темы о новом сообщении.
+ *
+ * Внутри платформы — всем, письмом — только тем, кто письма не отключил.
+ * Уведомление внутри и письмо это разные вещи: первое человек увидит, когда
+ * зайдёт, второе возвращает его, когда он не собирался, и потому должно
+ * выключаться отдельно от рассылки заявок.
+ */
+export async function notifyThreadSubscribers(threadId: string, exceptUserId: string): Promise<void> {
+  const thread = await db.forumThread.findUnique({
+    where: { id: threadId },
+    select: {
+      slug: true, sectionSlug: true, title: true, authorUserId: true,
+      subscriptions: {
+        select: { user: { select: { id: true, email: true, notifyForumEmail: true, status: true } } },
+      },
+    },
+  });
+  if (!thread) return;
+
+  const recipients = thread.subscriptions
+    .map((s) => s.user)
+    .filter((u) => u.id !== exceptUserId && u.status === 'ACTIVE');
+  if (recipients.length === 0) return;
+
+  const { notifyManyInApp } = await import('@/lib/notifications');
+  await notifyManyInApp(
+    recipients.map((u) => u.id),
+    'notification.forum.reply',
+    { threadSlug: thread.slug, sectionSlug: thread.sectionSlug, title: thread.title },
+  ).catch(() => {});
+
+  const { sendEmail } = await import('@/lib/email');
+  const { APP_DOMAIN } = await import('@/lib/constants');
+  const url = `https://${APP_DOMAIN}/ru/forum/${thread.sectionSlug}/${thread.slug}`;
+  for (const u of recipients) {
+    if (!u.email || !u.notifyForumEmail) continue;
+    await sendEmail(
+      u.email,
+      `Ответ в теме «${thread.title}»`,
+      `В теме, на которую вы подписаны, появился ответ.\n\n${thread.title}\n${url}\n\nОтписаться от темы можно кнопкой на её странице.`,
+    ).catch(() => {});
+  }
 }
 
 /**
@@ -468,10 +523,24 @@ export type ThreadListItem = {
   authorUsername: string | null;
 };
 
-export async function threadsInSection(sectionSlug: string, limit = 50): Promise<ThreadListItem[]> {
+export const THREADS_PER_PAGE = 30;
+export const POSTS_PER_PAGE = 50;
+
+/**
+ * Темы раздела страницами.
+ *
+ * Раньше отдавались первые пятьдесят и всё: пятьдесят первая тема переставала
+ * существовать — её нельзя было ни открыть из раздела, ни найти глазами.
+ */
+export async function threadsInSection(
+  sectionSlug: string,
+  limit = THREADS_PER_PAGE,
+  page = 1,
+): Promise<ThreadListItem[]> {
   const rows = await db.forumThread.findMany({
     where: { sectionSlug, status: 'PUBLISHED' },
     orderBy: [{ pinned: 'desc' }, { lastPostAt: 'desc' }],
+    skip: (Math.max(1, page) - 1) * limit,
     take: limit,
     select: {
       id: true, slug: true, title: true, sectionSlug: true, postCount: true, lastPostAt: true, pinned: true,
@@ -495,6 +564,8 @@ export async function threadsInSection(sectionSlug: string, limit = 50): Promise
 
 export type ThreadView = {
   id: string;
+  /** Всего опубликованных сообщений — для постраничной навигации. */
+  totalPosts: number;
   slug: string;
   title: string;
   sectionSlug: string;
@@ -511,7 +582,7 @@ export type ThreadView = {
   }[];
 };
 
-export async function threadBySlug(slug: string): Promise<ThreadView | null> {
+export async function threadBySlug(slug: string, page = 1): Promise<ThreadView | null> {
   const t = await db.forumThread.findUnique({
     where: { slug },
     select: {
@@ -519,7 +590,10 @@ export async function threadBySlug(slug: string): Promise<ThreadView | null> {
       posts: {
         where: { status: 'PUBLISHED' },
         orderBy: { createdAt: 'asc' },
-        take: 200,
+        // Длинная тема читается по порядку, поэтому страницы идут от начала, а
+        // не от конца, как в личке: там ценно последнее, здесь — ход разговора
+        skip: (Math.max(1, page) - 1) * POSTS_PER_PAGE,
+        take: POSTS_PER_PAGE,
         select: {
           id: true, body: true, createdAt: true, authorUserId: true,
           author: { select: { firstName: true, lastName: true, profile: { select: { username: true, status: true } } } },
@@ -528,8 +602,10 @@ export async function threadBySlug(slug: string): Promise<ThreadView | null> {
     },
   });
   if (!t || t.status !== 'PUBLISHED') return null;
+  const totalPosts = await db.forumPost.count({ where: { threadId: t.id, status: 'PUBLISHED' } });
   return {
     id: t.id,
+    totalPosts,
     slug: t.slug,
     title: t.title,
     sectionSlug: t.sectionSlug,
@@ -548,6 +624,10 @@ export async function threadBySlug(slug: string): Promise<ThreadView | null> {
 }
 
 /** Сводка по разделам для главной форума. */
+export async function threadCountInSection(sectionSlug: string): Promise<number> {
+  return db.forumThread.count({ where: { sectionSlug, status: 'PUBLISHED' } });
+}
+
 export async function forumOverview(): Promise<Record<string, { threads: number; lastPostAt: Date | null }>> {
   const grouped = await db.forumThread.groupBy({
     by: ['sectionSlug'],

@@ -52,6 +52,9 @@ model User {
   // отключаются — без них теряется доступ.
   notifyInquiriesEmail Boolean    @default(true)
   notifyInquiriesTg    Boolean    @default(true)
+  /// Письма об ответах в темах форума. Отдельно от заявок: это разные потоки,
+  /// и человек, отключивший рассылку заявок, не обязан терять ответы себе.
+  notifyForumEmail     Boolean    @default(true)
   // Одноразовый ключ отписки для ссылки в письме (без входа в аккаунт)
   unsubToken           String?    @unique
   pdnConsentAt         DateTime? @db.Timestamptz(3) // согласие на обработку ПДн (152-ФЗ)
@@ -88,6 +91,7 @@ model User {
   blocksMade         UserBlock[]            @relation("blocker")
   blockedBy          UserBlock[]            @relation("blocked")
   forumThreads       ForumThread[]
+  forumSubs          ForumSubscription[]
   forumPosts         ForumPost[]
   articles           Article[]
   violations         ContentViolation[]
@@ -1091,8 +1095,9 @@ model ForumThread {
   createdAt    DateTime      @default(now()) @db.Timestamptz(3)
   updatedAt    DateTime      @updatedAt @db.Timestamptz(3)
 
-  author User        @relation(fields: [authorUserId], references: [id])
-  posts  ForumPost[]
+  author        User                @relation(fields: [authorUserId], references: [id])
+  posts         ForumPost[]
+  subscriptions ForumSubscription[]
 
   @@index([sectionSlug, status, pinned, lastPostAt])
   @@index([authorUserId, createdAt])
@@ -1164,4 +1169,22 @@ model ContentViolation {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+}
+
+
+/// Подписка на тему форума.
+///
+/// Автор подписывается на свою тему, отвечающий — на ту, куда написал: человек,
+/// вложившийся в разговор, по умолчанию хочет знать, чем он кончился. Отписка
+/// в один клик там же, где подписка, — иначе это рассылка, а не уведомления.
+model ForumSubscription {
+  userId    String
+  threadId  String
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  thread ForumThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@id([userId, threadId])
+  @@index([threadId])
 }

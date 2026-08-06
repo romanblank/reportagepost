@@ -9,18 +9,21 @@ import { ru } from '@/i18n/ru';
 export function NotifyPrefs({
   initialEmail,
   initialTg,
+  initialForum,
   hasTelegram,
 }: {
   initialEmail: boolean;
   initialTg: boolean;
+  initialForum: boolean;
   hasTelegram: boolean;
 }) {
   const [email, setEmail] = useState(initialEmail);
   const [tg, setTg] = useState(initialTg);
+  const [forum, setForum] = useState(initialForum);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState(false);
 
-  async function save(patch: { notifyInquiriesEmail?: boolean; notifyInquiriesTg?: boolean }) {
+  async function save(patch: { notifyInquiriesEmail?: boolean; notifyInquiriesTg?: boolean; notifyForumEmail?: boolean }) {
     setError(false);
     const res = await apiFetch('/api/profile/notifications', { method: 'PATCH', body: patch });
     if (res?.ok) {
@@ -32,6 +35,7 @@ export function NotifyPrefs({
     setError(true);
     if (patch.notifyInquiriesEmail !== undefined) setEmail(!patch.notifyInquiriesEmail);
     if (patch.notifyInquiriesTg !== undefined) setTg(!patch.notifyInquiriesTg);
+    if (patch.notifyForumEmail !== undefined) setForum(!patch.notifyForumEmail);
   }
 
   return (
@@ -46,6 +50,14 @@ export function NotifyPrefs({
         <input type="checkbox" checked={email} className="size-4 accent-[var(--accent)]"
           onChange={(e) => { setEmail(e.target.checked); void save({ notifyInquiriesEmail: e.target.checked }); }} />
         <span className="text-sm">{ru.notifyPrefs.email}</span>
+      </label>
+
+      {/* Ответы на форуме — отдельный поток от заявок: человек, отключивший
+          рассылку заказов, не обязан терять ответы себе */}
+      <label className="mt-2 flex cursor-pointer items-center gap-2.5">
+        <input type="checkbox" checked={forum} className="size-4 accent-[var(--accent)]"
+          onChange={(e) => { setForum(e.target.checked); void save({ notifyForumEmail: e.target.checked }); }} />
+        <span className="text-sm">{ru.notifyPrefs.forum}</span>
       </label>
 
       {hasTelegram && (

@@ -27,6 +27,7 @@ export function label(map: Record<string, string>, key: string): string {
 
 export const ru = {
   meta: {
+    ogKicker: 'Репортажная съёмка',
     title: 'Репортаж Пост',
     description:
       'Сообщество репортажных фотографов: работы, признательность заказчиков и прямые заявки на съёмку событий.',
@@ -351,6 +352,12 @@ export const ru = {
       return `${n} фотографов`;
     },
   },
+  pager: {
+    label: 'Страницы',
+    prev: 'Назад',
+    next: 'Дальше',
+    of: (page: number, pages: number) => `Страница ${page} из ${pages}`,
+  },
   forum: {
     title: 'Форум',
     ogFooter: 'Репортаж Пост · форум фотографов',
@@ -374,6 +381,8 @@ export const ru = {
     searchAction: 'Найти',
     searchResults: (n: number) =>
       n === 0 ? 'Ничего не нашлось — заведите тему' : `Нашлось ${n} ${plural(n, ['тема', 'темы', 'тем'])}`,
+    subscribe: 'Следить за темой',
+    unsubscribe: 'Не следить',
     newThread: 'Новая тема',
     quotaNote: (left: number, quota: number) =>
       `В этом месяце осталось ${left} из ${quota} ${plural(quota, ['темы', 'тем', 'тем'])}.`,
@@ -388,6 +397,7 @@ export const ru = {
     threadCount: (n: number) => `${n} ${plural(n, ['тема', 'темы', 'тем'])}`,
     postCount: (n: number) => `${n} ${plural(n, ['сообщение', 'сообщения', 'сообщений'])}`,
     lastPost: 'Последнее сообщение',
+    quote: 'Ответить с цитатой',
     edit: 'Исправить',
     saveEdit: 'Сохранить',
     cancelEdit: 'Отмена',
@@ -1407,6 +1417,7 @@ export const ru = {
     lead: 'Заявки заказчиков всегда видны в кабинете. Здесь — только внешние каналы.',
     email: 'Письма о новых заявках',
     telegram: 'Заявки в Telegram',
+    forum: 'Письма об ответах в темах, за которыми слежу',
     saved: 'Сохранено',
     note: 'Письма о доступе к аккаунту (вход, смена пароля, подтверждение адреса) приходят всегда — без них можно потерять доступ.',
   },

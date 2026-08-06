@@ -1,13 +1,15 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { threadBySlug } from '@/lib/forum';
+import { threadBySlug, isSubscribed, POSTS_PER_PAGE } from '@/lib/forum';
+import { Pager } from '@/components/Pager';
 import { isForumSection } from '@/lib/forum-sections';
 import { getSession } from '@/lib/auth';
 import { formatDateTimeRu } from '@/lib/date-format';
 import { ForumComposer } from '@/components/ForumComposer';
 import { PostTools } from '@/components/PostTools';
 import { ThreadAdminTools } from '@/components/ThreadAdminTools';
+import { ThreadSubscribe } from '@/components/ThreadSubscribe';
 import { ru } from '@/i18n/ru';
 import { BASE_URL } from '@/lib/sitemap';
 import { JsonLd } from '@/components/JsonLd';
@@ -15,7 +17,7 @@ import { forumPostingLd, breadcrumbLd } from '@/lib/structured-data';
 
 export const dynamic = 'force-dynamic';
 
-type Params = { params: Promise<{ section: string; slug: string }> };
+type Params = { params: Promise<{ section: string; slug: string }>; searchParams?: Promise<{ page?: string }> };
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { section, slug } = await params;
@@ -29,12 +31,14 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   };
 }
 
-export default async function ThreadPage({ params }: Params) {
+export default async function ThreadPage({ params, searchParams }: Params) {
   const { section, slug } = await params;
   if (!isForumSection(section)) notFound();
 
-  const [thread, session] = await Promise.all([threadBySlug(slug), getSession()]);
+  const page = Math.max(1, Number((await searchParams)?.page ?? 1) || 1);
+  const [thread, session] = await Promise.all([threadBySlug(slug, page), getSession()]);
   if (!thread || thread.sectionSlug !== section) notFound();
+  const subscribed = session ? await isSubscribed(session.userId, thread.id) : false;
 
   const url = `${BASE_URL}/ru/forum/${section}/${slug}`;
   const first = thread.posts[0];
@@ -62,6 +66,11 @@ export default async function ThreadPage({ params }: Params) {
         ← {ru.forum.sections[section]}
       </Link>
       <h1 className="t-h2 mt-3 text-balance">{thread.title}</h1>
+      {session ? (
+        <div className="mt-3">
+          <ThreadSubscribe threadId={thread.id} initial={subscribed} />
+        </div>
+      ) : null}
       {session?.role === 'ADMIN' ? (
         <ThreadAdminTools threadId={thread.id} closed={thread.closed} pinned={thread.pinned} />
       ) : null}
@@ -84,12 +93,21 @@ export default async function ThreadPage({ params }: Params) {
               postId={p.id}
               body={p.body}
               createdAt={p.createdAt.toISOString()}
+              authorName={p.authorName}
               mine={session?.userId === p.authorUserId}
               authed={Boolean(session)}
+              canReply={Boolean(session) && !thread.closed}
             />
           </li>
         ))}
       </ol>
+
+      <Pager
+        base={`/ru/forum/${section}/${slug}`}
+        page={page}
+        total={thread.totalPosts}
+        perPage={POSTS_PER_PAGE}
+      />
 
       {thread.closed ? (
         <p className="mt-6 text-sm muted">{ru.forum.closed}</p>

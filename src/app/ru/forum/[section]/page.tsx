@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { isForumSection } from '@/lib/forum-sections';
-import { threadsInSection } from '@/lib/forum';
+import { threadsInSection, threadCountInSection, THREADS_PER_PAGE } from '@/lib/forum';
+import { Pager } from '@/components/Pager';
 import { getSession } from '@/lib/auth';
 import { formatDateRu } from '@/lib/date-format';
 import { ru } from '@/i18n/ru';
@@ -10,7 +11,7 @@ import { BASE_URL } from '@/lib/sitemap';
 
 export const dynamic = 'force-dynamic';
 
-type Params = { params: Promise<{ section: string }> };
+type Params = { params: Promise<{ section: string }>; searchParams?: Promise<{ page?: string }> };
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { section } = await params;
@@ -22,11 +23,16 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   };
 }
 
-export default async function SectionPage({ params }: Params) {
+export default async function SectionPage({ params, searchParams }: Params) {
   const { section } = await params;
   if (!isForumSection(section)) notFound();
 
-  const [threads, session] = await Promise.all([threadsInSection(section), getSession()]);
+  const page = Math.max(1, Number((await searchParams)?.page ?? 1) || 1);
+  const [threads, total, session] = await Promise.all([
+    threadsInSection(section, THREADS_PER_PAGE, page),
+    threadCountInSection(section),
+    getSession(),
+  ]);
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8 sm:py-12">
@@ -65,6 +71,8 @@ export default async function SectionPage({ params }: Params) {
           ))}
         </ul>
       )}
+
+      <Pager base={`/ru/forum/${section}`} page={page} total={total} perPage={THREADS_PER_PAGE} />
     </main>
   );
 }

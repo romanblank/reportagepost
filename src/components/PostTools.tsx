@@ -19,14 +19,18 @@ export function PostTools({
   postId,
   body,
   createdAt,
+  authorName,
   mine,
   authed,
+  canReply,
 }: {
   postId: string;
   body: string;
   createdAt: string;
+  authorName: string;
   mine: boolean;
   authed: boolean;
+  canReply: boolean;
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -101,6 +105,19 @@ export function PostTools({
 
   return (
     <div className="mt-2 flex flex-wrap items-center gap-3">
+      {canReply ? (
+        <button
+          type="button"
+          className="t-caption underline muted"
+          onClick={() =>
+            window.dispatchEvent(
+              new CustomEvent('forum:quote', { detail: { author: authorName, text: body } }),
+            )
+          }
+        >
+          {ru.forum.quote}
+        </button>
+      ) : null}
       {canEdit ? (
         <button type="button" onClick={() => setEditing(true)} className="t-caption underline muted">
           {ru.forum.edit}

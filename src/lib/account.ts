@@ -56,6 +56,7 @@ export async function deleteAccount(userId: string): Promise<void> {
     // имя автора рядом с сообщением — те самые данные, ради удаления которых
     // человек и пришёл. Обсуждение потеряет реплики, и это цена права на
     // удаление, а не недосмотр.
+    await tx.forumSubscription.deleteMany({ where: { userId } });
     await tx.forumPost.deleteMany({ where: { authorUserId: userId } });
     await tx.forumThread.deleteMany({ where: { authorUserId: userId } });
     await tx.article.deleteMany({ where: { authorUserId: userId } });
