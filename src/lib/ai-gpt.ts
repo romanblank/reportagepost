@@ -7,6 +7,11 @@
 // ВАЖНО: вывод модели ВСЕГДА валидируется guard'ом ПОСЛЕ (правило проекта) —
 // здесь только транспорт, вердикт модели напрямую не применяется.
 
+/** Настроена ли модель. Нужно /health: без неё третий уровень модерации молчит. */
+export function llmConfigured(): boolean {
+  return Boolean(process.env.LLM_API_URL && process.env.LLM_MODEL);
+}
+
 export async function llmComplete(system: string, user: string): Promise<string | null> {
   const url = process.env.LLM_API_URL;
   const model = process.env.LLM_MODEL;

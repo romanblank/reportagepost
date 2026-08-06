@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { FORUM_SECTIONS, isForumSection } from '@/lib/forum-sections';
-import { violationCount } from '@/lib/forum';
+import { violationCount, threadQuotaLeft } from '@/lib/forum';
 import { NewThreadForm } from '@/components/NewThreadForm';
 import { ru } from '@/i18n/ru';
 
@@ -20,9 +20,10 @@ export default async function NewThreadPage({ searchParams }: Params) {
   const { section } = await searchParams;
   const initialSection = section && isForumSection(section) ? section : FORUM_SECTIONS[0].slug;
 
-  const [profile, violations] = await Promise.all([
+  const [profile, violations, quota] = await Promise.all([
     db.photographerProfile.findUnique({ where: { userId: session.userId }, select: { status: true } }),
     violationCount(session.userId),
+    threadQuotaLeft(session.userId),
   ]);
 
   // Правило показываем ДО формы, а не после отправки: узнать, что тему завести
@@ -51,6 +52,7 @@ export default async function NewThreadPage({ searchParams }: Params) {
       </section>
 
       {violations >= 3 ? <p className="t-caption mt-4 text-warning">{ru.forum.restricted}</p> : null}
+      <p className="t-caption mt-4 muted">{ru.forum.quotaNote(quota.left, quota.quota)}</p>
 
       <NewThreadForm
         sections={FORUM_SECTIONS.map((s) => ({ slug: s.slug, label: ru.forum.sections[s.slug] }))}

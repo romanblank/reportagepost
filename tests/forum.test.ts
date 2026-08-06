@@ -20,8 +20,13 @@ describe.skipIf(!hasDb)('форум: публикация и автомодер�
 
   async function cleanup(userId: string, profileId: string) {
     const { db } = await import('@/lib/db');
+    // Порядок важен: сообщения этого автора могут лежать в ЧУЖИХ темах, а в
+    // его темах — сообщения других; сначала снимаем и то и другое (FK RESTRICT)
     await db.forumPost.deleteMany({ where: { authorUserId: userId } });
+    const own = await db.forumThread.findMany({ where: { authorUserId: userId }, select: { id: true } });
+    await db.forumPost.deleteMany({ where: { threadId: { in: own.map((t) => t.id) } } });
     await db.forumThread.deleteMany({ where: { authorUserId: userId } });
+    await db.notification.deleteMany({ where: { userId } });
     await db.contentViolation.deleteMany({ where: { userId } });
     await db.profileCategoryScore.deleteMany({ where: { profileId } });
     await db.photographerProfile.delete({ where: { id: profileId } });
@@ -303,6 +308,90 @@ describe.skipIf(!hasDb)('форум: публикация и автомодер�
 
     await db.adminAudit.deleteMany({ where: { actorUserId: admin.id } });
     await db.user.delete({ where: { id: admin.id } });
+    await cleanup(user.id, profile.id);
+  });
+
+
+  it('поиск находит тему и по заголовку, и по тексту внутри', async () => {
+    const { createThread, createPost, searchThreads } = await import('@/lib/forum');
+    const owner = await makePhotographer('search');
+    const guest = await makePhotographer('searcher');
+
+    // Маркер БЕЗ цифр: длинная цифровая последовательность — это телефон по
+    // программному правилу, и сообщение справедливо не было бы опубликовано
+    const marker = `светомаркер${Math.random().toString(36).slice(2, 8).replace(/[0-9]/g, 'x')}`;
+    const thread = await createThread(owner.user.id, {
+      sectionSlug: 'gear',
+      title: 'Постоянный свет на репортаже — стоит ли',
+      body: 'Думаю взять пару приборов постоянного света на съёмки в помещении. Кто пробовал, насколько это оправдано?',
+    });
+    await createPost(guest.user.id, thread.id, `Беру ${marker} — хватает на небольшой зал и не слепит гостей.`);
+
+    // Половина ответов лежит не в названии темы, а внутри неё: поиск только по
+    // заголовкам заставил бы сообщество отвечать на один вопрос по десять раз
+    expect((await searchThreads('постоянный свет')).some((t) => t.id === thread.id)).toBe(true);
+    expect((await searchThreads(marker)).some((t) => t.id === thread.id)).toBe(true);
+    expect(await searchThreads('совершенно посторонний запрос про кулинарию')).toHaveLength(0);
+
+    await cleanup(guest.user.id, guest.profile.id);
+    await cleanup(owner.user.id, owner.profile.id);
+  });
+
+  it('месячная квота тем ограничивает количество, а не право высказаться', async () => {
+    const { createThread, threadQuotaLeft } = await import('@/lib/forum');
+    const { THREAD_QUOTA } = await import('@/lib/pricing');
+    const { user, profile } = await makePhotographer('tquota');
+
+    // Бесплатный уровень заводит темы — платится объём, а не доступ к слову
+    expect(THREAD_QUOTA.FREE).toBeGreaterThan(0);
+    expect(THREAD_QUOTA.PRIME).toBeGreaterThan(THREAD_QUOTA.FREE);
+
+    const before = await threadQuotaLeft(user.id);
+    expect(before.left).toBe(THREAD_QUOTA.FREE);
+
+    for (let i = 0; i < THREAD_QUOTA.FREE; i += 1) {
+      await createThread(user.id, {
+        sectionSlug: 'craft',
+        title: `Тема номер ${i + 1} про репортажную съёмку`,
+        body: 'Достаточно длинное первое сообщение, чтобы пройти проверку на осмысленность и не быть отклонённым.',
+      });
+    }
+    expect((await threadQuotaLeft(user.id)).left).toBe(0);
+    await expect(
+      createThread(user.id, {
+        sectionSlug: 'craft',
+        title: 'Тема сверх месячного лимита автора',
+        body: 'Ещё одно достаточно длинное сообщение, которое уже не должно быть принято из-за исчерпанной квоты.',
+      }),
+    ).rejects.toThrow();
+
+    await cleanup(user.id, profile.id);
+  });
+
+  it('систематическое злоупотребление закрывает доступ, а не только публикации', async () => {
+    const { createPost, createThread } = await import('@/lib/forum');
+    const { db } = await import('@/lib/db');
+    const { user, profile } = await makePhotographer('abuse');
+
+    const thread = await createThread(user.id, {
+      sectionSlug: 'platform',
+      title: 'Обычная тема для проверки накопления',
+      body: 'Первое сообщение темы, к которому у автомодерации нет ни одной претензии по существу.',
+    });
+
+    // Ждать, пока спамер дойдёт до очереди администратора, значит оставить его
+    // работать сутки
+    for (let i = 0; i < 11; i += 1) {
+      await db.contentViolation.create({ data: { userId: user.id, kind: 'post', reason: 'contacts' } });
+    }
+    await db.contentViolation.deleteMany({ where: { userId: user.id }, });
+    for (let i = 0; i < 11; i += 1) {
+      await db.contentViolation.create({ data: { userId: user.id, kind: 'post', reason: 'contacts' } });
+    }
+    // Двенадцатый отказ приходит уже из живой попытки
+    await expect(createPost(user.id, thread.id, 'Звоните на +7 999 000-00-00, договоримся быстро.')).rejects.toThrow();
+
+    await db.notification.deleteMany({ where: { userId: user.id } });
     await cleanup(user.id, profile.id);
   });
 

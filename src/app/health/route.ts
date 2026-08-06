@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { storage } from '@/lib/storage';
 import { emailConfigured } from '@/lib/email';
 import { telegramConfigured } from '@/lib/telegram';
+import { llmConfigured } from '@/lib/ai-gpt';
 import { getPremoderationProvider } from '@/lib/premoderation';
 
 // Честный health (урок 2026-07-13: без проверки БД деплой был «зелёным»
@@ -20,6 +21,10 @@ export async function GET() {
     storage: process.env.S3_BUCKET ? 's3' : 'disk',
     telegram: telegramConfigured() ? 'on' : 'off',
     vision: getPremoderationProvider() ? 'on' : 'off',
+    // Третий уровень автомодерации текста. Без него форум держится на
+    // программных правилах: контакты и ссылки ловятся, а грубость без единой
+    // ссылки проходит — и снаружи это неотличимо от «всё чисто»
+    textModel: llmConfigured() ? 'on' : 'off',
   };
   // Проба хранилища: раньше health спрашивал только базу, и отказ S3 —
   // при котором сайт рендерится, но все фотографии битые — не был виден

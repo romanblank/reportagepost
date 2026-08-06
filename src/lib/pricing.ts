@@ -155,7 +155,8 @@ export const PLAN_FEATURES: PlanFeature[] = [
   { key: 'presentationPdf', minTier: 'PRIME' }, // презентация портфолио одним файлом
   { key: 'inquiryHeadStartPlus', minTier: 'ELITE' },
   { key: 'salesKit', minTier: 'PRIME' },
-  { key: 'articles', minTier: 'PRIME' }, // документы для работы с компаниями
+  { key: 'articles', minTier: 'PRIME' },
+  { key: 'threads', minTier: 'PRIME' }, // документы для работы с компаниями
   { key: 'presentationPdfPlus', minTier: 'ELITE' },
   { key: 'coverShowreel', minTier: 'ELITE' }, // шоурил играет в обложке профиля
   { key: 'recommended', minTier: 'ELITE' }, // ротация в «Рекомендуемых» + приоритет редподборок
@@ -200,6 +201,15 @@ export const INQUIRY_HEAD_START_HOURS: Record<PlanTier, number> = {
  * постепенно. Ограничение количественное и по причине, а не для витрины —
  * редакционный разбор статьи стоит времени, и поток должен быть посильным.
  */
+/**
+ * Сколько тем форума можно завести за месяц.
+ *
+ * Градация по количеству, как и у статей: доступ к разговору не продаётся, но
+ * его объём — да. Потолок работает и как антиспам: заводить сорок тем в месяц
+ * не станет человек, которому есть что обсудить.
+ */
+export const THREAD_QUOTA: Record<PlanTier, number> = { FREE: 4, PRIME: 12, ELITE: 40 };
+
 export const ARTICLE_QUOTA: Record<PlanTier, number> = { FREE: 1, PRIME: 2, ELITE: 6 };
 
 export const PDF_PHOTO_LIMIT: Record<PlanTier, number> = { FREE: 6, PRIME: 20, ELITE: 40 };

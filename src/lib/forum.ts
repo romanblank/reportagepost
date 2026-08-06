@@ -6,6 +6,8 @@ import { isForumSection } from '@/lib/forum-sections';
 import { moderateText, MAX_LENGTH, type TextVerdict, type TextKind } from '@/lib/text-moderation';
 import { createId } from '@/lib/ids';
 import { EDIT_WINDOW_MS } from '@/lib/forum-constants';
+import { THREAD_QUOTA } from '@/lib/pricing';
+import { tierOf } from '@/lib/subscription';
 
 /**
  * Форум: темы и сообщения.
@@ -16,9 +18,20 @@ import { EDIT_WINDOW_MS } from '@/lib/forum-constants';
  * только к спорному и к переотправленному после правки.
  */
 
-/** Сколько отказов за окно считается системой, а не случайностью. */
+/**
+ * Пороги накопления.
+ *
+ * Две ступени, а не одна: ограничение публикаций — это «остановитесь и
+ * прочитайте правила», закрытие доступа — «мы вас не переубедим». Одной
+ * ступенью первое неотличимо от второго, и человек, дважды оступившийся,
+ * получал бы то же, что и тот, кто пришёл спамить.
+ *
+ * Окно скользящее: счётчик смотрит только недавнее, иначе система наказывает
+ * за прошлое, а не защищает настоящее.
+ */
 const VIOLATION_WINDOW_DAYS = 30;
 const RESTRICT_AFTER = 5;
+const BLOCK_AFTER = 12;
 
 export type PublishOutcome = {
   status: 'PUBLISHED' | 'REJECTED' | 'IN_REVIEW';
@@ -43,6 +56,21 @@ export async function violationCount(userId: string, now: Date = new Date()): Pr
   });
 }
 
+/** Сколько тем автор завёл в этом календарном месяце (отклонённые не в счёт). */
+export async function threadsThisMonth(userId: string, now: Date = new Date()): Promise<number> {
+  const from = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  return db.forumThread.count({
+    where: { authorUserId: userId, createdAt: { gte: from }, status: { not: 'REJECTED' } },
+  });
+}
+
+/** Остаток тем на месяц — интерфейс показывает его ДО того, как человек напишет. */
+export async function threadQuotaLeft(userId: string): Promise<{ left: number; quota: number }> {
+  const quota = THREAD_QUOTA[await tierOf(userId)];
+  const used = await threadsThisMonth(userId);
+  return { left: Math.max(0, quota - used), quota };
+}
+
 export async function assertCanPublish(userId: string): Promise<void> {
   const count = await violationCount(userId);
   if (count >= RESTRICT_AFTER) throw new DomainError('publishing_restricted', 403);
@@ -50,7 +78,29 @@ export async function assertCanPublish(userId: string): Promise<void> {
 
 async function recordViolation(userId: string, kind: TextKind, reason: string): Promise<number> {
   await db.contentViolation.create({ data: { userId, kind, reason } });
-  return violationCount(userId);
+  const count = await violationCount(userId);
+
+  // Систематическое злоупотребление закрывает доступ. Делает это система, а не
+  // администратор: ждать, пока человек дойдёт до очереди, значит оставить
+  // спамера работать сутки. Путь назад — через поддержку, и он назван прямо в
+  // самом уведомлении, иначе блокировка выглядит как исчезновение платформы.
+  if (count >= BLOCK_AFTER) {
+    const user = await db.user.findUnique({ where: { id: userId }, select: { status: true, role: true } });
+    if (user && user.status === 'ACTIVE' && user.role !== 'ADMIN') {
+      await db.user.update({
+        where: { id: userId },
+        // tokenVersion — отзыв живых сессий: иначе блокировка начинает
+        // действовать только со следующего входа, а вкладка уже открыта
+        data: { status: 'BANNED', tokenVersion: { increment: 1 } },
+      });
+      const { notifyInApp } = await import('@/lib/notifications');
+      await notifyInApp(userId, 'notification.moderation.blocked', { violations: count }).catch(() => {});
+      const { alertOperator } = await import('@/lib/telegram');
+      await alertOperator(`Auto-block by moderation: user ${userId}, violations ${count}`).catch(() => {});
+    }
+  }
+
+  return count;
 }
 
 /** Недавние тексты автора — для правил повтора и флуда. */
@@ -88,6 +138,8 @@ export async function createThread(
   // предложениями работы
   if (profile?.status !== 'APPROVED') throw new DomainError('forbidden', 403);
   await assertCanPublish(userId);
+  const { left } = await threadQuotaLeft(userId);
+  if (left <= 0) throw new DomainError('thread_quota', 429);
   await rateLimit(`forum-thread:user:${userId}`, 5, 3600);
 
   const title = input.title.trim().replace(/\s+/g, ' ');
@@ -506,6 +558,47 @@ export async function forumOverview(): Promise<Record<string, { threads: number;
   const out: Record<string, { threads: number; lastPostAt: Date | null }> = {};
   for (const g of grouped) out[g.sectionSlug] = { threads: g._count._all, lastPostAt: g._max.lastPostAt };
   return out;
+}
+
+/**
+ * Поиск по темам.
+ *
+ * Форум без поиска отвечает на один и тот же вопрос по десять раз, а автор,
+ * пришедший с вопросом, не находит ответ, который уже написан, — и оба раза
+ * проигрывает сообщество. Ищем по заголовку и по тексту сообщений: половина
+ * ответов на вопрос лежит не в названии темы, а внутри неё.
+ */
+export async function searchThreads(query: string, limit = 30): Promise<ThreadListItem[]> {
+  const q = query.trim();
+  if (q.length < 2) return [];
+
+  const rows = await db.forumThread.findMany({
+    where: {
+      status: 'PUBLISHED',
+      OR: [
+        { title: { contains: q, mode: 'insensitive' } },
+        { posts: { some: { status: 'PUBLISHED', body: { contains: q, mode: 'insensitive' } } } },
+      ],
+    },
+    orderBy: [{ lastPostAt: 'desc' }],
+    take: limit,
+    select: {
+      id: true, slug: true, title: true, sectionSlug: true, postCount: true, lastPostAt: true, pinned: true,
+      author: { select: { firstName: true, lastName: true, profile: { select: { username: true, status: true } } } },
+    },
+  });
+
+  return rows.map((t) => ({
+    id: t.id,
+    slug: t.slug,
+    title: t.title,
+    sectionSlug: t.sectionSlug,
+    postCount: t.postCount,
+    lastPostAt: t.lastPostAt,
+    pinned: t.pinned,
+    authorName: `${t.author.firstName} ${t.author.lastName}`,
+    authorUsername: t.author.profile?.status === 'APPROVED' ? t.author.profile.username : null,
+  }));
 }
 
 /** Мои отклонённые тексты — чтобы отказ не терялся и его можно было исправить. */
