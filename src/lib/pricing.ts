@@ -146,7 +146,7 @@ export const PLAN_FEATURES: PlanFeature[] = [
   // Первый перк, ценность которого не зависит от посещаемости каталога
   { key: 'inquiryHeadStart', minTier: 'PRIME' },
   { key: 'videoBasic', minTier: 'FREE' }, // один шоурил до FREE_VIDEO_SECONDS
-  { key: 'portfolioUnlimited', minTier: 'PRIME' }, // портфолио без границ + фотоистории
+  { key: 'portfolioUnlimited', minTier: 'PRIME' }, // портфолио до PRIME_PORTFOLIO_LIMIT + фотоистории
   { key: 'videoMore', minTier: 'PRIME' }, // до PRIME_VIDEO_LIMIT роликов, до PAID_VIDEO_SECONDS
   { key: 'richProfile', minTier: 'PRIME' }, // пакеты цен, FAQ, оборудование, команда
   { key: 'recognition', minTier: 'PRIME' }, // бейдж + участие в «Признании»
@@ -161,7 +161,7 @@ export const PLAN_FEATURES: PlanFeature[] = [
   { key: 'coverShowreel', minTier: 'ELITE' }, // шоурил играет в обложке профиля
   { key: 'recommended', minTier: 'ELITE' }, // ротация в «Рекомендуемых» + приоритет редподборок
   { key: 'analyticsPlus', minTier: 'ELITE' }, // кто смотрел/сохранял, тренды
-  { key: 'earlyAccess', minTier: 'ELITE' }, // ранний доступ к фичам + персональный онбординг
+  { key: 'earlyAccess', minTier: 'ELITE' }, // портфолио до ELITE_PORTFOLIO_LIMIT + верх очереди проверки
 ];
 
 /**
