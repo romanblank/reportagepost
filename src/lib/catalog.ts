@@ -104,6 +104,8 @@ export interface CatalogCard {
   firstName: string;
   lastName: string;
   verified: boolean;
+  /** Демо-профиль: за ним нет живого автора, и это видно на карточке. */
+  isDemo: boolean;
   avatarKey: string | null;
   bio: string | null;
   categories: string[];
@@ -163,6 +165,7 @@ const CATALOG_INCLUDE = {
   id: true,
   username: true,
   verified: true,
+  isDemo: true,
   avatarKey: true,
   bio: true,
   coverPhotoId: true,
@@ -238,6 +241,7 @@ async function toCards(shown: CatalogRow[]): Promise<CatalogCard[]> {
   return shown.map((p) => ({
     username: p.username,
     verified: p.verified,
+    isDemo: p.isDemo,
     avatarKey: p.avatarKey,
     firstName: p.user.firstName,
     lastName: p.user.lastName,

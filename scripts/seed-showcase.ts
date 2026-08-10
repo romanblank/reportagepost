@@ -323,6 +323,10 @@ async function main() {
     await db.photographerProfile.update({
       where: { id: profile.id },
       data: {
+        // Признак демо ставится здесь, а не выводится из префикса имени:
+        // «за профилем нет живого автора» — факт, который обязан быть в
+        // данных, иначе пометка на странице зависит от нашей условности
+        isDemo: true,
         bio: spec.bio,
         experienceYears: spec.experienceYears,
         languages: spec.languages,

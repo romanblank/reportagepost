@@ -78,6 +78,9 @@ export function CatalogCards({ cards, cityName }: { cards: CatalogCard[]; cityNa
                   <span className="truncate text-[17px]" style={{ fontFamily: 'var(--font-display)' }}>
                     {card.firstName} {card.lastName}
                   </span>
+                  {card.isDemo && (
+                    <span className="chip chip-sm shrink-0" title={ru.demo.cardHint}>{ru.demo.badge}</span>
+                  )}
                   {card.verified && <VerifiedBadge label={ru.profile.verified} size={15} />}
                   {card.tier !== 'FREE' && <TierBadge tier={card.tier} label={ru.pro.tierName[card.tier]} />}
                 </span>

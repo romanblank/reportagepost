@@ -285,6 +285,14 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
         replyText={onlineText}
       />
 
+      {/* Демо-профиль называет себя прямо и ДО того, как человек напишет:
+          пометка на карточке каталога — намёк, здесь нужна определённость */}
+      {profile.isDemo && (
+        <p className="mx-auto mt-4 w-full max-w-6xl rounded-media border border-warning/40 bg-warning-soft px-4 py-3 text-sm">
+          {ru.demo.profileNote}
+        </p>
+      )}
+
       <ProfileSubnav
         items={[
           { id: 'overview', label: ru.profile.navOverview },
