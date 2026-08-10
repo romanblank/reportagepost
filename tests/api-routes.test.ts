@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import 'dotenv/config';
 
@@ -306,5 +307,32 @@ describe('роуты: управление пользователями', () => 
       await db.adminAudit.deleteMany({ where: { actorUserId: admin.id } });
       await db.user.deleteMany({ where: { id: { in: [admin.id, victim.id] } } });
     }
+  });
+});
+
+describe('роут heartbeat фоновых задач', () => {
+  it('без секрета и с чужим именем задачи ничего не пишет', async () => {
+    const { POST } = await import('@/app/api/jobs/heartbeat/route');
+    const before = process.env.JOBS_SECRET;
+    // Значение генерируем, а не пишем строкой: сканер секретов в гейте
+    // справедливо не отличает выдуманный пароль в тесте от настоящего
+    const secret = randomBytes(16).toString('hex');
+    process.env.JOBS_SECRET = secret;
+
+    const call = (auth: string | null, body: unknown) =>
+      POST(new Request('http://localhost/api/jobs/heartbeat', {
+        method: 'POST',
+        headers: auth ? { authorization: auth, 'content-type': 'application/json' } : { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      }));
+
+    expect((await call(null, { name: 'backup' })).status).toBe(403);
+    expect((await call(`Bearer ${randomBytes(16).toString('hex')}`, { name: 'backup' })).status).toBe(403);
+    // Чужое имя создало бы запись, которую никто не проверяет, — и мониторинг
+    // снова начал бы врать, теперь уже в другую сторону
+    expect((await call(`Bearer ${secret}`, { name: 'выдуманное' })).status).toBe(400);
+
+    if (before === undefined) delete process.env.JOBS_SECRET;
+    else process.env.JOBS_SECRET = before;
   });
 });

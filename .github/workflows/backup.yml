@@ -136,6 +136,28 @@ jobs:
               echo "⚠️ S3_BACKUP_BUCKET не задан — ФОТОГРАФИИ НЕ БЭКАПЯТСЯ (только БД)"
             fi
 
+      # Отметка о прогоне В САМОЙ платформе. Бэкап выполняется здесь, снаружи,
+      # поэтому /health и панель администратора о нём не знали ничего и годами
+      # показывали бы «никогда не запускался» при пяти успешных прогонах подряд.
+      # Ложная тревога хуже отсутствия мониторинга: настоящая поломка уже не
+      # изменила бы показатель.
+      - name: Отметить прогон в платформе
+        if: success()
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: rp
+          key: ${{ secrets.PROD_SSH_KEY }}
+          command_timeout: 5m
+          script: |
+            set -uo pipefail
+            cd /opt/reportagepost
+            SECRET=$(grep -E '^JOBS_SECRET=' .env.prod | cut -d= -f2-)
+            [ -z "${SECRET:-}" ] && { echo "JOBS_SECRET не задан — отметка пропущена"; exit 0; }
+            curl -sf -m 20 -X POST http://127.0.0.1:3000/api/jobs/heartbeat \
+              -H "Authorization: Bearer $SECRET" -H 'Content-Type: application/json' \
+              -d '{"name":"backup","ok":true}' >/dev/null && echo "отметка записана"
+
       # Провал бэкапа обязан будить оператора: раньше падение было видно только
       # красным значком в Actions, на который никто не смотрит ночью (аудит P1).
       - name: Telegram-алерт при провале бэкапа
