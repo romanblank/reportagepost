@@ -2,6 +2,7 @@ import nodemailer, { type Transporter } from 'nodemailer';
 import { ru } from '@/i18n/ru';
 import { alertOperator } from '@/lib/telegram';
 import { BASE_URL } from '@/lib/sitemap';
+import { MAIL_FROM_DEFAULT } from '@/lib/constants';
 import { operatorLine } from '@/lib/legal-entity';
 
 // Почтовый адаптер (S1 личка-email) за абстракцией: без SMTP-конфигурации всё —
@@ -62,7 +63,7 @@ export async function sendEmail(
 ): Promise<void> {
   const t = transport();
   if (!t) return;
-  const from = process.env.SMTP_FROM ?? 'no-reply@reportagepost.com';
+  const from = process.env.SMTP_FROM ?? MAIL_FROM_DEFAULT;
   try {
     await t.sendMail({ from, to, subject, text: `${text}\n${emailFooter(kind)}` });
   } catch (e) {
@@ -111,7 +112,7 @@ export async function sendEmailStrict(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const t = transport();
   if (!t) return { ok: false, error: 'SMTP не сконфигурирован' };
-  const from = process.env.SMTP_FROM ?? 'no-reply@reportagepost.com';
+  const from = process.env.SMTP_FROM ?? MAIL_FROM_DEFAULT;
   try {
     await t.sendMail({ from, to, subject, text: `${text}\n${emailFooter(kind)}` });
     return { ok: true };

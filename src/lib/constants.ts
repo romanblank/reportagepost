@@ -1,6 +1,15 @@
 export const APP_NAME = 'Репортаж Пост';
 export const APP_DOMAIN = 'reportagepost.com';
 
+/**
+ * Отправитель транзакционных писем по умолчанию.
+ *
+ * Был записан строкой в двух местах email.ts: смена адреса чинилась бы в одном
+ * из них, а второе продолжало бы слать со старого — и заметили бы это по
+ * недоставленным письмам, то есть позже всех.
+ */
+export const MAIL_FROM_DEFAULT = 'no-reply@reportagepost.com';
+
 // Яндекс OAuth. ClientID/секрет — из env (Lockbox: YANDEX_CLIENT_ID,
 // YANDEX_OAUTH_SECRET). Redirect ДОЛЖЕН совпадать с указанным в приложении Яндекса.
 export const YANDEX_REDIRECT_URI = `https://${APP_DOMAIN}/api/auth/yandex/callback`;
