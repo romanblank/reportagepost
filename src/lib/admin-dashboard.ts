@@ -180,7 +180,11 @@ export type ActivityItem = {
  * где считаются цифры: лента и метрики обязаны показывать один и тот же мир.
  */
 export async function adminActivity(limit = 60, before?: Date): Promise<ActivityItem[]> {
-  const cutoff = before ?? new Date();
+  // Отсечка нужна только для листания «показать ещё». Раньше по умолчанию сюда
+  // подставлялось время ПРИЛОЖЕНИЯ, а createdAt ставит база: при малейшем
+  // расхождении часов самое свежее событие — то, ради которого админку и
+  // открывают, — в ленту не попадало.
+  const cutoff = before ?? null;
   const rows = await db.$queryRaw<{ at: Date; kind: string; title: string; href: string | null }[]>`
     SELECT * FROM (
       SELECT p."createdAt" AS at, 'profile' AS kind,
@@ -212,7 +216,7 @@ export async function adminActivity(limit = 60, before?: Date): Promise<Activity
       SELECT a."createdAt", 'admin', concat('Действие админа: ', a.action), '/ru/admin/audit'
         FROM "AdminAudit" a
     ) AS feed
-    WHERE at < ${cutoff}
+    WHERE (${cutoff}::timestamptz IS NULL OR at < ${cutoff}::timestamptz)
     ORDER BY at DESC
     LIMIT ${limit}
   `;

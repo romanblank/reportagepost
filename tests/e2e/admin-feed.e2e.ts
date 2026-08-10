@@ -29,6 +29,11 @@ describe.skipIf(!hasDb)('E2E: лента админки сводит разны�
 
     try {
       const items = await adminActivity(1000);
+      // Только что созданное обязано быть видно СРАЗУ. Раньше лента отсекала
+      // события временем приложения, а createdAt ставит база: при расхождении
+      // часов свежайшее событие — то, ради которого админку и открывают, —
+      // выпадало, и заметить это можно было только случайно
+      expect(items.some((i) => i.kind === 'report'), 'свежая жалоба не видна сразу').toBe(true);
       for (let i = 1; i < items.length; i++) {
         expect(items[i - 1].at.getTime()).toBeGreaterThanOrEqual(items[i].at.getTime());
       }
