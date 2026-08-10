@@ -3,14 +3,13 @@ import { handleRoute } from '@/lib/errors';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { db } from '@/lib/db';
-import { consumeInviteCode, releaseInviteCode } from '@/lib/invites';
 import {
   SESSION_COOKIE,
   createSessionToken,
   hashPassword,
   sessionCookieOptions,
 } from '@/lib/auth';
-import { OPEN_REGISTRATION, PDN_CONSENT_VERSION } from '@/lib/constants';
+import { PDN_CONSENT_VERSION } from '@/lib/constants';
 import { clientIp, rateLimit } from '@/lib/rate-limit';
 import { requestEmailVerification } from '@/lib/email-verification';
 
@@ -21,7 +20,6 @@ const RegisterSchema = z.object({
   lastName: z.string().trim().min(2).max(60),
   email: z.string().trim().toLowerCase().email(),
   password: z.string().min(10).max(200),
-  inviteCode: z.string().trim().optional(),
   // Согласие на обработку ПДн (152-ФЗ) — обязательно при открытом сборе данных
   pdnConsent: z.literal(true),
 });
@@ -45,7 +43,6 @@ export function POST(req: Request) {
   // мониторинга под штатный отказ.
     await rateLimit(`register:ip:${clientIp(req)}`, 10, 3600);
 
-    // Гейт регистрации. Открытая регистрация (OPEN_REGISTRATION) — инвайт
     // опционален (реферальная атрибуция, если код есть). Закрытая — код обязателен.
     // noindex завязан на PUBLIC_LAUNCH и здесь не затрагивается (ребрендинг 2026-07).
     // Занятый email проверяем ДО потребления инвайта (аудит 2026-07-31, P0):
@@ -55,19 +52,6 @@ export function POST(req: Request) {
       return NextResponse.json({ error: 'email_taken' }, { status: 409 });
     }
 
-    let inviteCodeId: string | null = null;
-    if (!OPEN_REGISTRATION) {
-      if (!data.inviteCode) {
-        return NextResponse.json({ error: 'invite_required' }, { status: 403 });
-      }
-      inviteCodeId = await consumeInviteCode(data.inviteCode);
-      if (!inviteCodeId) {
-        return NextResponse.json({ error: 'invite_invalid' }, { status: 403 });
-      }
-    } else if (data.inviteCode) {
-      // Открыто, но код передан — засчитываем атрибуцию (best-effort, не блокируем)
-      inviteCodeId = await consumeInviteCode(data.inviteCode);
-    }
 
     let user;
     try {
@@ -80,15 +64,12 @@ export function POST(req: Request) {
           lastName: data.lastName,
           email: data.email,
           passwordHash: await hashPassword(data.password),
-          inviteCodeId,
           pdnConsentAt: new Date(),
           pdnConsentVersion: PDN_CONSENT_VERSION,
         },
       });
     } catch (e) {
-      // Гонка: между проверкой и вставкой email заняли. Инвайт уже списан —
-      // возвращаем его в оборот, иначе приглашение пропадает впустую (аудит P0).
-      if (inviteCodeId) await releaseInviteCode(inviteCodeId);
+      // Гонка: между проверкой и вставкой адрес заняли
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
         return NextResponse.json({ error: 'email_taken' }, { status: 409 });
       }

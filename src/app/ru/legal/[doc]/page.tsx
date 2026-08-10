@@ -21,7 +21,6 @@ export default async function LegalPage(props: { params: Promise<{ doc: string }
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-12 sm:py-16">
-      <p className="t-caption text-recognition">{ru.footer.tagline}</p>
       <h1 className="t-h1 mt-3 text-balance">{document.title}</h1>
       <p className="mt-2 text-sm muted">{ru.legal.effectiveFrom(document.effectiveFrom)}</p>
 

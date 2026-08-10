@@ -15,12 +15,10 @@ jobs:
           script: |
             # hairpin NAT: свой публичный IP изнутри недоступен — ходим на localhost
             B="http://127.0.0.1:3000"
-            INV=$(docker exec reportagepost npx tsx scripts/create-invite.ts diag 1 | grep -o 'создан: [^ ]*' | cut -d' ' -f2)
             EMAIL="diag-$RANDOM@test.local"
             echo "--- register:"
             curl -si -c /tmp/cj -X POST "$B/api/auth/register" \
               -H 'Content-Type: application/json' \
-              -d "{\"role\":\"PHOTOGRAPHER\",\"firstName\":\"Диаг\",\"lastName\":\"Ностика\",\"email\":\"$EMAIL\",\"password\":\"diag-password-42\",\"inviteCode\":\"$INV\"}" | grep -iE '^HTTP|set-cookie' || true
             echo "--- cabinet with cookie:"
             curl -s -o /dev/null -w '%{http_code}\n' -b /tmp/cj "$B/ru/cabinet"
             echo "--- login:"

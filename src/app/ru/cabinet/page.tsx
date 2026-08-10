@@ -108,9 +108,6 @@ export default async function CabinetPage() {
             <Link href="/ru/admin/moderation" className="btn btn-accent px-3 py-1.5">
               {ru.cabinet.adminOpenQueue}
             </Link>
-            <Link href="/ru/admin/invites" className="text-sm underline">
-              {ru.adminInvites.title}
-            </Link>
             <Link href="/ru/admin/audit" className="text-sm underline">
               {ru.adminAudit.title}
             </Link>

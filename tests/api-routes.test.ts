@@ -105,7 +105,6 @@ describe('роуты: админ-гейт на всех администрати
       import('@/app/api/admin/export/route'),
       import('@/app/api/admin/moderation/route'),
       import('@/app/api/admin/moderation/photos/route'),
-      import('@/app/api/admin/invites/route'),
       import('@/app/api/admin/verify/route'),
       import('@/app/api/admin/stories/route'),
       import('@/app/api/admin/photographers/route'),
@@ -114,7 +113,7 @@ describe('роуты: админ-гейт на всех администрати
       import('@/app/api/admin/queue/route'),
       import('@/app/api/admin/forum/route'),
     ]);
-    const paramsFor = [undefined, undefined, undefined, undefined, undefined, undefined, undefined, { photoId: 'x' }, { id: 'x' }, undefined, undefined];
+    const paramsFor = [undefined, undefined, undefined, undefined, undefined, undefined, { photoId: 'x' }, { id: 'x' }, undefined, undefined];
 
     for (const who of [null, { userId: 'u1', role: 'CLIENT', tokenVersion: 0 }, { userId: 'u2', role: 'PHOTOGRAPHER', tokenVersion: 0 }]) {
       session.current = who;

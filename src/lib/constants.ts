@@ -24,10 +24,6 @@ export type Locale = (typeof SUPPORTED_LOCALES)[number];
 // (robots/meta-noindex). Снимается ТОЛЬКО явным пунктом плана S4.
 export const PUBLIC_LAUNCH = false;
 
-// Открытая регистрация БЕЗ приглашения. Расцеплено с PUBLIC_LAUNCH намеренно
-// (ребрендинг 2026-07): платформа открыта для регистрации, но остаётся под
-// noindex до S4. Инвариант: этот флаг НЕ влияет на robots/meta.
-export const OPEN_REGISTRATION = true;
 
 // Версия согласия на обработку ПДн (152-ФЗ). Растёт при изменении текста
 // политики — фиксируется в User.pdnConsentVersion для аудита согласий.

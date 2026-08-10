@@ -15,7 +15,7 @@ export function AuthScene({ children }: { children: React.ReactNode }) {
           <BrandLockup className="as-logo" />
         </Link>
         <div className="as-manifest">
-          <p className="as-kicker">{ru.footer.tagline}</p>
+          <p className="as-kicker">{ru.landing.kicker}</p>
           <p className="as-title">{ru.landing.heroTitle}</p>
         </div>
       </aside>

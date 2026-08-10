@@ -186,7 +186,6 @@ export default async function AdminHomePage() {
           <Link href="/ru/admin/users" className="underline">{ru.adminUsers.title}</Link>
           <Link href="/ru/admin/moderation" className="underline">{ru.admin.moderationTitle}</Link>
           <Link href="/ru/admin/reports" className="underline">{ru.adminReports.title}</Link>
-          <Link href="/ru/admin/invites" className="underline">{ru.adminInvites.title}</Link>
           <Link href="/ru/admin/audit" className="underline">{ru.adminAudit.title}</Link>
           <Link href="/ru/admin/mail" className="underline">{ru.adminMail.title}</Link>
           <Link href="/ru/admin/photographers/new" className="underline">{ru.adminHome.newPhotographer}</Link>

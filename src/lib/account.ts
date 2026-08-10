@@ -93,7 +93,6 @@ export async function deleteAccount(userId: string): Promise<void> {
   await db.$transaction(async (tx) => {
     // 2. Анонимизация (сохраняем агрегаты/бизнес-записи без связи с юзером)
     await tx.activityEvent.updateMany({ where: { actorUserId: userId }, data: { actorUserId: null } });
-    await tx.inviteCode.updateMany({ where: { issuedByUserId: userId }, data: { issuedByUserId: null } });
     // Платежи и аудит-след администратора НЕ удаляются: первичные документы по
     // платежам хранятся по закону (НК РФ, 54-ФЗ), аудит действий администратора —
     // доказательность. Обезличиваем: факт остаётся, связь с субъектом уходит

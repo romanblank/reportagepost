@@ -7,7 +7,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       BASE: https://reportagepost.com
-      INVITE: r60eWiv72XE
       RUN: ${{ github.run_id }}
     steps:
       - run: npm init -y >/dev/null && npm i playwright@latest >/dev/null && npx playwright install chromium --with-deps >/dev/null
@@ -15,7 +14,6 @@ jobs:
         run: |
           cat > s1.mjs <<'EOF'
           import { chromium } from 'playwright';
-          const BASE = process.env.BASE, INVITE = process.env.INVITE, RUN = process.env.RUN;
           const log = (...a) => console.log('[S1]', ...a);
           const b = await chromium.launch();
           const ctx = await b.newContext();
@@ -31,7 +29,6 @@ jobs:
           await page.fill('input[name=lastName]','Тестовиков');
           await page.fill('input[name=email]', `qa-photo-${RUN}@test.local`);
           await page.fill('input[name=password]','qa-pass-123456');
-          await page.fill('input[name=inviteCode]', INVITE);
           await Promise.all([page.waitForURL('**/ru/cabinet**',{timeout:15000}).catch(()=>{}), page.click('button[type=submit]')]);
           log('after register url', page.url());
 
@@ -67,7 +64,6 @@ jobs:
           await ap.fill('input[name=lastName]','Эй');
           await ap.fill('input[name=email]','qa-admin@test.local');
           await ap.fill('input[name=password]','qa-admin-123456');
-          await ap.fill('input[name=inviteCode]', INVITE);
           await ap.click('button[type=submit]');
           await ap.waitForTimeout(2000);
           log('admin account ensured');

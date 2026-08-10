@@ -14,7 +14,12 @@ export async function communityStats(): Promise<CommunityStats> {
   const [photographers, photos, cities, stories] = await Promise.all([
     db.photographerProfile.count({ where: { status: 'APPROVED' } }),
     db.photo.count({ where: { status: 'APPROVED', profile: { status: 'APPROVED' } } }),
-    db.city.count({ where: { active: true } }),
+    // Города, где ЕСТЬ авторы, а не города из справочника. Раньше витрина
+    // показывала «2 города» при одном фотографе в одном городе — цифра обещала
+    // выбор, которого нет, и это первое, что заказчик проверяет
+    db.photographerProfile
+      .groupBy({ by: ['cityId'], where: { status: 'APPROVED' } })
+      .then((rows) => rows.length),
     db.story.count({ where: { status: 'APPROVED', profile: { status: 'APPROVED' } } }),
   ]);
   return { photographers, photos, cities, stories };

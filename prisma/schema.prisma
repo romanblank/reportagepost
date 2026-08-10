@@ -43,7 +43,6 @@ model User {
   yandexId             String?    @unique // Яндекс OAuth: id аккаунта для входа/линковки
   tgLinkCode           String?    @unique // одноразовый код привязки (deep-link /start)
   locale               String     @default("ru")
-  inviteCodeId         String? // закрытость до S4: кто пригласил
   // Настройки уведомлений (аудит 2026-07-31, P1): отключить письма и телеграм
   // было НЕЧЕМ — единственным выходом оставалось удалить аккаунт. Рассылка
   // заявок это не транзакционное письмо «по вашему действию», а регулярный
@@ -65,8 +64,6 @@ model User {
   lastSeenAt           DateTime? @db.Timestamptz(3)
 
   profile            PhotographerProfile?
-  inviteCode         InviteCode?            @relation(fields: [inviteCodeId], references: [id])
-  issuedInvites      InviteCode[]           @relation("issuedInvites")
   subscription       Subscription?
   payments           Payment[]
   events             ActivityEvent[]        @relation("actor")
@@ -129,18 +126,6 @@ model RateLimit {
 }
 
 // Закрытость до публичного запуска (S4): регистрация только по инвайтам
-model InviteCode {
-  id             String    @id @default(cuid())
-  code           String    @unique
-  note           String? // кому выдан (амбассадор, ближний круг)
-  maxUses        Int       @default(1)
-  usedCount      Int       @default(0)
-  expiresAt      DateTime? @db.Timestamptz(3)
-  issuedByUserId String? // атрибуция: кто выдал (S3 персональные инвайты)
-  createdAt      DateTime  @default(now()) @db.Timestamptz(3)
-  users          User[]
-  issuedBy       User?     @relation("issuedInvites", fields: [issuedByUserId], references: [id])
-}
 
 // ─── География: дерево страна → регион → город ─────────────────────────────
 

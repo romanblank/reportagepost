@@ -19,11 +19,9 @@ export default function RegisterPage() {
 
 function RegisterForm() {
   const router = useRouter();
-  const invitePrefill = useSearchParams().get('invite') ?? '';
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [consent, setConsent] = useState(false);
-  const [showInvite, setShowInvite] = useState(Boolean(invitePrefill));
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -37,12 +35,9 @@ function RegisterForm() {
         lastName: f.get('lastName'),
         email: f.get('email'),
         password: f.get('password'),
-        inviteCode: f.get('inviteCode') || undefined,
         pdnConsent: consent,
       },
       codeLabels: {
-        invite_required: ru.auth.errorInvite,
-        invite_invalid: ru.auth.errorInvite,
         email_taken: ru.auth.errorEmailTaken,
       },
       fieldLabels: ru.auth.fieldLabels,
@@ -90,17 +85,6 @@ function RegisterForm() {
             <input id="reg-password" name="password" type="password" required minLength={10} autoComplete="new-password" className="input" />
             <span className="field-hint">{ru.auth.passwordHint}</span>
           </div>
-          {showInvite ? (
-            <div>
-              <label htmlFor="reg-inviteCode" className="field-label">{ru.auth.inviteCode}</label>
-              <input id="reg-inviteCode" name="inviteCode" defaultValue={invitePrefill} className="input" />
-            </div>
-          ) : (
-            <button type="button" onClick={() => setShowInvite(true)}
-              className="self-start text-sm underline muted hover:text-ink">
-              {ru.auth.hasInvite}
-            </button>
-          )}
           <label className="flex items-start gap-2.5 text-sm">
             <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)}
               className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent)]" />
