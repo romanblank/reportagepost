@@ -1,3 +1,4 @@
+import { createHmac } from 'node:crypto';
 import nodemailer, { type Transporter } from 'nodemailer';
 import { ru } from '@/i18n/ru';
 import { alertOperator } from '@/lib/telegram';
@@ -26,7 +27,10 @@ function transport(): Transporter | null {
     host: process.env.SMTP_HOST,
     port,
     secure: port === 465, // 465 = implicit TLS; 587 = STARTTLS
-    auth: { user: process.env.SMTP_USER!, pass: process.env.SMTP_PASSWORD! },
+    auth: {
+      user: process.env.SMTP_USER!,
+      pass: resolveSmtpPassword(process.env.SMTP_PASSWORD!, process.env.SMTP_HOST ?? ''),
+    },
   });
   return cached;
 }
@@ -55,6 +59,37 @@ function emailFooter(kind: 'transactional' | 'notification'): string {
  * kind различает транзакционные письма и уведомления: у вторых в футере есть
  * ссылка на управление рассылкой.
  */
+/**
+ * Пароль для SMTP Postbox.
+ *
+ * Postbox SES-совместим: в качестве пароля он принимает НЕ секретный ключ
+ * сервисного аккаунта, а подпись от него — с собственными константами
+ * (дата 20230926, сервис postbox). Сырой секрет отвергается с 538, и понять
+ * это по тексту ошибки невозможно: она выглядит как «неверный логин или
+ * пароль», из-за чего почта на проде молчала неделями, а ключ в консоли
+ * числился ни разу не использованным.
+ *
+ * Преобразуем здесь, чтобы в хранилище секретов лежало ровно то, что выдаёт
+ * консоль облака: любой другой порядок означает, что человек обязан помнить
+ * про конвертацию — и однажды не вспомнит.
+ */
+export function postboxSmtpPassword(secret: string): string {
+  const sign = (key: Buffer, msg: string) => createHmac('sha256', key).update(msg).digest();
+  let s = sign(Buffer.from(`AWS4${secret}`), '20230926');
+  for (const part of ['ru-central1', 'postbox', 'aws4_request', 'SendRawEmail']) s = sign(s, part);
+  return Buffer.concat([Buffer.from([0x04]), s]).toString('base64');
+}
+
+/**
+ * Секрет облака начинается с `YC`, готовая подпись — с `B` (версия 0x04).
+ * Различаем по этому признаку, чтобы уже преобразованный пароль не подписать
+ * второй раз.
+ */
+export function resolveSmtpPassword(raw: string, host: string): string {
+  const isPostbox = host.includes('postbox.cloud.yandex.net');
+  return isPostbox && raw.startsWith('YC') ? postboxSmtpPassword(raw) : raw;
+}
+
 export async function sendEmail(
   to: string,
   subject: string,
