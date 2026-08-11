@@ -8,6 +8,7 @@ import { travelPlansFor } from '@/lib/travel';
 import { AvailabilityCalendar } from '@/components/AvailabilityCalendar';
 import { TravelPlans } from '@/components/TravelPlans';
 import { PageHeader } from '@/components/PageHeader';
+import { CabinetNav } from '@/components/CabinetNav';
 
 export const metadata: Metadata = { title: ru.availability.title };
 export const dynamic = 'force-dynamic';
@@ -42,6 +43,7 @@ export default async function AvailabilityPage() {
 
   return (
     <main className="mx-auto w-full max-w-lg flex-1 px-4 py-6 sm:py-10">
+      <CabinetNav approved={approved} />
       <PageHeader
         crumbs={[{ href: '/ru/cabinet', label: ru.cabinet.title }]}
         title={ru.cabinet.availabilityLink}

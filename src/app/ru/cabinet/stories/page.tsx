@@ -8,6 +8,7 @@ import { thumbVariantUrl } from '@/lib/photos';
 import { ru } from '@/i18n/ru';
 import { StoryComposer, type ComposerPhoto } from '@/components/StoryComposer';
 import { PageHeader } from '@/components/PageHeader';
+import { CabinetNav } from '@/components/CabinetNav';
 
 export const metadata: Metadata = { title: ru.cabinetStories.metaTitle };
 export const dynamic = 'force-dynamic';
@@ -48,8 +49,18 @@ export default async function CabinetStoriesPage() {
 
   const composerPhotos: ComposerPhoto[] = photos.map((p) => ({ id: p.id, thumb: thumbVariantUrl(p.storageKey) }));
 
+  // Разделы, требующие одобренной анкеты, до одобрения не показываем:
+  // ссылка, ведущая к «дождитесь проверки», — обещание, которое мы сами
+  // не выполняем
+  const navApproved =
+    (await db.photographerProfile.findUnique({
+      where: { userId: session.userId },
+      select: { status: true },
+    }))?.status === 'APPROVED';
+
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:py-10">
+      <CabinetNav approved={navApproved} />
       <PageHeader
         crumbs={[{ href: '/ru/cabinet', label: ru.cabinet.title }]}
         title={ru.cabinetStories.tileTitle}

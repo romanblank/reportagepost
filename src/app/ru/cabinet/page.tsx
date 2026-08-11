@@ -25,6 +25,7 @@ import { ResubmitButton } from '@/components/ResubmitButton';
 import { formatDateRu } from '@/lib/date-format';
 import { VerifyEmailBanner } from '@/components/VerifyEmailBanner';
 import { verificationRequired } from '@/lib/email-verification';
+import { CabinetNav } from '@/components/CabinetNav';
 
 export const metadata: Metadata = { title: ru.cabinet.title };
 export const dynamic = 'force-dynamic'; // всегда свежие заявки/статус
@@ -87,8 +88,18 @@ export default async function CabinetPage() {
     ? await photographerStats(session.userId, profile.id)
     : null;
 
+  // Разделы, требующие одобренной анкеты, до одобрения не показываем:
+  // ссылка, ведущая к «дождитесь проверки», — обещание, которое мы сами
+  // не выполняем
+  const navApproved =
+    (await db.photographerProfile.findUnique({
+      where: { userId: session.userId },
+      select: { status: true },
+    }))?.status === 'APPROVED';
+
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:py-10">
+      <CabinetNav approved={navApproved} />
       <h1 className="t-h2">{me?.firstName ? ru.cabinet.greeting(me.firstName) : ru.cabinet.title}</h1>
 
       {/* Подтверждение адреса (аудит P0): только когда почта настроена и адрес

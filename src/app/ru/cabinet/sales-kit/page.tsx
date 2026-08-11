@@ -7,6 +7,7 @@ import { tierOf } from '@/lib/subscription';
 import { DOC_MIN_TIER, type SalesDocKind } from '@/lib/sales-kit';
 import { PageHeader } from '@/components/PageHeader';
 import { ru } from '@/i18n/ru';
+import { CabinetNav } from '@/components/CabinetNav';
 
 export const metadata: Metadata = { title: ru.salesKit.title };
 export const dynamic = 'force-dynamic';
@@ -35,8 +36,18 @@ export default async function SalesKitPage() {
   ]);
   const hasRequisites = Boolean(profile?.legalName && profile?.inn && profile?.bankAccount);
 
+  // Разделы, требующие одобренной анкеты, до одобрения не показываем:
+  // ссылка, ведущая к «дождитесь проверки», — обещание, которое мы сами
+  // не выполняем
+  const navApproved =
+    (await db.photographerProfile.findUnique({
+      where: { userId: session.userId },
+      select: { status: true },
+    }))?.status === 'APPROVED';
+
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6 sm:py-10">
+      <CabinetNav approved={navApproved} />
       <PageHeader
         crumbs={[{ href: '/ru/cabinet', label: ru.cabinet.title }]}
         title={ru.salesKit.title}

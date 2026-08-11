@@ -7,6 +7,7 @@ import { tierOf } from '@/lib/subscription';
 import { PDF_PHOTO_LIMIT } from '@/lib/pricing';
 import { PageHeader } from '@/components/PageHeader';
 import { ru } from '@/i18n/ru';
+import { CabinetNav } from '@/components/CabinetNav';
 
 export const metadata: Metadata = { title: ru.presentation.title };
 export const dynamic = 'force-dynamic';
@@ -39,6 +40,7 @@ export default async function PresentationPage() {
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6 sm:py-10">
+      <CabinetNav approved={approved} />
       <PageHeader
         crumbs={[{ href: '/ru/cabinet', label: ru.cabinet.title }]}
         title={ru.presentation.title}

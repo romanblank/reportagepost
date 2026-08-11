@@ -9,6 +9,7 @@ import { PortfolioManager, type PortfolioPhoto } from '@/components/PortfolioMan
 import { PortfolioImport } from '@/components/PortfolioImport';
 import { categoryNameRu } from '@/lib/category-data';
 import { PageHeader } from '@/components/PageHeader';
+import { CabinetNav } from '@/components/CabinetNav';
 
 export const metadata: Metadata = { title: ru.portfolio.title };
 export const dynamic = 'force-dynamic';
@@ -40,8 +41,18 @@ export default async function PortfolioPage() {
     status: p.status as PortfolioPhoto['status'],
   }));
 
+  // Разделы, требующие одобренной анкеты, до одобрения не показываем:
+  // ссылка, ведущая к «дождитесь проверки», — обещание, которое мы сами
+  // не выполняем
+  const navApproved =
+    (await db.photographerProfile.findUnique({
+      where: { userId: session.userId },
+      select: { status: true },
+    }))?.status === 'APPROVED';
+
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:py-10">
+      <CabinetNav approved={navApproved} />
       <PageHeader
         crumbs={[{ href: '/ru/cabinet', label: ru.cabinet.title }]}
         title={ru.cabinet.portfolioLink}

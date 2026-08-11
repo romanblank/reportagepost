@@ -6,6 +6,8 @@ import { formatDateTimeRu } from '@/lib/date-format';
 import { RejectedItem } from '@/components/RejectedItem';
 import { PageHeader } from '@/components/PageHeader';
 import { ru } from '@/i18n/ru';
+import { CabinetNav } from '@/components/CabinetNav';
+import { db } from '@/lib/db';
 
 export const metadata: Metadata = { title: ru.forum.myRejected };
 export const dynamic = 'force-dynamic';
@@ -28,8 +30,18 @@ export default async function MyModerationPage() {
 
   const empty = posts.length === 0 && threads.length === 0;
 
+  // Разделы, требующие одобренной анкеты, до одобрения не показываем:
+  // ссылка, ведущая к «дождитесь проверки», — обещание, которое мы сами
+  // не выполняем
+  const navApproved =
+    (await db.photographerProfile.findUnique({
+      where: { userId: session.userId },
+      select: { status: true },
+    }))?.status === 'APPROVED';
+
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:py-12">
+      <CabinetNav approved={navApproved} />
       <PageHeader
         crumbs={[{ href: '/ru/cabinet', label: ru.cabinet.title }]}
         title={ru.forum.myRejected}

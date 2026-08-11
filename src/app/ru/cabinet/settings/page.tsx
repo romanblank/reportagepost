@@ -8,6 +8,7 @@ import { AccountSettings } from '@/components/AccountSettings';
 import { NotifyPrefs } from '@/components/NotifyPrefs';
 import { TwoFactorManager } from '@/components/TwoFactorManager';
 import { PageHeader } from '@/components/PageHeader';
+import { CabinetNav } from '@/components/CabinetNav';
 
 export const metadata: Metadata = { title: ru.settings.title };
 export const dynamic = 'force-dynamic';
@@ -27,8 +28,18 @@ export default async function SettingsPage() {
     twoFactorStatus(session.userId),
   ]);
 
+  // Разделы, требующие одобренной анкеты, до одобрения не показываем:
+  // ссылка, ведущая к «дождитесь проверки», — обещание, которое мы сами
+  // не выполняем
+  const navApproved =
+    (await db.photographerProfile.findUnique({
+      where: { userId: session.userId },
+      select: { status: true },
+    }))?.status === 'APPROVED';
+
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6 sm:py-10">
+      <CabinetNav approved={navApproved} />
       <PageHeader
         crumbs={[{ href: '/ru/cabinet', label: ru.cabinet.title }]}
         title={ru.cabinet.settingsLink}

@@ -9,6 +9,7 @@ import { ArticleForm } from '@/components/ArticleForm';
 import { formatDateRu } from '@/lib/date-format';
 import { PageHeader } from '@/components/PageHeader';
 import { ru } from '@/i18n/ru';
+import { CabinetNav } from '@/components/CabinetNav';
 
 export const metadata: Metadata = { title: ru.articles.title };
 export const dynamic = 'force-dynamic';
@@ -36,6 +37,7 @@ export default async function CabinetArticlesPage() {
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:py-12">
+      <CabinetNav approved={approved} />
       <PageHeader
         crumbs={[{ href: '/ru/cabinet', label: ru.cabinet.title }]}
         title={ru.articles.title}

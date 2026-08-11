@@ -13,6 +13,7 @@ import { tierOf } from '@/lib/subscription';
 import { EditProfileForm } from './EditProfileForm';
 import { VideoManager } from '@/components/VideoManager';
 import { PageHeader } from '@/components/PageHeader';
+import { CabinetNav } from '@/components/CabinetNav';
 
 export const metadata: Metadata = { title: ru.editProfile.title };
 export const dynamic = 'force-dynamic';
@@ -40,8 +41,18 @@ export default async function EditProfilePage() {
   // Сколько роликов и какой длительности доступно — зависит от уровня подписки
   const tier = await tierOf(session.userId);
 
+  // Разделы, требующие одобренной анкеты, до одобрения не показываем:
+  // ссылка, ведущая к «дождитесь проверки», — обещание, которое мы сами
+  // не выполняем
+  const navApproved =
+    (await db.photographerProfile.findUnique({
+      where: { userId: session.userId },
+      select: { status: true },
+    }))?.status === 'APPROVED';
+
   return (
     <main className="mx-auto w-full max-w-xl flex-1 px-4 py-6 sm:py-10">
+      <CabinetNav approved={navApproved} />
       <PageHeader
         crumbs={[{ href: '/ru/cabinet', label: ru.cabinet.title }]}
         title={ru.editProfile.title}
