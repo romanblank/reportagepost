@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { requireAdmin } from '@/lib/admin';
 import { db } from '@/lib/db';
@@ -63,7 +62,6 @@ export default async function ModerationPage() {
         lead={ru.adminNav.moderationLead}
       />
       <div className="flex items-center justify-between gap-4">
-        <Link href="/ru/admin/reports" className="text-sm underline muted">{ru.adminReports.title} →</Link>
         <a href="/api/admin/export" download className="btn btn-outline btn-sm shrink-0">{ru.admin.exportCsv}</a>
       </div>
       {profiles.length === 0 ? (

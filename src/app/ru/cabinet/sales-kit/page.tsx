@@ -39,15 +39,15 @@ export default async function SalesKitPage() {
   // Разделы, требующие одобренной анкеты, до одобрения не показываем:
   // ссылка, ведущая к «дождитесь проверки», — обещание, которое мы сами
   // не выполняем
-  const navApproved =
-    (await db.photographerProfile.findUnique({
+  const navProfile = await db.photographerProfile.findUnique({
       where: { userId: session.userId },
       select: { status: true },
-    }))?.status === 'APPROVED';
+    });
+  const navApproved = navProfile?.status === 'APPROVED';
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6 sm:py-10">
-      <CabinetNav approved={navApproved} />
+      <CabinetNav approved={navApproved} hasProfile={Boolean(navProfile)} />
       <PageHeader
         crumbs={[{ href: '/ru/cabinet', label: ru.cabinet.title }]}
         title={ru.salesKit.title}

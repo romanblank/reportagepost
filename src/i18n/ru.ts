@@ -500,7 +500,8 @@ export const ru = {
     compare: 'Сравнить уровни',
     changePlan: 'Изменить уровень',
     includedTitle: 'Что входит сейчас',
-    notIncludedTitle: 'Появится на следующем уровне',
+    freeTier: 'Бесплатный',
+    nextTitle: (tier: string) => `Что добавит ${tier}`,
     paymentsTitle: 'Платежи',
     paymentsEmpty: 'Платежей ещё не было. Здесь появится каждый — с датой, суммой и статусом.',
   },
@@ -1372,7 +1373,7 @@ export const ru = {
   admin: {
     photosQueue: 'Новые кадры на проверке',
     photosQueueHint: 'Работы, добавленные авторами после одобрения страницы. Пока кадр не принят, он не виден в портфолио.',
-    moderationTitle: 'Модерация заявок',
+    moderationTitle: 'Модерация анкет и кадров',
     exportCsv: 'Выгрузка данных (CSV)',
     storiesQueue: 'Серии на модерации',
     empty: 'Очередь пуста.',

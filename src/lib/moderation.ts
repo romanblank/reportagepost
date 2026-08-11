@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { logAudit } from '@/lib/audit';
-import { revalidateTag } from 'next/cache';
+import { dropCache } from '@/lib/cache-invalidate';
 
 // Модерация онбординга: профиль целиком (модель MyWed — портфолио оценивается
 // как единое целое). Пофотовая модерация после онбординга — отдельным шагом.
@@ -92,7 +92,7 @@ export async function approveProfile(profileId: string, actorUserId?: string): P
   // Кэш города: без сброса одобренный автор появится в счётчиках жанров и в
   // полке только через TTL — а человек ждёт результата сейчас
   // В Next 16 у revalidateTag два аргумента; 'max' даёт stale-while-revalidate
-  revalidateTag('catalog', 'max');
+  dropCache('catalog', 'home');
 }
 
 /** Отклонение: профиль REJECTED с обязательной причиной (честность к фотографу). */
@@ -188,6 +188,9 @@ export async function approvePhoto(photoId: string, actorUserId?: string): Promi
   // Новый кадр меняет и общий, и жанровый скор автора
   const { recomputeOne } = await import('@/lib/rating');
   await recomputeOne(profileId);
+  // Главная показывает свежие работы: без сброса кадр появится там только
+  // через TTL, а автор считает, что публикация не сработала
+  dropCache('home', 'catalog');
   return true;
 }
 
@@ -229,6 +232,10 @@ export async function rejectPhoto(photoId: string, reason: string, actorUserId?:
   // Причина обязана дойти до автора — иначе он не поймёт, почему кадра нет
   const { notifyInApp } = await import('@/lib/notifications');
   await notifyInApp(info.userId, 'notification.photo.rejected', { reason }).catch(() => {});
+  // Снятый кадр обязан исчезнуть с главной СРАЗУ: по жалобе правообладателя
+  // «ещё две минуты повисит» — это две минуты нарушения, о котором нам уже
+  // сообщили. Тег существовал с самого начала, но его никто не сбрасывал
+  dropCache('home', 'catalog');
   return true;
 }
 

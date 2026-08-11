@@ -43,7 +43,7 @@ export default async function AvailabilityPage() {
 
   return (
     <main className="mx-auto w-full max-w-lg flex-1 px-4 py-6 sm:py-10">
-      <CabinetNav approved={approved} />
+      <CabinetNav approved={approved} hasProfile={Boolean(profile)} />
       <PageHeader
         crumbs={[{ href: '/ru/cabinet', label: ru.cabinet.title }]}
         title={ru.cabinet.availabilityLink}

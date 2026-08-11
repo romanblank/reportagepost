@@ -15,12 +15,22 @@ import { ru } from '@/i18n/ru';
  * Разделы, требующие одобренной анкеты, до одобрения не показываем: ссылка,
  * которая приведёт к «сначала дождитесь проверки», — обещание, которое мы сами
  * не выполняем.
+ *
+ * По той же причине у администратора без собственной анкеты нет ни «Анкеты»,
+ * ни «Портфолио», ни «Подписки»: клик по ним возвращал в кабинет, то есть меню
+ * показывало то, чего у человека нет.
  */
-const ALWAYS: { href: string; label: string }[] = [
+const BASE: { href: string; label: string }[] = [
   { href: '/ru/cabinet', label: ru.cabinetNav.overview },
+];
+
+const WITH_PROFILE: { href: string; label: string }[] = [
   { href: '/ru/cabinet/profile/edit', label: ru.cabinetNav.profile },
   { href: '/ru/cabinet/portfolio', label: ru.cabinetNav.portfolio },
   { href: '/ru/cabinet/subscription', label: ru.cabinetNav.subscription },
+];
+
+const SETTINGS: { href: string; label: string }[] = [
   { href: '/ru/cabinet/settings', label: ru.cabinetNav.settings },
 ];
 
@@ -33,13 +43,25 @@ const APPROVED_ONLY: { href: string; label: string }[] = [
   { href: '/ru/cabinet/moderation', label: ru.cabinetNav.moderation },
 ];
 
-export function CabinetNav({ approved }: { approved: boolean }) {
+export function CabinetNav({
+  approved,
+  hasProfile = true,
+}: {
+  approved: boolean;
+  /** Есть ли у человека анкета вообще: у администратора её может не быть. */
+  hasProfile?: boolean;
+}) {
   const pathname = usePathname() ?? '';
-  const items = approved ? [...ALWAYS, ...APPROVED_ONLY] : ALWAYS;
+  const items = [
+    ...BASE,
+    ...(hasProfile ? WITH_PROFILE : []),
+    ...(approved ? APPROVED_ONLY : []),
+    ...SETTINGS,
+  ];
 
   return (
     <nav aria-label={ru.cabinetNav.label} className="mb-6 border-b border-line">
-      <ul className="-mb-px flex flex-wrap gap-x-1 gap-y-1 overflow-x-auto">
+      <ul className="-mb-px flex flex-nowrap gap-x-1 overflow-x-auto sm:flex-wrap sm:gap-y-1">
         {items.map((item) => {
           const active =
             item.href === '/ru/cabinet' ? pathname === item.href : pathname.startsWith(item.href);

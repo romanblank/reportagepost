@@ -42,11 +42,18 @@ export default async function CabinetSubscriptionPage() {
   ]);
 
   const mine = PLAN_FEATURES.filter((f) => featureInTier(f, status.tier));
-  const next = PLAN_FEATURES.filter((f) => !featureInTier(f, status.tier));
+  // «Что дальше» показываем ПО УРОВНЯМ, а не одной кучей: человеку на
+  // бесплатном важно, что даст ближайший шаг, а не всё сразу — иначе список
+  // выглядит недостижимым и не помогает выбрать
+  const nextTier: 'PRIME' | 'ELITE' | null =
+    status.tier === 'FREE' ? 'PRIME' : status.tier === 'PRIME' ? 'ELITE' : null;
+  const next = nextTier
+    ? PLAN_FEATURES.filter((f) => f.minTier === nextTier)
+    : [];
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:py-10">
-      <CabinetNav approved={profile?.status === 'APPROVED'} />
+      <CabinetNav approved={profile?.status === 'APPROVED'} hasProfile={Boolean(profile)} />
       <PageHeader
         crumbs={[{ href: '/ru/cabinet', label: ru.cabinet.title }]}
         title={ru.cabinetSubscription.title}
@@ -55,7 +62,7 @@ export default async function CabinetSubscriptionPage() {
 
       <section className="card p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-3">
-          <span className="t-h3">{ru.pro.tierName[status.tier]}</span>
+          <span className="t-h3">{ru.pro.tierName[status.tier] ?? ru.cabinetSubscription.freeTier}</span>
           {status.isFounding ? (
             <span className="t-caption text-recognition">{ru.cabinetSubscription.founding}</span>
           ) : null}
@@ -93,7 +100,9 @@ export default async function CabinetSubscriptionPage() {
 
         {next.length > 0 && (
           <>
-            <h3 className="t-caption mt-6 muted">{ru.cabinetSubscription.notIncludedTitle}</h3>
+            <h3 className="t-caption mt-6 muted">
+              {ru.cabinetSubscription.nextTitle(ru.pro.tierName[nextTier ?? 'PRIME'])}
+            </h3>
             <ul className="mt-2 grid gap-1.5 text-sm muted">
               {next.map((f) => (
                 <li key={f.key} className="flex gap-2">

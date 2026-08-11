@@ -34,7 +34,7 @@ export function AdminNav({ counters }: { counters?: NavCounters }) {
 
   return (
     <nav aria-label={ru.adminNav.label} className="mb-6 border-b border-line">
-      <ul className="-mb-px flex flex-wrap gap-x-1 gap-y-1 overflow-x-auto">
+      <ul className="-mb-px flex flex-nowrap gap-x-1 overflow-x-auto sm:flex-wrap sm:gap-y-1">
         {SECTIONS.map((s) => {
           // Главная активна только точным совпадением, остальные — с вложенными
           // страницами: карточка автора должна подсвечивать «Модерацию»

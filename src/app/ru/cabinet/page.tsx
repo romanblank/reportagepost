@@ -91,15 +91,15 @@ export default async function CabinetPage() {
   // Разделы, требующие одобренной анкеты, до одобрения не показываем:
   // ссылка, ведущая к «дождитесь проверки», — обещание, которое мы сами
   // не выполняем
-  const navApproved =
-    (await db.photographerProfile.findUnique({
+  const navProfile = await db.photographerProfile.findUnique({
       where: { userId: session.userId },
       select: { status: true },
-    }))?.status === 'APPROVED';
+    });
+  const navApproved = navProfile?.status === 'APPROVED';
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:py-10">
-      <CabinetNav approved={navApproved} />
+      <CabinetNav approved={navApproved} hasProfile={Boolean(navProfile)} />
       <h1 className="t-h2">{me?.firstName ? ru.cabinet.greeting(me.firstName) : ru.cabinet.title}</h1>
 
       {/* Подтверждение адреса (аудит P0): только когда почта настроена и адрес
@@ -108,6 +108,9 @@ export default async function CabinetPage() {
         <div className="mt-4"><VerifyEmailBanner email={me.email} /></div>
       )}
 
+      {/* У администратора есть собственный раздел со своим меню и счётчиками.
+          Раньше здесь лежала россыпь ссылок на те же места — она дублировала
+          навигацию и устаревала при каждом новом разделе */}
       {session.role === 'ADMIN' && (
         <section className="mt-4 card p-4">
           <p className="t-caption muted">{ru.cabinet.adminTitle}</p>
@@ -115,21 +118,6 @@ export default async function CabinetPage() {
             <span className="font-medium">{ru.cabinet.adminQueue(pendingCount)}</span>
             <Link href="/ru/admin" className="btn btn-primary px-3 py-1.5">
               {ru.adminHome.title}
-            </Link>
-            <Link href="/ru/admin/moderation" className="btn btn-accent px-3 py-1.5">
-              {ru.cabinet.adminOpenQueue}
-            </Link>
-            <Link href="/ru/admin/audit" className="text-sm underline">
-              {ru.adminAudit.title}
-            </Link>
-            <Link href="/ru/admin/mail" className="text-sm underline">
-              {ru.adminMail.title}
-            </Link>
-            <Link href="/ru/admin/photographers/new" className="btn btn-outline px-3 py-1.5">
-              {ru.adminPhotographers.createTitle}
-            </Link>
-            <Link href="/ru/cabinet/settings" className="text-sm underline">
-              {ru.cabinet.settingsLink}
             </Link>
           </div>
         </section>
