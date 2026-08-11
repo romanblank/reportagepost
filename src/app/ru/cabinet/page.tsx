@@ -72,7 +72,7 @@ export default async function CabinetPage() {
       ? await db.photographerProfile.count({ where: { status: 'PENDING' } })
       : 0;
 
-  const me = await db.user.findUnique({ where: { id: session.userId }, select: { tgUserId: true, firstName: true, emailVerifiedAt: true } });
+  const me = await db.user.findUnique({ where: { id: session.userId }, select: { tgUserId: true, firstName: true, emailVerifiedAt: true, email: true } });
 
   // Отметки съёмок, ждущие ответа автора (S4 trust-хардеринг): без его
   // подтверждения отметка заказчика публичной не становится.
@@ -94,7 +94,7 @@ export default async function CabinetPage() {
       {/* Подтверждение адреса (аудит P0): только когда почта настроена и адрес
           ещё не подтверждён — иначе просить нечего */}
       {verificationRequired() && me && !me.emailVerifiedAt && (
-        <div className="mt-4"><VerifyEmailBanner /></div>
+        <div className="mt-4"><VerifyEmailBanner email={me.email} /></div>
       )}
 
       {session.role === 'ADMIN' && (

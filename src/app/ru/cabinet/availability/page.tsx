@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 import { db } from '@/lib/db';
@@ -8,6 +7,7 @@ import { RU_CITIES } from '@/lib/geo-data';
 import { travelPlansFor } from '@/lib/travel';
 import { AvailabilityCalendar } from '@/components/AvailabilityCalendar';
 import { TravelPlans } from '@/components/TravelPlans';
+import { PageHeader } from '@/components/PageHeader';
 
 export const metadata: Metadata = { title: ru.availability.title };
 export const dynamic = 'force-dynamic';
@@ -42,7 +42,10 @@ export default async function AvailabilityPage() {
 
   return (
     <main className="mx-auto w-full max-w-lg flex-1 px-4 py-6 sm:py-10">
-      <Link href="/ru/cabinet" className="text-sm underline muted">← {ru.cabinet.title}</Link>
+      <PageHeader
+        crumbs={[{ href: '/ru/cabinet', label: ru.cabinet.title }]}
+        title={ru.cabinet.availabilityLink}
+      />
       <h1 className="mt-3 t-h2">{ru.availability.title}</h1>
 
       {!approved ? (

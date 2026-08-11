@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { redirect, notFound } from 'next/navigation';
 import { requireAdmin } from '@/lib/admin';
 import { db } from '@/lib/db';
@@ -8,6 +7,7 @@ import { RU_CITIES } from '@/lib/geo-data';
 import { CATEGORIES } from '@/lib/category-data';
 import { ru } from '@/i18n/ru';
 import { EditProfileForm } from '@/app/ru/cabinet/profile/edit/EditProfileForm';
+import { PageHeader } from '@/components/PageHeader';
 
 export const metadata: Metadata = { title: ru.editProfile.title };
 export const dynamic = 'force-dynamic';
@@ -31,8 +31,10 @@ export default async function AdminEditProfilePage(props: { params: Promise<{ id
 
   return (
     <main className="mx-auto w-full max-w-xl flex-1 px-4 py-6 sm:py-10">
-      <Link href={`/ru/admin/photographers/${profile.id}`} className="text-sm underline muted">← {ru.adminPhotographers.manage}</Link>
-      <h1 className="t-h1 mt-3">{ru.editProfile.title}</h1>
+      <PageHeader
+        crumbs={[{ href: '/ru/admin', label: ru.adminHome.title }, { href: `/ru/admin/photographers/${profile.id}`, label: ru.adminPhotographers.manage }]}
+        title={ru.editProfile.title}
+      />
       <p className="mt-1 text-sm muted">{profile.user.firstName} {profile.user.lastName} · @{profile.username}</p>
       <EditProfileForm
         endpoint={`/api/admin/photographers/${profile.id}/edit`}

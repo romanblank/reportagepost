@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { requireAdmin } from '@/lib/admin';
 import { moderationQueue } from '@/lib/moderation-queue';
 import { formatDateTimeRu } from '@/lib/date-format';
 import { QueueDecision } from '@/components/QueueDecision';
 import { ru } from '@/i18n/ru';
+import { PageHeader } from '@/components/PageHeader';
 
 export const metadata: Metadata = { title: ru.adminQueue.title };
 export const dynamic = 'force-dynamic';
@@ -25,9 +25,12 @@ export default async function AdminQueuePage() {
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8">
-      <Link href="/ru/admin" className="text-sm underline muted">← {ru.adminQueue.back}</Link>
+      <PageHeader
+        crumbs={[{ href: '/ru/admin', label: ru.adminHome.title }]}
+        title={ru.adminQueue.title}
+        lead={ru.adminQueue.lead}
+      />
       <h1 className="t-h2 mt-3">{ru.adminQueue.title}</h1>
-      <p className="mt-1 text-sm muted">{ru.adminQueue.lead}</p>
 
       {items.length === 0 ? (
         <p className="mt-8 text-sm muted">{ru.adminQueue.empty}</p>

@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { requireAdmin } from '@/lib/admin';
 import { db } from '@/lib/db';
 import { ru } from '@/i18n/ru';
+import { PageHeader } from '@/components/PageHeader';
 
 export const metadata: Metadata = { title: ru.adminAudit.title };
 export const dynamic = 'force-dynamic';
@@ -18,7 +19,11 @@ export default async function AdminAuditPage() {
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 sm:py-10">
-      <h1 className="t-h2">{ru.adminAudit.title}</h1>
+      <PageHeader
+        crumbs={[{ href: '/ru/admin', label: ru.adminHome.title }]}
+        title={ru.adminAudit.title}
+        lead={ru.adminNav.auditLead}
+      />
       <p className="mt-1 text-sm muted">{ru.adminAudit.lead}</p>
 
       {rows.length === 0 ? (

@@ -5,6 +5,7 @@ import { getSession } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { tierOf } from '@/lib/subscription';
 import { DOC_MIN_TIER, type SalesDocKind } from '@/lib/sales-kit';
+import { PageHeader } from '@/components/PageHeader';
 import { ru } from '@/i18n/ru';
 
 export const metadata: Metadata = { title: ru.salesKit.title };
@@ -36,9 +37,11 @@ export default async function SalesKitPage() {
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6 sm:py-10">
-      <Link href="/ru/cabinet" className="text-sm underline muted">← {ru.cabinet.title}</Link>
-      <h1 className="t-h2 mt-3">{ru.salesKit.title}</h1>
-      <p className="mt-1 text-sm muted">{ru.salesKit.lead}</p>
+      <PageHeader
+        crumbs={[{ href: '/ru/cabinet', label: ru.cabinet.title }]}
+        title={ru.salesKit.title}
+        lead={ru.salesKit.lead}
+      />
 
       <ul className="mt-6 grid gap-2">
         {ORDER.map((kind) => {

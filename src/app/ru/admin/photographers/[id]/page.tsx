@@ -9,6 +9,7 @@ import { cityNameRu } from '@/lib/geo-data';
 import { categoryNameRu } from '@/lib/category-data';
 import { ru } from '@/i18n/ru';
 import { AdminPhotographerManager } from '@/components/admin/AdminPhotographerManager';
+import { PageHeader } from '@/components/PageHeader';
 
 export const metadata: Metadata = { title: ru.adminPhotographers.manage };
 export const dynamic = 'force-dynamic';
@@ -33,8 +34,10 @@ export default async function ManagePhotographerPage(props: { params: Promise<{ 
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:py-10">
-      <Link href="/ru/cabinet" className="text-sm underline muted">← {ru.cabinet.title}</Link>
-      <h1 className="t-h1 mt-3">{profile.user.firstName} {profile.user.lastName}</h1>
+      <PageHeader
+        crumbs={[{ href: '/ru/admin', label: ru.adminHome.title }, { href: '/ru/admin/moderation', label: ru.admin.moderationTitle }]}
+        title={`${profile.user.firstName} ${profile.user.lastName}`}
+      />
       <p className="mt-1.5 text-sm muted">
         @{profile.username} · {cityNameRu(profile.city.slug)} · {profile.categories.map((c) => categoryNameRu(c.category.slug)).join(' · ')}
       </p>

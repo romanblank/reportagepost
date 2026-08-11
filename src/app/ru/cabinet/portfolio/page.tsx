@@ -8,6 +8,7 @@ import { thumbVariantUrl } from '@/lib/photos';
 import { PortfolioManager, type PortfolioPhoto } from '@/components/PortfolioManager';
 import { PortfolioImport } from '@/components/PortfolioImport';
 import { categoryNameRu } from '@/lib/category-data';
+import { PageHeader } from '@/components/PageHeader';
 
 export const metadata: Metadata = { title: ru.portfolio.title };
 export const dynamic = 'force-dynamic';
@@ -41,7 +42,10 @@ export default async function PortfolioPage() {
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:py-10">
-      <Link href="/ru/cabinet" className="text-sm underline muted">← {ru.cabinet.title}</Link>
+      <PageHeader
+        crumbs={[{ href: '/ru/cabinet', label: ru.cabinet.title }]}
+        title={ru.cabinet.portfolioLink}
+      />
       <h1 className="t-h2 mt-3">{ru.portfolio.title}</h1>
 
       {!profile ? (

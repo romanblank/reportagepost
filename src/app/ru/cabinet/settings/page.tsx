@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 import { db } from '@/lib/db';
@@ -8,6 +7,7 @@ import { ru } from '@/i18n/ru';
 import { AccountSettings } from '@/components/AccountSettings';
 import { NotifyPrefs } from '@/components/NotifyPrefs';
 import { TwoFactorManager } from '@/components/TwoFactorManager';
+import { PageHeader } from '@/components/PageHeader';
 
 export const metadata: Metadata = { title: ru.settings.title };
 export const dynamic = 'force-dynamic';
@@ -29,7 +29,10 @@ export default async function SettingsPage() {
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6 sm:py-10">
-      <Link href="/ru/cabinet" className="text-sm underline muted">← {ru.cabinet.title}</Link>
+      <PageHeader
+        crumbs={[{ href: '/ru/cabinet', label: ru.cabinet.title }]}
+        title={ru.cabinet.settingsLink}
+      />
       <h1 className="t-h1 mt-3">{ru.settings.title}</h1>
       <p className="mt-1 text-sm muted">{ru.settings.securityLead}</p>
 

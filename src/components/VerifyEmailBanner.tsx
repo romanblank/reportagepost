@@ -6,7 +6,7 @@ import { ru } from '@/i18n/ru';
 
 // Баннер «подтвердите адрес» в кабинете. Показывается только когда почта
 // реально настроена (иначе просить нечего) и адрес ещё не подтверждён.
-export function VerifyEmailBanner() {
+export function VerifyEmailBanner({ email }: { email: string | null }) {
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
@@ -24,6 +24,12 @@ export function VerifyEmailBanner() {
     <section className="card border-recognition/40 bg-recognition-soft/20 p-4">
       <p className="text-sm font-medium">{ru.auth.emailVerify.bannerTitle}</p>
       <p className="mt-1 text-sm muted">{ru.auth.emailVerify.bannerText}</p>
+      {email ? (
+        <p className="mt-1 text-sm muted">{ru.auth.emailVerify.bannerAddress(email)}</p>
+      ) : null}
+      {/* Домен новый, репутации у него нет — письмо часто оказывается в спаме,
+          и человек считает, что оно не пришло вовсе */}
+      <p className="t-caption mt-1 muted">{ru.auth.emailVerify.bannerSpamHint}</p>
       {sent ? (
         <p className="mt-2 text-sm text-recognition">{ru.auth.emailVerify.sent}</p>
       ) : (

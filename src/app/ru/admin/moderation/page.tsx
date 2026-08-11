@@ -15,6 +15,7 @@ import { StoryModerationCard } from './StoryModerationCard';
 import { PhotoModerationCard } from './PhotoModerationCard';
 import { VideoModerationCard } from './VideoModerationCard';
 import { formatDateRu } from '@/lib/date-format';
+import { PageHeader } from '@/components/PageHeader';
 
 export const metadata: Metadata = { title: ru.admin.moderationTitle };
 export const dynamic = 'force-dynamic';
@@ -52,9 +53,13 @@ export default async function ModerationPage() {
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 sm:py-10">
+      <PageHeader
+        crumbs={[{ href: '/ru/admin', label: ru.adminHome.title }]}
+        title={ru.admin.moderationTitle}
+        lead={ru.adminNav.moderationLead}
+      />
       <div className="flex items-center justify-between gap-4">
         <Link href="/ru/admin/reports" className="text-sm underline muted">{ru.adminReports.title} →</Link>
-      <h1 className="t-h1">{ru.admin.moderationTitle}</h1>
         <a href="/api/admin/export" download className="btn btn-outline btn-sm shrink-0">{ru.admin.exportCsv}</a>
       </div>
       {profiles.length === 0 ? (

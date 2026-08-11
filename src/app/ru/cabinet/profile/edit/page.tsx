@@ -12,6 +12,7 @@ import { videoLimit, videoSecondsLimit } from '@/lib/pricing';
 import { tierOf } from '@/lib/subscription';
 import { EditProfileForm } from './EditProfileForm';
 import { VideoManager } from '@/components/VideoManager';
+import { PageHeader } from '@/components/PageHeader';
 
 export const metadata: Metadata = { title: ru.editProfile.title };
 export const dynamic = 'force-dynamic';
@@ -41,7 +42,10 @@ export default async function EditProfilePage() {
 
   return (
     <main className="mx-auto w-full max-w-xl flex-1 px-4 py-6 sm:py-10">
-      <h1 className="t-h1">{ru.editProfile.title}</h1>
+      <PageHeader
+        crumbs={[{ href: '/ru/cabinet', label: ru.cabinet.title }]}
+        title={ru.editProfile.title}
+      />
       <EditProfileForm
         cities={cities}
         categories={categories}

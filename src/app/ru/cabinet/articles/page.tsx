@@ -7,6 +7,7 @@ import { tierOf } from '@/lib/subscription';
 import { articleQuota, articlesThisMonth } from '@/lib/articles';
 import { ArticleForm } from '@/components/ArticleForm';
 import { formatDateRu } from '@/lib/date-format';
+import { PageHeader } from '@/components/PageHeader';
 import { ru } from '@/i18n/ru';
 
 export const metadata: Metadata = { title: ru.articles.title };
@@ -35,9 +36,11 @@ export default async function CabinetArticlesPage() {
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:py-12">
-      <Link href="/ru/cabinet" className="text-sm underline muted">← {ru.cabinet.title}</Link>
-      <h1 className="t-h2 mt-3">{ru.articles.title}</h1>
-      <p className="mt-1 text-sm muted">{ru.articles.lead}</p>
+      <PageHeader
+        crumbs={[{ href: '/ru/cabinet', label: ru.cabinet.title }]}
+        title={ru.articles.title}
+        lead={ru.articles.lead}
+      />
 
       {!approved ? (
         <p className="mt-6 text-sm muted">{ru.articles.needApproval}</p>

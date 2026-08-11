@@ -187,12 +187,16 @@ describe.skipIf(!hasDb)('подтверждение email (БД)', () => {
     await issue(expired, { expired: true });
     await expect(confirmEmail(expired)).rejects.toThrowError(DomainError);
 
-    // Валидный — подтверждает, повторное использование уже не проходит
+    // Валидный — подтверждает
     const good = randomBytes(16).toString('base64url');
     await issue(good);
     expect((await confirmEmail(good)).userId).toBe(user.id);
     expect((await db.user.findUniqueOrThrow({ where: { id: user.id }, select: { emailVerifiedAt: true } })).emailVerifiedAt).not.toBeNull();
-    await expect(confirmEmail(good)).rejects.toThrowError(DomainError);
+
+    // Повторный переход по той же ссылке — не ошибка, а «уже подтверждено».
+    // Почтовые антивирусы открывают ссылку за человека, и отказ на его клик
+    // прямо противоречил бы состоянию аккаунта
+    expect((await confirmEmail(good)).outcome).toBe('already');
 
     // Токен, выданный на ПРЕЖНИЙ адрес, не подтверждает новый (защита от подмены)
     await db.user.update({ where: { id: user.id }, data: { email: `ev-new-${stamp}@test.local`, emailVerifiedAt: null } });

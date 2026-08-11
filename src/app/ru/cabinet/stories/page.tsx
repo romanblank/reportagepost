@@ -7,6 +7,7 @@ import { tierOf } from '@/lib/subscription';
 import { thumbVariantUrl } from '@/lib/photos';
 import { ru } from '@/i18n/ru';
 import { StoryComposer, type ComposerPhoto } from '@/components/StoryComposer';
+import { PageHeader } from '@/components/PageHeader';
 
 export const metadata: Metadata = { title: ru.cabinetStories.metaTitle };
 export const dynamic = 'force-dynamic';
@@ -49,7 +50,10 @@ export default async function CabinetStoriesPage() {
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:py-10">
-      <Link href="/ru/cabinet" className="text-sm underline muted">← {ru.cabinet.title}</Link>
+      <PageHeader
+        crumbs={[{ href: '/ru/cabinet', label: ru.cabinet.title }]}
+        title={ru.cabinetStories.tileTitle}
+      />
       <h1 className="t-h2 mt-3">{ru.cabinetStories.title}</h1>
       <p className="mt-2 max-w-2xl text-sm muted">{ru.cabinetStories.subtitle}</p>
 

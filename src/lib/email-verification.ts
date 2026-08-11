@@ -36,7 +36,15 @@ export function verificationRequired(): boolean {
   return emailConfigured();
 }
 
-/** Выдать токен и отправить письмо. Идемпотентно: старые токены гасятся. */
+/**
+ * Выдать токен и отправить письмо.
+ *
+ * Прежние токены НЕ гасим. Раньше гасили — и это ломало ровно тот сценарий,
+ * ради которого кнопка существует: человек не находит первое письмо, жмёт
+ * «отправить ещё раз», потом всё-таки открывает первое — и получает «ссылка
+ * недействительна». Токен одноразовый и живёт двое суток, поэтому несколько
+ * действующих ссылок опасности не создают, а спасают от типичной путаницы.
+ */
 export async function requestEmailVerification(userId: string): Promise<void> {
   const user = await db.user.findUnique({
     where: { id: userId },
@@ -47,7 +55,6 @@ export async function requestEmailVerification(userId: string): Promise<void> {
 
   const raw = randomBytes(32).toString('base64url');
   await db.$transaction([
-    db.emailVerification.updateMany({ where: { userId, usedAt: null }, data: { usedAt: new Date() } }),
     db.emailVerification.create({
       data: {
         userId,
@@ -62,9 +69,25 @@ export async function requestEmailVerification(userId: string): Promise<void> {
 }
 
 /** Подтвердить адрес по токену. Возвращает id пользователя. */
-export async function confirmEmail(token: string): Promise<{ userId: string }> {
+export type ConfirmOutcome = 'confirmed' | 'already';
+
+export async function confirmEmail(token: string): Promise<{ userId: string; outcome: ConfirmOutcome }> {
+  const hash = sha256(token);
+
+  // Уже сработавшая ссылка — не ошибка. Почтовые антивирусы открывают ссылки
+  // за человека, и он, перейдя следом, видел «ссылка недействительна» при
+  // подтверждённом адресе: сообщение прямо противоречило реальности
+  const used = await db.emailVerification.findFirst({
+    where: { tokenHash: hash, usedAt: { not: null } },
+    select: { userId: true },
+  });
+  if (used) {
+    const u = await db.user.findUnique({ where: { id: used.userId }, select: { emailVerifiedAt: true } });
+    if (u?.emailVerifiedAt) return { userId: used.userId, outcome: 'already' };
+  }
+
   const row = await db.emailVerification.findFirst({
-    where: { tokenHash: sha256(token), usedAt: null, expiresAt: { gt: new Date() } },
+    where: { tokenHash: hash, usedAt: null, expiresAt: { gt: new Date() } },
     select: { id: true, userId: true, email: true },
   });
   if (!row) throw new DomainError('verification_invalid', 400);
@@ -75,9 +98,10 @@ export async function confirmEmail(token: string): Promise<{ userId: string }> {
 
   await db.$transaction([
     db.user.update({ where: { id: row.userId }, data: { emailVerifiedAt: new Date() } }),
+    // Гасим все живые токены этого адреса: подтверждать больше нечего
     db.emailVerification.updateMany({ where: { userId: row.userId, usedAt: null }, data: { usedAt: new Date() } }),
   ]);
-  return { userId: row.userId };
+  return { userId: row.userId, outcome: 'confirmed' };
 }
 
 /**

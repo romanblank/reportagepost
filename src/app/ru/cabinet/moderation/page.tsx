@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 import { myRejected, violationCount } from '@/lib/forum';
 import { formatDateTimeRu } from '@/lib/date-format';
 import { RejectedItem } from '@/components/RejectedItem';
+import { PageHeader } from '@/components/PageHeader';
 import { ru } from '@/i18n/ru';
 
 export const metadata: Metadata = { title: ru.forum.myRejected };
@@ -30,8 +30,10 @@ export default async function MyModerationPage() {
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:py-12">
-      <Link href="/ru/cabinet" className="text-sm underline muted">← {ru.cabinet.title}</Link>
-      <h1 className="t-h2 mt-3">{ru.forum.myRejected}</h1>
+      <PageHeader
+        crumbs={[{ href: '/ru/cabinet', label: ru.cabinet.title }]}
+        title={ru.forum.myRejected}
+      />
 
       {violations >= 3 ? <p className="t-caption mt-3 text-warning">{ru.forum.restricted}</p> : null}
 

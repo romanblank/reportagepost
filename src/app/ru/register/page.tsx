@@ -3,7 +3,7 @@
 import { Suspense, useState } from 'react';
 import { apiFetch } from '@/lib/api';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { ru } from '@/i18n/ru';
 import { AuthScene } from '@/components/AuthScene';
 import { YandexLoginButton } from '@/components/YandexLoginButton';

@@ -6,6 +6,7 @@ import { userCard } from '@/lib/admin-users';
 import { UserActions } from '@/components/admin/UserActions';
 import { formatDateTimeRu } from '@/lib/date-format';
 import { ru } from '@/i18n/ru';
+import { PageHeader } from '@/components/PageHeader';
 
 export const metadata: Metadata = { title: ru.adminUsers.cardTitle };
 export const dynamic = 'force-dynamic';
@@ -46,8 +47,10 @@ export default async function AdminUserPage(props: { params: Promise<{ userId: s
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6 sm:py-10">
-      <Link href="/ru/admin/users" className="text-sm underline muted">← {ru.adminUsers.title}</Link>
-      <h1 className="t-h2 mt-3">{u.firstName} {u.lastName}</h1>
+      <PageHeader
+        crumbs={[{ href: '/ru/admin', label: ru.adminHome.title }, { href: '/ru/admin/users', label: ru.adminUsers.title }]}
+        title={`${u.firstName} ${u.lastName}`}
+      />
       {u.profile && (
         <p className="mt-1 text-sm">
           <Link href={`/ru/photographer/${u.profile.username}`} className="underline">

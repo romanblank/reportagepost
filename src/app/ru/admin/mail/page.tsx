@@ -5,6 +5,7 @@ import { emailConfigured } from '@/lib/email';
 import { verificationRequired } from '@/lib/email-verification';
 import { MailCheck } from '@/components/admin/MailCheck';
 import { ru } from '@/i18n/ru';
+import { PageHeader } from '@/components/PageHeader';
 
 export const metadata: Metadata = { title: ru.adminMail.title };
 export const dynamic = 'force-dynamic';
@@ -27,7 +28,11 @@ export default async function AdminMailPage() {
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6 sm:py-10">
-      <h1 className="t-h2">{ru.adminMail.title}</h1>
+      <PageHeader
+        crumbs={[{ href: '/ru/admin', label: ru.adminHome.title }]}
+        title={ru.adminMail.title}
+        lead={ru.adminNav.mailLead}
+      />
       <p className="mt-1 text-sm muted">{ru.adminMail.lead}</p>
 
       <dl className="mt-6 grid gap-2 rounded-media border border-line bg-surface-2 p-4 text-sm">
