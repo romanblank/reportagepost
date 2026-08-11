@@ -10,6 +10,7 @@ import { categoryNameRu } from '@/lib/category-data';
 import { ru } from '@/i18n/ru';
 import { AdminPhotographerManager } from '@/components/admin/AdminPhotographerManager';
 import { PageHeader } from '@/components/PageHeader';
+import { AdminNav } from '@/components/admin/AdminNav';
 
 export const metadata: Metadata = { title: ru.adminPhotographers.manage };
 export const dynamic = 'force-dynamic';
@@ -34,6 +35,7 @@ export default async function ManagePhotographerPage(props: { params: Promise<{ 
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:py-10">
+      <AdminNav />
       <PageHeader
         crumbs={[{ href: '/ru/admin', label: ru.adminHome.title }, { href: '/ru/admin/moderation', label: ru.admin.moderationTitle }]}
         title={`${profile.user.firstName} ${profile.user.lastName}`}

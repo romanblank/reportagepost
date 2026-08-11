@@ -335,3 +335,24 @@ describe('роут heartbeat фоновых задач', () => {
     else process.env.JOBS_SECRET = before;
   });
 });
+
+describe('новые разделы админки закрыты от посторонних', () => {
+  it('заявки и деньги видны только администратору', async () => {
+    // Страницы, а не роуты: и там, и там утечка — это контакты заказчиков и
+    // денежные документы, то есть худшее, что может утечь с платформы
+    const pages = await Promise.all([
+      import('@/app/ru/admin/inquiries/page'),
+      import('@/app/ru/admin/billing/page'),
+    ]);
+
+    for (const who of [null, { userId: 'u1', role: 'CLIENT', tokenVersion: 0 }, { userId: 'u2', role: 'PHOTOGRAPHER', tokenVersion: 0 }]) {
+      session.current = who;
+      for (const mod of pages) {
+        const page = (mod as { default: () => Promise<unknown> }).default;
+        // requireAdmin возвращает null → страница делает redirect, который в
+        // Next бросает специальное исключение: ловим сам факт отказа
+        await expect(page()).rejects.toThrow();
+      }
+    }
+  });
+});

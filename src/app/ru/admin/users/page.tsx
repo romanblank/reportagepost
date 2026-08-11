@@ -6,6 +6,7 @@ import { searchUsers, realUserCount } from '@/lib/admin-users';
 import { formatDateRu } from '@/lib/date-format';
 import { ru } from '@/i18n/ru';
 import { PageHeader } from '@/components/PageHeader';
+import { AdminNav } from '@/components/admin/AdminNav';
 
 export const metadata: Metadata = { title: ru.adminUsers.title };
 export const dynamic = 'force-dynamic';
@@ -26,6 +27,7 @@ export default async function AdminUsersPage(props: { searchParams: Promise<{ q?
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 sm:py-10">
+      <AdminNav />
       <PageHeader
         crumbs={[{ href: '/ru/admin', label: ru.adminHome.title }]}
         title={ru.adminUsers.title}

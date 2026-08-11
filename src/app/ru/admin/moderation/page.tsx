@@ -16,6 +16,7 @@ import { PhotoModerationCard } from './PhotoModerationCard';
 import { VideoModerationCard } from './VideoModerationCard';
 import { formatDateRu } from '@/lib/date-format';
 import { PageHeader } from '@/components/PageHeader';
+import { AdminNav } from '@/components/admin/AdminNav';
 
 export const metadata: Metadata = { title: ru.admin.moderationTitle };
 export const dynamic = 'force-dynamic';
@@ -53,6 +54,7 @@ export default async function ModerationPage() {
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 sm:py-10">
+      <AdminNav />
       <PageHeader
         crumbs={[{ href: '/ru/admin', label: ru.adminHome.title }]}
         title={ru.admin.moderationTitle}

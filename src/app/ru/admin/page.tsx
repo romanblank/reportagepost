@@ -6,6 +6,7 @@ import { adminDashboard, adminActivity } from '@/lib/admin-dashboard';
 import { adminAnalysis } from '@/lib/admin-analysis';
 import { formatDateTimeRu } from '@/lib/date-format';
 import { ru } from '@/i18n/ru';
+import { AdminNav } from '@/components/admin/AdminNav';
 
 export const metadata: Metadata = { title: ru.adminHome.title };
 export const dynamic = 'force-dynamic';
@@ -47,6 +48,7 @@ export default async function AdminHomePage() {
 
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:py-10">
+      <AdminNav />
       <h1 className="t-h2">{ru.adminHome.title}</h1>
       <p className="mt-1 text-sm muted">{ru.adminHome.lead(data.periodDays)}</p>
 
