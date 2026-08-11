@@ -4,18 +4,27 @@ import { requireAdmin } from '@/lib/admin';
 import { db } from '@/lib/db';
 import { ru } from '@/i18n/ru';
 import { PageHeader } from '@/components/PageHeader';
+import { Pager } from '@/components/Pager';
 import { AdminNav } from '@/components/admin/AdminNav';
 import { adminCounters } from '@/lib/admin-counters';
 
 export const metadata: Metadata = { title: ru.adminAudit.title };
 export const dynamic = 'force-dynamic';
 
-export default async function AdminAuditPage() {
-  if (!(await requireAdmin())) redirect('/ru/login');
+/** Записей на странице: аудит растёт быстрее всех списков платформы. */
+const AUDIT_PER_PAGE = 50;
 
+export default async function AdminAuditPage(props: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  if (!(await requireAdmin())) redirect('/ru/login');
+  const page = Math.max(1, Number((await props.searchParams).page ?? 1) || 1);
+
+  const total = await db.adminAudit.count();
   const rows = await db.adminAudit.findMany({
     orderBy: { createdAt: 'desc' },
-    take: 100,
+    skip: (page - 1) * AUDIT_PER_PAGE,
+    take: AUDIT_PER_PAGE,
     include: { actor: { select: { firstName: true, lastName: true } } },
   });
 
@@ -63,6 +72,7 @@ export default async function AdminAuditPage() {
           </table>
         </div>
       )}
+      <Pager base="/ru/admin/audit" page={page} total={total} perPage={AUDIT_PER_PAGE} />
     </main>
   );
 }

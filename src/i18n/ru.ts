@@ -572,6 +572,12 @@ export const ru = {
     statTaken: 'Взяты в работу',
     statGuests: 'От гостей без аккаунта',
     empty: 'Заявок пока нет. Пока их нет, подписка фотографу ничего не даёт — это первое, чем стоит заняться.',
+    filters: {
+      all: 'Все',
+      untouched: 'Без откликов',
+      taken: 'Взяты в работу',
+      closed: 'Закрытые',
+    } as Record<string, string>,
     guest: 'без аккаунта',
     noReplies: 'Никто не откликнулся',
     takenBy: (n: number) => `Взяли в работу: ${n}`,

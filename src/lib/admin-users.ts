@@ -35,7 +35,18 @@ export type UserSearchResult = {
  * точный адрес. Пустой запрос отдаёт последних зарегистрированных — это
  * полезнее пустого экрана.
  */
-export async function searchUsers(query: string, limit = 40): Promise<UserSearchResult[]> {
+export const USERS_PER_PAGE = 25;
+
+/**
+ * Поиск людей страницами.
+ *
+ * Раньше отдавались первые сорок: сорок первый человек переставал существовать
+ * — найти его было нечем, даже зная, что он есть.
+ */
+export async function searchUsers(
+  query: string,
+  page = 1,
+): Promise<{ items: UserSearchResult[]; total: number }> {
   const q = query.trim().toLowerCase();
   const where: Prisma.UserWhereInput = q.length === 0
     ? {}
@@ -49,16 +60,18 @@ export async function searchUsers(query: string, limit = 40): Promise<UserSearch
         ],
       };
 
+  const total = await db.user.count({ where });
   const rows = await db.user.findMany({
     where,
     orderBy: { createdAt: 'desc' },
-    take: limit,
+    skip: (Math.max(1, page) - 1) * USERS_PER_PAGE,
+    take: USERS_PER_PAGE,
     select: {
       id: true, firstName: true, lastName: true, email: true, role: true, status: true, createdAt: true,
       profile: { select: { username: true, status: true } },
     },
   });
-  return rows.map((u) => ({
+  const items = rows.map((u) => ({
     id: u.id,
     firstName: u.firstName,
     lastName: u.lastName,
@@ -69,6 +82,8 @@ export async function searchUsers(query: string, limit = 40): Promise<UserSearch
     username: u.profile?.username ?? null,
     profileStatus: u.profile?.status ?? null,
   }));
+
+  return { items, total };
 }
 
 export type UserCard = {

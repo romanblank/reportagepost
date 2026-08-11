@@ -2,10 +2,11 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { requireAdmin } from '@/lib/admin';
-import { searchUsers, realUserCount } from '@/lib/admin-users';
+import { searchUsers, realUserCount, USERS_PER_PAGE } from '@/lib/admin-users';
 import { formatDateRu } from '@/lib/date-format';
 import { ru } from '@/i18n/ru';
 import { PageHeader } from '@/components/PageHeader';
+import { Pager } from '@/components/Pager';
 import { AdminNav } from '@/components/admin/AdminNav';
 import { adminCounters } from '@/lib/admin-counters';
 
@@ -20,12 +21,18 @@ export const dynamic = 'force-dynamic';
  * рычагом оставалось гашение анкеты, то есть наказание за поведение решалось
  * через контент.
  */
-export default async function AdminUsersPage(props: { searchParams: Promise<{ q?: string }> }) {
+export default async function AdminUsersPage(props: {
+  searchParams: Promise<{ q?: string; page?: string }>;
+}) {
   if (!(await requireAdmin())) redirect('/ru/login');
-  const { q } = await props.searchParams;
+  const { q, page: rawPage } = await props.searchParams;
+  const page = Math.max(1, Number(rawPage ?? 1) || 1);
 
   const counters = await adminCounters();
-  const [rows, total] = await Promise.all([searchUsers(q ?? ''), realUserCount()]);
+  const [{ items: rows, total: found }, total] = await Promise.all([
+    searchUsers(q ?? '', page),
+    realUserCount(),
+  ]);
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 sm:py-10">
@@ -72,6 +79,12 @@ export default async function AdminUsersPage(props: { searchParams: Promise<{ q?
           ))}
         </ul>
       )}
+      <Pager
+        base={q ? `/ru/admin/users?q=${encodeURIComponent(q)}` : '/ru/admin/users'}
+        page={page}
+        total={found}
+        perPage={USERS_PER_PAGE}
+      />
     </main>
   );
 }

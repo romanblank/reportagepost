@@ -1,13 +1,15 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { requireAdmin } from '@/lib/admin';
-import { adminInquiries, inquiryOverview } from '@/lib/admin-inquiries';
+import { adminInquiries, inquiryOverview, INQUIRIES_PER_PAGE, type InquiryFilter } from '@/lib/admin-inquiries';
 import { formatDateTimeRu, formatDateRu } from '@/lib/date-format';
 import { formatRubMinor } from '@/lib/money';
 import { cityNameRu } from '@/lib/geo-data';
 import { categoryNameRu } from '@/lib/category-data';
 import { AdminNav } from '@/components/admin/AdminNav';
 import { PageHeader } from '@/components/PageHeader';
+import { Pager } from '@/components/Pager';
 import { ru } from '@/i18n/ru';
 import { adminCounters } from '@/lib/admin-counters';
 
@@ -21,12 +23,23 @@ export const dynamic = 'force-dynamic';
  * авторов и взял ли его кто-нибудь. Заявка без единого отклика — это человек,
  * которому не ответили, и пока он не ушёл, с этим можно что-то сделать.
  */
-export default async function AdminInquiriesPage() {
+type Params = { searchParams: Promise<{ filter?: string; page?: string }> };
+
+const FILTERS: InquiryFilter[] = ['all', 'untouched', 'taken', 'closed'];
+
+export default async function AdminInquiriesPage({ searchParams }: Params) {
   const admin = await requireAdmin();
   if (!admin) redirect('/ru/cabinet');
 
+  const sp = await searchParams;
+  const filter = (FILTERS as string[]).includes(sp.filter ?? '') ? (sp.filter as InquiryFilter) : 'all';
+  const page = Math.max(1, Number(sp.page ?? 1) || 1);
+
   const counters = await adminCounters();
-  const [items, overview] = await Promise.all([adminInquiries(), inquiryOverview()]);
+  const [{ items, total }, overview] = await Promise.all([
+    adminInquiries(filter, page),
+    inquiryOverview(),
+  ]);
 
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:py-10">
@@ -50,6 +63,20 @@ export default async function AdminInquiriesPage() {
           </div>
         ))}
       </div>
+
+      {/* Отбор «без единого отклика» — рабочий режим, а не украшение: именно
+          с этими заявками ещё можно что-то сделать */}
+      <nav className="mt-6 flex flex-wrap gap-2">
+        {FILTERS.map((f) => (
+          <Link
+            key={f}
+            href={f === 'all' ? '/ru/admin/inquiries' : `/ru/admin/inquiries?filter=${f}`}
+            className={`chip ${filter === f ? 'border-accent text-ink' : ''}`}
+          >
+            {ru.adminInquiries.filters[f]}
+          </Link>
+        ))}
+      </nav>
 
       {items.length === 0 ? (
         <p className="mt-8 text-sm muted">{ru.adminInquiries.empty}</p>
@@ -93,6 +120,13 @@ export default async function AdminInquiriesPage() {
           ))}
         </ul>
       )}
+
+      <Pager
+        base={filter === 'all' ? '/ru/admin/inquiries' : `/ru/admin/inquiries?filter=${filter}`}
+        page={page}
+        total={total}
+        perPage={INQUIRIES_PER_PAGE}
+      />
     </main>
   );
 }
