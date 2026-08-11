@@ -9,6 +9,7 @@ import { ru } from '@/i18n/ru';
 import { EditProfileForm } from '@/app/ru/cabinet/profile/edit/EditProfileForm';
 import { PageHeader } from '@/components/PageHeader';
 import { AdminNav } from '@/components/admin/AdminNav';
+import { adminCounters } from '@/lib/admin-counters';
 
 export const metadata: Metadata = { title: ru.editProfile.title };
 export const dynamic = 'force-dynamic';
@@ -30,9 +31,11 @@ export default async function AdminEditProfilePage(props: { params: Promise<{ id
   const categories = CATEGORIES.map((c) => ({ slug: c.slug, name: c.nameRu }));
   const catSlugById = new Map(await db.category.findMany().then((cs) => cs.map((c) => [c.id, c.slug] as const)));
 
+  const counters = await adminCounters();
+
   return (
     <main className="mx-auto w-full max-w-xl flex-1 px-4 py-6 sm:py-10">
-      <AdminNav />
+      <AdminNav counters={counters} />
       <PageHeader
         crumbs={[{ href: '/ru/admin', label: ru.adminHome.title }, { href: `/ru/admin/photographers/${profile.id}`, label: ru.adminPhotographers.manage }]}
         title={ru.editProfile.title}

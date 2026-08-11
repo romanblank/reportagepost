@@ -17,11 +17,16 @@ export function GET() {
   });
 }
 
+// Массовое решение — не удобство, а условие работы: автор публикует съёмку
+// пачкой, и одобрять сорок кадров по одному значит не одобрять их вовсе.
+// Отказ пачкой тоже возможен, но причина остаётся обязательной: она доходит до
+// автора, и «нет» без объяснения не отличается от произвола.
 const DecisionSchema = z.discriminatedUnion('action', [
-  z.object({ action: z.literal('approve'), photoId: z.string() }),
+  z.object({ action: z.literal('approve'), photoId: z.string().optional(), photoIds: z.array(z.string()).max(200).optional() }),
   z.object({
     action: z.literal('reject'),
-    photoId: z.string(),
+    photoId: z.string().optional(),
+    photoIds: z.array(z.string()).max(200).optional(),
     reason: z.string().trim().min(5).max(1000), // причина обязательна — доходит до автора
   }),
 ]);
@@ -41,11 +46,35 @@ export function POST(req: Request) {
       );
     }
 
-    if (parsed.data.action === 'approve') {
-      await approvePhoto(parsed.data.photoId, admin.userId);
-      return NextResponse.json({ ok: true, action: 'approve' });
+    const ids = parsed.data.photoIds?.length
+      ? parsed.data.photoIds
+      : parsed.data.photoId
+        ? [parsed.data.photoId]
+        : [];
+    if (ids.length === 0) return NextResponse.json({ error: 'validation' }, { status: 400 });
+
+    // Каждый кадр решается отдельно: один упавший (например, уже удалённый
+    // автором) не должен отменять решение по остальным сорока
+    const failed: string[] = [];
+    for (const id of ids) {
+      try {
+        const applied =
+          parsed.data.action === 'approve'
+            ? await approvePhoto(id, admin.userId)
+            : await rejectPhoto(id, parsed.data.reason, admin.userId);
+        // «Ничего не изменилось» — тоже неуспех: кадр мог быть удалён автором
+        // или уже решён в другой вкладке
+        if (!applied) failed.push(id);
+      } catch {
+        failed.push(id);
+      }
     }
-    await rejectPhoto(parsed.data.photoId, parsed.data.reason, admin.userId);
-    return NextResponse.json({ ok: true, action: 'reject' });
+
+    return NextResponse.json({
+      ok: failed.length === 0,
+      action: parsed.data.action,
+      done: ids.length - failed.length,
+      failed,
+    });
   });
 }

@@ -8,6 +8,7 @@ import { formatDateTimeRu } from '@/lib/date-format';
 import { ru } from '@/i18n/ru';
 import { PageHeader } from '@/components/PageHeader';
 import { AdminNav } from '@/components/admin/AdminNav';
+import { adminCounters } from '@/lib/admin-counters';
 
 export const metadata: Metadata = { title: ru.adminUsers.cardTitle };
 export const dynamic = 'force-dynamic';
@@ -46,9 +47,11 @@ export default async function AdminUserPage(props: { params: Promise<{ userId: s
     [ru.adminUsers.actReports, u.counts.reportsAgainst],
   ];
 
+  const counters = await adminCounters();
+
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6 sm:py-10">
-      <AdminNav />
+      <AdminNav counters={counters} />
       <PageHeader
         crumbs={[{ href: '/ru/admin', label: ru.adminHome.title }, { href: '/ru/admin/users', label: ru.adminUsers.title }]}
         title={`${u.firstName} ${u.lastName}`}

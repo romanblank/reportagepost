@@ -8,6 +8,7 @@ import { formatDateRu } from '@/lib/date-format';
 import { ReportCard } from './ReportCard';
 import { PageHeader } from '@/components/PageHeader';
 import { AdminNav } from '@/components/admin/AdminNav';
+import { adminCounters } from '@/lib/admin-counters';
 
 // Очередь жалоб (аудит 2026-07-31, P0): без неё жалоба уходила в никуда.
 export const metadata: Metadata = { title: ru.adminReports.title };
@@ -25,9 +26,11 @@ export default async function ReportsPage() {
     },
   });
 
+  const counters = await adminCounters();
+
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 sm:py-10">
-      <AdminNav />
+      <AdminNav counters={counters} />
       <PageHeader
         crumbs={[{ href: '/ru/admin', label: ru.adminHome.title }]}
         title={ru.adminReports.title}

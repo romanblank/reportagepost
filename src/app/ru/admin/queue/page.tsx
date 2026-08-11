@@ -7,6 +7,7 @@ import { QueueDecision } from '@/components/QueueDecision';
 import { ru } from '@/i18n/ru';
 import { PageHeader } from '@/components/PageHeader';
 import { AdminNav } from '@/components/admin/AdminNav';
+import { adminCounters } from '@/lib/admin-counters';
 
 export const metadata: Metadata = { title: ru.adminQueue.title };
 export const dynamic = 'force-dynamic';
@@ -24,9 +25,11 @@ export default async function AdminQueuePage() {
 
   const items = await moderationQueue();
 
+  const counters = await adminCounters();
+
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8">
-      <AdminNav />
+      <AdminNav counters={counters} />
       <PageHeader
         crumbs={[{ href: '/ru/admin', label: ru.adminHome.title }]}
         title={ru.adminQueue.title}

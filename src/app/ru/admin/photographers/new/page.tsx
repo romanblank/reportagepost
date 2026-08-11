@@ -7,6 +7,7 @@ import { ru } from '@/i18n/ru';
 import { CreatePhotographerForm } from '@/components/admin/CreatePhotographerForm';
 import { PageHeader } from '@/components/PageHeader';
 import { AdminNav } from '@/components/admin/AdminNav';
+import { adminCounters } from '@/lib/admin-counters';
 
 export const metadata: Metadata = { title: ru.adminPhotographers.createTitle };
 export const dynamic = 'force-dynamic';
@@ -17,9 +18,11 @@ export default async function NewPhotographerPage() {
   const cities = RU_CITIES.map((c) => ({ slug: c.slug, name: c.nameRu })).sort((a, b) => a.name.localeCompare(b.name, 'ru'));
   const categories = CATEGORIES.map((c) => ({ slug: c.slug, name: c.nameRu }));
 
+  const counters = await adminCounters();
+
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6 sm:py-10">
-      <AdminNav />
+      <AdminNav counters={counters} />
       <PageHeader
         crumbs={[{ href: '/ru/admin', label: ru.adminHome.title }, { href: '/ru/admin/moderation', label: ru.admin.moderationTitle }]}
         title={ru.adminPhotographers.createTitle}

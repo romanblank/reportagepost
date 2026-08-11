@@ -11,6 +11,7 @@ import { ru } from '@/i18n/ru';
 import { AdminPhotographerManager } from '@/components/admin/AdminPhotographerManager';
 import { PageHeader } from '@/components/PageHeader';
 import { AdminNav } from '@/components/admin/AdminNav';
+import { adminCounters } from '@/lib/admin-counters';
 
 export const metadata: Metadata = { title: ru.adminPhotographers.manage };
 export const dynamic = 'force-dynamic';
@@ -33,9 +34,11 @@ export default async function ManagePhotographerPage(props: { params: Promise<{ 
   const categories = profile.categories.map((c) => ({ slug: c.category.slug, name: categoryNameRu(c.category.slug) }));
   const photographerTier = await tierOf(profile.userId);
 
+  const counters = await adminCounters();
+
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:py-10">
-      <AdminNav />
+      <AdminNav counters={counters} />
       <PageHeader
         crumbs={[{ href: '/ru/admin', label: ru.adminHome.title }, { href: '/ru/admin/moderation', label: ru.admin.moderationTitle }]}
         title={`${profile.user.firstName} ${profile.user.lastName}`}

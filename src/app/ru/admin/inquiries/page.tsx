@@ -9,6 +9,7 @@ import { categoryNameRu } from '@/lib/category-data';
 import { AdminNav } from '@/components/admin/AdminNav';
 import { PageHeader } from '@/components/PageHeader';
 import { ru } from '@/i18n/ru';
+import { adminCounters } from '@/lib/admin-counters';
 
 export const metadata: Metadata = { title: ru.adminInquiries.title };
 export const dynamic = 'force-dynamic';
@@ -24,11 +25,12 @@ export default async function AdminInquiriesPage() {
   const admin = await requireAdmin();
   if (!admin) redirect('/ru/cabinet');
 
+  const counters = await adminCounters();
   const [items, overview] = await Promise.all([adminInquiries(), inquiryOverview()]);
 
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:py-10">
-      <AdminNav />
+      <AdminNav counters={counters} />
       <PageHeader
         crumbs={[{ href: '/ru/admin', label: ru.adminHome.title }]}
         title={ru.adminInquiries.title}

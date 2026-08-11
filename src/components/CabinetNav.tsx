@@ -20,6 +20,7 @@ const ALWAYS: { href: string; label: string }[] = [
   { href: '/ru/cabinet', label: ru.cabinetNav.overview },
   { href: '/ru/cabinet/profile/edit', label: ru.cabinetNav.profile },
   { href: '/ru/cabinet/portfolio', label: ru.cabinetNav.portfolio },
+  { href: '/ru/cabinet/subscription', label: ru.cabinetNav.subscription },
   { href: '/ru/cabinet/settings', label: ru.cabinetNav.settings },
 ];
 

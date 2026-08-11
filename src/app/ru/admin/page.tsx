@@ -7,6 +7,7 @@ import { adminAnalysis } from '@/lib/admin-analysis';
 import { formatDateTimeRu } from '@/lib/date-format';
 import { ru } from '@/i18n/ru';
 import { AdminNav } from '@/components/admin/AdminNav';
+import { adminCounters } from '@/lib/admin-counters';
 
 export const metadata: Metadata = { title: ru.adminHome.title };
 export const dynamic = 'force-dynamic';
@@ -41,6 +42,7 @@ function KpiCard({ labelKey, value, delta }: { labelKey: string; value: number; 
 export default async function AdminHomePage() {
   if (!(await requireAdmin())) redirect('/ru/login');
 
+  const counters = await adminCounters();
   const [data, activity, analysis] = await Promise.all([adminDashboard(30), adminActivity(40), adminAnalysis(30)]);
   const queueTotal =
     data.queues.profiles + data.queues.photos + data.queues.videos +
@@ -48,7 +50,7 @@ export default async function AdminHomePage() {
 
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:py-10">
-      <AdminNav />
+      <AdminNav counters={counters} />
       <h1 className="t-h2">{ru.adminHome.title}</h1>
       <p className="mt-1 text-sm muted">{ru.adminHome.lead(data.periodDays)}</p>
 

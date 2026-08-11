@@ -15,6 +15,8 @@ import { ru } from '@/i18n/ru';
  * Текущий раздел подсвечен: без этого в глубине (карточка автора внутри
  * модерации) непонятно, где находишься.
  */
+export type NavCounters = Partial<Record<string, number>>;
+
 const SECTIONS: { href: string; key: keyof typeof ru.adminNav.sections }[] = [
   { href: '/ru/admin', key: 'dashboard' },
   { href: '/ru/admin/moderation', key: 'moderation' },
@@ -27,7 +29,7 @@ const SECTIONS: { href: string; key: keyof typeof ru.adminNav.sections }[] = [
   { href: '/ru/admin/mail', key: 'mail' },
 ];
 
-export function AdminNav() {
+export function AdminNav({ counters }: { counters?: NavCounters }) {
   const pathname = usePathname() ?? '';
 
   return (
@@ -49,6 +51,13 @@ export function AdminNav() {
                 }`}
               >
                 {ru.adminNav.sections[s.key]}
+                {/* Счётчик — не украшение: без него узнать о накопившейся
+                    очереди можно только зайдя в раздел */}
+                {counters?.[s.key] ? (
+                  <span className="ml-1.5 rounded-full bg-accent-soft px-1.5 py-0.5 text-xs tabular-nums text-accent">
+                    {counters[s.key]}
+                  </span>
+                ) : null}
               </Link>
             </li>
           );

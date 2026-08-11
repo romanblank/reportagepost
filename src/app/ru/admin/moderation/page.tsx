@@ -12,11 +12,12 @@ import { photoModerationQueue, videoModerationQueue } from '@/lib/moderation';
 import { webVariantUrl } from '@/lib/photos';
 import { ModerationCard } from './ModerationCard';
 import { StoryModerationCard } from './StoryModerationCard';
-import { PhotoModerationCard } from './PhotoModerationCard';
 import { VideoModerationCard } from './VideoModerationCard';
 import { formatDateRu } from '@/lib/date-format';
 import { PageHeader } from '@/components/PageHeader';
 import { AdminNav } from '@/components/admin/AdminNav';
+import { PhotoQueueBatch } from '@/components/admin/PhotoQueueBatch';
+import { adminCounters } from '@/lib/admin-counters';
 
 export const metadata: Metadata = { title: ru.admin.moderationTitle };
 export const dynamic = 'force-dynamic';
@@ -24,6 +25,7 @@ export const dynamic = 'force-dynamic';
 export default async function ModerationPage() {
   if (!(await requireAdmin())) redirect('/ru/login');
 
+  const counters = await adminCounters();
   const [profiles, stories, pendingPhotos, pendingVideos] = await Promise.all([
     db.photographerProfile.findMany({
       where: { status: 'PENDING' },
@@ -54,7 +56,7 @@ export default async function ModerationPage() {
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 sm:py-10">
-      <AdminNav />
+      <AdminNav counters={counters} />
       <PageHeader
         crumbs={[{ href: '/ru/admin', label: ru.adminHome.title }]}
         title={ru.admin.moderationTitle}
@@ -86,19 +88,18 @@ export default async function ModerationPage() {
         <section className="mt-10">
           <h2 className="t-h3">{ru.admin.photosQueue}</h2>
           <p className="mt-1 text-sm muted">{ru.admin.photosQueueHint}</p>
-          <ul className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {pendingPhotos.map((ph) => (
-              <PhotoModerationCard
-                key={ph.photoId}
-                photoId={ph.photoId}
-                authorName={ph.authorName}
-                username={ph.username}
-                webUrl={thumbVariantUrl(ph.storageKey)}
-                fullUrl={webVariantUrl(ph.storageKey)}
-                meta={`${categoryNameRu(ph.categorySlug)} · ${formatDateRu(ph.uploadedAt)}`}
-              />
-            ))}
-          </ul>
+          <div className="mt-4">
+            <PhotoQueueBatch
+              items={pendingPhotos.map((ph) => ({
+                photoId: ph.photoId,
+                authorName: ph.authorName,
+                username: ph.username,
+                thumbUrl: thumbVariantUrl(ph.storageKey),
+                fullUrl: webVariantUrl(ph.storageKey),
+                meta: `${categoryNameRu(ph.categorySlug)} · ${formatDateRu(ph.uploadedAt)}`,
+              }))}
+            />
+          </div>
         </section>
       )}
 

@@ -163,7 +163,14 @@ export async function photoModerationQueue(limit = 100): Promise<PhotoQueueItem[
 }
 
 /** Публикация одного кадра: APPROVED + событие + пересчёт рейтинга автора. */
-export async function approvePhoto(photoId: string, actorUserId?: string): Promise<void> {
+/**
+ * Одобрить кадр. Возвращает false, если решать было нечего.
+ *
+ * Раньше функция молча завершалась и при отсутствующем кадре: массовое
+ * одобрение сорока кадров рапортовало бы об успехе, даже если половины уже
+ * нет. Молчаливый успех хуже ошибки — он не даёт повода проверить.
+ */
+export async function approvePhoto(photoId: string, actorUserId?: string): Promise<boolean> {
   const profileId = await db.$transaction(async (tx) => {
     const photo = await tx.photo.findUnique({ where: { id: photoId }, select: { profileId: true, status: true } });
     if (!photo || photo.status !== 'PENDING') return null;
@@ -177,14 +184,15 @@ export async function approvePhoto(photoId: string, actorUserId?: string): Promi
     if (actorUserId) await logAudit(tx, actorUserId, 'photo.approve', 'PHOTO', photoId);
     return photo.profileId;
   });
-  if (!profileId) return;
+  if (!profileId) return false;
   // Новый кадр меняет и общий, и жанровый скор автора
   const { recomputeOne } = await import('@/lib/rating');
   await recomputeOne(profileId);
+  return true;
 }
 
 /** Отклонение кадра с обязательной причиной + уведомление автору. */
-export async function rejectPhoto(photoId: string, reason: string, actorUserId?: string): Promise<void> {
+export async function rejectPhoto(photoId: string, reason: string, actorUserId?: string): Promise<boolean> {
   const info = await db.$transaction(async (tx) => {
     const photo = await tx.photo.findUnique({
       where: { id: photoId },
@@ -205,7 +213,7 @@ export async function rejectPhoto(photoId: string, reason: string, actorUserId?:
     if (actorUserId) await logAudit(tx, actorUserId, 'photo.reject', 'PHOTO', photoId, { reason });
     return { userId: photo.profile.userId, storageKey: photo.storageKey, profileId: photo.profileId };
   });
-  if (!info) return;
+  if (!info) return false;
 
   // Файлы удаляем следом: раздатчик /files не смотрит в базу, и отклонённый
   // кадр продолжал бы раздаваться по прямой ссылке вечно, с годовым кэшем.
@@ -221,6 +229,7 @@ export async function rejectPhoto(photoId: string, reason: string, actorUserId?:
   // Причина обязана дойти до автора — иначе он не поймёт, почему кадра нет
   const { notifyInApp } = await import('@/lib/notifications');
   await notifyInApp(info.userId, 'notification.photo.rejected', { reason }).catch(() => {});
+  return true;
 }
 
 /**
