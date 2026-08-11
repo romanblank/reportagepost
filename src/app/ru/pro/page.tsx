@@ -52,7 +52,7 @@ export default async function ProPage() {
   const priceNote = cityLabel ? ru.pro.priceForCity(cityLabel) : ru.pro.priceVaries;
 
   return (
-    <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10 sm:py-16">
+    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:py-16">
       <header className="max-w-2xl">
         <p className="t-caption text-recognition">{ru.pro.kicker}</p>
         <h1 className="t-h1 mt-3 text-balance">{ru.pro.title}</h1>

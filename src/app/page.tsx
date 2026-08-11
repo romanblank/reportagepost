@@ -47,7 +47,7 @@ export default async function Home() {
       {/* Авторы города (прототип v9): главная показывала кадры, но не людей —
           при том что выбирают именно автора. Карточка та же, что в каталоге. */}
       {cityAuthors.length > 0 && (
-        <section className="mx-auto w-full max-w-7xl px-4 pt-12 sm:pt-14">
+        <section className="mx-auto w-full max-w-6xl px-4 pt-12 sm:pt-14">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="t-caption muted" style={{ fontFamily: 'var(--font-mono)' }}>
@@ -66,7 +66,7 @@ export default async function Home() {
       {/* Как устроено доверие — то, чем платформа отличается от биржи.
           В прототипе это отдельный разговор с заказчиком, и не зря: механику
           «подтверждённых съёмок» нигде больше не объясняли. */}
-      <section className="mx-auto w-full max-w-7xl px-4 pt-14 sm:pt-16">
+      <section className="mx-auto w-full max-w-6xl px-4 pt-14 sm:pt-16">
         <p className="t-caption muted" style={{ fontFamily: 'var(--font-mono)' }}>
           {ru.landing.trustSectionKicker}
         </p>
@@ -92,7 +92,7 @@ export default async function Home() {
           подряд «лучшее за неделю», «свежее» и «серии» — три почти одинаковые
           мозаики, между которыми человек не видел разницы. */}
       {feedPhotos.length > 0 && (
-        <section className="mx-auto w-full max-w-7xl px-4 pb-12 pt-14 sm:pb-14 sm:pt-16">
+        <section className="mx-auto w-full max-w-6xl px-4 pb-12 pt-14 sm:pb-14 sm:pt-16">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="t-caption muted" style={{ fontFamily: 'var(--font-mono)' }}>{ru.landing.feedKicker}</p>
@@ -106,7 +106,7 @@ export default async function Home() {
 
       {/* Новые авторы — автоматически по дате прихода (без курирования) */}
       {newAuthors.length > 0 && (
-        <section className="mx-auto w-full max-w-7xl px-4 pb-12 sm:pb-14">
+        <section className="mx-auto w-full max-w-6xl px-4 pb-12 sm:pb-14">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="t-caption muted" style={{ fontFamily: 'var(--font-mono)' }}>{ru.landing.newAuthorsKicker}</p>
@@ -147,7 +147,7 @@ export default async function Home() {
 
       {/* Для фотографов — ценность подписки Active/Active+ (антиклассизм-инвариант) */}
       <section className="border-y border-line bg-surface">
-        <div className="mx-auto grid w-full max-w-7xl items-center gap-12 px-4 py-16 lg:grid-cols-2">
+        <div className="mx-auto grid w-full max-w-6xl items-center gap-12 px-4 py-16 lg:grid-cols-2">
           <div>
             <p className="t-caption text-accent" style={{ fontFamily: 'var(--font-mono)' }}>{ru.landing.photographerBandEyebrow}</p>
             <h2 className="t-h2 mt-3 max-w-[20ch]">{ru.landing.photographerBandTitle}</h2>

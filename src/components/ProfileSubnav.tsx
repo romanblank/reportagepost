@@ -40,7 +40,7 @@ export function ProfileSubnav({ items, summary }: { items: SubnavItem[]; summary
   return (
     <nav aria-label={ru.profile.subnavLabel}
       className="sticky top-[53px] z-30 border-b border-line bg-paper/90 backdrop-blur-md sm:top-[57px]">
-      <div className="mx-auto flex h-[54px] w-full max-w-6xl items-center gap-7 overflow-x-auto px-4 text-sm sm:px-6">
+      <div className="mx-auto flex h-[54px] w-full max-w-6xl items-center gap-7 overflow-x-auto px-4 text-sm ">
         {items.map((i) => (
           <a key={i.id} href={`#${i.id}`} aria-current={active === i.id ? "location" : undefined}
             className={`whitespace-nowrap transition-colors ${active === i.id ? 'text-ink' : 'muted hover:text-ink'}`}>

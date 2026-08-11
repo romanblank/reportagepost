@@ -36,7 +36,7 @@ export default async function ArticlePage({ params }: Params) {
   if (!article) notFound();
 
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:py-12">
+    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:py-12">
       <JsonLd
         data={articleLd({
           title: article.title,

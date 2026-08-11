@@ -19,10 +19,14 @@ export async function SiteHeader() {
   const linkCls = 'text-sm text-muted transition-colors hover:text-ink';
   return (
     <header className="sticky top-0 z-40 border-b border-line/70 bg-paper/80 backdrop-blur-md">
-      {/* max-w-7xl — как секции главной; в 6xl (1152px) кластер залогиненного
+      {/* Одна сетка на всю платформу: шапка, подвал и содержимое страниц
+          начинаются от общего левого края. Раньше шапка шла по 7xl, подвал по
+          6xl, а страницы — от 3xl до 7xl: на узких страницах логотип уезжал
+          заметно левее заголовка, и интерфейс выглядел собранным из кусков.
+          Прежний комментарий про 7xl
           (лого+7 ссылок+колокол+поиск+кабинет) не влезал и «Кабинет/Выйти»
           переносились второй строкой даже на широком окне */}
-      <nav className="mx-auto flex w-full max-w-7xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3.5 lg:gap-x-5">
+      <nav className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3.5 lg:gap-x-5">
         <Link href="/" aria-label={ru.nav.brand} className="flex items-center text-ink">
           <BrandLockup className="block h-6 sm:h-7" />
         </Link>

@@ -149,7 +149,7 @@ export default async function CatalogPage(props: {
   const basePath = `/ru/${params.country}/${params.city}`;
 
   return (
-    <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:py-10">
+    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:py-10">
       {shown.length > 0 && (
         <JsonLd
           data={catalogItemListLd(

@@ -31,7 +31,7 @@ export default async function AdminMailPage() {
   const counters = await adminCounters();
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6 sm:py-10">
+    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:py-10">
       <AdminNav counters={counters} />
       <PageHeader
         crumbs={[{ href: '/ru/admin', label: ru.adminHome.title }]}

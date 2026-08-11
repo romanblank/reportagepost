@@ -36,7 +36,7 @@ export default async function CabinetArticlesPage() {
   const approved = profile?.status === 'APPROVED';
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:py-12">
+    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:py-12">
       <CabinetNav approved={approved} hasProfile={Boolean(profile)} />
       <PageHeader
         crumbs={[{ href: '/ru/cabinet', label: ru.cabinet.title }]}

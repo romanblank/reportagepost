@@ -48,7 +48,7 @@ export default async function CountryPage(props: { params: Promise<{ country: st
   const shown = cities.filter((city) => city._count.profiles > 0);
 
   return (
-    <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:py-10">
+    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:py-10">
       <h1 className="t-h1">{ru.country.title}</h1>
       <p className="mt-2 muted">{ru.country.lead}</p>
       {shown.length === 0 && <p className="mt-8 muted">{ru.country.empty}</p>}

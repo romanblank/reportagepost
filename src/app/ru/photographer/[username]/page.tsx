@@ -310,7 +310,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
       {/* Разворот: контент слева, обращение к автору — липкой колонкой справа
           (прототип v9). Раньше цены, контакты и занятость были размазаны по
           странице, и заказчик собирал их скроллом. */}
-      <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-10 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_340px] lg:gap-12">
+      <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-10 px-4 py-8  lg:grid-cols-[1fr_340px] lg:gap-12">
         {/* Правая колонка: цена, обращение, параметры работы и занятость */}
         {!isSelf && (
           <div id="booking" className="scroll-mt-[7.5rem] lg:col-start-2 lg:row-start-1">

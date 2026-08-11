@@ -35,7 +35,7 @@ export default async function SectionPage({ params, searchParams }: Params) {
   ]);
 
   return (
-    <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8 sm:py-12">
+    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:py-12">
       <Link href="/ru/forum" className="text-sm underline muted">← {ru.forum.title}</Link>
       <div className="mt-3 flex flex-wrap items-baseline justify-between gap-3">
         <div>

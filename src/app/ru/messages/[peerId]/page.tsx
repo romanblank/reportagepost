@@ -32,7 +32,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ peerId:
   });
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 py-10">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-10">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
         <h1 className="t-title">
           {ru.messages.writeTo(`${peer.firstName} ${peer.lastName}`)}

@@ -98,7 +98,7 @@ export default async function CabinetPage() {
   const navApproved = navProfile?.status === 'APPROVED';
 
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:py-10">
+    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:py-10">
       <CabinetNav approved={navApproved} hasProfile={Boolean(navProfile)} />
       <h1 className="t-h2">{me?.firstName ? ru.cabinet.greeting(me.firstName) : ru.cabinet.title}</h1>
 

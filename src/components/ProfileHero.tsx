@@ -78,7 +78,7 @@ export function ProfileHero({
         style={{ background: 'linear-gradient(0deg, var(--paper) 2%, rgba(15,18,24,.35) 40%, rgba(15,18,24,.5) 100%)' }} />
 
       <div className="absolute inset-x-0 bottom-0 z-[3]">
-        <div className="anim-rise mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 pb-7 sm:flex-row sm:items-end sm:gap-6 sm:px-6">
+        <div className="anim-rise mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 pb-7 sm:flex-row sm:items-end sm:gap-6 ">
           {/* Аватар кадром, а не кружком: у фотографа лицо — тоже работа */}
           <Avatar avatarKey={avatarKey} firstName={firstName} lastName={lastName} size={112}
             rounded="media"

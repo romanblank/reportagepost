@@ -32,7 +32,7 @@ export function LandingHero({ photographers, photos, backdropSrc, featured }: {
       <div className="absolute inset-0"
         style={{ background: 'linear-gradient(90deg, rgba(15,18,24,.94) 0%, rgba(15,18,24,.78) 42%, rgba(15,18,24,.5) 100%), linear-gradient(0deg, rgba(15,18,24,.85), transparent 40%)' }} />
 
-      <div className="anim-rise relative mx-auto grid w-full max-w-7xl items-center gap-14 px-4 py-20 sm:px-6 lg:grid-cols-[1.12fr_.88fr]">
+      <div className="anim-rise relative mx-auto grid w-full max-w-6xl items-center gap-14 px-4 py-20  lg:grid-cols-[1.12fr_.88fr]">
         {/* Левая колонка — текст + поиск */}
         <div className="max-w-2xl">
           <p className="t-caption inline-flex items-center gap-2.5 text-accent before:h-px before:w-6 before:bg-accent">

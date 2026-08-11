@@ -49,7 +49,7 @@ export function SiteFooter() {
 
   return (
     <footer className="mt-auto border-t border-line pb-20 sm:pb-0" style={{ background: 'var(--surface-2)' }}>
-      <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
+      <div className="mx-auto w-full max-w-6xl px-4">
         <div className="grid gap-8 py-12 sm:grid-cols-2 sm:py-14 lg:grid-cols-[1.6fr_1fr_1fr_1fr] lg:gap-10">
           <div>
             <span className="flex items-center gap-2.5 text-[12.5px] font-semibold uppercase tracking-[.15em]">

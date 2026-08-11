@@ -71,7 +71,7 @@ export default async function NotificationsPage() {
   await markNotificationsRead(session.userId);
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6 sm:py-10">
+    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:py-10">
       <h1 className="t-h2">{ru.notifications.title}</h1>
       {items.length === 0 ? (
         <p className="mt-4 text-sm muted">{ru.notifications.empty}</p>
