@@ -121,12 +121,12 @@ export function PhotoQueueBatch({ items }: { items: QueueItem[] }) {
         {items.map((i) => {
           const on = selected.has(i.photoId);
           return (
-            <li key={i.photoId}>
-              <label
-                className={`block cursor-pointer overflow-hidden rounded-media border-2 transition-colors ${
-                  on ? 'border-accent' : 'border-line hover:border-line-2'
-                }`}
-              >
+            <li key={i.photoId} className="overflow-hidden rounded-media border-2 transition-colors"
+              style={{ borderColor: on ? 'var(--accent)' : 'var(--line)' }}>
+              {/* Ссылка НЕ внутри label: клик по ней браузер переносит на
+                  связанный чекбокс, и «открыть оригинал» переключало бы выбор
+                  вместо открытия кадра */}
+              <label className="block cursor-pointer">
                 <span className="relative block">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={i.thumbUrl} alt="" className="aspect-[4/3] w-full object-cover" />
@@ -138,20 +138,16 @@ export function PhotoQueueBatch({ items }: { items: QueueItem[] }) {
                     aria-label={ru.adminPhotoQueue.pick(i.authorName)}
                   />
                 </span>
-                <span className="block px-3 py-2">
+                <span className="block px-3 pt-2">
                   <span className="t-caption block truncate">{i.authorName}</span>
                   <span className="t-caption block truncate muted">{i.meta}</span>
-                  <a
-                    href={i.fullUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="t-caption underline muted"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {ru.adminPhotoQueue.openFull}
-                  </a>
                 </span>
               </label>
+              <div className="px-3 pb-2">
+                <a href={i.fullUrl} target="_blank" rel="noreferrer" className="t-caption underline muted">
+                  {ru.adminPhotoQueue.openFull}
+                </a>
+              </div>
             </li>
           );
         })}
