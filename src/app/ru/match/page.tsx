@@ -66,7 +66,8 @@ export default async function MatchPage(props: {
   }
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:py-12">
+    <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:py-12">
+      <div className="max-w-5xl w-full">
       <header className="max-w-2xl">
         <p className="t-caption text-recognition">{ru.match.kicker}</p>
         <h1 className="t-h1 mt-2 text-balance">{ru.match.title}</h1>
@@ -170,6 +171,7 @@ export default async function MatchPage(props: {
           </div>
         </section>
       )}
+      </div>
     </main>
   );
 }

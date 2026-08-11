@@ -57,7 +57,8 @@ export default async function PhotoFeedPage(props: {
   }
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 sm:px-4 sm:py-8">
+    <main className="mx-auto w-full max-w-7xl flex-1 sm:px-4 sm:py-8">
+      <div className="max-w-6xl w-full">
       {/* Табы: sticky-полоса, горизонтальный скролл на мобиле (app-подача) */}
       <div className="sticky top-[57px] z-30 border-b border-line bg-paper/90 px-4 py-2.5 backdrop-blur-md sm:static sm:border-0 sm:bg-transparent sm:px-0 sm:py-0">
         <div className="hidden sm:block">
@@ -127,6 +128,7 @@ export default async function PhotoFeedPage(props: {
           </div>
         </>
       )}
+      </div>
     </main>
   );
 }

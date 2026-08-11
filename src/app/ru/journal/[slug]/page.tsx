@@ -36,7 +36,8 @@ export default async function ArticlePage({ params }: Params) {
   if (!article) notFound();
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:py-12">
+    <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:py-12">
+      <div className="max-w-3xl w-full">
       <JsonLd
         data={articleLd({
           title: article.title,
@@ -77,6 +78,7 @@ export default async function ArticlePage({ params }: Params) {
 
       <p className="mt-6 t-body-lg">{article.lead}</p>
       <div className="mt-4 whitespace-pre-wrap text-base leading-relaxed">{article.body}</div>
+      </div>
     </main>
   );
 }

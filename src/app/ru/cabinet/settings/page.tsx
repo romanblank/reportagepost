@@ -38,7 +38,8 @@ export default async function SettingsPage() {
   const navApproved = navProfile?.status === 'APPROVED';
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:py-10">
+    <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:py-10">
+      <div className="max-w-2xl w-full">
       <CabinetNav approved={navApproved} hasProfile={Boolean(navProfile)} />
       <PageHeader
         crumbs={[{ href: '/ru/cabinet', label: ru.cabinet.title }]}
@@ -75,6 +76,7 @@ export default async function SettingsPage() {
           <TwoFactorManager initial={status} />
         </div>
       </section>
+      </div>
     </main>
   );
 }

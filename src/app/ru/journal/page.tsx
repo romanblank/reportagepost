@@ -34,7 +34,8 @@ export default async function JournalPage() {
   const isEmpty = !featured && stories.length === 0 && newcomers.length === 0 && articles.length === 0;
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:py-12">
+    <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:py-12">
+      <div className="max-w-6xl w-full">
       <header className="max-w-2xl">
         <p className="t-caption text-recognition">{ru.journal.kicker}</p>
         <h1 className="t-h1 mt-2 text-balance">{ru.journal.title}</h1>
@@ -132,6 +133,7 @@ export default async function JournalPage() {
           )}
         </>
       )}
+      </div>
     </main>
   );
 }

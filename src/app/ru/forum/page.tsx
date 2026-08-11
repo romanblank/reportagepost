@@ -24,7 +24,8 @@ export default async function ForumPage({ searchParams }: Params) {
   ]);
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:py-12">
+    <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:py-12">
+      <div className="max-w-4xl w-full">
       <header className="max-w-2xl">
         <h1 className="t-h1">{ru.forum.title}</h1>
         <p className="mt-3 t-body-lg muted">{ru.forum.lead}</p>
@@ -83,6 +84,7 @@ export default async function ForumPage({ searchParams }: Params) {
           {ru.forum.hints.map((h) => <li key={h}>— {h}</li>)}
         </ul>
       </section>
+      </div>
     </main>
   );
 }

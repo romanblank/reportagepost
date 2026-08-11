@@ -30,7 +30,8 @@ export default async function ClientCabinetPage() {
   ]);
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:py-10">
+    <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:py-10">
+      <div className="max-w-3xl w-full">
       <div className="flex items-center justify-between">
         <h1 className="t-h1">{ru.clientCabinet.title}</h1>
         <Link href="/ru/inquiry" className="btn btn-accent px-3 py-1.5">
@@ -135,6 +136,7 @@ export default async function ClientCabinetPage() {
         <p className="text-sm font-medium">{ru.account.dangerTitle}</p>
         <div className="mt-2"><DeleteAccountButton /></div>
       </section>
+      </div>
     </main>
   );
 }

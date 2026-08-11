@@ -35,7 +35,8 @@ export default async function SectionPage({ params, searchParams }: Params) {
   ]);
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:py-12">
+    <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:py-12">
+      <div className="max-w-4xl w-full">
       <Link href="/ru/forum" className="text-sm underline muted">← {ru.forum.title}</Link>
       <div className="mt-3 flex flex-wrap items-baseline justify-between gap-3">
         <div>
@@ -73,6 +74,7 @@ export default async function SectionPage({ params, searchParams }: Params) {
       )}
 
       <Pager base={`/ru/forum/${section}`} page={page} total={total} perPage={THREADS_PER_PAGE} />
+      </div>
     </main>
   );
 }

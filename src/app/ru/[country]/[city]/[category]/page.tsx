@@ -95,7 +95,7 @@ export default async function CityCategoryPage(props: {
   };
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:py-10">
+    <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:py-10">
       <JsonLd data={breadcrumbLd([
         { name: ru.catalog.breadcrumbRoot, path: cityPath },
         { name: cityName, path: cityPath },

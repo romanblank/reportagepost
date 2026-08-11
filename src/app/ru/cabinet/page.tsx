@@ -98,7 +98,8 @@ export default async function CabinetPage() {
   const navApproved = navProfile?.status === 'APPROVED';
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:py-10">
+    <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:py-10">
+      <div className="max-w-3xl w-full">
       <CabinetNav approved={navApproved} hasProfile={Boolean(navProfile)} />
       <h1 className="t-h2">{me?.firstName ? ru.cabinet.greeting(me.firstName) : ru.cabinet.title}</h1>
 
@@ -304,6 +305,7 @@ export default async function CabinetPage() {
         <p className="text-sm font-medium">{ru.account.dangerTitle}</p>
         <div className="mt-2"><DeleteAccountButton /></div>
       </section>
+      </div>
     </main>
   );
 }

@@ -31,7 +31,7 @@ export default async function NewThreadPage({ searchParams }: Params) {
   // сообществом
   if (profile?.status !== 'APPROVED') {
     return (
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10">
+      <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-10">
         <h1 className="t-h2">{ru.forum.newThread}</h1>
         <p className="mt-3 text-sm muted">{ru.forum.onlyPhotographers}</p>
         <Link href="/ru/forum" className="btn btn-outline btn-sm mt-6">← {ru.forum.title}</Link>

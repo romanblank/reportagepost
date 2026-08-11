@@ -49,7 +49,8 @@ export default async function AdminHomePage() {
     data.queues.stories + data.queues.reports + data.queues.proRequests;
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:py-10">
+    <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:py-10">
+      <div className="max-w-5xl w-full">
       <AdminNav counters={counters} />
       <h1 className="t-h2">{ru.adminHome.title}</h1>
       <p className="mt-1 text-sm muted">{ru.adminHome.lead(data.periodDays)}</p>
@@ -209,6 +210,7 @@ export default async function AdminHomePage() {
           ))}
         </dl>
       </section>
+      </div>
     </main>
   );
 }

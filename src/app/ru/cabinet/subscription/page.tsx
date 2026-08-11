@@ -52,7 +52,8 @@ export default async function CabinetSubscriptionPage() {
     : [];
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:py-10">
+    <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:py-10">
+      <div className="max-w-3xl w-full">
       <CabinetNav approved={profile?.status === 'APPROVED'} hasProfile={Boolean(profile)} />
       <PageHeader
         crumbs={[{ href: '/ru/cabinet', label: ru.cabinet.title }]}
@@ -133,6 +134,7 @@ export default async function CabinetSubscriptionPage() {
           </ul>
         )}
       </section>
+      </div>
     </main>
   );
 }

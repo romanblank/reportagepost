@@ -40,7 +40,8 @@ export default async function MyModerationPage() {
   const navApproved = navProfile?.status === 'APPROVED';
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:py-12">
+    <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:py-12">
+      <div className="max-w-2xl w-full">
       <CabinetNav approved={navApproved} hasProfile={Boolean(navProfile)} />
       <PageHeader
         crumbs={[{ href: '/ru/cabinet', label: ru.cabinet.title }]}
@@ -87,6 +88,7 @@ export default async function MyModerationPage() {
           ))}
         </ul>
       )}
+      </div>
     </main>
   );
 }

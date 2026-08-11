@@ -28,7 +28,8 @@ export default async function AdminQueuePage() {
   const counters = await adminCounters();
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
+    <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8">
+      <div className="max-w-4xl w-full">
       <AdminNav counters={counters} />
       <PageHeader
         crumbs={[{ href: '/ru/admin', label: ru.adminHome.title }]}
@@ -64,6 +65,7 @@ export default async function AdminQueuePage() {
           ))}
         </ul>
       )}
+      </div>
     </main>
   );
 }

@@ -32,7 +32,8 @@ export default async function CommunityPage() {
   ].filter((t) => t.value > 0);
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:py-14">
+    <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-10 sm:py-14">
+      <div className="max-w-6xl w-full">
       <h1 className="t-h1">{ru.dashboard.title}</h1>
 
       <div className="mt-6 flex flex-wrap gap-x-12 gap-y-4 border-y border-line py-6">
@@ -105,6 +106,7 @@ export default async function CommunityPage() {
           </div>
         </section>
       )}
+      </div>
     </main>
   );
 }

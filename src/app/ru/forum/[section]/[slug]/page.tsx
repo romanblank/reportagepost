@@ -49,7 +49,8 @@ export default async function ThreadPage({ params, searchParams }: Params) {
   ]);
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:py-12">
+    <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:py-12">
+      <div className="max-w-3xl w-full">
       <JsonLd
         data={forumPostingLd({
           title: thread.title,
@@ -118,6 +119,7 @@ export default async function ThreadPage({ params, searchParams }: Params) {
           <Link href="/ru/login" className="underline">{ru.forum.loginToReply}</Link>
         </p>
       )}
+      </div>
     </main>
   );
 }

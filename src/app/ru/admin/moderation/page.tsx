@@ -54,7 +54,8 @@ export default async function ModerationPage() {
   ]);
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:py-10">
+    <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:py-10">
+      <div className="max-w-4xl w-full">
       <AdminNav counters={counters} />
       <PageHeader
         crumbs={[{ href: '/ru/admin', label: ru.adminHome.title }]}
@@ -139,6 +140,7 @@ export default async function ModerationPage() {
           </ul>
         </section>
       )}
+      </div>
     </main>
   );
 }

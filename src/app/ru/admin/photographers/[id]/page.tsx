@@ -37,7 +37,8 @@ export default async function ManagePhotographerPage(props: { params: Promise<{ 
   const counters = await adminCounters();
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:py-10">
+    <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:py-10">
+      <div className="max-w-3xl w-full">
       <AdminNav counters={counters} />
       <PageHeader
         crumbs={[{ href: '/ru/admin', label: ru.adminHome.title }, { href: '/ru/admin/moderation', label: ru.admin.moderationTitle }]}
@@ -59,6 +60,7 @@ export default async function ManagePhotographerPage(props: { params: Promise<{ 
           initialPhotos={profile.photos.map((p) => ({ id: p.id, thumb: thumbVariantUrl(p.storageKey) }))}
           initialTier={photographerTier}
         />
+      </div>
       </div>
     </main>
   );
