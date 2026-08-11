@@ -39,7 +39,7 @@ export const PUBLIC_LAUNCH = false;
  * Изменил текст документов — подними эту дату. Забыть нельзя: контрольная
  * сумма текстов зафиксирована в `LEGAL_CONTENT_SHA` и проверяется тестом.
  */
-export const PDN_CONSENT_VERSION = '2026-08-03';
+export const PDN_CONSENT_VERSION = '2026-08-11';
 
 /**
  * Контрольная сумма файла юридических текстов для текущей версии.
@@ -47,7 +47,7 @@ export const PDN_CONSENT_VERSION = '2026-08-03';
  * Сторож против бесшумного расхождения «текст поменяли, версию забыли».
  * Обновляется ВМЕСТЕ с `PDN_CONSENT_VERSION`, а не вместо неё.
  */
-export const LEGAL_CONTENT_SHA = 'b118a7b8c527801b';
+export const LEGAL_CONTENT_SHA = '86e40d94ce8552ca';
 
 // Имя cookie с решением по трекингу (аудит 2026-08-01, P2). Живёт здесь, а не
 // в route-файле: Next.js разрешает роутам экспортировать только свои

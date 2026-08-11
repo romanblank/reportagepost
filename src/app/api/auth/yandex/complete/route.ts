@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import { PDN_CONSENT_VERSION } from '@/lib/constants';
+import { rateLimit, clientIp } from '@/lib/rate-limit';
 import {
   SESSION_COOKIE, createSessionToken, sessionCookieOptions,
   YANDEX_PENDING_COOKIE, verifyYandexPendingToken, shortLivedCookieOptions,
@@ -21,6 +22,12 @@ export async function POST(req: NextRequest) {
 
   const parsed = Schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: 'validation' }, { status: 400 });
+  // Роут завершает вход через Яндекс и СОЗДАЁТ аккаунт. Сессии здесь ещё нет,
+  // поэтому ограничиваем по адресу: без лимита один источник мог бы штамповать
+  // аккаунты, а это единственная точка платформы, где они появляются без
+  // пароля и без письма
+  await rateLimit(`yandex-complete:ip:${clientIp(req)}`, 20, 3600);
+
   const { role } = parsed.data;
 
   const clearPending = (res: NextResponse) => { res.cookies.set(YANDEX_PENDING_COOKIE, '', shortLivedCookieOptions(0)); return res; };

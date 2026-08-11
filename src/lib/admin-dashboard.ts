@@ -33,6 +33,11 @@ export const REAL_USER: Prisma.UserWhereInput = {
 
 /** Условие «настоящая анкета» для запросов по PhotographerProfile. */
 export const REAL_PROFILE: Prisma.PhotographerProfileWhereInput = {
+  // Признак демо — в данных (`isDemo`), а префикс имени оставлен как второй
+  // эшелон: витрину заводили до появления флага, и анкета, помеченная только
+  // именем, не должна вернуться в метрики. Достаточно ЛЮБОГО признака —
+  // иначе демо, заведённое под обычным именем, начнёт льстить цифрам
+  isDemo: false,
   username: { not: { startsWith: DEMO_USERNAME_PREFIX } },
   user: REAL_USER,
 };

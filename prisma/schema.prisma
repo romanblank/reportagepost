@@ -763,6 +763,9 @@ model Inquiry {
   @@index([cityId, status, createdAt(sort: Desc)])
   @@index([clientUserId])
   @@index([categoryId])
+  // Список в админке идёт по всем городам сразу: индекс с cityId первым для
+  // него бесполезен, а сортировка по дате там основная
+  @@index([createdAt(sort: Desc)])
 }
 
 // ─── Жалобы и блокировки (модерация людей) ──────────────────────────────────
@@ -882,6 +885,7 @@ model Notification {
 
   @@index([state, createdAt])
   @@index([userId, createdAt(sort: Desc)])
+
 }
 
 // ─── S5 монетизация: PRO-подписка + платежи (Т-Касса) ──────────────────────
@@ -940,6 +944,9 @@ model Payment {
   user             User?            @relation(fields: [userId], references: [id])
 
   @@index([userId, createdAt(sort: Desc)])
+  // Раздел «Деньги» смотрит платежи всей платформы, а не одного человека
+  @@index([createdAt(sort: Desc)])
+  @@index([status, createdAt(sort: Desc)])
 }
 
 // ─── Аудит действий администратора (spec/02-admin §8.4) ─────────────────────
@@ -960,6 +967,8 @@ model AdminAudit {
   @@index([actorUserId, createdAt])
   @@index([targetType, targetId, createdAt])
   @@index([action, createdAt])
+  // Лента аудита листается по времени без других условий
+  @@index([createdAt(sort: Desc)])
 }
 
 // Сброс пароля по email-ссылке (нужно при открытой регистрации). Токен хранится
