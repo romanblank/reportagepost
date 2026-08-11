@@ -116,7 +116,7 @@ export default async function JournalPage() {
                 {newcomers.map((p) => (
                   <li key={p.username}>
                     <Link href={`/ru/photographer/${p.username}`} className="group block">
-                      <div className="aspect-square overflow-hidden rounded-lg bg-surface-2">
+                      <div className="aspect-square overflow-hidden rounded-media bg-surface-2">
                         {p.photos[0] && (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={thumbVariantUrl(p.photos[0].storageKey)} alt="" loading="lazy"

@@ -43,14 +43,14 @@ export function ModerationCard(props: {
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <button type="button" onClick={() => decide('approve')} disabled={pending}
-          className="rounded-lg bg-foreground px-4 py-2 text-sm text-background disabled:opacity-50">
+          className="rounded-media bg-foreground px-4 py-2 text-sm text-background disabled:opacity-50">
           {ru.admin.approve}
         </button>
         <input value={reason} onChange={(e) => setReason(e.target.value)}
           placeholder={ru.admin.rejectReason}
-          className="min-w-64 flex-1 rounded-lg border px-3 py-2 text-sm" />
+          className="min-w-64 flex-1 rounded-media border px-3 py-2 text-sm" />
         <button type="button" onClick={() => decide('reject')} disabled={pending || reason.trim().length < 5}
-          className="rounded-lg border border-red-600 px-4 py-2 text-sm text-accent disabled:opacity-40">
+          className="rounded-media border border-red-600 px-4 py-2 text-sm text-accent disabled:opacity-40">
           {ru.admin.reject}
         </button>
       </div>

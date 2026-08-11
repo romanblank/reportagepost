@@ -69,7 +69,7 @@ export function LandingHero({ photographers, photos, backdropSrc, featured }: {
         {/* Правая колонка — featured «Кадр недели» */}
         {featured && (
           <Link href={featured.href}
-            className="group relative hidden overflow-hidden rounded-lg border border-line shadow-xl lg:block">
+            className="group relative hidden overflow-hidden rounded-media border border-line shadow-xl lg:block">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={featured.src} alt=""
               className="aspect-[4/5] w-full object-cover transition duration-700 group-hover:scale-[1.04]" />

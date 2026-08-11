@@ -114,7 +114,7 @@ export default async function CityCategoryPage(props: {
       </header>
 
       <div className="mt-6 grid items-start gap-8 lg:grid-cols-[248px_1fr]">
-        <aside className="space-y-6 rounded-lg border border-line bg-surface p-4 lg:sticky lg:top-20">
+        <aside className="space-y-6 rounded-media border border-line bg-surface p-4 lg:sticky lg:top-20">
           <div>
             <h2 className="t-caption mb-2 muted">{ru.catalog.filterGenre}</h2>
             <CategoryLinks countrySlug={params.country} citySlug={params.city} activeCategory={params.category} vertical />

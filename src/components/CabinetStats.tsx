@@ -20,7 +20,7 @@ export function CabinetStats({ stats, tier }: { stats: PhotographerStats; tier: 
       </div>
       <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {items.map((it) => (
-          <div key={it.label} className="rounded-lg bg-surface-2 p-3">
+          <div key={it.label} className="rounded-media bg-surface-2 p-3">
             <p className="tnum text-2xl font-semibold">{it.value}</p>
             <p className="mt-0.5 text-xs muted">{it.label}</p>
           </div>

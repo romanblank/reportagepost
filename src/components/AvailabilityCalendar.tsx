@@ -102,7 +102,7 @@ export function AvailabilityCalendar({ initialBusy }: { initialBusy: string[] })
               aria-pressed={isBusy}
               aria-label={`${day} — ${isBusy ? ru.availability.busy : ru.availability.free}`}
               className={[
-                'aspect-square rounded-lg text-sm transition',
+                'aspect-square rounded-media text-sm transition',
                 isPast ? 'cursor-not-allowed opacity-30' : 'hover:ring-2 hover:ring-accent/40',
                 isBusy ? 'bg-accent text-white' : 'bg-surface-2',
                 isPending ? 'opacity-60' : '',

@@ -216,7 +216,7 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
       <div>
         <label htmlFor="onb-username" className="field-label">{ru.onboarding.username}</label>
         {!editingUsername ? (
-          <div className="flex items-center justify-between gap-2 rounded-xl border border-line bg-surface-2 px-3.5 py-2.5 text-sm">
+          <div className="flex items-center justify-between gap-2 rounded-media border border-line bg-surface-2 px-3.5 py-2.5 text-sm">
             <span className="truncate muted">{ru.onboarding.usernamePreview(username)}</span>
             <button type="button" onClick={() => setEditingUsername(true)}
               className="shrink-0 font-medium text-accent">{ru.onboarding.usernameEdit}</button>

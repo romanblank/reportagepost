@@ -276,7 +276,7 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
         <legend className="field-label">{ru.editProfile.faqTitle}</legend>
         <div className="mt-1 flex flex-col gap-3">
           {faq.map((f, i) => (
-            <div key={i} className="flex flex-col gap-2 rounded-lg border border-line p-3">
+            <div key={i} className="flex flex-col gap-2 rounded-media border border-line p-3">
               <div className="flex items-center gap-2">
                 <input value={f.q} onChange={(e) => setFaq((prev) => prev.map((x, j) => j === i ? { ...x, q: e.target.value } : x))}
                   placeholder={ru.editProfile.faqQuestion} maxLength={200} className="input" />

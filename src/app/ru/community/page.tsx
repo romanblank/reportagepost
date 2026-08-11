@@ -81,7 +81,7 @@ export default async function CommunityPage() {
                   {p.photos[0] && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={thumbVariantUrl(p.photos[0].storageKey)} alt="" loading="lazy"
-                      className="aspect-video w-full rounded-lg object-cover" />
+                      className="aspect-video w-full rounded-media object-cover" />
                   )}
                   <span className="mt-2 block font-medium">{p.user.firstName} {p.user.lastName}</span>
                   <span className="text-xs muted">{cityNameRu(p.city.slug)}</span>
@@ -100,7 +100,7 @@ export default async function CommunityPage() {
               <Link key={p.photoId} href={`/ru/photographer/${p.username}`} className="mb-2 block">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={webVariantUrl(p.storageKey)} alt="" loading="lazy"
-                  width={p.width} height={p.height} className="w-full rounded-lg" />
+                  width={p.width} height={p.height} className="w-full rounded-media" />
               </Link>
             ))}
           </div>

@@ -164,7 +164,7 @@ export default async function Home() {
               { t: ru.landing.perkShelfTitle, d: ru.landing.perkShelfText },
               { t: ru.landing.perkInquiriesTitle, d: ru.landing.perkInquiriesText },
             ].map((p) => (
-              <div key={p.t} className="rounded-lg border border-line bg-surface-2 p-5">
+              <div key={p.t} className="rounded-media border border-line bg-surface-2 p-5">
                 <div className="font-medium">{p.t}</div>
                 <p className="t-small mt-1.5 muted">{p.d}</p>
               </div>

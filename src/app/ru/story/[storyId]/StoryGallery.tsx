@@ -28,7 +28,7 @@ export function StoryGallery({ images }: { images: LightboxImage[] }) {
             aria-label={ru.story.openPhotoAt(i + 1, images.length)}
             onClick={() => setIndex(i)}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIndex(i); } }}
-            className="w-full cursor-zoom-in rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+            className="w-full cursor-zoom-in rounded-media focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
           />
         ))}
       </div>

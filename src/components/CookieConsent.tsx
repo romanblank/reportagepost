@@ -83,7 +83,7 @@ export function CookieConsent() {
   }
 
   return (
-    <div className="fixed inset-x-2 bottom-20 z-40 max-w-md rounded-xl border border-line bg-surface p-4 shadow-md sm:inset-x-auto sm:bottom-4 sm:right-4">
+    <div className="fixed inset-x-2 bottom-20 z-40 max-w-md rounded-media border border-line bg-surface p-4 shadow-md sm:inset-x-auto sm:bottom-4 sm:right-4">
       <p className="text-sm">
         {ru.cookie.text}{' '}
         <Link href="/ru/legal/privacy" className="underline">{ru.cookie.more}</Link>

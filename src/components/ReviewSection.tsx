@@ -147,7 +147,7 @@ export function ReviewSection({
               </div>
               <p className="mt-1 whitespace-pre-wrap">{r.body}</p>
               {r.reply ? (
-                <div className="mt-2 rounded-lg bg-surface-2 p-3">
+                <div className="mt-2 rounded-media bg-surface-2 p-3">
                   <span className="text-xs font-medium muted">{ru.reviews.photographerReply}</span>
                   <p className="mt-0.5 whitespace-pre-wrap">{r.reply}</p>
                 </div>

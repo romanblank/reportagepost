@@ -74,7 +74,7 @@ export function ThreadClient({ peerId, selfId, initial }: { peerId: string; self
             const mine = m.senderId === selfId;
             return (
               <li key={m.id} className={`flex max-w-[85%] flex-col ${mine ? 'self-end items-end' : 'self-start items-start'}`}>
-                <span className={`rounded-xl border px-3 py-2 text-sm ${mine ? 'bg-foreground text-background' : ''}`}>
+                <span className={`rounded-media border px-3 py-2 text-sm ${mine ? 'bg-foreground text-background' : ''}`}>
                   {m.body}
                 </span>
                 <time className="mt-0.5 px-1 text-[11px] text-muted-2" dateTime={m.createdAt}>{msgTime(m.createdAt)}</time>

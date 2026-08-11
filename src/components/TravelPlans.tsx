@@ -63,7 +63,7 @@ export function TravelPlans({
       ) : (
         <ul className="flex flex-col gap-2">
           {plans.map((p) => (
-            <li key={p.id} className="flex items-center justify-between gap-3 rounded-lg bg-surface-2 px-3 py-2 text-sm">
+            <li key={p.id} className="flex items-center justify-between gap-3 rounded-media bg-surface-2 px-3 py-2 text-sm">
               <span>
                 <span className="font-medium">{cityNameRu(p.citySlug)}</span>{' '}
                 <span className="muted">{ru.travel.rangeLabel(p.fromDate, p.toDate)}</span>

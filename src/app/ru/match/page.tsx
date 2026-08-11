@@ -135,7 +135,7 @@ export default async function MatchPage(props: {
                 {matches.map(({ card, reason }) => (
                   <li key={card.username} className="group flex gap-4 rounded-media border border-line p-3 transition hover:border-line-2 sm:p-4">
                     <Link href={`/ru/photographer/${card.username}`}
-                      className="relative block h-28 w-24 shrink-0 overflow-hidden rounded-lg bg-surface-2 sm:h-32 sm:w-28">
+                      className="relative block h-28 w-24 shrink-0 overflow-hidden rounded-media bg-surface-2 sm:h-32 sm:w-28">
                       {card.coverKey ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={thumbVariantUrl(card.coverKey)} alt={`${card.firstName} ${card.lastName}`} loading="lazy"

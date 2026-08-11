@@ -181,7 +181,7 @@ export default async function CatalogPage(props: {
             панель на узком экране). Раньше форма занимала весь первый экран, и
             до карточек нужно было пролистать её целиком — каталог начинался с
             анкеты вместо авторов. <details> работает без JS. */}
-        <details className="rounded-lg border border-line bg-surface lg:hidden" name="catalog-filters">
+        <details className="rounded-media border border-line bg-surface lg:hidden" name="catalog-filters">
           <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium">
             {ru.catalog.filtersToggle}
             {hasActiveFilters && <span className="ml-2 text-accent">·</span>}
@@ -213,7 +213,7 @@ export default async function CatalogPage(props: {
           </div>
         </details>
 
-        <aside className="hidden space-y-5 rounded-lg border border-line bg-surface p-4 lg:sticky lg:top-20 lg:block">
+        <aside className="hidden space-y-5 rounded-media border border-line bg-surface p-4 lg:sticky lg:top-20 lg:block">
           <div>
             <h2 className="t-caption mb-2 muted" style={{ fontFamily: 'var(--font-mono)' }}>{ru.catalog.filterCity}</h2>
             {/* Смена города — список ссылок, а не форма. Прежний select стоял
@@ -386,7 +386,7 @@ export default async function CatalogPage(props: {
                       formatDateRu(plan.toDate),
                     )}
                   </p>
-                  <div className="mt-2 grid grid-cols-3 gap-1 overflow-hidden rounded-lg">
+                  <div className="mt-2 grid grid-cols-3 gap-1 overflow-hidden rounded-media">
                     {plan.profile.photos.slice(0, 3).map((ph) => (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img key={ph.id} src={thumbVariantUrl(ph.storageKey)} alt="" loading="lazy"

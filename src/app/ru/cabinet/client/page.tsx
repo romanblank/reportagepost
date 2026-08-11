@@ -61,7 +61,7 @@ export default async function ClientCabinetPage() {
                 <Link href={`/ru/photographer/${p.username}`} className="block">
                   <span className="font-medium">{p.user.firstName} {p.user.lastName}</span>
                   <span className="block text-xs muted">{cityNameRu(p.city.slug)}</span>
-                  <div className="mt-2 grid grid-cols-3 gap-1 overflow-hidden rounded-lg">
+                  <div className="mt-2 grid grid-cols-3 gap-1 overflow-hidden rounded-media">
                     {p.photos.map((ph) => (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img key={ph.id} src={thumbVariantUrl(ph.storageKey)} alt="" loading="lazy"

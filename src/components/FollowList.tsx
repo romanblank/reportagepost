@@ -30,7 +30,7 @@ export function FollowList({ entries }: { entries: FollowEntry[] }) {
           <li key={`${e.username ?? 'client'}-${i}`}>
             {e.username ? (
               <Link href={`/ru/photographer/${e.username}`}
-                className="flex items-center gap-3 rounded-lg px-2 py-2 transition hover:bg-surface-2">
+                className="flex items-center gap-3 rounded-media px-2 py-2 transition hover:bg-surface-2">
                 {inner}
               </Link>
             ) : (
