@@ -8,6 +8,7 @@ import { BASE_URL } from '@/lib/sitemap';
 import { JsonLd } from '@/components/JsonLd';
 import { articleLd, breadcrumbLd } from '@/lib/structured-data';
 import { ru } from '@/i18n/ru';
+import { ArticleBody } from '@/components/ArticleBody';
 
 export const dynamic = 'force-dynamic';
 
@@ -77,7 +78,7 @@ export default async function ArticlePage({ params }: Params) {
       ) : null}
 
       <p className="mt-6 t-body-lg">{article.lead}</p>
-      <div className="mt-4 whitespace-pre-wrap t-body">{article.body}</div>
+      <ArticleBody body={article.body} />
       </div>
     </main>
   );
