@@ -83,11 +83,11 @@ export default async function JournalPage() {
                   className="max-h-[68vh] w-full object-cover transition duration-700 group-hover:scale-[1.02]" />
                 <span className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
                 <span className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-5 sm:p-7">
-                  <span className="text-lg font-medium text-white drop-shadow-sm sm:text-2xl"
+                  <span className="t-h3 text-white drop-shadow-sm"
                     style={{ fontFamily: 'var(--font-cormorant), Georgia, serif' }}>
                     {featured.firstName} {featured.lastName}
                   </span>
-                  <span className="shrink-0 rounded-full border border-white/30 bg-white/10 px-4 py-1.5 text-sm text-white backdrop-blur-sm transition group-hover:bg-white/20">
+                  <span className="shrink-0 rounded-full border border-white/30 bg-white/10 px-4 py-1.5 t-small text-white backdrop-blur-sm transition group-hover:bg-white/20">
                     {ru.journal.viewAuthor}
                   </span>
                 </span>
@@ -123,8 +123,8 @@ export default async function JournalPage() {
                             className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.05]" />
                         )}
                       </div>
-                      <span className="mt-1.5 block truncate text-sm font-medium">{p.user.firstName} {p.user.lastName}</span>
-                      <span className="block truncate text-xs muted">{cityNameRu(p.city.slug)}</span>
+                      <span className="mt-1.5 block truncate t-small font-medium">{p.user.firstName} {p.user.lastName}</span>
+                      <span className="block truncate t-fine muted">{cityNameRu(p.city.slug)}</span>
                     </Link>
                   </li>
                 ))}

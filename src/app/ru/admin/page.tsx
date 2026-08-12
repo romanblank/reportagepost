@@ -53,7 +53,7 @@ export default async function AdminHomePage() {
       <div className="max-w-5xl w-full">
       <AdminNav counters={counters} />
       <h1 className="t-h2">{ru.adminHome.title}</h1>
-      <p className="mt-1 text-sm muted">{ru.adminHome.lead(data.periodDays)}</p>
+      <p className="mt-1 t-small muted">{ru.adminHome.lead(data.periodDays)}</p>
 
       {/* Деньги — то, ради чего всё строится. Стоит первым и остаётся первым,
           даже когда цифра нулевая: это и есть честный ответ «где мы» */}
@@ -82,7 +82,7 @@ export default async function AdminHomePage() {
           Без неё «заявок 40, съёмок 2» это цифры без вывода. */}
       <section className="mt-8">
         <h2 className="t-title">{ru.adminHome.funnelTitle}</h2>
-        <p className="mt-1 t-caption muted">{ru.adminHome.funnelHint}</p>
+        <p className="mt-1 t-fine muted">{ru.adminHome.funnelHint}</p>
         <ol className="mt-3 grid gap-2">
           {analysis.funnel.map((f) => (
             <li key={f.key}
@@ -123,7 +123,7 @@ export default async function AdminHomePage() {
       <section className="mt-10">
         <h2 className="t-title">{ru.adminHome.queuesTitle}</h2>
         {queueTotal === 0 ? (
-          <p className="mt-2 text-sm muted">{ru.adminHome.queuesEmpty}</p>
+          <p className="mt-2 t-small muted">{ru.adminHome.queuesEmpty}</p>
         ) : (
           <ul className="mt-3 grid gap-2 sm:grid-cols-2">
             {[
@@ -151,7 +151,7 @@ export default async function AdminHomePage() {
       <section className="mt-10">
         <h2 className="t-title">{ru.adminHome.activityTitle}</h2>
         {activity.length === 0 ? (
-          <p className="mt-2 text-sm muted">{ru.adminHome.activityEmpty}</p>
+          <p className="mt-2 t-small muted">{ru.adminHome.activityEmpty}</p>
         ) : (
           <ul className="mt-3 divide-y divide-line rounded-media border border-line bg-surface-2">
             {activity.map((a, i) => (
@@ -182,12 +182,12 @@ export default async function AdminHomePage() {
             </li>
           ))}
         </ul>
-        <p className="mt-2 t-caption muted">{ru.adminHome.jobsHint}</p>
+        <p className="mt-2 t-fine muted">{ru.adminHome.jobsHint}</p>
       </section>
 
       <section className="mt-10 border-t border-line pt-6">
         <h2 className="t-title">{ru.adminHome.toolsTitle}</h2>
-        <div className="mt-3 flex flex-wrap gap-3 text-sm">
+        <div className="mt-3 flex flex-wrap gap-3 t-small">
           <Link href="/ru/admin/users" className="underline">{ru.adminUsers.title}</Link>
           <Link href="/ru/admin/moderation" className="underline">{ru.admin.moderationTitle}</Link>
           <Link href="/ru/admin/reports" className="underline">{ru.adminReports.title}</Link>
@@ -201,7 +201,7 @@ export default async function AdminHomePage() {
           они читаются как шум даже для того, кто их же и завёл */}
       <section className="mt-10 border-t border-line pt-6">
         <h2 className="t-title">{ru.adminHome.glossaryTitle}</h2>
-        <dl className="mt-3 grid gap-2 text-sm">
+        <dl className="mt-3 grid gap-2 t-small">
           {ru.adminHome.glossary.map(([term, meaning]) => (
             <div key={term} className="flex flex-wrap gap-x-2">
               <dt className="font-medium">{term}</dt>

@@ -63,7 +63,7 @@ export default async function ThreadPage({ params, searchParams }: Params) {
       />
       <JsonLd data={crumbs} />
 
-      <Link href={`/ru/forum/${section}`} className="text-sm underline muted">
+      <Link href={`/ru/forum/${section}`} className="t-small underline muted">
         ← {ru.forum.sections[section]}
       </Link>
       <h1 className="t-h2 mt-3 text-balance">{thread.title}</h1>
@@ -89,7 +89,7 @@ export default async function ThreadPage({ params, searchParams }: Params) {
               </span>
               <span className="t-caption muted">{formatDateTimeRu(p.createdAt)}</span>
             </div>
-            <p className="mt-2 whitespace-pre-wrap text-sm">{p.body}</p>
+            <p className="mt-2 whitespace-pre-wrap t-small">{p.body}</p>
             <PostTools
               postId={p.id}
               body={p.body}
@@ -111,11 +111,11 @@ export default async function ThreadPage({ params, searchParams }: Params) {
       />
 
       {thread.closed ? (
-        <p className="mt-6 text-sm muted">{ru.forum.closed}</p>
+        <p className="mt-6 t-small muted">{ru.forum.closed}</p>
       ) : session ? (
         <ForumComposer threadId={thread.id} />
       ) : (
-        <p className="mt-6 text-sm muted">
+        <p className="mt-6 t-small muted">
           <Link href="/ru/login" className="underline">{ru.forum.loginToReply}</Link>
         </p>
       )}

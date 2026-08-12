@@ -138,22 +138,22 @@ export default async function CabinetPage() {
         <>
           <section className="mt-4 flex flex-wrap items-center justify-between gap-3">
             <span
-              className={`rounded-sm px-2.5 py-1 text-xs font-medium ${
+              className={`rounded-sm px-2.5 py-1 t-fine font-medium ${
                 profile.status === 'APPROVED' ? 'bg-success-soft text-success' : 'bg-surface-2 muted'
               }`}
             >
               {STATUS_LABEL[profile.status]}
             </span>
             {profile.status === 'APPROVED' && (
-              <Link href={`/ru/photographer/${profile.username}`} className="text-sm underline muted">
+              <Link href={`/ru/photographer/${profile.username}`} className="t-small underline muted">
                 {ru.cabinet.viewProfile} →
               </Link>
             )}
             {profile.status === 'REJECTED' && profile.rejectReason && (
-              <span className="text-sm text-accent">{profile.rejectReason}</span>
+              <span className="t-small text-accent">{profile.rejectReason}</span>
             )}
             {profile.status === 'NEEDS_REVISION' && profile.revisionNote && (
-              <span className="text-sm text-accent">{profile.revisionNote}</span>
+              <span className="t-small text-accent">{profile.revisionNote}</span>
             )}
             {/* Выход из тупика: исправил замечания → показать снова (аудит P0) */}
             {(profile.status === 'REJECTED' || profile.status === 'NEEDS_REVISION') && (
@@ -188,8 +188,8 @@ export default async function CabinetPage() {
               { n: inquiries?.length ?? 0, label: ru.cabinet.statInquiries },
             ].map((s) => (
               <div key={s.label} className="card px-4 py-3">
-                <div className="text-2xl font-semibold tabular-nums">{s.n}</div>
-                <div className="mt-0.5 text-xs muted">{s.label}</div>
+                <div className="t-metric-sm">{s.n}</div>
+                <div className="mt-0.5 t-fine muted">{s.label}</div>
               </div>
             ))}
           </section>
@@ -214,7 +214,7 @@ export default async function CabinetPage() {
               ].map((t) => (
                 <Link key={t.href} href={t.href} className="card p-4 transition-colors hover:border-accent">
                   <div className="font-medium">{t.title}</div>
-                  <div className="mt-0.5 text-sm muted">{t.desc}</div>
+                  <div className="mt-0.5 t-small muted">{t.desc}</div>
                 </Link>
               ))}
             </div>
@@ -238,16 +238,16 @@ export default async function CabinetPage() {
           ) : (
             <>
               <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-medium">{ru.cabinet.completenessTitle(completeness.pct)}</p>
-                <Link href="/ru/cabinet/profile/edit" className="text-sm underline">{ru.editProfile.title}</Link>
+                <p className="t-small font-medium">{ru.cabinet.completenessTitle(completeness.pct)}</p>
+                <Link href="/ru/cabinet/profile/edit" className="t-small underline">{ru.editProfile.title}</Link>
               </div>
               <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface-2">
                 <div className="h-full rounded-full bg-accent" style={{ width: `${completeness.pct}%` }} />
               </div>
-              <p className="mt-3 text-sm muted">{ru.cabinet.completenessHint}</p>
+              <p className="mt-3 t-small muted">{ru.cabinet.completenessHint}</p>
               <ul className="mt-1 flex flex-wrap gap-2">
                 {completeness.missing.map((k) => (
-                  <li key={k} className="rounded-full bg-surface-2 px-3 py-1 text-xs">{label(ru.cabinet.completenessItem, k)}</li>
+                  <li key={k} className="rounded-full bg-surface-2 px-3 py-1 t-fine">{label(ru.cabinet.completenessItem, k)}</li>
                 ))}
               </ul>
             </>
@@ -259,9 +259,9 @@ export default async function CabinetPage() {
         <section id="inquiries" className="mt-6 scroll-mt-20">
           <h2 className="t-h3">{ru.cabinet.inquiriesTitle}</h2>
           {profile?.status !== 'APPROVED' ? (
-            <p className="mt-2 text-sm muted">{ru.cabinet.inquiriesLocked}</p>
+            <p className="mt-2 t-small muted">{ru.cabinet.inquiriesLocked}</p>
           ) : !inquiries || inquiries.length === 0 ? (
-            <p className="mt-2 text-sm muted">{ru.cabinet.inquiriesEmpty}</p>
+            <p className="mt-2 t-small muted">{ru.cabinet.inquiriesEmpty}</p>
           ) : (
             <ul className="mt-3 flex flex-col gap-3">
               {inquiries.map((i) => (
@@ -302,7 +302,7 @@ export default async function CabinetPage() {
       </div>
 
       <section className="mt-8 border-t border-line pt-5">
-        <p className="text-sm font-medium">{ru.account.dangerTitle}</p>
+        <p className="t-small font-medium">{ru.account.dangerTitle}</p>
         <div className="mt-2"><DeleteAccountButton /></div>
       </section>
       </div>

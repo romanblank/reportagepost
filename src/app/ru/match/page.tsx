@@ -81,25 +81,25 @@ export default async function MatchPage(props: {
             className="input mt-1 w-full resize-y" />
         </label>
         <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <label className="text-sm">
+          <label className="t-small">
             <span className="field-hint mt-0">{ru.match.cityLabel}</span>
             <select name="city" defaultValue={validCity(sp.city) ?? ''} className="input mt-1 w-full">
               <option value="">{ru.match.cityAny}</option>
               {CITIES.map((c) => <option key={c.slug} value={c.slug}>{c.nameRu}</option>)}
             </select>
           </label>
-          <label className="text-sm">
+          <label className="t-small">
             <span className="field-hint mt-0">{ru.match.categoryLabel}</span>
             <select name="category" defaultValue={validCat(sp.category) ?? ''} className="input mt-1 w-full">
               <option value="">{ru.match.categoryAny}</option>
               {CATEGORIES.map((c) => <option key={c.slug} value={c.slug}>{c.nameRu}</option>)}
             </select>
           </label>
-          <label className="text-sm">
+          <label className="t-small">
             <span className="field-hint mt-0">{ru.match.dateLabel}</span>
             <input type="date" name="date" defaultValue={sp.date ?? ''} className="input mt-1 w-full" />
           </label>
-          <label className="text-sm">
+          <label className="t-small">
             <span className="field-hint mt-0">{ru.match.budgetLabel}</span>
             <input type="number" name="budget" min={0} step={1} inputMode="numeric" defaultValue={sp.budget ?? ''}
               placeholder={ru.ui.budgetPlaceholder} className="input mt-1 w-full" />
@@ -107,14 +107,14 @@ export default async function MatchPage(props: {
         </div>
         <div className="mt-4 flex items-center gap-3">
           <button type="submit" className="btn btn-accent px-7 py-2.5">{ru.match.submit}</button>
-          <span className="t-caption muted">{ru.match.aiHint}</span>
+          <span className="t-fine muted">{ru.match.aiHint}</span>
         </div>
       </form>
 
       {submitted && brief && (
         <section className="mt-9">
           {/* Распознанный бриф — прозрачность (что ИИ понял из свободного текста) */}
-          <div className="flex flex-wrap items-center gap-2 text-sm">
+          <div className="flex flex-wrap items-center gap-2 t-small">
             <span className="t-caption muted">{ru.match.understood}:</span>
             <span className="rounded-full bg-surface-2 px-3 py-1 font-medium">{cityNameRu(brief.citySlug)}</span>
             {brief.categorySlug && <span className="rounded-full bg-surface-2 px-3 py-1 font-medium">{categoryNameRu(brief.categorySlug)}</span>}
@@ -130,7 +130,7 @@ export default async function MatchPage(props: {
           ) : (
             <>
               <h2 className="t-h3">{ru.match.resultsTitle(matches.length)}</h2>
-              {relaxed && <p className="mt-1.5 text-sm text-recognition">{ru.match.relaxedNote}</p>}
+              {relaxed && <p className="mt-1.5 t-small text-recognition">{ru.match.relaxedNote}</p>}
               <ul className="mt-5 flex flex-col gap-4">
                 {matches.map(({ card, reason }) => (
                   <li key={card.username} className="group flex gap-4 rounded-media border border-line p-3 transition hover:border-line-2 sm:p-4">
@@ -153,10 +153,10 @@ export default async function MatchPage(props: {
                         </Link>
                         {card.verified && <VerifiedBadge label={ru.profile.verified} size={15} />}
                       </div>
-                      <p className="mt-1 text-sm leading-relaxed muted">{reason}</p>
+                      <p className="mt-1 t-small leading-relaxed muted">{reason}</p>
                       <div className="mt-auto flex items-center gap-3 pt-2">
                         {card.minPackage && (
-                          <span className="tnum text-sm font-semibold">{formatRubMinor(card.minPackage.priceMinor)}</span>
+                          <span className="tnum t-small font-semibold">{formatRubMinor(card.minPackage.priceMinor)}</span>
                         )}
                         <Link href={`/ru/inquiry?photographer=${card.username}`} className="btn btn-outline btn-sm ml-auto">
                           {ru.match.write}

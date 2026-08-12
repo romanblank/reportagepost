@@ -74,7 +74,7 @@ export default async function PhotoFeedPage(props: {
           ))}
         </nav>
       </div>
-      {note && <p className="px-4 pt-3 text-sm muted sm:px-0">{note}</p>}
+      {note && <p className="px-4 pt-3 t-small muted sm:px-0">{note}</p>}
       {photos.length === 0 ? (
         <EmptyState
           icon={<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="8.5" cy="10" r="1.5" /><path d="M21 16l-5-5L5 19" /></svg>}
@@ -93,11 +93,11 @@ export default async function PhotoFeedPage(props: {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={avatarUrl(p.avatarKey)} alt="" width={32} height={32} className="h-8 w-8 shrink-0 rounded-full object-cover" />
                   ) : (
-                    <span className="grid h-8 w-8 place-items-center rounded-full bg-surface-2 text-xs font-semibold">
+                    <span className="grid h-8 w-8 place-items-center rounded-full bg-surface-2 t-fine font-semibold">
                       {p.firstName.slice(0, 1)}{p.lastName.slice(0, 1)}
                     </span>
                   )}
-                  <span className="text-sm font-medium">{p.firstName} {p.lastName}</span>
+                  <span className="t-small font-medium">{p.firstName} {p.lastName}</span>
                 </div>
                 <div className="relative">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -119,7 +119,7 @@ export default async function PhotoFeedPage(props: {
                     className="w-full bg-cover bg-center transition duration-500 ease-out group-hover:scale-[1.03]"
                     style={p.blurData ? { backgroundImage: `url(${p.blurData})` } : undefined} />
                   {/* автор проступает снизу по наведению — не «серая подпись» под каждым */}
-                  <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end bg-gradient-to-t from-black/55 to-transparent px-3 pb-2.5 pt-8 text-xs font-medium text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                  <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end bg-gradient-to-t from-black/55 to-transparent px-3 pb-2.5 pt-8 t-fine font-medium text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                     {p.firstName} {p.lastName}
                   </span>
                 </div>

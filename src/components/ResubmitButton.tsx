@@ -30,11 +30,11 @@ export function ResubmitButton() {
 
   return (
     <div className="mt-2">
-      <button type="button" onClick={submit} disabled={pending} className="btn btn-accent px-4 py-2 text-sm disabled:opacity-50">
+      <button type="button" onClick={submit} disabled={pending} className="btn btn-accent px-4 py-2 t-small disabled:opacity-50">
         {pending ? ru.ui.loading : ru.cabinet.resubmit}
       </button>
-      <p className="mt-1 text-xs muted">{ru.cabinet.resubmitHint}</p>
-      {error && <p role="alert" className="mt-1 text-sm text-danger">{error}</p>}
+      <p className="mt-1 t-fine muted">{ru.cabinet.resubmitHint}</p>
+      {error && <p role="alert" className="mt-1 t-small text-danger">{error}</p>}
     </div>
   );
 }

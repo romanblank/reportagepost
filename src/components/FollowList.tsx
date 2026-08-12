@@ -8,7 +8,7 @@ import type { FollowEntry } from '@/lib/follow-lists';
 // заказчики — именем без ссылки (публичной страницы у них нет).
 export function FollowList({ entries }: { entries: FollowEntry[] }) {
   if (entries.length === 0) {
-    return <p className="mt-6 text-sm muted">{ru.followList.empty}</p>;
+    return <p className="mt-6 t-small muted">{ru.followList.empty}</p>;
   }
   return (
     <ul className="mt-6 flex flex-col gap-1">
@@ -18,7 +18,7 @@ export function FollowList({ entries }: { entries: FollowEntry[] }) {
             <Avatar avatarKey={e.avatarKey} firstName={e.firstName} lastName={e.lastName} size={44} />
             <span className="min-w-0">
               <span className="block truncate font-medium">{e.firstName} {e.lastName}</span>
-              <span className="block truncate text-xs muted">
+              <span className="block truncate t-fine muted">
                 {e.username
                   ? `@${e.username}${e.city ? ` · ${cityNameRu(e.city)}` : ''}`
                   : e.isClient ? ru.followList.clientLabel : ru.followList.authorLabel}

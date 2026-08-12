@@ -45,11 +45,11 @@ export function PendingShoots({ items }: { items: PendingShoot[] }) {
   return (
     <section className="mt-6 card p-4">
       <h2 className="t-h3">{ru.cabinet.shootsPendingTitle}</h2>
-      <p className="mt-1 text-sm muted">{ru.cabinet.shootsPendingLead}</p>
+      <p className="mt-1 t-small muted">{ru.cabinet.shootsPendingLead}</p>
       <ul className="mt-3 flex flex-col gap-3">
         {rest.map((s) => (
           <li key={s.id} className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
-            <span className="text-sm">
+            <span className="t-small">
               {s.clientName}
               <span className="muted"> · {s.eventDate ?? ru.cabinet.shootNoDate}</span>
             </span>

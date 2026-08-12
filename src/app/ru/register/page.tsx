@@ -85,7 +85,7 @@ function RegisterForm() {
             <input id="reg-password" name="password" type="password" required minLength={10} autoComplete="new-password" className="input" />
             <span className="field-hint">{ru.auth.passwordHint}</span>
           </div>
-          <label className="flex items-start gap-2.5 text-sm">
+          <label className="flex items-start gap-2.5 t-small">
             <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)}
               className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent)]" />
             <span className="muted">
@@ -95,11 +95,11 @@ function RegisterForm() {
               <Link href="/ru/legal/offer" target="_blank" className="underline hover:text-ink">{ru.auth.consentOffer}</Link>.
             </span>
           </label>
-          {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+          {error && <p role="alert" className="t-small text-danger">{error}</p>}
           <button type="submit" disabled={pending || !consent} className="btn btn-accent btn-lg mt-1">
             {ru.auth.submitRegister}
           </button>
-          <p className="mt-1 text-sm muted">
+          <p className="mt-1 t-small muted">
             {ru.auth.haveAccount}{' '}
             <Link href="/ru/login" className="underline hover:text-ink">{ru.auth.toLogin}</Link>
           </p>

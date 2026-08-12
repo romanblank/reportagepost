@@ -71,14 +71,14 @@ export function AdminPhotographerManager({ profileId, initialStatus, categories,
   return (
     <div>
       <div className="flex flex-wrap items-center gap-3">
-        <span className={`rounded-sm px-2 py-0.5 text-xs font-medium ${status === 'APPROVED' ? 'bg-success-soft text-success' : 'bg-surface-2 muted'}`}>
+        <span className={`rounded-sm px-2 py-0.5 t-fine font-medium ${status === 'APPROVED' ? 'bg-success-soft text-success' : 'bg-surface-2 muted'}`}>
           {STATUS_LABEL[status]}
         </span>
         <button type="button" onClick={togglePublish} disabled={busy}
           className={`btn btn-sm ${status === 'APPROVED' ? 'btn-outline' : 'btn-accent'}`}>
           {status === 'APPROVED' ? ru.adminPhotographers.unpublish : ru.adminPhotographers.toPublish}
         </button>
-        <span className={`rounded-sm px-2 py-0.5 text-xs font-medium ${tier === 'FREE' ? 'bg-surface-2 muted' : 'bg-recognition-soft text-recognition'}`}>
+        <span className={`rounded-sm px-2 py-0.5 t-fine font-medium ${tier === 'FREE' ? 'bg-surface-2 muted' : 'bg-recognition-soft text-recognition'}`}>
           {tier === 'FREE' ? ru.adminPhotographers.tierFree : ru.pro.tierName[tier]}
         </span>
         {tier !== 'PRIME' && (
@@ -97,7 +97,7 @@ export function AdminPhotographerManager({ profileId, initialStatus, categories,
         <div className="flex items-end justify-between gap-3">
           <h2 className="t-h3">{ru.adminPhotographers.photosTitle} · {photos.length}</h2>
           <div className="flex items-center gap-2">
-            <select value={cat} onChange={(e) => setCat(e.target.value)} className="input h-9 w-auto py-1 text-sm">
+            <select value={cat} onChange={(e) => setCat(e.target.value)} className="input h-9 w-auto py-1 t-small">
               {categories.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
             </select>
             <label className={`btn btn-accent btn-sm ${busy ? 'opacity-50' : 'cursor-pointer'}`}>
@@ -107,7 +107,7 @@ export function AdminPhotographerManager({ profileId, initialStatus, categories,
           </div>
         </div>
         {photos.length === 0 ? (
-          <p className="mt-4 text-sm muted">{ru.adminPhotographers.noPhotos}</p>
+          <p className="mt-4 t-small muted">{ru.adminPhotographers.noPhotos}</p>
         ) : (
           <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4">
             {photos.map((p) => (

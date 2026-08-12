@@ -143,18 +143,18 @@ export function ModerationNotice({ outcome, onEdit }: { outcome: Outcome; onEdit
   return (
     <div className="mt-6 rounded-media border border-warning/40 bg-warning-soft px-4 py-4">
       <p className="t-small">{ru.moderation.rejectedTitle}</p>
-      <p className="mt-1 text-sm">{ru.moderation.reasons[reason]}</p>
+      <p className="mt-1 t-small">{ru.moderation.reasons[reason]}</p>
       {outcome.quote ? (
         <p className="t-caption mt-2 muted">
           {ru.moderation.quoteLabel}: <span className="text-ink">«{outcome.quote}»</span>
         </p>
       ) : null}
-      <p className="mt-2 text-sm">{ru.moderation.fix[reason]}</p>
+      <p className="mt-2 t-small">{ru.moderation.fix[reason]}</p>
 
       {outcome.status === 'IN_REVIEW' ? (
-        <p className="t-caption mt-3 muted">{ru.forum.inReview}</p>
+        <p className="t-fine mt-3 muted">{ru.forum.inReview}</p>
       ) : (
-        <p className="t-caption mt-3 muted">{ru.forum.resubmitHint}</p>
+        <p className="t-fine mt-3 muted">{ru.forum.resubmitHint}</p>
       )}
 
       <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -169,7 +169,7 @@ export function ModerationNotice({ outcome, onEdit }: { outcome: Outcome; onEdit
         </span>
       </div>
       {typeof outcome.violations === 'number' && outcome.violations >= 3 ? (
-        <p className="t-caption mt-3 text-warning">{ru.forum.restricted}</p>
+        <p className="t-fine mt-3 text-warning">{ru.forum.restricted}</p>
       ) : null}
     </div>
   );

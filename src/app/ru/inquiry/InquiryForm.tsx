@@ -62,7 +62,7 @@ export function InquiryForm({ cities, categories, prefill, contact }: { cities: 
 
   if (sent) {
     return (
-      <p role="status" className="card border-accent/40 bg-accent/5 p-4 text-sm">
+      <p role="status" className="card border-accent/40 bg-accent/5 p-4 t-small">
         {ru.inquiry.sent} {sent.notified > 0 && ru.inquiry.sentNotified(sent.notified)}
       </p>
     );
@@ -71,27 +71,27 @@ export function InquiryForm({ cities, categories, prefill, contact }: { cities: 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-3">
       {prefill?.photographerName && (
-        <p className="card border-recognition/40 bg-recognition-soft/30 p-3 text-sm">
+        <p className="card border-recognition/40 bg-recognition-soft/30 p-3 t-small">
           {ru.inquiry.forPhotographer(prefill.photographerName)}
         </p>
       )}
-      <label className="text-sm">
+      <label className="t-small">
         {ru.inquiry.contactName}
         <input name="contactName" required minLength={2} defaultValue={contact?.name ?? ''} className="input"  autoComplete="name"/>
       </label>
       <div className="grid gap-3 sm:grid-cols-2">
-        <label className="text-sm">
+        <label className="t-small">
           {ru.inquiry.contactPhone}
           <input name="contactPhone" type="tel" inputMode="tel" autoComplete="tel" placeholder="+7 900 000-00-00" className="input" />
         </label>
-        <label className="text-sm">
+        <label className="t-small">
           {ru.inquiry.contactEmail}
           <input name="contactEmail" type="email" defaultValue={contact?.email ?? ''} className="input"  autoComplete="email"/>
         </label>
       </div>
-      <p className="text-xs muted">{ru.inquiry.contactHint}</p>
+      <p className="t-fine muted">{ru.inquiry.contactHint}</p>
       <div className="grid gap-3 sm:grid-cols-2">
-        <label className="text-sm">
+        <label className="t-small">
           {ru.inquiry.city}
           <select name="citySlug" required className="input" defaultValue={prefill?.citySlug ?? ''}>
             {cities.map((c) => (
@@ -99,7 +99,7 @@ export function InquiryForm({ cities, categories, prefill, contact }: { cities: 
             ))}
           </select>
         </label>
-        <label className="text-sm">
+        <label className="t-small">
           {ru.inquiry.category}
           <select name="categorySlug" className="input" defaultValue={prefill?.categorySlug ?? ''}>
             <option value="">{ru.inquiry.categoryAny}</option>
@@ -110,20 +110,20 @@ export function InquiryForm({ cities, categories, prefill, contact }: { cities: 
         </label>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
-        <label className="text-sm">
+        <label className="t-small">
           {ru.inquiry.eventDate}
           <input name="eventDate" type="date" min={minDate || undefined} className="input" />
         </label>
-        <label className="text-sm">
+        <label className="t-small">
           {ru.inquiry.budget}
           <input name="budget" type="number" min={0} step={1} inputMode="numeric" className="input" />
         </label>
       </div>
-      <label className="text-sm">
+      <label className="t-small">
         {ru.inquiry.description}
         <textarea name="description" required minLength={20} rows={4} className="input" />
       </label>
-      <label className="flex cursor-pointer items-start gap-2.5 text-sm">
+      <label className="flex cursor-pointer items-start gap-2.5 t-small">
         <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)}
           className="mt-0.5 size-4 shrink-0 accent-[var(--accent)]" />
         <span className="muted">
@@ -133,7 +133,7 @@ export function InquiryForm({ cities, categories, prefill, contact }: { cities: 
           </Link>
         </span>
       </label>
-      {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+      {error && <p role="alert" className="t-small text-danger">{error}</p>}
       <button type="submit" disabled={pending} className="btn btn-accent">
         {ru.inquiry.submit}
       </button>

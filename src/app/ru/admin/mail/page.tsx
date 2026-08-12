@@ -39,9 +39,9 @@ export default async function AdminMailPage() {
         title={ru.adminMail.title}
         lead={ru.adminNav.mailLead}
       />
-      <p className="mt-1 text-sm muted">{ru.adminMail.lead}</p>
+      <p className="mt-1 t-small muted">{ru.adminMail.lead}</p>
 
-      <dl className="mt-6 grid gap-2 rounded-media border border-line bg-surface-2 p-4 text-sm">
+      <dl className="mt-6 grid gap-2 rounded-media border border-line bg-surface-2 p-4 t-small">
         <div className="flex justify-between gap-3">
           <dt className="muted">{ru.adminMail.stateLabel}</dt>
           <dd className={configured ? 'text-verified' : 'text-danger'}>
@@ -70,7 +70,7 @@ export default async function AdminMailPage() {
 
       <section className="mt-8 border-t border-line pt-6">
         <h2 className="t-title">{ru.adminMail.hintsTitle}</h2>
-        <ul className="mt-3 grid gap-2 text-sm muted">
+        <ul className="mt-3 grid gap-2 t-small muted">
           {ru.adminMail.hints.map((h) => <li key={h}>— {h}</li>)}
         </ul>
       </section>

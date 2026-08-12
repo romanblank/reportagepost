@@ -23,7 +23,7 @@ export function CitySelect({ countrySlug, activeCity }: { countrySlug: string; a
       value={activeCity}
       aria-label={ru.catalog.filterCity}
       onChange={(e) => router.push(`/ru/${countrySlug}/${e.target.value}`)}
-      className="input w-full text-sm"
+      className="input w-full t-small"
     >
       {RU_CITIES.map((c) => (
         <option key={c.slug} value={c.slug}>{c.nameRu}</option>

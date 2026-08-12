@@ -57,7 +57,7 @@ const STATUS_CLASS: Record<StatusKind, string> = {
 
 export function StatusBadge({ kind, label }: { kind: StatusKind; label: string }) {
   return (
-    <span className={`inline-flex items-center rounded-sm px-2 py-0.5 text-xs font-medium ${STATUS_CLASS[kind]}`}>
+    <span className={`inline-flex items-center rounded-sm px-2 py-0.5 t-fine font-medium ${STATUS_CLASS[kind]}`}>
       {label}
     </span>
   );

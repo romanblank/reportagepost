@@ -30,7 +30,7 @@ export default async function OnboardingPage() {
   return (
     <main className="mx-auto w-full max-w-xl flex-1 px-4 py-6 sm:py-10">
       <h1 className="t-h1">{ru.onboarding.title}</h1>
-      <p className="mt-2 text-sm muted">{ru.onboarding.lead}</p>
+      <p className="mt-2 t-small muted">{ru.onboarding.lead}</p>
       <div className="card mt-6 p-6 sm:p-8">
         <OnboardingForm
           cities={cities}

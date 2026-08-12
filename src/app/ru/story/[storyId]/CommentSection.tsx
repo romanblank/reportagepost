@@ -62,18 +62,18 @@ export function CommentSection({ storyId, initial, me }: { storyId: string; init
       <h2 className="t-title">{ru.comments.count(items.length)}</h2>
 
       {items.length === 0 ? (
-        <p className="mt-3 text-sm muted">{ru.comments.empty}</p>
+        <p className="mt-3 t-small muted">{ru.comments.empty}</p>
       ) : (
         <ul className="mt-4 flex flex-col gap-4">
           {items.map((c) => {
             const canDelete = me.isAdmin || (me.userId && c.authorUserId === me.userId);
             return (
-              <li key={c.id} className="text-sm">
+              <li key={c.id} className="t-small">
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="font-medium">{c.authorName || '—'}</span>
                   {canDelete && (
                     <button type="button" onClick={() => remove(c.id)}
-                      className="text-xs text-muted transition hover:text-accent">
+                      className="t-fine text-muted transition hover:text-accent">
                       {ru.comments.delete}
                     </button>
                   )}
@@ -89,13 +89,13 @@ export function CommentSection({ storyId, initial, me }: { storyId: string; init
         <form onSubmit={submit} className="mt-5">
           <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={3}
             placeholder={ru.comments.placeholder} className="input" maxLength={1000} />
-          {error && <p role="alert" className="mt-1 text-sm text-danger">{error}</p>}
+          {error && <p role="alert" className="mt-1 t-small text-danger">{error}</p>}
           <button type="submit" disabled={pending || !body.trim()} className="btn btn-accent mt-2 px-4 py-2">
             {pending ? ru.comments.sending : ru.comments.submit}
           </button>
         </form>
       ) : (
-        <p className="mt-5 text-sm muted">
+        <p className="mt-5 t-small muted">
           <Link href="/ru/login" className="underline">{ru.comments.loginToComment}</Link>
         </p>
       )}

@@ -37,11 +37,11 @@ export default async function SectionPage({ params, searchParams }: Params) {
   return (
     <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:py-12">
       <div className="max-w-4xl w-full">
-      <Link href="/ru/forum" className="text-sm underline muted">← {ru.forum.title}</Link>
+      <Link href="/ru/forum" className="t-small underline muted">← {ru.forum.title}</Link>
       <div className="mt-3 flex flex-wrap items-baseline justify-between gap-3">
         <div>
           <h1 className="t-h2">{ru.forum.sections[section]}</h1>
-          <p className="mt-1 text-sm muted">{ru.forum.sectionLead[section]}</p>
+          <p className="mt-1 t-small muted">{ru.forum.sectionLead[section]}</p>
         </div>
         {session ? (
           <Link href={`/ru/forum/new?section=${section}`} className="btn btn-outline btn-sm">
@@ -51,7 +51,7 @@ export default async function SectionPage({ params, searchParams }: Params) {
       </div>
 
       {threads.length === 0 ? (
-        <p className="mt-8 text-sm muted">{ru.forum.empty}</p>
+        <p className="mt-8 t-small muted">{ru.forum.empty}</p>
       ) : (
         <ul className="mt-6 grid gap-2">
           {threads.map((t) => (

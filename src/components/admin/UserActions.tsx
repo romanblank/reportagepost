@@ -19,7 +19,7 @@ export function UserActions({ userId, blocked, isAdmin }: { userId: string; bloc
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (isAdmin) return <p className="text-sm muted">{ru.adminUsers.adminImmune}</p>;
+  if (isAdmin) return <p className="t-small muted">{ru.adminUsers.adminImmune}</p>;
 
   async function run(action: 'block' | 'unblock') {
     setBusy(true);
@@ -43,7 +43,7 @@ export function UserActions({ userId, blocked, isAdmin }: { userId: string; bloc
       <h2 className="t-title">{ru.adminUsers.actionsTitle}</h2>
       {blocked ? (
         <div className="mt-3">
-          <p className="text-sm muted">{ru.adminUsers.blockedHint}</p>
+          <p className="t-small muted">{ru.adminUsers.blockedHint}</p>
           <button type="button" onClick={() => run('unblock')} disabled={busy}
             className="btn btn-outline mt-3">{ru.adminUsers.unblockCta}</button>
         </div>

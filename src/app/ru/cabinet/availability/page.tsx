@@ -51,16 +51,16 @@ export default async function AvailabilityPage() {
       <h1 className="mt-3 t-h2">{ru.availability.title}</h1>
 
       {!approved ? (
-        <p className="mt-4 text-sm muted">{ru.availability.locked}</p>
+        <p className="mt-4 t-small muted">{ru.availability.locked}</p>
       ) : (
         <>
-          <p className="mt-2 text-sm muted">{ru.availability.lead}</p>
+          <p className="mt-2 t-small muted">{ru.availability.lead}</p>
           <div className="mt-6 card p-4">
             <AvailabilityCalendar initialBusy={busy.map((b) => b.date.toISOString().slice(0, 10))} />
           </div>
 
           <h2 className="mt-8 t-title">{ru.travel.title}</h2>
-          <p className="mt-1 text-sm muted">{ru.travel.lead}</p>
+          <p className="mt-1 t-small muted">{ru.travel.lead}</p>
           <div className="mt-4 card p-4">
             <TravelPlans
               initialPlans={plans.map((p) => ({

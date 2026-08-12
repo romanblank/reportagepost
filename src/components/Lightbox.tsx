@@ -165,7 +165,7 @@ export function LightboxModal({
         <Icon name="x" size={18} />
       </button>
       {images.length > 1 && (
-        <span className="tnum absolute bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-white/10 px-3 py-1 text-sm text-white/80 backdrop-blur-sm">
+        <span className="tnum absolute bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-white/10 px-3 py-1 t-small text-white/80 backdrop-blur-sm">
           {index + 1} / {images.length}
         </span>
       )}

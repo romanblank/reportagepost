@@ -67,14 +67,14 @@ export function ThreadClient({ peerId, selfId, initial }: { peerId: string; self
   return (
     <div className="mt-4 flex flex-1 flex-col">
       {messages.length === 0 ? (
-        <p className="py-10 text-center text-sm muted">{ru.messages.emptyThread}</p>
+        <p className="py-10 text-center t-small muted">{ru.messages.emptyThread}</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {messages.map((m) => {
             const mine = m.senderId === selfId;
             return (
               <li key={m.id} className={`flex max-w-[85%] flex-col ${mine ? 'self-end items-end' : 'self-start items-start'}`}>
-                <span className={`rounded-media border px-3 py-2 text-sm ${mine ? 'bg-foreground text-background' : ''}`}>
+                <span className={`rounded-media border px-3 py-2 t-small ${mine ? 'bg-foreground text-background' : ''}`}>
                   {m.body}
                 </span>
                 <time className="mt-0.5 px-1 text-[11px] text-muted-2" dateTime={m.createdAt}>{msgTime(m.createdAt)}</time>
@@ -84,7 +84,7 @@ export function ThreadClient({ peerId, selfId, initial }: { peerId: string; self
         </ul>
       )}
       <div ref={bottomRef} />
-      {error && <p role="alert" className="mt-2 text-sm text-danger">{error}</p>}
+      {error && <p role="alert" className="mt-2 t-small text-danger">{error}</p>}
       <form onSubmit={onSubmit} className="mt-4 flex gap-2">
         <input name="body" required maxLength={4000} placeholder={ru.messages.placeholder}
           className="input flex-1" autoComplete="off" />

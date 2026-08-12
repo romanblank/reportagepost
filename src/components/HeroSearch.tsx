@@ -49,7 +49,7 @@ export function HeroSearch() {
         </button>
       </form>
 
-      <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
+      <div className="mt-4 flex flex-wrap items-center gap-2 t-small">
         <span className="muted">{ru.landing.briefOrGenre}</span>
         {CATEGORIES.map((c) => (
           <Link key={c.slug} href={`/ru/russia/moscow/${c.slug}`} className="chip">

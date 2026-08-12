@@ -82,7 +82,7 @@ export default async function SalesKitPage() {
       {/* Реквизиты нужны только для счёта и акта — и только самому автору */}
       <section className="mt-8 border-t border-line pt-6">
         <h2 className="t-title">{ru.salesKit.requisitesTitle}</h2>
-        <p className="mt-1 text-sm muted">
+        <p className="mt-1 t-small muted">
           {hasRequisites ? ru.salesKit.requisitesFilled : ru.salesKit.requisitesEmpty}
         </p>
         <Link href="/ru/cabinet/profile/edit#requisites" className="btn btn-outline btn-sm mt-3">
@@ -90,7 +90,7 @@ export default async function SalesKitPage() {
         </Link>
       </section>
 
-      <p className="mt-8 t-caption muted">{ru.salesKit.disclaimer}</p>
+      <p className="mt-8 t-fine muted">{ru.salesKit.disclaimer}</p>
       </div>
     </main>
   );

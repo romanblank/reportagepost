@@ -15,7 +15,7 @@ import { CATALOG_ROOT } from '@/lib/nav';
  * разделов (Платформа / Фотографам / Компания), отдельная нижняя строка с
  * копирайтом и служебными ссылками, и дисклеймер по РФ-требованию.
  */
-const linkCls = 'block py-1.5 text-sm text-ink-2 transition-colors hover:text-ink';
+const linkCls = 'block py-1.5 t-small text-ink-2 transition-colors hover:text-ink';
 
 export function SiteFooter() {
   const columns = [
@@ -56,7 +56,7 @@ export function SiteFooter() {
               <span className="inline-block size-2 rounded-full bg-accent" />
               {ru.nav.brand}
             </span>
-            <p className="mt-4 max-w-[34ch] text-sm leading-relaxed muted">{ru.footer.about}</p>
+            <p className="mt-4 max-w-[34ch] t-small leading-relaxed muted">{ru.footer.about}</p>
           </div>
 
           {columns.map((col) => (

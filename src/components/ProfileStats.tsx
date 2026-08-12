@@ -29,7 +29,7 @@ export function ProfileStats({ items }: { items: StatItem[] }) {
       style={{ ['--stat-cols' as string]: String(cols) }}>
       {items.map((s) => (
         <div key={s.label} className="bg-paper px-5 py-5">
-          <p className={`tnum text-3xl leading-none ${s.accent ? 'text-recognition' : ''}`}
+          <p className={`tnum t-metric ${s.accent ? 'text-recognition' : ''}`}
             style={{ fontFamily: 'var(--font-display)' }}>
             {s.value}
             {s.unit && <small className="ml-1 text-[15px] muted">{s.unit}</small>}
@@ -65,7 +65,7 @@ export function ProfileGear({ groups }: { groups: GearGroup[] }) {
           <ul className="mt-3 flex flex-col gap-2">
             {g.items.map((it, i) => (
               <li key={`${it.name}-${i}`}
-                className={`flex justify-between gap-3 text-sm ${i < g.items.length - 1 ? 'border-b border-line pb-2' : ''}`}>
+                className={`flex justify-between gap-3 t-small ${i < g.items.length - 1 ? 'border-b border-line pb-2' : ''}`}>
                 <span>{it.name}</span>
                 {it.note && <span className="shrink-0 text-[12.5px] muted">{it.note}</span>}
               </li>
@@ -99,7 +99,7 @@ export function ConfirmedShoots({ count, returning, verifiedShare }: {
     <div className="flex flex-wrap gap-3">
       {cards.map((c) => (
         <div key={c.l} className="card min-w-[200px] flex-1 p-5">
-          <p className="text-2xl" style={{ fontFamily: 'var(--font-display)' }}>{c.n}</p>
+          <p className="t-metric-sm" style={{ fontFamily: 'var(--font-display)' }}>{c.n}</p>
           <p className="mt-1.5 text-[13px] muted">{c.l}</p>
         </div>
       ))}

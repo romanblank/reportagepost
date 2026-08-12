@@ -27,7 +27,7 @@ export function DeleteAccountButton() {
   if (!open) {
     return (
       <button type="button" onClick={() => setOpen(true)}
-        className="text-sm text-muted underline transition hover:text-accent">
+        className="t-small text-muted underline transition hover:text-accent">
         {ru.account.deleteBtn}
       </button>
     );
@@ -35,15 +35,15 @@ export function DeleteAccountButton() {
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-sm muted">{ru.account.dangerHint}</p>
+      <p className="t-small muted">{ru.account.dangerHint}</p>
       <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
         placeholder={ru.account.passwordLabel} autoComplete="current-password" className="input max-w-xs" />
-      {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+      {error && <p role="alert" className="t-small text-danger">{error}</p>}
       <div className="flex gap-2">
         <button type="button" onClick={confirm} disabled={pending || !password}
-          className="btn btn-accent px-4 py-2 text-sm">{pending ? ru.account.deleting : ru.account.confirm}</button>
+          className="btn btn-accent px-4 py-2 t-small">{pending ? ru.account.deleting : ru.account.confirm}</button>
         <button type="button" onClick={() => { setOpen(false); setPassword(''); setError(null); }}
-          className="btn btn-ghost px-4 py-2 text-sm">{ru.account.cancel}</button>
+          className="btn btn-ghost px-4 py-2 t-small">{ru.account.cancel}</button>
       </div>
     </div>
   );

@@ -35,35 +35,35 @@ export function ReportCard({
   return (
     <div className="card p-4">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <span className="rounded-sm bg-surface-2 px-2 py-0.5 text-xs font-medium">
+        <span className="rounded-sm bg-surface-2 px-2 py-0.5 t-fine font-medium">
           {ru.adminReports.reasonLabel[reason] ?? reason}
         </span>
-        <span className="text-sm">{ru.adminReports.targetLabel[targetType] ?? targetType}</span>
-        <code className="text-xs muted">{targetId}</code>
-        <span className="ml-auto text-xs muted">{createdAt}</span>
+        <span className="t-small">{ru.adminReports.targetLabel[targetType] ?? targetType}</span>
+        <code className="t-fine muted">{targetId}</code>
+        <span className="ml-auto t-fine muted">{createdAt}</span>
       </div>
 
-      <p className="mt-2 text-sm muted">
+      <p className="mt-2 t-small muted">
         {ru.adminReports.from} {reporter}
         {contactEmail && ` · ${contactEmail}`}
       </p>
-      {comment && <p className="mt-2 whitespace-pre-wrap text-sm">{comment}</p>}
+      {comment && <p className="mt-2 whitespace-pre-wrap t-small">{comment}</p>}
 
       <input
         value={note}
         onChange={(e) => setNote(e.target.value)}
         placeholder={ru.adminReports.resolutionPlaceholder}
-        className="input mt-3 text-sm"
+        className="input mt-3 t-small"
         maxLength={500}
       />
-      {error && <p role="alert" className="mt-1 text-sm text-danger">{error}</p>}
+      {error && <p role="alert" className="mt-1 t-small text-danger">{error}</p>}
       <div className="mt-2 flex flex-wrap gap-2">
         <button type="button" disabled={busy} onClick={() => resolve('RESOLVED')}
-          className="btn btn-accent px-3 py-1.5 text-sm">
+          className="btn btn-accent px-3 py-1.5 t-small">
           {ru.adminReports.resolve}
         </button>
         <button type="button" disabled={busy} onClick={() => resolve('DISMISSED')}
-          className="btn btn-outline px-3 py-1.5 text-sm">
+          className="btn btn-outline px-3 py-1.5 t-small">
           {ru.adminReports.dismiss}
         </button>
       </div>

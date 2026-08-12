@@ -29,7 +29,7 @@ export default async function VerifyEmailPage(props: {
           : state === 'already' ? ru.auth.emailVerify.alreadyTitle
           : ru.auth.emailVerify.failTitle}
       </h1>
-      <p className="mt-3 text-sm muted">
+      <p className="mt-3 t-small muted">
         {state === 'confirmed' ? ru.auth.emailVerify.okText
           : state === 'already' ? ru.auth.emailVerify.alreadyText
           : ru.auth.emailVerify.failText}

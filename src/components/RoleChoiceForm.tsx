@@ -46,12 +46,12 @@ export function RoleChoiceForm() {
               </span>
               <span className="font-medium">{c.title}</span>
             </div>
-            <p className="mt-1.5 pl-[26px] text-sm muted">{c.desc}</p>
+            <p className="mt-1.5 pl-[26px] t-small muted">{c.desc}</p>
           </button>
         ))}
       </div>
 
-      <label className="flex items-start gap-2.5 text-sm">
+      <label className="flex items-start gap-2.5 t-small">
         <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)}
           className="mt-0.5 h-4 w-4 accent-[var(--accent)]" />
         <span>
@@ -62,7 +62,7 @@ export function RoleChoiceForm() {
         </span>
       </label>
 
-      {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+      {error && <p role="alert" className="t-small text-danger">{error}</p>}
 
       <button type="button" onClick={submit} disabled={busy} className="btn btn-accent w-full py-2.5">
         {busy ? ru.ui.loading : ru.auth.roleSubmit}

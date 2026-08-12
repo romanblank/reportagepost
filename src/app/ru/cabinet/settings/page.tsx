@@ -46,7 +46,7 @@ export default async function SettingsPage() {
         title={ru.cabinet.settingsLink}
       />
       <h1 className="t-h1 mt-3">{ru.settings.title}</h1>
-      <p className="mt-1 text-sm muted">{ru.settings.securityLead}</p>
+      <p className="mt-1 t-small muted">{ru.settings.securityLead}</p>
 
       <section className="mt-8">
         <p className="t-caption text-recognition">{ru.settings.sectionAccount}</p>

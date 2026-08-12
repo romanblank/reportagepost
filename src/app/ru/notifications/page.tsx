@@ -75,18 +75,18 @@ export default async function NotificationsPage() {
       <div className="max-w-2xl w-full">
       <h1 className="t-h2">{ru.notifications.title}</h1>
       {items.length === 0 ? (
-        <p className="mt-4 text-sm muted">{ru.notifications.empty}</p>
+        <p className="mt-4 t-small muted">{ru.notifications.empty}</p>
       ) : (
         <ul className="mt-5 flex flex-col gap-2">
           {items.map((n) => (
             <li key={n.id}>
               <Link href={hrefFor(n.type, n.payload)}
                 className={`flex items-start justify-between gap-3 card p-4 ${n.readAt ? '' : 'border-accent/40'}`}>
-                <span className="text-sm">
+                <span className="t-small">
                   {!n.readAt && <span className="mr-2 inline-block h-2 w-2 rounded-full bg-accent align-middle" />}
                   {ru.notifications.templates[n.type] ?? n.type}
                 </span>
-                <span className="shrink-0 text-xs muted">{formatDateRu(n.createdAt)}</span>
+                <span className="shrink-0 t-fine muted">{formatDateRu(n.createdAt)}</span>
               </Link>
             </li>
           ))}

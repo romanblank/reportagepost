@@ -45,7 +45,7 @@ export function PageHeader({
       <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <h1 className="t-h2 text-balance">{title}</h1>
-          {lead ? <p className="mt-1 max-w-2xl text-sm muted">{lead}</p> : null}
+          {lead ? <p className="mt-1 max-w-2xl t-small muted">{lead}</p> : null}
         </div>
         {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
       </div>

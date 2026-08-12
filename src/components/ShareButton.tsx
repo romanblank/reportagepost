@@ -26,7 +26,7 @@ export function ShareButton({ path, title }: { path: string; title: string }) {
   }
 
   return (
-    <button type="button" onClick={share} className="rounded-full border border-line px-3 py-1.5 text-sm transition hover:bg-surface-2">
+    <button type="button" onClick={share} className="rounded-full border border-line px-3 py-1.5 t-small transition hover:bg-surface-2">
       {ru.profile.share}
     </button>
   );

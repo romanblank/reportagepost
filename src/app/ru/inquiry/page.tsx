@@ -44,7 +44,7 @@ export default async function InquiryPage(props: { searchParams: Promise<{ photo
   return (
     <main className="mx-auto w-full max-w-xl flex-1 px-4 py-6 sm:py-10">
       <h1 className="t-h1">{ru.inquiry.title}</h1>
-      <p className="mt-1 text-sm muted">{ru.inquiry.lead}</p>
+      <p className="mt-1 t-small muted">{ru.inquiry.lead}</p>
       <div className="mt-6">
         <InquiryForm
           cities={cities}

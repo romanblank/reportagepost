@@ -42,7 +42,7 @@ export default async function FollowersPage(props: { params: Promise<{ username:
   const entries = await followersOf(profile.userId);
   return (
     <main className="mx-auto w-full max-w-xl flex-1 px-4 py-6 sm:py-10">
-      <Link href={`/ru/photographer/${profile.username}`} className="text-sm underline muted">
+      <Link href={`/ru/photographer/${profile.username}`} className="t-small underline muted">
         ← {profile.user.firstName} {profile.user.lastName}
       </Link>
       <h1 className="t-h1 mt-3">{ru.followList.followersTitle}</h1>

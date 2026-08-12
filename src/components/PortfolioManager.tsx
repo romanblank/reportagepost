@@ -82,7 +82,7 @@ export function PortfolioManager({
             <div className="absolute left-1.5 top-1.5 flex gap-1">
               <StatusBadge kind={STATUS_KIND[p.status]} label={STATUS_LABEL[p.status]} />
               {coverId === p.id && (
-                <span className="tnum inline-flex items-center rounded-sm bg-ink px-2 py-0.5 text-xs font-medium text-paper">
+                <span className="tnum inline-flex items-center rounded-sm bg-ink px-2 py-0.5 t-fine font-medium text-paper">
                   {ru.portfolio.cover}
                 </span>
               )}

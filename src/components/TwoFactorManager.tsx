@@ -57,8 +57,8 @@ export function TwoFactorManager({ initial }: { initial: Status }) {
     return (
       <div>
         <h3 className="t-h3">{ru.auth.twoFa.backupTitle}</h3>
-        <p className="mt-2 text-sm muted">{ru.auth.twoFa.backupLead}</p>
-        <ul className="tnum mt-4 grid grid-cols-2 gap-2 font-mono text-sm">
+        <p className="mt-2 t-small muted">{ru.auth.twoFa.backupLead}</p>
+        <ul className="tnum mt-4 grid grid-cols-2 gap-2 font-mono t-small">
           {codes.map((c) => <li key={c} className="rounded-md bg-surface-2 px-3 py-2 text-center">{c}</li>)}
         </ul>
         <button type="button" onClick={() => setStep('idle')} className="btn btn-accent mt-5">{ru.auth.twoFa.backupDone}</button>
@@ -70,16 +70,16 @@ export function TwoFactorManager({ initial }: { initial: Status }) {
     return (
       <div>
         <h3 className="t-h3">{ru.auth.twoFa.title}</h3>
-        <p className="mt-2 text-sm muted">{ru.auth.twoFa.step1}</p>
+        <p className="mt-2 t-small muted">{ru.auth.twoFa.step1}</p>
         <div className="mt-3">
           <span className="field-hint">{ru.auth.twoFa.manualKey}</span>
-          <code className="tnum mt-1 block rounded-md bg-surface-2 px-3 py-2 font-mono text-sm tracking-wider">{prettySecret}</code>
+          <code className="tnum mt-1 block rounded-md bg-surface-2 px-3 py-2 font-mono t-small tracking-wider">{prettySecret}</code>
         </div>
         <form onSubmit={confirm} className="mt-5 flex flex-col gap-3">
-          <p className="text-sm muted">{ru.auth.twoFa.step2}</p>
+          <p className="t-small muted">{ru.auth.twoFa.step2}</p>
           <input name="code" inputMode="numeric" autoComplete="one-time-code" placeholder={ru.auth.twoFa.codePlaceholder}
-            className="input tnum w-40 text-center text-lg tracking-[0.3em]" />
-          {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+            className="input input-code w-40" />
+          {error && <p role="alert" className="t-small text-danger">{error}</p>}
           <div className="flex gap-2">
             <button type="submit" disabled={busy} className="btn btn-accent">{ru.auth.twoFa.confirm}</button>
             <button type="button" onClick={() => setStep('idle')} className="btn btn-ghost">{ru.ui.cancel}</button>
@@ -93,10 +93,10 @@ export function TwoFactorManager({ initial }: { initial: Status }) {
     return (
       <form onSubmit={disable} className="flex flex-col gap-3">
         <h3 className="t-h3">{ru.auth.twoFa.title}</h3>
-        <p className="text-sm muted">{ru.auth.twoFa.disableLead}</p>
+        <p className="t-small muted">{ru.auth.twoFa.disableLead}</p>
         <input name="code" inputMode="numeric" autoComplete="one-time-code" placeholder={ru.auth.twoFa.enterCode}
           className="input w-48 text-center tracking-wider" />
-        {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+        {error && <p role="alert" className="t-small text-danger">{error}</p>}
         <div className="flex gap-2">
           <button type="submit" disabled={busy} className="btn btn-danger">{ru.auth.twoFa.disable}</button>
           <button type="button" onClick={() => setStep('idle')} className="btn btn-ghost">{ru.ui.cancel}</button>
@@ -110,14 +110,14 @@ export function TwoFactorManager({ initial }: { initial: Status }) {
     <div>
       <div className="flex items-center gap-3">
         <h3 className="t-h3">{ru.auth.twoFa.title}</h3>
-        <span className={`rounded-sm px-2 py-0.5 text-xs font-medium ${status.enabled ? 'bg-success-soft text-success' : 'bg-surface-2 muted'}`}>
+        <span className={`rounded-sm px-2 py-0.5 t-fine font-medium ${status.enabled ? 'bg-success-soft text-success' : 'bg-surface-2 muted'}`}>
           {status.enabled ? ru.auth.twoFa.statusOn : ru.auth.twoFa.statusOff}
         </span>
       </div>
-      <p className="mt-2 text-sm muted">{ru.auth.twoFa.leadOff}</p>
+      <p className="mt-2 t-small muted">{ru.auth.twoFa.leadOff}</p>
       {status.enabled ? (
         <div className="mt-4 flex items-center gap-4">
-          <span className="text-sm muted">{ru.auth.twoFa.recoveryLeft(status.recoveryLeft)}</span>
+          <span className="t-small muted">{ru.auth.twoFa.recoveryLeft(status.recoveryLeft)}</span>
           <button type="button" onClick={() => { setError(null); setStep('disable'); }} className="btn btn-danger btn-sm">{ru.auth.twoFa.disable}</button>
         </div>
       ) : (

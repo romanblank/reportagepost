@@ -52,7 +52,7 @@ export function MarkShootButton({ clientUserId }: { clientUserId: string }) {
         <span className="sr-only">{ru.profile.shootDateLabel}</span>
         <input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)}
           max={new Date().toISOString().slice(0, 10)}
-          aria-label={ru.profile.shootDateLabel} className="field-input py-1 text-sm" />
+          aria-label={ru.profile.shootDateLabel} className="field-input py-1 t-small" />
       </label>
       <button type="button" onClick={mark} disabled={busy} className="btn btn-outline btn-sm">
         {ru.shoots.markCta}

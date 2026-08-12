@@ -93,11 +93,11 @@ export function CreatePhotographerForm({ cities, categories }: { cities: Option[
         <div><label className="field-label">{ru.adminPhotographers.telegram}</label><input name="telegram" className="input" placeholder="@nick" /></div>
       </div>
       <div><label className="field-label">{ru.adminPhotographers.site}</label><input name="siteUrl" className="input" placeholder="https://" /></div>
-      <label className="flex items-center gap-2.5 text-sm">
+      <label className="flex items-center gap-2.5 t-small">
         <input type="checkbox" name="publish" className="h-4 w-4 accent-[var(--accent)]" />
         <span>{ru.adminPhotographers.publish}</span>
       </label>
-      {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+      {error && <p role="alert" className="t-small text-danger">{error}</p>}
       <button type="submit" disabled={pending} className="btn btn-accent w-fit">{pending ? ru.adminPhotographers.creating : ru.adminPhotographers.submit}</button>
     </form>
   );

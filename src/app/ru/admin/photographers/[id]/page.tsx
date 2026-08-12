@@ -44,10 +44,10 @@ export default async function ManagePhotographerPage(props: { params: Promise<{ 
         crumbs={[{ href: '/ru/admin', label: ru.adminHome.title }, { href: '/ru/admin/moderation', label: ru.admin.moderationTitle }]}
         title={`${profile.user.firstName} ${profile.user.lastName}`}
       />
-      <p className="mt-1.5 text-sm muted">
+      <p className="mt-1.5 t-small muted">
         @{profile.username} · {cityNameRu(profile.city.slug)} · {profile.categories.map((c) => categoryNameRu(c.category.slug)).join(' · ')}
       </p>
-      <div className="mt-3 flex gap-4 text-sm">
+      <div className="mt-3 flex gap-4 t-small">
         <Link href={`/ru/admin/photographers/${profile.id}/edit`} className="underline">{ru.adminPhotographers.editAnketa}</Link>
         <Link href={`/ru/photographer/${profile.username}`} className="underline">{ru.adminPhotographers.viewPage}</Link>
       </div>

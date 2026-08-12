@@ -48,7 +48,7 @@ export default async function PresentationPage() {
         lead={ru.presentation.lead}
       />
 
-      <ul className="mt-6 grid gap-2 text-sm">
+      <ul className="mt-6 grid gap-2 t-small">
         {ru.presentation.contains.map((item) => (
           <li key={item} className="rounded-media border border-line bg-surface-2 px-4 py-3">{item}</li>
         ))}

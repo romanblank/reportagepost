@@ -162,14 +162,14 @@ export default async function CatalogPage(props: {
           честная строка «сколько авторов и что именно показано». Раньше здесь
           был только заголовок и число — человек не понимал, видит он весь
           город или срез по фильтрам. */}
-      <nav aria-label={ru.catalog.breadcrumbLabel} className="text-sm muted">
+      <nav aria-label={ru.catalog.breadcrumbLabel} className="t-small muted">
         <Link href="/ru/russia" className="transition hover:text-ink">{ru.catalog.breadcrumbCatalog}</Link>
         <span> · {RU_COUNTRY.nameRu} · </span>
         <span className="text-ink">{cityName}</span>
       </nav>
       <header className="mt-3 border-b border-line pb-5">
         <h1 className="t-title">{ru.catalog.title(cityName)}</h1>
-        <p className="mt-2 text-sm muted">
+        <p className="mt-2 t-small muted">
           <b className="tnum font-medium text-ink">{shown.length}</b> {ru.catalog.authorsWord(shown.length)}
           {hasActiveFilters && ` · ${ru.catalog.filteredHint}`}
         </p>
@@ -182,7 +182,7 @@ export default async function CatalogPage(props: {
             до карточек нужно было пролистать её целиком — каталог начинался с
             анкеты вместо авторов. <details> работает без JS. */}
         <details className="rounded-media border border-line bg-surface lg:hidden" name="catalog-filters">
-          <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium">
+          <summary className="cursor-pointer list-none px-4 py-3 t-small font-medium">
             {ru.catalog.filtersToggle}
             {hasActiveFilters && <span className="ml-2 text-accent">·</span>}
           </summary>
@@ -195,15 +195,15 @@ export default async function CatalogPage(props: {
               <div className="flex items-center gap-2">
                 <input type="number" name="minPrice" min={0} step={1000} inputMode="numeric"
                   defaultValue={searchParams.minPrice ?? ''} placeholder={ru.catalog.priceFromPh}
-                  className="input w-full text-sm" aria-label={ru.catalog.priceFromPh} />
+                  className="input w-full t-small" aria-label={ru.catalog.priceFromPh} />
                 <span className="muted">—</span>
                 <input type="number" name="maxPrice" min={0} step={1000} inputMode="numeric"
                   defaultValue={searchParams.maxPrice ?? ''} placeholder={ru.catalog.priceToPh}
-                  className="input w-full text-sm" aria-label={ru.catalog.priceToPh} />
+                  className="input w-full t-small" aria-label={ru.catalog.priceToPh} />
               </div>
               <input type="date" name="date" defaultValue={searchParams.date ?? ''}
-                aria-label={ru.catalog.availableOn} className="input w-full text-sm" />
-              <label className="flex cursor-pointer items-center justify-between gap-3 text-sm">
+                aria-label={ru.catalog.availableOn} className="input w-full t-small" />
+              <label className="flex cursor-pointer items-center justify-between gap-3 t-small">
                 <span>{ru.catalog.filterTrusted}</span>
                 <input type="checkbox" name="trusted" value="1" defaultChecked={trustedOnly}
                   className="size-4 accent-[var(--accent)]" />
@@ -252,17 +252,17 @@ export default async function CatalogPage(props: {
               <div className="mt-2 flex items-center gap-2">
                 <input type="number" name="minPrice" min={0} step={1000} inputMode="numeric"
                   defaultValue={searchParams.minPrice ?? ''} placeholder={ru.catalog.priceFromPh}
-                  className="input w-full text-sm" aria-label={ru.catalog.priceFromPh} />
+                  className="input w-full t-small" aria-label={ru.catalog.priceFromPh} />
                 <span className="muted">—</span>
                 <input type="number" name="maxPrice" min={0} step={1000} inputMode="numeric"
                   defaultValue={searchParams.maxPrice ?? ''} placeholder={ru.catalog.priceToPh}
-                  className="input w-full text-sm" aria-label={ru.catalog.priceToPh} />
+                  className="input w-full t-small" aria-label={ru.catalog.priceToPh} />
               </div>
             </div>
 
             <label className="block">
               <span className="t-caption muted" style={{ fontFamily: 'var(--font-mono)' }}>{ru.catalog.availableOn}</span>
-              <input type="date" name="date" defaultValue={searchParams.date ?? ''} className="input mt-2 w-full text-sm" />
+              <input type="date" name="date" defaultValue={searchParams.date ?? ''} className="input mt-2 w-full t-small" />
             </label>
 
             {/* Техника — по бренду камеры (раздел прототипа). Счётчики те же,
@@ -272,7 +272,7 @@ export default async function CatalogPage(props: {
                 <span className="t-caption muted" style={{ fontFamily: 'var(--font-mono)' }}>{ru.catalog.filterGear}</span>
                 <div className="mt-2 flex flex-col gap-1.5">
                   {CAMERA_BRANDS.filter((b) => brandCounts[b]).map((b) => (
-                    <label key={b} className="flex cursor-pointer items-center justify-between gap-3 text-sm">
+                    <label key={b} className="flex cursor-pointer items-center justify-between gap-3 t-small">
                       <span className="flex items-center gap-2">
                         <input type="checkbox" name="brand" value={b} defaultChecked={selectedBrands.includes(b)}
                           className="size-4 accent-[var(--accent)]" />
@@ -286,7 +286,7 @@ export default async function CatalogPage(props: {
             )}
 
             {/* Фильтр доверия: съёмки, подтверждённые ОБЕИМИ сторонами */}
-            <label className="flex cursor-pointer items-center justify-between gap-3 text-sm">
+            <label className="flex cursor-pointer items-center justify-between gap-3 t-small">
               <span>{ru.catalog.filterTrusted}</span>
               <input type="checkbox" name="trusted" value="1" defaultChecked={trustedOnly}
                 className="size-4 accent-[var(--accent)]" />
@@ -296,7 +296,7 @@ export default async function CatalogPage(props: {
           </form>
 
           {hasActiveFilters && (
-            <Link href={basePath} className="block border-t border-line pt-4 text-sm text-accent hover:underline">
+            <Link href={basePath} className="block border-t border-line pt-4 t-small text-accent hover:underline">
               {ru.catalog.resetFilters}
             </Link>
           )}
@@ -311,7 +311,7 @@ export default async function CatalogPage(props: {
           {/* Сортировка — ссылками (работает без JS и остаётся в адресе, значит
               выдачу можно переслать). Подписка ни в одном порядке не участвует:
               это способ заказчика посмотреть иначе, а не купить место. */}
-          <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+          <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 t-small">
             <span className="t-caption muted" style={{ fontFamily: 'var(--font-mono)' }}>{ru.catalog.sortLabel}</span>
             {([
               ['merit', ru.catalog.sortMerit],
@@ -379,7 +379,7 @@ export default async function CatalogPage(props: {
                   <span className="font-medium">
                     {plan.profile.user.firstName} {plan.profile.user.lastName}
                   </span>
-                  <p className="mt-1 text-xs opacity-60">
+                  <p className="mt-1 t-fine opacity-60">
                     {ru.catalog.travelFrom(cityNameRu(plan.profile.city.slug))} ·{' '}
                     {ru.catalog.travelDates(
                       formatDateRu(plan.fromDate),
@@ -429,7 +429,7 @@ export default async function CatalogPage(props: {
       )}
 
       {(page > 1 || hasNext) && (
-        <nav className="mt-8 flex justify-between text-sm">
+        <nav className="mt-8 flex justify-between t-small">
           {page > 1 ? (
             <Link href={pageHref(basePath, categorySlug, searchParams.date, searchParams.maxPrice, page - 1, videoOnly ? 'video' : undefined)}
               className="btn btn-outline">← {ru.catalog.prevPage}</Link>

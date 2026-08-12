@@ -33,7 +33,7 @@ export default async function NewThreadPage({ searchParams }: Params) {
     return (
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-10">
         <h1 className="t-h2">{ru.forum.newThread}</h1>
-        <p className="mt-3 text-sm muted">{ru.forum.onlyPhotographers}</p>
+        <p className="mt-3 t-small muted">{ru.forum.onlyPhotographers}</p>
         <Link href="/ru/forum" className="btn btn-outline btn-sm mt-6">← {ru.forum.title}</Link>
       </main>
     );
@@ -41,17 +41,17 @@ export default async function NewThreadPage({ searchParams }: Params) {
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:py-12">
-      <Link href="/ru/forum" className="text-sm underline muted">← {ru.forum.title}</Link>
+      <Link href="/ru/forum" className="t-small underline muted">← {ru.forum.title}</Link>
       <h1 className="t-h2 mt-3">{ru.forum.newThread}</h1>
 
       <section className="mt-4 rounded-media border border-line bg-surface px-4 py-3">
         <p className="t-caption muted">{ru.forum.hintsTitle}</p>
-        <ul className="mt-2 grid gap-1 text-sm muted">
+        <ul className="mt-2 grid gap-1 t-small muted">
           {ru.forum.hints.map((h) => <li key={h}>— {h}</li>)}
         </ul>
       </section>
 
-      {violations >= 3 ? <p className="t-caption mt-4 text-warning">{ru.forum.restricted}</p> : null}
+      {violations >= 3 ? <p className="t-fine mt-4 text-warning">{ru.forum.restricted}</p> : null}
       <p className="t-caption mt-4 muted">{ru.forum.quotaNote(quota.left, quota.quota)}</p>
 
       <NewThreadForm

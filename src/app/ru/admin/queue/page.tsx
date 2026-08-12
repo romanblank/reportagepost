@@ -39,7 +39,7 @@ export default async function AdminQueuePage() {
       <h1 className="t-h2 mt-3">{ru.adminQueue.title}</h1>
 
       {items.length === 0 ? (
-        <p className="mt-8 text-sm muted">{ru.adminQueue.empty}</p>
+        <p className="mt-8 t-small muted">{ru.adminQueue.empty}</p>
       ) : (
         <ul className="mt-6 grid gap-3">
           {items.map((item) => (
@@ -53,7 +53,7 @@ export default async function AdminQueuePage() {
                 ) : null}
               </div>
               {item.title ? <p className="t-small mt-1">{item.title}</p> : null}
-              <p className="mt-2 whitespace-pre-wrap text-sm">{item.body.slice(0, 2000)}</p>
+              <p className="mt-2 whitespace-pre-wrap t-small">{item.body.slice(0, 2000)}</p>
               {item.reasonCode ? (
                 <p className="t-caption mt-2 muted">
                   {ru.moderation.reasons[item.reasonCode] ?? item.reasonCode}

@@ -172,7 +172,7 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
           )}
           <div>
             <span className="field-label block">{ru.editProfile.avatar}</span>
-            <label className={`btn btn-outline mt-1 px-3 py-1.5 text-sm ${avatarBusy ? 'opacity-50' : 'cursor-pointer'}`}>
+            <label className={`btn btn-outline mt-1 px-3 py-1.5 t-small ${avatarBusy ? 'opacity-50' : 'cursor-pointer'}`}>
               {avatarBusy ? ru.editProfile.avatarUploading : ru.editProfile.avatarUpload}
               {/* сброс value — чтобы повторный выбор того же файла после
                   ошибки снова срабатывал (аудит 2026-08-01, P1) */}
@@ -183,7 +183,7 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
                   input.value = '';
                 }} />
             </label>
-            {avatarErr && <span className="ml-2 text-xs text-accent">{ru.editProfile.avatarError}</span>}
+            {avatarErr && <span className="ml-2 t-fine text-accent">{ru.editProfile.avatarError}</span>}
           </div>
         </div>
       )}
@@ -244,12 +244,12 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
         <label className="flex cursor-pointer items-center gap-2.5 sm:col-span-2">
           <input type="checkbox" checked={doesVideo} onChange={(e) => setDoesVideo(e.target.checked)}
             className="size-4 accent-[var(--accent)]" />
-          <span className="text-sm">{ru.onboarding.doesVideo}</span>
+          <span className="t-small">{ru.onboarding.doesVideo}</span>
         </label>
         <div className="sm:col-span-2">
           <label className="field-label">{ru.onboarding.showreels}</label>
           <textarea value={showreels} onChange={(e) => setShowreels(e.target.value)} rows={3}
-            placeholder={ru.onboarding.showreelsPlaceholder} className="input font-mono text-xs" />
+            placeholder={ru.onboarding.showreelsPlaceholder} className="input font-mono t-fine" />
           <span className="field-hint">{ru.onboarding.showreelsHint}</span>
         </div>
       </div>
@@ -267,7 +267,7 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
           <label className="flex cursor-pointer items-center gap-2.5 sm:col-span-3">
             <input type="checkbox" checked={showPhone} onChange={(e) => setShowPhone(e.target.checked)}
               className="size-4 accent-[var(--accent)]" />
-            <span className="text-sm">{ru.editProfile.showPhone}</span>
+            <span className="t-small">{ru.editProfile.showPhone}</span>
           </label>
         )}
       </div>
@@ -281,7 +281,7 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
                 <input value={f.q} onChange={(e) => setFaq((prev) => prev.map((x, j) => j === i ? { ...x, q: e.target.value } : x))}
                   placeholder={ru.editProfile.faqQuestion} maxLength={200} className="input" />
                 <button type="button" onClick={() => setFaq((prev) => prev.filter((_, j) => j !== i))}
-                  className="btn btn-ghost px-2 py-1.5 text-sm">✕</button>
+                  className="btn btn-ghost px-2 py-1.5 t-small">✕</button>
               </div>
               <textarea value={f.a} onChange={(e) => setFaq((prev) => prev.map((x, j) => j === i ? { ...x, a: e.target.value } : x))}
                 placeholder={ru.editProfile.faqAnswer} rows={2} maxLength={1000} className="input" />
@@ -307,7 +307,7 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
                   onChange={(e) => setPackages((prev) => prev.map((x, j) => j === i ? { ...x, priceRub: Number(e.target.value) } : x))} /></div>
               {packages.length > 1 && (
                 <button type="button" onClick={() => setPackages((prev) => prev.filter((_, j) => j !== i))}
-                  className="btn btn-ghost px-2 py-1.5 text-sm">✕</button>
+                  className="btn btn-ghost px-2 py-1.5 t-small">✕</button>
               )}
             </div>
           ))}
@@ -319,8 +319,8 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
         )}
       </fieldset>
 
-      {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-      {saved && <p className="text-sm text-accent">{ru.editProfile.saved}</p>}
+      {error && <p role="alert" className="t-small text-danger">{error}</p>}
+      {saved && <p className="t-small text-accent">{ru.editProfile.saved}</p>}
       <button type="submit" disabled={pending} className="btn btn-accent w-fit px-5 py-2.5">
         {pending ? ru.editProfile.saving : ru.editProfile.save}
       </button>

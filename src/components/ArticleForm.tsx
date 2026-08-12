@@ -39,7 +39,7 @@ export function ArticleForm() {
 
   if (sent) {
     return (
-      <p className="mt-6 rounded-media border border-line bg-surface-2 px-4 py-3 text-sm">
+      <p className="mt-6 rounded-media border border-line bg-surface-2 px-4 py-3 t-small">
         {sent.status === 'REJECTED'
           ? `${ru.moderation.reasons[sent.reason ?? 'off_topic']} ${ru.moderation.fix[sent.reason ?? 'off_topic']}`
           : ru.articles.sent}
@@ -54,7 +54,7 @@ export function ArticleForm() {
         <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={140} className="input" />
       </label>
       <label className="grid gap-1">
-        <span className="t-caption muted">{ru.articles.fieldLead}</span>
+        <span className="t-fine muted">{ru.articles.fieldLead}</span>
         <textarea value={lead} onChange={(e) => setLead(e.target.value)} maxLength={400} rows={3} className="input" />
       </label>
       <label className="grid gap-1">
@@ -76,7 +76,7 @@ export function ArticleForm() {
       >
         {ru.articles.send}
       </button>
-      <p className="t-caption muted">{ru.articles.reviewNote}</p>
+      <p className="t-fine muted">{ru.articles.reviewNote}</p>
     </div>
   );
 }

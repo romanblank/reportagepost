@@ -49,7 +49,7 @@ export function ConfirmShootButton({ profileId, initialConfirmed, authed }: {
 
   if (confirmed) {
     return (
-      <span className="inline-flex items-center gap-1.5 text-sm font-medium text-recognition">
+      <span className="inline-flex items-center gap-1.5 t-small font-medium text-recognition">
         <Icon name="check" size={16} /> {ru.profile.shootConfirmed}
       </span>
     );
@@ -62,7 +62,7 @@ export function ConfirmShootButton({ profileId, initialConfirmed, authed }: {
         <span className="sr-only">{ru.profile.shootDateLabel}</span>
         <input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)}
           max={new Date().toISOString().slice(0, 10)}
-          aria-label={ru.profile.shootDateLabel} className="field-input py-1 text-sm" />
+          aria-label={ru.profile.shootDateLabel} className="field-input py-1 t-small" />
       </label>
       <button type="button" onClick={confirm} disabled={busy} className="btn btn-outline btn-sm" title={ru.profile.confirmShootHint}>
         <Icon name="check" size={16} /> {ru.profile.confirmShoot}

@@ -95,7 +95,7 @@ export function ProfileHero({
             </h1>
 
             {/* Статусная строка: то, что заказчик проверяет прежде всего */}
-            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-white/80">
+            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 t-small text-white/80">
               {verified && (
                 <span className="inline-flex items-center gap-1.5 text-verified">
                   <VerifiedBadge label={verifiedHint} size={15} />

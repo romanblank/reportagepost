@@ -36,7 +36,7 @@ export function ShootRequestsForClient({ requests }: { requests: ShootRequest[] 
   return (
     <section className="mt-8">
       <h2 className="t-title">{ru.shoots.clientTitle}</h2>
-      <p className="mt-1 text-sm muted">{ru.shoots.clientLead}</p>
+      <p className="mt-1 t-small muted">{ru.shoots.clientLead}</p>
       <ul className="mt-3 grid gap-2">
         {requests.map((r) => (
           <li key={r.id}

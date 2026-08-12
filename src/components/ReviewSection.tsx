@@ -91,17 +91,17 @@ export function ReviewSection({
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <SectionHeading kicker={ru.reviews.kicker} title={ru.reviews.title} divider={false} />
         {aggregate.count > 0 && (
-          <span className="text-sm muted">{ru.reviews.summary(aggregate.count)}</span>
+          <span className="t-small muted">{ru.reviews.summary(aggregate.count)}</span>
         )}
       </div>
 
       {canReview && !showForm && (
-        <button type="button" onClick={() => setShowForm(true)} className="btn btn-outline mt-4 px-4 py-2 text-sm">
+        <button type="button" onClick={() => setShowForm(true)} className="btn btn-outline mt-4 px-4 py-2 t-small">
           {ru.reviews.writeCta}
         </button>
       )}
       {!me.authed && (
-        <p className="mt-4 text-sm muted">
+        <p className="mt-4 t-small muted">
           <Link href="/ru/login" className="underline">{ru.reviews.loginToReview}</Link>
         </p>
       )}
@@ -112,16 +112,16 @@ export function ReviewSection({
           {/* Оценка кодировалась ТОЛЬКО цветом звезды, а имена кнопок были
               «1», «2», … без единицы измерения: узнать текущую оценку без
               зрения было невозможно. */}
-          <div role="radiogroup" aria-label={ru.reviews.ratingLabel} className="mt-1 flex gap-1 text-2xl">
+          <div role="radiogroup" aria-label={ru.reviews.ratingLabel} className="mt-1 flex gap-1 rating-stars">
             {[1, 2, 3, 4, 5].map((s) => (
               <button key={s} type="button" role="radio" aria-checked={s === rating}
                 onClick={() => setRating(s)} aria-label={ru.reviews.ratingOption(s)}
-                className={`text-xl ${s <= rating ? 'text-ink' : 'text-muted-2'}`}>★</button>
+                className={`rating-star ${s <= rating ? 'text-ink' : 'text-muted-2'}`}>★</button>
             ))}
           </div>
           <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={4}
             placeholder={ru.reviews.placeholder} className="input mt-3" maxLength={2000} />
-          {error && <p role="alert" className="mt-1 text-sm text-danger">{error}</p>}
+          {error && <p role="alert" className="mt-1 t-small text-danger">{error}</p>}
           <button type="submit" disabled={pending || !body.trim() || rating < 1} className="btn btn-accent mt-2 px-4 py-2">
             {pending ? ru.reviews.sending : ru.reviews.submit}
           </button>
@@ -129,18 +129,18 @@ export function ReviewSection({
       )}
 
       {items.length === 0 ? (
-        <p className="mt-4 text-sm muted">{ru.reviews.none}</p>
+        <p className="mt-4 t-small muted">{ru.reviews.none}</p>
       ) : (
         <ul className="mt-5 flex flex-col gap-5">
           {items.map((r) => (
-            <li key={r.id} className="text-sm">
+            <li key={r.id} className="t-small">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-medium">{r.authorName || '—'}</span>
                 {r.verified && (
-                  <span className="rounded-full bg-surface-2 px-2 py-0.5 text-xs muted">{ru.reviews.verified}</span>
+                  <span className="rounded-full bg-surface-2 px-2 py-0.5 t-fine muted">{ru.reviews.verified}</span>
                 )}
                 {(me.isAdmin || (me.userId != null && r.authorUserId === me.userId)) && (
-                  <button type="button" onClick={() => remove(r.id)} className="ml-auto text-xs text-muted hover:text-accent">
+                  <button type="button" onClick={() => remove(r.id)} className="ml-auto t-fine text-muted hover:text-accent">
                     {me.isAdmin ? ru.reviews.hide : ru.reviews.delete}
                   </button>
                 )}
@@ -148,7 +148,7 @@ export function ReviewSection({
               <p className="mt-1 whitespace-pre-wrap">{r.body}</p>
               {r.reply ? (
                 <div className="mt-2 rounded-media bg-surface-2 p-3">
-                  <span className="text-xs font-medium muted">{ru.reviews.photographerReply}</span>
+                  <span className="t-fine font-medium muted">{ru.reviews.photographerReply}</span>
                   <p className="mt-0.5 whitespace-pre-wrap">{r.reply}</p>
                 </div>
               ) : me.isOwner ? (
@@ -167,7 +167,7 @@ function ReplyBox({ onReply }: { onReply: (text: string) => void }) {
   const [open, setOpen] = useState(false);
   if (!open) {
     return (
-      <button type="button" onClick={() => setOpen(true)} className="mt-2 text-xs text-muted underline hover:text-accent">
+      <button type="button" onClick={() => setOpen(true)} className="mt-2 t-fine text-muted underline hover:text-accent">
         {ru.reviews.reply}
       </button>
     );
@@ -177,7 +177,7 @@ function ReplyBox({ onReply }: { onReply: (text: string) => void }) {
       <textarea value={text} onChange={(e) => setText(e.target.value)} rows={2}
         placeholder={ru.reviews.replyPlaceholder} className="input" maxLength={2000} />
       <button type="button" onClick={() => { if (text.trim()) { onReply(text); setOpen(false); } }}
-        className="btn btn-outline w-fit px-3 py-1.5 text-sm">{ru.reviews.replySend}</button>
+        className="btn btn-outline w-fit px-3 py-1.5 t-small">{ru.reviews.replySend}</button>
     </div>
   );
 }

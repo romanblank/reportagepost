@@ -106,11 +106,11 @@ export default async function CityCategoryPage(props: {
       )}
 
       <header className="border-b border-line pb-5">
-        <nav className="text-sm muted">
+        <nav className="t-small muted">
           <Link href={cityPath} className="underline">{cityName}</Link> · {catName}
         </nav>
         <h1 className="t-title mt-1.5">{title}</h1>
-        <p className="mt-1.5 text-sm muted">{ru.catalog.photographersCount(cards.length)}</p>
+        <p className="mt-1.5 t-small muted">{ru.catalog.photographersCount(cards.length)}</p>
       </header>
 
       <div className="mt-6 grid items-start gap-8 lg:grid-cols-[248px_1fr]">
@@ -128,18 +128,18 @@ export default async function CityCategoryPage(props: {
           </div>
           <form method="get" className="space-y-3 border-t border-line pt-4">
             {videoOnly && <input type="hidden" name="format" value="video" />}
-            <label className="block text-sm">
+            <label className="block t-small">
               <span className="field-hint mt-0">{ru.catalog.availableOn}</span>
               <input type="date" name="date" defaultValue={searchParams.date ?? ''} className="input mt-1 w-full" />
             </label>
-            <label className="block text-sm">
+            <label className="block t-small">
               <span className="field-hint mt-0">{ru.catalog.maxPrice}</span>
               <input type="number" name="maxPrice" min={0} step={1} inputMode="numeric"
                 defaultValue={searchParams.maxPrice ?? ''} placeholder={ru.ui.budgetPlaceholder} className="input mt-1 w-full" />
             </label>
             <button type="submit" className="btn btn-outline w-full">{ru.catalog.applyDate}</button>
           </form>
-          <Link href={cityPath} className="block border-t border-line pt-4 text-sm text-accent hover:underline">
+          <Link href={cityPath} className="block border-t border-line pt-4 t-small text-accent hover:underline">
             ← {ru.catalog.resetFilters}
           </Link>
         </aside>

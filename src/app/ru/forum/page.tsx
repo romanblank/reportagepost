@@ -66,7 +66,7 @@ export default async function ForumPage({ searchParams }: Params) {
               >
                 <span className="min-w-0">
                   <span className="t-small block">{ru.forum.sections[s.slug]}</span>
-                  <span className="t-caption muted">{ru.forum.sectionLead[s.slug]}</span>
+                  <span className="t-fine muted">{ru.forum.sectionLead[s.slug]}</span>
                 </span>
                 <span className="t-caption shrink-0 muted">
                   {stat ? ru.forum.threadCount(stat.threads) : ru.forum.threadCount(0)}
@@ -80,7 +80,7 @@ export default async function ForumPage({ searchParams }: Params) {
 
       <section className="mt-10 rounded-media border border-line bg-surface px-4 py-4">
         <p className="t-caption muted">{ru.forum.hintsTitle}</p>
-        <ul className="mt-2 grid gap-1 text-sm muted">
+        <ul className="mt-2 grid gap-1 t-small muted">
           {ru.forum.hints.map((h) => <li key={h}>— {h}</li>)}
         </ul>
       </section>

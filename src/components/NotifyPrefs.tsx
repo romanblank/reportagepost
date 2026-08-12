@@ -42,14 +42,14 @@ export function NotifyPrefs({
     <section className="card p-4">
       <div className="flex items-baseline justify-between gap-3">
         <p className="t-caption muted">{ru.notifyPrefs.title}</p>
-        {saved && <span className="text-xs text-recognition">{ru.notifyPrefs.saved}</span>}
+        {saved && <span className="t-fine text-recognition">{ru.notifyPrefs.saved}</span>}
       </div>
-      <p className="mt-1 text-sm muted">{ru.notifyPrefs.lead}</p>
+      <p className="mt-1 t-small muted">{ru.notifyPrefs.lead}</p>
 
       <label className="mt-3 flex cursor-pointer items-center gap-2.5">
         <input type="checkbox" checked={email} className="size-4 accent-[var(--accent)]"
           onChange={(e) => { setEmail(e.target.checked); void save({ notifyInquiriesEmail: e.target.checked }); }} />
-        <span className="text-sm">{ru.notifyPrefs.email}</span>
+        <span className="t-small">{ru.notifyPrefs.email}</span>
       </label>
 
       {/* Ответы на форуме — отдельный поток от заявок: человек, отключивший
@@ -57,19 +57,19 @@ export function NotifyPrefs({
       <label className="mt-2 flex cursor-pointer items-center gap-2.5">
         <input type="checkbox" checked={forum} className="size-4 accent-[var(--accent)]"
           onChange={(e) => { setForum(e.target.checked); void save({ notifyForumEmail: e.target.checked }); }} />
-        <span className="text-sm">{ru.notifyPrefs.forum}</span>
+        <span className="t-small">{ru.notifyPrefs.forum}</span>
       </label>
 
       {hasTelegram && (
         <label className="mt-2 flex cursor-pointer items-center gap-2.5">
           <input type="checkbox" checked={tg} className="size-4 accent-[var(--accent)]"
             onChange={(e) => { setTg(e.target.checked); void save({ notifyInquiriesTg: e.target.checked }); }} />
-          <span className="text-sm">{ru.notifyPrefs.telegram}</span>
+          <span className="t-small">{ru.notifyPrefs.telegram}</span>
         </label>
       )}
 
-      <p className="mt-3 text-xs muted">{ru.notifyPrefs.note}</p>
-      {error && <p role="alert" className="mt-1 text-sm text-danger">{ru.ui.toastError}</p>}
+      <p className="mt-3 t-fine muted">{ru.notifyPrefs.note}</p>
+      {error && <p role="alert" className="mt-1 t-small text-danger">{ru.ui.toastError}</p>}
     </section>
   );
 }

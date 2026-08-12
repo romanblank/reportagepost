@@ -44,7 +44,7 @@ export default async function AdminUsersPage(props: {
         lead={ru.adminNav.usersLead}
       />
       <h1 className="t-h2 mt-3">{ru.adminUsers.title}</h1>
-      <p className="mt-1 text-sm muted">{ru.adminUsers.lead(total)}</p>
+      <p className="mt-1 t-small muted">{ru.adminUsers.lead(total)}</p>
 
       <form method="get" className="mt-5 flex flex-wrap gap-2">
         <label className="min-w-[240px] flex-1">
@@ -56,7 +56,7 @@ export default async function AdminUsersPage(props: {
       </form>
 
       {rows.length === 0 ? (
-        <p className="mt-6 text-sm muted">{ru.adminUsers.empty}</p>
+        <p className="mt-6 t-small muted">{ru.adminUsers.empty}</p>
       ) : (
         <ul className="mt-5 divide-y divide-line rounded-media border border-line bg-surface-2">
           {rows.map((u) => (

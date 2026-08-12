@@ -79,14 +79,14 @@ export function AvailabilityCalendar({ initialBusy }: { initialBusy: string[] })
       <div className="flex items-center justify-between">
         <button type="button" onClick={() => shift(-1)} disabled={atCurrentMonth}
           aria-label={ru.availability.prevMonth}
-          className="btn btn-outline px-3 min-h-11 min-w-11 py-1.5 text-sm disabled:opacity-40">‹</button>
+          className="btn btn-outline px-3 min-h-11 min-w-11 py-1.5 t-small disabled:opacity-40">‹</button>
         <span className="font-medium">{ru.availability.months[view.month]} {view.year}</span>
         <button type="button" onClick={() => shift(1)}
           aria-label={ru.availability.nextMonth}
-          className="btn btn-outline px-3 py-1.5 text-sm">›</button>
+          className="btn btn-outline px-3 py-1.5 t-small">›</button>
       </div>
 
-      <div className="mt-4 grid grid-cols-7 gap-1 text-center text-xs muted">
+      <div className="mt-4 grid grid-cols-7 gap-1 text-center t-fine muted">
         {ru.availability.weekdays.map((w) => <div key={w} className="py-1">{w}</div>)}
       </div>
       <div className="mt-1 grid grid-cols-7 gap-1">
@@ -102,7 +102,7 @@ export function AvailabilityCalendar({ initialBusy }: { initialBusy: string[] })
               aria-pressed={isBusy}
               aria-label={`${day} — ${isBusy ? ru.availability.busy : ru.availability.free}`}
               className={[
-                'aspect-square rounded-media text-sm transition',
+                'aspect-square rounded-media t-small transition',
                 isPast ? 'cursor-not-allowed opacity-30' : 'hover:ring-2 hover:ring-accent/40',
                 isBusy ? 'bg-accent text-white' : 'bg-surface-2',
                 isPending ? 'opacity-60' : '',
@@ -113,11 +113,11 @@ export function AvailabilityCalendar({ initialBusy }: { initialBusy: string[] })
         })}
       </div>
 
-      <div className="mt-4 flex items-center gap-4 text-sm muted">
+      <div className="mt-4 flex items-center gap-4 t-small muted">
         <span className="flex items-center gap-2"><span className="inline-block h-3 w-3 rounded bg-accent" />{ru.availability.legendBusy}</span>
         <span className="flex items-center gap-2"><span className="inline-block h-3 w-3 rounded bg-surface-2" />{ru.availability.legendFree}</span>
       </div>
-      {error && <p role="alert" className="mt-3 text-sm text-danger">{ru.availability.saveError}</p>}
+      {error && <p role="alert" className="mt-3 t-small text-danger">{ru.availability.saveError}</p>}
     </div>
   );
 }

@@ -67,14 +67,14 @@ export default async function CabinetStoriesPage() {
         title={ru.cabinetStories.tileTitle}
       />
       <h1 className="t-h2 mt-3">{ru.cabinetStories.title}</h1>
-      <p className="mt-2 max-w-2xl text-sm muted">{ru.cabinetStories.subtitle}</p>
+      <p className="mt-2 max-w-2xl t-small muted">{ru.cabinetStories.subtitle}</p>
 
       {stories.length > 0 && (
         <section className="mt-6">
           <h2 className="t-caption muted">{ru.cabinetStories.existingTitle}</h2>
           <ul className="mt-3 flex flex-col gap-2">
             {stories.map((s) => (
-              <li key={s.id} className="card flex items-center justify-between gap-3 p-3 text-sm">
+              <li key={s.id} className="card flex items-center justify-between gap-3 p-3 t-small">
                 <span className="min-w-0">
                   {s.status === 'APPROVED' ? (
                     <Link href={`/ru/story/${s.id}`} className="font-medium hover:underline">{s.title}</Link>
@@ -96,7 +96,7 @@ export default async function CabinetStoriesPage() {
         <h2 className="t-h3">{ru.cabinetStories.newTitle}</h2>
         {!isPaid ? (
           <Link href="/ru/pro"
-            className="mt-4 flex items-center justify-between gap-3 rounded-media border border-recognition/40 bg-recognition-soft/30 px-4 py-3 text-sm transition hover:border-recognition/70">
+            className="mt-4 flex items-center justify-between gap-3 rounded-media border border-recognition/40 bg-recognition-soft/30 px-4 py-3 t-small transition hover:border-recognition/70">
             <span className="muted">{ru.cabinetStories.needActive}</span>
             <span className="shrink-0 font-medium text-recognition">{ru.cabinetStories.needActiveCta} →</span>
           </Link>

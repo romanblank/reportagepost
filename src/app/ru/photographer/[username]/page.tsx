@@ -288,7 +288,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
       {/* Демо-профиль называет себя прямо и ДО того, как человек напишет:
           пометка на карточке каталога — намёк, здесь нужна определённость */}
       {profile.isDemo && (
-        <p className="mx-auto mt-4 w-full max-w-6xl rounded-media border border-warning/40 bg-warning-soft px-4 py-3 text-sm">
+        <p className="mx-auto mt-4 w-full max-w-6xl rounded-media border border-warning/40 bg-warning-soft px-4 py-3 t-small">
           {ru.demo.profileNote}
         </p>
       )}
@@ -362,7 +362,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
             className="flex items-baseline gap-1.5 transition hover:opacity-80">
             <b className="tnum text-[15px] font-medium">{followingCount}</b><span className="t-caption muted">{ru.profile.statFollowing}</span>
           </Link>
-          <div className="flex flex-wrap items-center gap-2 text-sm sm:ml-auto">
+          <div className="flex flex-wrap items-center gap-2 t-small sm:ml-auto">
             <ShareButton path={`/ru/photographer/${profile.username}`} title={`${profile.user.firstName} ${profile.user.lastName}`} />
 
             {(profile.whatsapp || profile.telegram || profile.siteUrl) && (
@@ -387,7 +387,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
         {/* Владельцу-FREE — почему часть его страницы скрыта + апгрейд */}
         {isSelf && !isPaid && (
           <Link href="/ru/pro"
-            className="mt-5 flex items-center justify-between gap-3 rounded-media border border-recognition/40 bg-recognition-soft/30 px-4 py-3 text-sm transition hover:border-recognition/70">
+            className="mt-5 flex items-center justify-between gap-3 rounded-media border border-recognition/40 bg-recognition-soft/30 px-4 py-3 t-small transition hover:border-recognition/70">
             <span className="muted">{ru.profile.freeOwnerHint}</span>
             <span className="shrink-0 font-medium text-recognition">{ru.profile.freeOwnerCta} →</span>
           </Link>
@@ -401,7 +401,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
                 строка длиной с журнальную, а не во всю ширину экрана */}
             {profile.bio && <p className="t-body-lg mt-4 max-w-[58ch] text-ink/90">{profile.bio}</p>}
             {(profile.experienceYears != null || profile.languages.length > 0 || (isPaid && (profile.equipment || profile.teamInfo))) && (
-              <dl className="mt-4 grid max-w-2xl grid-cols-1 gap-x-8 gap-y-1.5 text-sm sm:grid-cols-2">
+              <dl className="mt-4 grid max-w-2xl grid-cols-1 gap-x-8 gap-y-1.5 t-small sm:grid-cols-2">
                 {profile.experienceYears != null && (
                   <div className="flex gap-2"><dt className="muted">{ru.profile.experienceLabel}:</dt><dd>{ru.profile.experienceYears(profile.experienceYears)}</dd></div>
                 )}
@@ -491,7 +491,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
             {profile.packages.map((pkg) => (
               <li key={pkg.id} className="card p-4">
                 <div className="t-caption muted">{ru.profile.packageHours(pkg.hours)}</div>
-                <div className="tnum mt-1 text-xl font-semibold">{formatRubMinor(pkg.priceMinor)}</div>
+                <div className="tnum mt-1 t-metric-sm">{formatRubMinor(pkg.priceMinor)}</div>
               </li>
             ))}
           </ul>
@@ -560,7 +560,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
                     title={v.title}
                     className="aspect-video w-full" />
                   {v.title && (
-                    <figcaption className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-3 pb-2 pt-6 text-xs text-white">
+                    <figcaption className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-3 pb-2 pt-6 t-fine text-white">
                       {v.title}
                     </figcaption>
                   )}
@@ -607,7 +607,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
             {faq.map((item, i) => (
               <div key={i}>
                 <dt className="font-medium">{item.q}</dt>
-                <dd className="mt-1 text-sm leading-relaxed muted">{item.a}</dd>
+                <dd className="mt-1 t-small leading-relaxed muted">{item.a}</dd>
               </div>
             ))}
           </dl>
@@ -671,7 +671,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
       {/* Жалоба — внизу и тихо: это редкое служебное действие, а не элемент
           знакомства с автором (раньше стояло сразу под шапкой профиля) */}
       {!isSelf && (
-        <div className="mt-12 border-t border-line pt-5 text-sm opacity-60">
+        <div className="mt-12 border-t border-line pt-5 t-small opacity-60">
           <ReportButton targetType="USER" targetId={profile.userId} authed={Boolean(session)} />
         </div>
       )}

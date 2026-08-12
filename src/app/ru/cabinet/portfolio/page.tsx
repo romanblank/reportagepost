@@ -61,15 +61,15 @@ export default async function PortfolioPage() {
       <h1 className="t-h2 mt-3">{ru.portfolio.title}</h1>
 
       {!profile ? (
-        <p className="mt-4 text-sm muted">{ru.cabinet.noProfile}</p>
+        <p className="mt-4 t-small muted">{ru.cabinet.noProfile}</p>
       ) : items.length === 0 ? (
         <div className="mt-4">
-          <p className="text-sm muted">{ru.portfolio.empty}</p>
+          <p className="t-small muted">{ru.portfolio.empty}</p>
           <Link href="/ru/onboarding" className="btn btn-accent btn-sm mt-3">{ru.portfolio.addMore}</Link>
         </div>
       ) : (
         <>
-          <p className="mt-2 text-sm muted">{ru.portfolio.lead}</p>
+          <p className="mt-2 t-small muted">{ru.portfolio.lead}</p>
           <div className="mt-6">
             <PortfolioManager initialPhotos={items} initialCoverId={profile.coverPhotoId} />
           </div>

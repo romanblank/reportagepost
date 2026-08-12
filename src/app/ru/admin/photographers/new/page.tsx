@@ -28,7 +28,7 @@ export default async function NewPhotographerPage() {
         crumbs={[{ href: '/ru/admin', label: ru.adminHome.title }, { href: '/ru/admin/moderation', label: ru.admin.moderationTitle }]}
         title={ru.adminPhotographers.createTitle}
       />
-      <p className="mt-1 text-sm muted">{ru.adminPhotographers.createLead}</p>
+      <p className="mt-1 t-small muted">{ru.adminPhotographers.createLead}</p>
       <div className="mt-6">
         <CreatePhotographerForm cities={cities} categories={categories} />
       </div>

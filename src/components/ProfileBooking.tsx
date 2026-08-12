@@ -49,7 +49,7 @@ export function ProfileBooking({
         {fromPriceMinor != null && (
           <p className="text-[13px] muted">
             {ru.profile.bookingFrom}
-            <b className="mt-1 block text-3xl font-normal text-ink" style={{ fontFamily: 'var(--font-display)' }}>
+            <b className="mt-1 block t-metric font-normal text-ink" style={{ fontFamily: 'var(--font-display)' }}>
               {formatRubMinor(fromPriceMinor)}
             </b>
           </p>

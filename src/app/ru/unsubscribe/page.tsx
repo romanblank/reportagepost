@@ -27,7 +27,7 @@ export default async function UnsubscribePage(props: {
   return (
     <main className="mx-auto w-full max-w-md flex-1 px-4 py-16 text-center">
       <h1 className="t-h1">{ok ? ru.unsubscribe.okTitle : ru.unsubscribe.failTitle}</h1>
-      <p className="mt-3 text-sm muted">{ok ? ru.unsubscribe.okText : ru.unsubscribe.failText}</p>
+      <p className="mt-3 t-small muted">{ok ? ru.unsubscribe.okText : ru.unsubscribe.failText}</p>
       <Link href="/ru/cabinet/settings" className="btn btn-outline mt-6 inline-block px-5 py-2.5">
         {ru.unsubscribe.toSettings}
       </Link>

@@ -34,7 +34,7 @@ export default function AppError({ error, reset }: { error: Error & { digest?: s
         <button type="button" onClick={reset} className="btn btn-accent">{ru.errorPage.retry}</button>
         <Link href="/" className="btn btn-outline">{ru.notFound.home}</Link>
       </div>
-      {error.digest && <p className="mt-6 font-mono text-xs muted">{ru.errorPage.code}: {error.digest}</p>}
+      {error.digest && <p className="mt-6 font-mono t-fine muted">{ru.errorPage.code}: {error.digest}</p>}
     </main>
   );
 }

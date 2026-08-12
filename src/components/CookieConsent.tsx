@@ -84,15 +84,15 @@ export function CookieConsent() {
 
   return (
     <div className="fixed inset-x-2 bottom-20 z-40 max-w-md rounded-media border border-line bg-surface p-4 shadow-md sm:inset-x-auto sm:bottom-4 sm:right-4">
-      <p className="text-sm">
+      <p className="t-small">
         {ru.cookie.text}{' '}
         <Link href="/ru/legal/privacy" className="underline">{ru.cookie.more}</Link>
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
-        <button type="button" onClick={() => void decide(true)} className="btn btn-accent px-4 py-1.5 text-sm">
+        <button type="button" onClick={() => void decide(true)} className="btn btn-accent px-4 py-1.5 t-small">
           {ru.cookie.accept}
         </button>
-        <button type="button" onClick={() => void decide(false)} className="btn btn-ghost px-4 py-1.5 text-sm">
+        <button type="button" onClick={() => void decide(false)} className="btn btn-ghost px-4 py-1.5 t-small">
           {ru.cookie.onlyNecessary}
         </button>
       </div>

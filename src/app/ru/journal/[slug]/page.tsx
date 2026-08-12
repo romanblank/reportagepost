@@ -55,7 +55,7 @@ export default async function ArticlePage({ params }: Params) {
         ])}
       />
 
-      <Link href="/ru/journal" className="text-sm underline muted">← {ru.nav.journal}</Link>
+      <Link href="/ru/journal" className="t-small underline muted">← {ru.nav.journal}</Link>
       <h1 className="t-h1 mt-3 text-balance">{article.title}</h1>
       <p className="t-caption mt-3 muted">
         {article.authorUsername ? (
@@ -77,7 +77,7 @@ export default async function ArticlePage({ params }: Params) {
       ) : null}
 
       <p className="mt-6 t-body-lg">{article.lead}</p>
-      <div className="mt-4 whitespace-pre-wrap text-base leading-relaxed">{article.body}</div>
+      <div className="mt-4 whitespace-pre-wrap t-body">{article.body}</div>
       </div>
     </main>
   );

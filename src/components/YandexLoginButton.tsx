@@ -6,7 +6,7 @@ import { ru } from '@/i18n/ru';
 export function YandexLoginButton() {
   return (
     <div className="mt-6">
-      <div className="flex items-center gap-3 text-xs muted">
+      <div className="flex items-center gap-3 t-fine muted">
         <span className="h-px flex-1 bg-line" />
         {ru.auth.yandexOr}
         <span className="h-px flex-1 bg-line" />

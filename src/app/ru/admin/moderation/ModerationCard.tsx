@@ -31,7 +31,7 @@ export function ModerationCard(props: {
     <li className="card p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <span className="font-medium">{props.header}</span>
-        <span className="text-sm muted">{props.meta}</span>
+        <span className="t-small muted">{props.meta}</span>
       </div>
       <div className="mt-3 grid grid-cols-4 gap-1 sm:grid-cols-8">
         {props.photoUrls.map((url) => (
@@ -43,18 +43,18 @@ export function ModerationCard(props: {
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <button type="button" onClick={() => decide('approve')} disabled={pending}
-          className="rounded-media bg-foreground px-4 py-2 text-sm text-background disabled:opacity-50">
+          className="rounded-media bg-foreground px-4 py-2 t-small text-background disabled:opacity-50">
           {ru.admin.approve}
         </button>
         <input value={reason} onChange={(e) => setReason(e.target.value)}
           placeholder={ru.admin.rejectReason}
-          className="min-w-64 flex-1 rounded-media border px-3 py-2 text-sm" />
+          className="min-w-64 flex-1 rounded-media border px-3 py-2 t-small" />
         <button type="button" onClick={() => decide('reject')} disabled={pending || reason.trim().length < 5}
-          className="rounded-media border border-red-600 px-4 py-2 text-sm text-accent disabled:opacity-40">
+          className="rounded-media border border-red-600 px-4 py-2 t-small text-accent disabled:opacity-40">
           {ru.admin.reject}
         </button>
       </div>
-      {error && <p role="alert" className="mt-2 text-sm text-danger">{error}</p>}
+      {error && <p role="alert" className="mt-2 t-small text-danger">{error}</p>}
     </li>
   );
 }

@@ -39,7 +39,7 @@ export default async function CommunityPage() {
       <div className="mt-6 flex flex-wrap gap-x-12 gap-y-4 border-y border-line py-6">
         {tiles.map((t) => (
           <div key={t.label}>
-            <div className="tnum text-3xl leading-none sm:text-4xl" style={{ fontFamily: 'var(--font-display)' }}>{t.value}</div>
+            <div className="tnum t-metric" style={{ fontFamily: 'var(--font-display)' }}>{t.value}</div>
             <div className="t-caption mt-2 muted">{t.label}</div>
           </div>
         ))}
@@ -56,13 +56,13 @@ export default async function CommunityPage() {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={avatarUrl(p.avatarKey)} alt="" width={44} height={44} className="h-11 w-11 shrink-0 rounded-full object-cover" />
                   ) : (
-                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-surface-2 text-sm font-semibold">
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-surface-2 t-small font-semibold">
                       {p.firstName.slice(0, 1)}{p.lastName.slice(0, 1)}
                     </span>
                   )}
                   <span className="min-w-0">
                     <span className="block truncate font-medium">{p.firstName} {p.lastName}</span>
-                    <span className="text-sm muted">{ru.dashboard.recommendCount(p.recommendCount)}</span>
+                    <span className="t-small muted">{ru.dashboard.recommendCount(p.recommendCount)}</span>
                   </span>
                 </Link>
               </li>
@@ -84,7 +84,7 @@ export default async function CommunityPage() {
                       className="aspect-video w-full rounded-media object-cover" />
                   )}
                   <span className="mt-2 block font-medium">{p.user.firstName} {p.user.lastName}</span>
-                  <span className="text-xs muted">{cityNameRu(p.city.slug)}</span>
+                  <span className="t-fine muted">{cityNameRu(p.city.slug)}</span>
                 </Link>
               </li>
             ))}

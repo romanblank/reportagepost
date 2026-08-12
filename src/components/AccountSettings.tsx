@@ -67,7 +67,7 @@ export function AccountSettings({ initial }: { initial: Initial }) {
             <input value={name.lastName} onChange={(e) => setName((n) => ({ ...n, lastName: e.target.value }))} className="input" required minLength={2} />
           </div>
         </div>
-        {err.name && <p className="text-sm text-danger">{err.name}</p>}
+        {err.name && <p className="t-small text-danger">{err.name}</p>}
         <button type="submit" disabled={busy === 'name'} className="btn btn-outline btn-sm w-fit">{ru.settings.saveName}</button>
       </form>
 
@@ -86,7 +86,7 @@ export function AccountSettings({ initial }: { initial: Initial }) {
             <input name="password" type="password" className="input" autoComplete="current-password" required />
           </div>
         )}
-        {err.email && <p className="text-sm text-danger">{err.email}</p>}
+        {err.email && <p className="t-small text-danger">{err.email}</p>}
         <button type="submit" disabled={busy === 'email'} className="btn btn-outline btn-sm w-fit">{ru.settings.saveEmail}</button>
       </form>
 
@@ -95,7 +95,7 @@ export function AccountSettings({ initial }: { initial: Initial }) {
       {/* Пароль */}
       <form onSubmit={submitPassword} className="flex flex-col gap-3">
         <h3 className="t-h3">{initial.hasPassword ? ru.settings.passwordTitle : ru.settings.passwordSetTitle}</h3>
-        {!initial.hasPassword && <p className="text-sm muted">{ru.settings.passwordSetHint}</p>}
+        {!initial.hasPassword && <p className="t-small muted">{ru.settings.passwordSetHint}</p>}
         {initial.hasPassword && (
           <div>
             <label className="field-label">{ru.settings.currentPassword}</label>
@@ -107,7 +107,7 @@ export function AccountSettings({ initial }: { initial: Initial }) {
           <input name="next" type="password" className="input" autoComplete="new-password" required minLength={10} />
           <span className="field-hint">{ru.auth.passwordHint}</span>
         </div>
-        {err.password && <p className="text-sm text-danger">{err.password}</p>}
+        {err.password && <p className="t-small text-danger">{err.password}</p>}
         <button type="submit" disabled={busy === 'password'} className="btn btn-outline btn-sm w-fit">{ru.settings.savePassword}</button>
       </form>
     </div>

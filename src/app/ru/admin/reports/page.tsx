@@ -37,10 +37,10 @@ export default async function ReportsPage() {
         title={ru.adminReports.title}
         lead={ru.adminNav.reportsLead}
       />
-      <p className="mt-1 text-sm muted">{ru.adminReports.lead}</p>
+      <p className="mt-1 t-small muted">{ru.adminReports.lead}</p>
 
       {reports.length === 0 ? (
-        <p className="mt-8 text-sm muted">{ru.adminReports.empty}</p>
+        <p className="mt-8 t-small muted">{ru.adminReports.empty}</p>
       ) : (
         <ul className="mt-6 flex flex-col gap-4">
           {reports.map((r) => (
@@ -64,7 +64,7 @@ export default async function ReportsPage() {
         </ul>
       )}
 
-      <Link href="/ru/admin/moderation" className="mt-8 inline-block text-sm underline muted">
+      <Link href="/ru/admin/moderation" className="mt-8 inline-block t-small underline muted">
         ← {ru.admin.moderationTitle}
       </Link>
       </div>

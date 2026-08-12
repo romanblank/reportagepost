@@ -69,4 +69,20 @@ describe('дизайн-система: единый визуальный язы�
     expect(offenders, `эмодзи в интерфейсе:\n${offenders.join('\n')}`).toEqual([]);
   });
 
+
+  it('размер текста задаётся ролью, а не утилитой в разметке', () => {
+    // Роль несёт кегль, интерлиньяж и вес вместе — именно это делает
+    // типографику системной. Утилита text-sm задаёт только размер, поэтому
+    // одинаковый на вид текст жил с разным интерлиньяжем от страницы к странице
+    const utility = /(?<![a-z:-])text-(xs|sm|base|lg|xl|2xl|3xl|4xl)\b/;
+    const offenders = sources()
+      .filter((f) => utility.test(readFileSync(f, 'utf8')))
+      .map((f) => f.split('/src/')[1]);
+
+    expect(
+      offenders,
+      `размеры мимо типо-ролей (t-fine, t-small, t-body, t-h3…):\n${offenders.join('\n')}`,
+    ).toEqual([]);
+  });
+
 });

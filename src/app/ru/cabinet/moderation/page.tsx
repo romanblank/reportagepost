@@ -48,10 +48,10 @@ export default async function MyModerationPage() {
         title={ru.forum.myRejected}
       />
 
-      {violations >= 3 ? <p className="t-caption mt-3 text-warning">{ru.forum.restricted}</p> : null}
+      {violations >= 3 ? <p className="t-fine mt-3 text-warning">{ru.forum.restricted}</p> : null}
 
       {empty ? (
-        <p className="mt-6 text-sm muted">{ru.forum.noRejected}</p>
+        <p className="mt-6 t-small muted">{ru.forum.noRejected}</p>
       ) : (
         <ul className="mt-6 grid gap-3">
           {threads.map((t) => (

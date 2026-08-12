@@ -86,7 +86,7 @@ export default async function ModerationPage() {
       {pendingPhotos.length > 0 && (
         <section className="mt-10">
           <h2 className="t-h3">{ru.admin.photosQueue}</h2>
-          <p className="mt-1 text-sm muted">{ru.admin.photosQueueHint}</p>
+          <p className="mt-1 t-small muted">{ru.admin.photosQueueHint}</p>
           <div className="mt-4">
             <PhotoQueueBatch
               items={pendingPhotos.map((ph) => ({
@@ -105,7 +105,7 @@ export default async function ModerationPage() {
       {pendingVideos.length > 0 && (
         <section className="mt-10">
           <h2 className="t-h3">{ru.adminVideos.queueTitle}</h2>
-          <p className="mt-1 text-sm muted">{ru.adminVideos.queueLead}</p>
+          <p className="mt-1 t-small muted">{ru.adminVideos.queueLead}</p>
           <ul className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
             {pendingVideos.map((v) => (
               <VideoModerationCard

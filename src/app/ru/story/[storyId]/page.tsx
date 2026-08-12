@@ -85,7 +85,7 @@ export default async function StoryPage(props: { params: Promise<{ storyId: stri
           <h1 className="t-display mt-2 max-w-3xl text-balance text-white">
             {story.title}
           </h1>
-          <p className="mt-4 text-sm text-white/85" style={{ fontFamily: 'var(--font-mono)' }}>
+          <p className="mt-4 t-small text-white/85" style={{ fontFamily: 'var(--font-mono)' }}>
             <Link href={`/ru/photographer/${story.profile.username}`} className="underline underline-offset-2 hover:text-white">
               {authorName}
             </Link>

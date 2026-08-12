@@ -44,13 +44,13 @@ export function CabinetProBlock({ tier, isFounding, graceUntil, proRequested, lo
       <section className="card border-recognition/40 bg-recognition-soft/30 p-4">
         <div className="flex items-center justify-between gap-3">
           <p className="t-caption text-recognition">{ru.cabinet.proTitle}</p>
-          <span className="rounded-sm bg-recognition-soft px-2 py-0.5 text-xs font-medium text-recognition">{ru.pro.tierName[tier]}</span>
+          <span className="rounded-sm bg-recognition-soft px-2 py-0.5 t-fine font-medium text-recognition">{ru.pro.tierName[tier]}</span>
         </div>
         <p className="mt-1 font-medium">{ru.cabinet.proOnPro}</p>
-        {isFounding && <p className="mt-0.5 text-sm text-recognition">{ru.cabinet.proFounding}</p>}
-        {graceUntil && <p className="mt-0.5 text-sm muted">{ru.cabinet.proGraceUntil(graceUntil)}</p>}
+        {isFounding && <p className="mt-0.5 t-small text-recognition">{ru.cabinet.proFounding}</p>}
+        {graceUntil && <p className="mt-0.5 t-small muted">{ru.cabinet.proGraceUntil(graceUntil)}</p>}
         {tier === 'PRIME' && (
-          <Link href="/ru/pro" className="mt-2 inline-block text-sm text-recognition underline">{ru.cabinet.upsellElite}</Link>
+          <Link href="/ru/pro" className="mt-2 inline-block t-small text-recognition underline">{ru.cabinet.upsellElite}</Link>
         )}
       </section>
     );
@@ -61,10 +61,10 @@ export function CabinetProBlock({ tier, isFounding, graceUntil, proRequested, lo
       <p className="t-caption muted">{ru.cabinet.proTitle}</p>
       <p className="mt-1 font-medium">{ru.cabinet.proOnFree}</p>
       {teaser && (teaser.saves > 0 || teaser.reviews > 0) && (
-        <p className="mt-2 text-sm text-recognition">{ru.cabinet.proTeaser(teaser.saves, teaser.reviews)}</p>
+        <p className="mt-2 t-small text-recognition">{ru.cabinet.proTeaser(teaser.saves, teaser.reviews)}</p>
       )}
-      <p className="mt-3 text-sm muted">{ru.cabinet.proLockedLead}</p>
-      <ul className="mt-1.5 flex flex-col gap-1.5 text-sm">
+      <p className="mt-3 t-small muted">{ru.cabinet.proLockedLead}</p>
+      <ul className="mt-1.5 flex flex-col gap-1.5 t-small">
         {lockedPerks.map((perk) => (
           <li key={perk} className="flex gap-2.5">
             <span aria-hidden className="text-recognition">✦</span>
@@ -74,13 +74,13 @@ export function CabinetProBlock({ tier, isFounding, graceUntil, proRequested, lo
       </ul>
       <div className="mt-4 flex flex-wrap items-center gap-3">
         {requested ? (
-          <span className="text-sm text-recognition">{ru.cabinet.proRequested}</span>
+          <span className="t-small text-recognition">{ru.cabinet.proRequested}</span>
         ) : (
           <button type="button" onClick={request} disabled={busy} className="btn btn-accent px-4 py-2">
             {busy ? ru.cabinet.proRequesting : ru.cabinet.proRequestCta}
           </button>
         )}
-        <Link href="/ru/pro" className="text-sm underline muted">{ru.cabinet.proSeeTariff}</Link>
+        <Link href="/ru/pro" className="t-small underline muted">{ru.cabinet.proSeeTariff}</Link>
       </div>
     </section>
   );

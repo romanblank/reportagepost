@@ -65,9 +65,9 @@ export default async function ProPage() {
         {/* Базовый */}
         <div className="card flex flex-col p-6">
           <h2 className="t-h3">{ru.pro.planFree}</h2>
-          <p className="mt-2 text-3xl" style={{ fontFamily: 'var(--font-display)' }}>{ru.pro.free}</p>
-          <p className="mt-1 text-sm muted">&nbsp;</p>
-          <ul className="mt-5 flex flex-col gap-2.5 text-sm">
+          <p className="mt-2 t-metric" style={{ fontFamily: 'var(--font-display)' }}>{ru.pro.free}</p>
+          <p className="mt-1 t-small muted">&nbsp;</p>
+          <ul className="mt-5 flex flex-col gap-2.5 t-small">
             {PLAN_FEATURES.filter((f) => f.minTier === 'FREE').map((f) => (
               <li key={f.key} className="flex gap-2.5"><Check on /> <span>{label(ru.pro.features, f.key)}</span></li>
             ))}
@@ -78,15 +78,15 @@ export default async function ProPage() {
         <div className="card flex flex-col border-recognition/40 bg-recognition-soft/30 p-6">
           <div className="flex items-center justify-between">
             <h2 className="t-h3 text-recognition">{ru.pro.planPrime}</h2>
-            <span className="rounded-sm bg-recognition-soft px-2 py-0.5 text-xs font-medium text-recognition">
+            <span className="rounded-sm bg-recognition-soft px-2 py-0.5 t-fine font-medium text-recognition">
               {ru.pro.annualSaving(annualSavingPct(primePrice))}
             </span>
           </div>
           <div className="mt-2 flex items-baseline gap-1.5">
-            <span className="text-3xl" style={{ fontFamily: 'var(--font-display)' }}>{formatRubMinor(primePrice.monthlyMinor)}</span>
-            <span className="text-sm muted">{ru.pro.perMonth}</span>
+            <span className="t-metric" style={{ fontFamily: 'var(--font-display)' }}>{formatRubMinor(primePrice.monthlyMinor)}</span>
+            <span className="t-small muted">{ru.pro.perMonth}</span>
           </div>
-          <p className="mt-1 text-sm muted">{formatRubMinor(primePrice.annualMinor)} {ru.pro.perYear} · {priceNote}</p>
+          <p className="mt-1 t-small muted">{formatRubMinor(primePrice.annualMinor)} {ru.pro.perYear} · {priceNote}</p>
           <Link href={cta.href} className="btn btn-accent mt-5 w-full py-2.5">{cta.label}</Link>
         </div>
 
@@ -94,15 +94,15 @@ export default async function ProPage() {
         <div className="card flex flex-col border-recognition/60 p-6">
           <div className="flex items-center justify-between">
             <h2 className="t-h3 text-recognition">{ru.pro.planElite}</h2>
-            <span className="rounded-sm bg-recognition px-2 py-0.5 text-xs font-medium text-recognition-ink">
+            <span className="rounded-sm bg-recognition px-2 py-0.5 t-fine font-medium text-recognition-ink">
               {ru.pro.annualSaving(annualSavingPct(elitePrice))}
             </span>
           </div>
           <div className="mt-2 flex items-baseline gap-1.5">
-            <span className="text-3xl" style={{ fontFamily: 'var(--font-display)' }}>{formatRubMinor(elitePrice.monthlyMinor)}</span>
-            <span className="text-sm muted">{ru.pro.perMonth}</span>
+            <span className="t-metric" style={{ fontFamily: 'var(--font-display)' }}>{formatRubMinor(elitePrice.monthlyMinor)}</span>
+            <span className="t-small muted">{ru.pro.perMonth}</span>
           </div>
-          <p className="mt-1 text-sm muted">{formatRubMinor(elitePrice.annualMinor)} {ru.pro.perYear} · {priceNote}</p>
+          <p className="mt-1 t-small muted">{formatRubMinor(elitePrice.annualMinor)} {ru.pro.perYear} · {priceNote}</p>
           <Link href={cta.href} className="btn btn-outline mt-5 w-full py-2.5">{cta.label}</Link>
         </div>
       </div>
@@ -111,7 +111,7 @@ export default async function ProPage() {
       <section className="mt-12">
         <h2 className="t-h3">{ru.pro.compareTitle}</h2>
         <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[34rem] border-collapse text-sm">
+          <table className="w-full min-w-[34rem] border-collapse t-small">
             <thead>
               <tr className="border-b border-line text-left">
                 <th scope="col" className="py-2.5 pr-4 font-normal muted"><span className="sr-only">{ru.pro.featureColumn}</span></th>
@@ -134,7 +134,7 @@ export default async function ProPage() {
         </div>
       </section>
 
-      <p className="mt-8 max-w-2xl text-xs text-muted">{ru.pro.betaNote}</p>
+      <p className="mt-8 max-w-2xl t-fine text-muted">{ru.pro.betaNote}</p>
       </div>
     </main>
   );

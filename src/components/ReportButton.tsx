@@ -45,13 +45,13 @@ export function ReportButton({
   }
 
   if (sent) {
-    return <p className={`text-xs text-recognition ${className}`}>{ru.report.sent}</p>;
+    return <p className={`t-fine text-recognition ${className}`}>{ru.report.sent}</p>;
   }
 
   if (!open) {
     return (
       <button type="button" onClick={() => setOpen(true)}
-        className={`text-xs text-muted underline transition hover:text-accent ${className}`}>
+        className={`t-fine text-muted underline transition hover:text-accent ${className}`}>
         {ru.report.cta}
       </button>
     );
@@ -59,27 +59,27 @@ export function ReportButton({
 
   return (
     <div className={`card mt-2 p-3 ${className}`}>
-      <p className="text-sm font-medium">{ru.report.title}</p>
-      <label className="mt-2 block text-xs muted">
+      <p className="t-small font-medium">{ru.report.title}</p>
+      <label className="mt-2 block t-fine muted">
         {ru.report.reasonLabel}
-        <select value={reason} onChange={(e) => setReason(e.target.value)} className="input mt-1 text-sm">
+        <select value={reason} onChange={(e) => setReason(e.target.value)} className="input mt-1 t-small">
           {Object.entries(ru.report.reasons).map(([k, label]) => (
             <option key={k} value={k}>{label}</option>
           ))}
         </select>
       </label>
       <textarea value={comment} onChange={(e) => setComment(e.target.value)} rows={3}
-        placeholder={ru.report.commentPlaceholder} maxLength={2000} className="input mt-2 text-sm" />
+        placeholder={ru.report.commentPlaceholder} maxLength={2000} className="input mt-2 t-small" />
       {!authed && (
         <input value={email} onChange={(e) => setEmail(e.target.value)} type="email"
-          placeholder={ru.report.emailPlaceholder} className="input mt-2 text-sm" />
+          placeholder={ru.report.emailPlaceholder} className="input mt-2 t-small" />
       )}
-      {error && <p role="alert" className="mt-1 text-sm text-danger">{error}</p>}
+      {error && <p role="alert" className="mt-1 t-small text-danger">{error}</p>}
       <div className="mt-2 flex gap-2">
         <button type="button" disabled={busy} onClick={submit}
-          className="btn btn-accent px-3 py-1.5 text-sm">{ru.report.submit}</button>
+          className="btn btn-accent px-3 py-1.5 t-small">{ru.report.submit}</button>
         <button type="button" onClick={() => setOpen(false)}
-          className="btn btn-outline px-3 py-1.5 text-sm">{ru.ui.cancel}</button>
+          className="btn btn-outline px-3 py-1.5 t-small">{ru.ui.cancel}</button>
       </div>
     </div>
   );

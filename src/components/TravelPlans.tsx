@@ -59,17 +59,17 @@ export function TravelPlans({
   return (
     <div>
       {plans.length === 0 ? (
-        <p className="text-sm muted">{ru.travel.empty}</p>
+        <p className="t-small muted">{ru.travel.empty}</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {plans.map((p) => (
-            <li key={p.id} className="flex items-center justify-between gap-3 rounded-media bg-surface-2 px-3 py-2 text-sm">
+            <li key={p.id} className="flex items-center justify-between gap-3 rounded-media bg-surface-2 px-3 py-2 t-small">
               <span>
                 <span className="font-medium">{cityNameRu(p.citySlug)}</span>{' '}
                 <span className="muted">{ru.travel.rangeLabel(p.fromDate, p.toDate)}</span>
               </span>
               <button type="button" onClick={() => remove(p.id)}
-                className="text-xs muted underline transition hover:text-accent">{ru.travel.remove}</button>
+                className="t-fine muted underline transition hover:text-accent">{ru.travel.remove}</button>
             </li>
           ))}
         </ul>
@@ -92,10 +92,10 @@ export function TravelPlans({
           </label>
         </div>
         <button type="button" onClick={add} disabled={pending}
-          className="btn btn-outline mt-1 w-fit px-4 py-1.5 text-sm">
+          className="btn btn-outline mt-1 w-fit px-4 py-1.5 t-small">
           {pending ? ru.travel.adding : ru.travel.add}
         </button>
-        {error && <p className="text-sm text-danger">{error}</p>}
+        {error && <p className="t-small text-danger">{error}</p>}
       </div>
     </div>
   );

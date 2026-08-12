@@ -33,7 +33,7 @@ export function TelegramLinkButton({ bound }: { bound: boolean }) {
 
   if (bound) {
     return (
-      <div className="flex flex-wrap items-center gap-3 text-sm">
+      <div className="flex flex-wrap items-center gap-3 t-small">
         <span className="text-muted">{ru.tg.bound}</span>
         <button type="button" onClick={unlink} disabled={pending}
           className="text-muted underline transition hover:text-accent">{ru.tg.unlink}</button>
@@ -43,7 +43,7 @@ export function TelegramLinkButton({ bound }: { bound: boolean }) {
 
   return (
     <div className="flex flex-col gap-1">
-      <button type="button" onClick={link} disabled={pending} className="btn btn-outline w-fit px-3 py-1.5 text-sm">
+      <button type="button" onClick={link} disabled={pending} className="btn btn-outline w-fit px-3 py-1.5 t-small">
         {pending ? ru.tg.linking : ru.tg.link}
       </button>
       <span className="field-hint">{error ? ru.tg.error : ru.tg.hint}</span>

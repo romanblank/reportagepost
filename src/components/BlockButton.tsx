@@ -30,11 +30,11 @@ export function BlockButton({ userId, initialBlocked }: { userId: string; initia
   return (
     <span className="inline-flex items-center gap-2">
       <button type="button" onClick={toggle} disabled={busy}
-        className="text-xs text-muted underline transition hover:text-accent disabled:opacity-60">
+        className="t-fine text-muted underline transition hover:text-accent disabled:opacity-60">
         {blocked ? ru.block.undo : ru.block.cta}
       </button>
-      {blocked && <span className="text-xs muted">{ru.block.blocked}</span>}
-      {error && <span role="alert" className="text-xs text-danger">{ru.block.error}</span>}
+      {blocked && <span className="t-fine muted">{ru.block.blocked}</span>}
+      {error && <span role="alert" className="t-fine text-danger">{ru.block.error}</span>}
     </span>
   );
 }

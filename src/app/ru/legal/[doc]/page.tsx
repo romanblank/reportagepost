@@ -23,7 +23,7 @@ export default async function LegalPage(props: { params: Promise<{ doc: string }
     <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-12 sm:py-16">
       <div className="max-w-2xl w-full">
       <h1 className="t-h1 mt-3 text-balance">{document.title}</h1>
-      <p className="mt-2 text-sm muted">{ru.legal.effectiveFrom(document.effectiveFrom)}</p>
+      <p className="mt-2 t-small muted">{ru.legal.effectiveFrom(document.effectiveFrom)}</p>
 
       <article className="mt-8 flex flex-col gap-6 border-t border-line pt-8">
         {document.sections.map((s, i) => (

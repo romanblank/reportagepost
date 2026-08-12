@@ -151,10 +151,29 @@ body {
   .t-body-lg { font-size: 1.125rem; line-height: 1.6; }
   .t-body { font-size: 1rem; line-height: 1.6; }
   .t-small { font-size: 0.875rem; line-height: 1.5; }
+  /* Ярлык: прописные с разрядкой — для меток и рубрик, а не для текста */
   .t-caption {
     font-size: 0.75rem; line-height: 1.4; font-weight: 500;
     text-transform: uppercase; letter-spacing: 0.08em;
   }
+  /* Мелкий текст обычным регистром: сноски, пояснения под полями, служебные
+     подписи. Без него мелкий текст писали утилитой text-xs мимо системы —
+     а капс t-caption для целых фраз нечитаем */
+  .t-fine { font-size: 0.75rem; line-height: 1.45; }
+  /* Число как акцент: цена, счётчик очереди, показатель на панели. Антиква и
+     табличные цифры — чтобы разряды не «прыгали» при обновлении значения */
+  .t-metric {
+    font-family: var(--font-cormorant), Georgia, serif;
+    font-size: 1.875rem; line-height: 1.1; font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  /* Поле для кода подтверждения: крупный кегль и разрядка — часть контрола,
+     а не оформление конкретной страницы */
+  .input-code { text-align: center; font-size: 1.125rem; letter-spacing: 0.3em; font-variant-numeric: tabular-nums; }
+  /* Оценка звёздами: размер задан контролом, чтобы не разъезжался по экранам */
+  .rating-stars { font-size: 1.5rem; line-height: 1; }
+  .rating-star { font-size: 1.25rem; line-height: 1; }
+  .t-metric-sm { font-size: 1.5rem; line-height: 1.15; font-variant-numeric: tabular-nums; font-weight: 600; }
   .tnum { font-variant-numeric: tabular-nums; }
 }
 

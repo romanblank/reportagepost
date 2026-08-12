@@ -30,7 +30,7 @@ export function StoryLikeButton({ storyId, initialLiked, initialCount, authed }:
 
   return (
     <button type="button" onClick={toggle} aria-pressed={liked}
-      className={`rounded-full border px-4 py-1 text-sm ${liked ? 'bg-foreground text-background' : ''}`}>
+      className={`rounded-full border px-4 py-1 t-small ${liked ? 'bg-foreground text-background' : ''}`}>
       ♥ {count}
     </button>
   );

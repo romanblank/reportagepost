@@ -68,7 +68,7 @@ export function InquiryCard({
   const dimmed = handling === 'DECLINED';
 
   return (
-    <li className={`card p-4 text-sm transition-opacity ${dimmed ? 'opacity-55' : ''}`}>
+    <li className={`card p-4 t-small transition-opacity ${dimmed ? 'opacity-55' : ''}`}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <span className="font-medium">{contactName}</span>
         <span className="opacity-60">{meta.place}</span>
@@ -94,7 +94,7 @@ export function InquiryCard({
             )}
           </>
         ) : (
-          <span className="text-xs muted">
+          <span className="t-fine muted">
             {[contactPhone, contactEmail].filter(Boolean).join(' · ')} — {ru.cabinet.inquiryContactsHidden}
           </span>
         )}
@@ -119,7 +119,7 @@ export function InquiryCard({
           </>
         ) : (
           <>
-            <span className="rounded-full bg-surface-2 px-3 py-1 text-xs">
+            <span className="rounded-full bg-surface-2 px-3 py-1 t-fine">
               {handling === 'IN_PROGRESS' ? ru.cabinet.inquiryTaken : ru.cabinet.inquiryDeclined}
             </span>
             <button type="button" onClick={() => void mark(null)} disabled={busy} aria-busy={busy}

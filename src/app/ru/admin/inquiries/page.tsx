@@ -59,7 +59,7 @@ export default async function AdminInquiriesPage({ searchParams }: Params) {
           { label: ru.adminInquiries.statGuests, value: overview.guests, warn: false },
         ].map((s) => (
           <div key={s.label} className="rounded-media border border-line bg-surface-2 px-4 py-3">
-            <div className={`tnum text-2xl ${s.warn ? 'text-warning' : ''}`}>{s.value}</div>
+            <div className={`tnum t-metric-sm ${s.warn ? 'text-warning' : ''}`}>{s.value}</div>
             <div className="t-caption mt-1 muted">{s.label}</div>
           </div>
         ))}
@@ -80,7 +80,7 @@ export default async function AdminInquiriesPage({ searchParams }: Params) {
       </nav>
 
       {items.length === 0 ? (
-        <p className="mt-8 text-sm muted">{ru.adminInquiries.empty}</p>
+        <p className="mt-8 t-small muted">{ru.adminInquiries.empty}</p>
       ) : (
         <ul className="mt-6 grid gap-3">
           {items.map((i) => (
@@ -100,7 +100,7 @@ export default async function AdminInquiriesPage({ searchParams }: Params) {
                 {i.budgetMinor ? ` · ${formatRubMinor(i.budgetMinor)}` : ''}
               </p>
 
-              <p className="mt-2 text-sm">{i.description.slice(0, 400)}</p>
+              <p className="mt-2 t-small">{i.description.slice(0, 400)}</p>
 
               <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
                 {/* Ноль откликов — не строка статистики, а заказчик без ответа */}

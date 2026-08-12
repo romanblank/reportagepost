@@ -46,7 +46,7 @@ export function LandingHero({ photographers, photos, backdropSrc, featured }: {
             {ru.landing.heroTitleRest}{' '}
             <em className="not-italic text-accent" style={{ fontStyle: 'italic' }}>{ru.landing.heroTitleAccent}</em>
           </h1>
-          <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-ink-2 sm:text-lg">{ru.landing.heroLead}</p>
+          <p className="mt-5 max-w-xl t-body-lg text-ink-2">{ru.landing.heroLead}</p>
 
           {/* Поиск по брифу + жанры одной группой. Отдельный ряд чипов и
               подсказка «опишите задачу — подберём» отсюда убраны: они дублировали
@@ -78,7 +78,7 @@ export function LandingHero({ photographers, photos, backdropSrc, featured }: {
               {ru.landing.featuredBadge}
             </span>
             <span className="absolute inset-x-5 bottom-5">
-              <span className="block text-sm text-ink-2">
+              <span className="block t-small text-ink-2">
                 {ru.landing.featuredShotBy} <b className="text-accent">{featured.name}</b>
               </span>
               <span className="mt-1 block t-caption text-muted transition group-hover:text-ink">

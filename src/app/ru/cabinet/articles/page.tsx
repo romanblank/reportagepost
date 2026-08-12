@@ -46,11 +46,11 @@ export default async function CabinetArticlesPage() {
       />
 
       {!approved ? (
-        <p className="mt-6 text-sm muted">{ru.articles.needApproval}</p>
+        <p className="mt-6 t-small muted">{ru.articles.needApproval}</p>
       ) : (
         <>
           <p className="t-caption mt-4 muted">{ru.articles.quotaNote(left, quota)}</p>
-          {left > 0 ? <ArticleForm /> : <p className="mt-4 text-sm muted">{ru.articles.quotaSpent}</p>}
+          {left > 0 ? <ArticleForm /> : <p className="mt-4 t-small muted">{ru.articles.quotaSpent}</p>}
         </>
       )}
 

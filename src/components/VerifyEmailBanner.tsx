@@ -22,23 +22,23 @@ export function VerifyEmailBanner({ email }: { email: string | null }) {
 
   return (
     <section className="card border-recognition/40 bg-recognition-soft/20 p-4">
-      <p className="text-sm font-medium">{ru.auth.emailVerify.bannerTitle}</p>
-      <p className="mt-1 text-sm muted">{ru.auth.emailVerify.bannerText}</p>
+      <p className="t-small font-medium">{ru.auth.emailVerify.bannerTitle}</p>
+      <p className="mt-1 t-small muted">{ru.auth.emailVerify.bannerText}</p>
       {email ? (
-        <p className="mt-1 text-sm muted">{ru.auth.emailVerify.bannerAddress(email)}</p>
+        <p className="mt-1 t-small muted">{ru.auth.emailVerify.bannerAddress(email)}</p>
       ) : null}
       {/* Домен новый, репутации у него нет — письмо часто оказывается в спаме,
           и человек считает, что оно не пришло вовсе */}
-      <p className="t-caption mt-1 muted">{ru.auth.emailVerify.bannerSpamHint}</p>
+      <p className="t-fine mt-1 muted">{ru.auth.emailVerify.bannerSpamHint}</p>
       {sent ? (
-        <p className="mt-2 text-sm text-recognition">{ru.auth.emailVerify.sent}</p>
+        <p className="mt-2 t-small text-recognition">{ru.auth.emailVerify.sent}</p>
       ) : (
         <button type="button" onClick={resend} disabled={busy}
-          className="btn btn-outline mt-3 px-3 py-1.5 text-sm">
+          className="btn btn-outline mt-3 px-3 py-1.5 t-small">
           {ru.auth.emailVerify.resend}
         </button>
       )}
-      {error && <p role="alert" className="mt-1 text-sm text-danger">{ru.ui.toastError}</p>}
+      {error && <p role="alert" className="mt-1 t-small text-danger">{ru.ui.toastError}</p>}
     </section>
   );
 }

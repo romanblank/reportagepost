@@ -70,7 +70,7 @@ export function CabinetNav({
               <Link
                 href={item.href}
                 aria-current={active ? 'page' : undefined}
-                className={`inline-block whitespace-nowrap border-b-2 px-3 py-2 text-sm transition-colors ${
+                className={`inline-block whitespace-nowrap border-b-2 px-3 py-2 t-small transition-colors ${
                   active
                     ? 'border-accent text-ink'
                     : 'border-transparent text-muted hover:border-line-2 hover:text-ink-2'

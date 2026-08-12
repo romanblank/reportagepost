@@ -2,7 +2,7 @@
  * Заголовок раздела — единый способ набора (visual-identity §4.3).
  *
  * До этого разделы профиля озаглавливались вразнобой: часть — мелкой меткой
- * `.t-caption muted`, часть — зашитым `text-lg font-medium`. В итоге страница
+ * `.t-caption muted`, часть — утилитой размера прямо в разметке. В итоге страница
  * читалась как список блоков продукта, а не как разворот издания: у разделов
  * не было веса, а спека прямо запрещает зашитые размеры вместо типо-ролей.
  *
@@ -31,7 +31,7 @@ export function SectionHeading({
           )}
           <h2 className="t-h2 mt-1">{title}</h2>
         </div>
-        {action && <div className="shrink-0 text-sm">{action}</div>}
+        {action && <div className="shrink-0 t-small">{action}</div>}
       </div>
     </div>
   );

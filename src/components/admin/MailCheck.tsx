@@ -32,7 +32,7 @@ export function MailCheck() {
       </button>
 
       {result && (
-        <div className="mt-4 rounded-media border border-line bg-surface-2 p-4 text-sm">
+        <div className="mt-4 rounded-media border border-line bg-surface-2 p-4 t-small">
           {result.ok ? (
             <p className="text-verified">{ru.adminMail.sentTo(result.to)}</p>
           ) : (

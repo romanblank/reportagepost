@@ -31,9 +31,9 @@ export function StoryModerationCard(props: {
     <li className="card p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <span className="font-medium">{props.header}</span>
-        <span className="text-sm muted">{props.meta}</span>
+        <span className="t-small muted">{props.meta}</span>
       </div>
-      {props.description && <p className="mt-1 text-sm muted">{props.description}</p>}
+      {props.description && <p className="mt-1 t-small muted">{props.description}</p>}
       <div className="mt-3 grid grid-cols-4 gap-1 sm:grid-cols-8">
         {props.photoUrls.map((url) => (
           <a key={url} href={url.replace('/thumb.jpg', '/web.jpg')} target="_blank" rel="noreferrer">
@@ -44,17 +44,17 @@ export function StoryModerationCard(props: {
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <button type="button" onClick={() => decide('approve')} disabled={pending}
-          className="btn btn-accent px-4 py-2 text-sm disabled:opacity-50">
+          className="btn btn-accent px-4 py-2 t-small disabled:opacity-50">
           {ru.admin.approve}
         </button>
         <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder={ru.admin.rejectReason}
-          className="input min-w-64 flex-1 text-sm" />
+          className="input min-w-64 flex-1 t-small" />
         <button type="button" onClick={() => decide('reject')} disabled={pending || reason.trim().length < 5}
-          className="btn btn-danger px-4 py-2 text-sm disabled:opacity-40">
+          className="btn btn-danger px-4 py-2 t-small disabled:opacity-40">
           {ru.admin.reject}
         </button>
       </div>
-      {error && <p role="alert" className="mt-2 text-sm text-danger">{error}</p>}
+      {error && <p role="alert" className="mt-2 t-small text-danger">{error}</p>}
     </li>
   );
 }

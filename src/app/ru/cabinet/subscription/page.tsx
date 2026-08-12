@@ -69,7 +69,7 @@ export default async function CabinetSubscriptionPage() {
           ) : null}
         </div>
 
-        <p className="mt-2 text-sm muted">
+        <p className="mt-2 t-small muted">
           {status.currentPeriodEnd
             ? ru.cabinetSubscription.until(formatDateRu(status.currentPeriodEnd))
             : status.tier === 'FREE'
@@ -78,7 +78,7 @@ export default async function CabinetSubscriptionPage() {
         </p>
 
         {status.proRequested && status.tier === 'FREE' ? (
-          <p className="t-caption mt-2 text-warning">{ru.cabinetSubscription.requested}</p>
+          <p className="t-fine mt-2 text-warning">{ru.cabinetSubscription.requested}</p>
         ) : null}
 
         <div className="mt-4 flex flex-wrap gap-3">
@@ -90,7 +90,7 @@ export default async function CabinetSubscriptionPage() {
 
       <section className="mt-8">
         <h2 className="t-h3">{ru.cabinetSubscription.includedTitle}</h2>
-        <ul className="mt-3 grid gap-1.5 text-sm">
+        <ul className="mt-3 grid gap-1.5 t-small">
           {mine.map((f) => (
             <li key={f.key} className="flex gap-2">
               <span aria-hidden className="text-success">✓</span>
@@ -104,7 +104,7 @@ export default async function CabinetSubscriptionPage() {
             <h3 className="t-caption mt-6 muted">
               {ru.cabinetSubscription.nextTitle(ru.pro.tierName[nextTier ?? 'PRIME'])}
             </h3>
-            <ul className="mt-2 grid gap-1.5 text-sm muted">
+            <ul className="mt-2 grid gap-1.5 t-small muted">
               {next.map((f) => (
                 <li key={f.key} className="flex gap-2">
                   <span aria-hidden>·</span>
@@ -119,7 +119,7 @@ export default async function CabinetSubscriptionPage() {
       <section className="mt-8">
         <h2 className="t-h3">{ru.cabinetSubscription.paymentsTitle}</h2>
         {payments.length === 0 ? (
-          <p className="mt-2 text-sm muted">{ru.cabinetSubscription.paymentsEmpty}</p>
+          <p className="mt-2 t-small muted">{ru.cabinetSubscription.paymentsEmpty}</p>
         ) : (
           <ul className="mt-3 grid gap-2">
             {payments.map((p) => (
@@ -127,7 +127,7 @@ export default async function CabinetSubscriptionPage() {
                 className="flex flex-wrap items-baseline justify-between gap-2 rounded-media border border-line bg-surface-2 px-4 py-3">
                 <span className="t-small">{formatDateTimeRu(p.createdAt)}</span>
                 <span className="t-caption muted">{ru.pro.tierName[p.tier] ?? p.tier}</span>
-                <span className="tnum text-sm">{formatRubMinor(p.amountMinor)}</span>
+                <span className="tnum t-small">{formatRubMinor(p.amountMinor)}</span>
                 <span className="t-caption muted">{ru.adminBilling.status[p.status] ?? p.status}</span>
               </li>
             ))}

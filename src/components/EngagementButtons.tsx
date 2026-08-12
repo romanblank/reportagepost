@@ -77,7 +77,7 @@ export function LikeButton({ photoId, initialLiked, initialCount, authed, onDark
   if (onDark) {
     return (
       <button type="button" onClick={onClick} aria-pressed={liked} disabled={busy} aria-busy={busy}
-        className="inline-flex items-center gap-1.5 text-sm font-medium text-white/90 transition hover:text-white disabled:opacity-60">
+        className="inline-flex items-center gap-1.5 t-small font-medium text-white/90 transition hover:text-white disabled:opacity-60">
         <Icon name={liked ? 'heart-filled' : 'heart'} size={17} />
         {count > 0 && <span className="tnum">{count}</span>}
       </button>
@@ -85,7 +85,7 @@ export function LikeButton({ photoId, initialLiked, initialCount, authed, onDark
   }
   return (
     <button type="button" onClick={onClick} aria-pressed={liked} disabled={busy} aria-busy={busy}
-      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors disabled:opacity-60 ${liked ? 'bg-ink text-paper' : 'border-line hover:bg-surface-2'}`}>
+      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 t-small transition-colors disabled:opacity-60 ${liked ? 'bg-ink text-paper' : 'border-line hover:bg-surface-2'}`}>
       <Icon name={liked ? 'heart-filled' : 'heart'} size={16} />
       <span className="tnum">{count}</span>
     </button>

@@ -55,7 +55,7 @@ export default async function Home() {
               </p>
               <h2 className="t-h2 mt-1">{ru.landing.cityAuthorsTitle(cityNameRu('moscow'))}</h2>
             </div>
-            <Link href="/ru/russia/moscow" className="text-sm text-accent hover:underline">
+            <Link href="/ru/russia/moscow" className="t-small text-accent hover:underline">
               {ru.landing.cityAuthorsMore}
             </Link>
           </div>
@@ -80,9 +80,9 @@ export default async function Home() {
             { n: '03', t: ru.landing.trustPoint3Title, d: ru.landing.trustPoint3Text },
           ].map((p) => (
             <li key={p.t} className="border-t border-line pt-4">
-              <span className="tnum text-sm" style={{ fontFamily: 'var(--font-mono)', color: 'var(--recognition)' }}>{p.n}</span>
+              <span className="tnum t-small" style={{ fontFamily: 'var(--font-mono)', color: 'var(--recognition)' }}>{p.n}</span>
               <h3 className="t-h3 mt-2">{p.t}</h3>
-              <p className="mt-2 text-sm leading-relaxed muted">{p.d}</p>
+              <p className="mt-2 t-small leading-relaxed muted">{p.d}</p>
             </li>
           ))}
         </ul>
@@ -98,7 +98,7 @@ export default async function Home() {
               <p className="t-caption muted" style={{ fontFamily: 'var(--font-mono)' }}>{ru.landing.feedKicker}</p>
               <h2 className="t-h2 mt-1">{ru.landing.feedTitle}</h2>
             </div>
-            <Link href="/ru/photo" className="text-sm text-accent hover:underline">{ru.landing.feedMore}</Link>
+            <Link href="/ru/photo" className="t-small text-accent hover:underline">{ru.landing.feedMore}</Link>
           </div>
           <div className="mt-5"><FeedMasonry photos={feedPhotos} /></div>
         </section>
@@ -112,7 +112,7 @@ export default async function Home() {
               <p className="t-caption muted" style={{ fontFamily: 'var(--font-mono)' }}>{ru.landing.newAuthorsKicker}</p>
               <h2 className="t-h2 mt-1">{ru.landing.newAuthorsTitle(cityNameRu('moscow'))}</h2>
             </div>
-            <Link href="/ru/community" className="text-sm text-accent hover:underline">{ru.landing.newAuthorsMore}</Link>
+            <Link href="/ru/community" className="t-small text-accent hover:underline">{ru.landing.newAuthorsMore}</Link>
           </div>
           <ul className="mt-4 grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-4">
             {newAuthors.map((a) => (

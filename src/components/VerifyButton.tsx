@@ -19,7 +19,7 @@ export function VerifyButton({ profileId, verified }: { profileId: string; verif
 
   return (
     <button type="button" onClick={toggle} disabled={pending}
-      className="rounded-full border border-line px-3 py-1 text-xs text-muted transition hover:text-ink disabled:opacity-50">
+      className="rounded-full border border-line px-3 py-1 t-fine text-muted transition hover:text-ink disabled:opacity-50">
       {verified ? ru.profile.adminUnverify : ru.profile.adminVerify}
     </button>
   );

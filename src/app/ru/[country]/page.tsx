@@ -60,7 +60,7 @@ export default async function CountryPage(props: { params: Promise<{ country: st
               className="card card-hover flex items-baseline justify-between px-4 py-3">
               <span>{cityNameRu(city.slug)}</span>
               {city._count.profiles > 0 && (
-                <span className="text-sm muted">{city._count.profiles}</span>
+                <span className="t-small muted">{city._count.profiles}</span>
               )}
             </Link>
           </li>

@@ -42,22 +42,22 @@ export function PhotoModerationCard(props: {
           <Link href={`/ru/photographer/${props.username}`} target="_blank" className="font-medium hover:underline">
             {props.authorName}
           </Link>
-          <span className="text-xs muted">{props.meta}</span>
+          <span className="t-fine muted">{props.meta}</span>
         </div>
-        {props.aiHint && <p className="mt-1 text-xs text-recognition">{props.aiHint}</p>}
+        {props.aiHint && <p className="mt-1 t-fine text-recognition">{props.aiHint}</p>}
         <div className="mt-3 flex flex-col gap-2">
           <button type="button" onClick={() => decide('approve')} disabled={pending}
-            className="btn btn-accent px-4 py-2 text-sm disabled:opacity-50">
+            className="btn btn-accent px-4 py-2 t-small disabled:opacity-50">
             {ru.admin.approve}
           </button>
           <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder={ru.admin.rejectReason}
-            className="input text-sm" />
+            className="input t-small" />
           <button type="button" onClick={() => decide('reject')} disabled={pending || reason.trim().length < 5}
-            className="btn btn-danger px-4 py-2 text-sm disabled:opacity-40">
+            className="btn btn-danger px-4 py-2 t-small disabled:opacity-40">
             {ru.admin.reject}
           </button>
         </div>
-        {error && <p role="alert" className="mt-2 text-sm text-danger">{error}</p>}
+        {error && <p role="alert" className="mt-2 t-small text-danger">{error}</p>}
       </div>
     </li>
   );

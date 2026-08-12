@@ -34,12 +34,12 @@ export default async function MessagesPage() {
                 <span className="font-medium">
                   {d.peer.firstName} {d.peer.lastName}
                   {d.unread > 0 && (
-                    <span className="ml-2 rounded-full bg-foreground px-2 py-0.5 text-xs text-background">
+                    <span className="ml-2 rounded-full bg-foreground px-2 py-0.5 t-fine text-background">
                       {ru.messages.unread(d.unread)}
                     </span>
                   )}
                 </span>
-                <span className="line-clamp-1 text-sm muted">{d.last.body}</span>
+                <span className="line-clamp-1 t-small muted">{d.last.body}</span>
               </Link>
             </li>
           ))}

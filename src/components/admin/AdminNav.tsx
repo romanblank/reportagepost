@@ -44,7 +44,7 @@ export function AdminNav({ counters }: { counters?: NavCounters }) {
               <Link
                 href={s.href}
                 aria-current={active ? 'page' : undefined}
-                className={`inline-block whitespace-nowrap border-b-2 px-3 py-2 text-sm transition-colors ${
+                className={`inline-block whitespace-nowrap border-b-2 px-3 py-2 t-small transition-colors ${
                   active
                     ? 'border-accent text-ink'
                     : 'border-transparent text-muted hover:border-line-2 hover:text-ink-2'
@@ -54,7 +54,7 @@ export function AdminNav({ counters }: { counters?: NavCounters }) {
                 {/* Счётчик — не украшение: без него узнать о накопившейся
                     очереди можно только зайдя в раздел */}
                 {counters?.[s.key] ? (
-                  <span className="ml-1.5 rounded-full bg-accent-soft px-1.5 py-0.5 text-xs tabular-nums text-accent">
+                  <span className="ml-1.5 rounded-full bg-accent-soft px-1.5 py-0.5 t-fine tabular-nums text-accent">
                     {counters[s.key]}
                   </span>
                 ) : null}

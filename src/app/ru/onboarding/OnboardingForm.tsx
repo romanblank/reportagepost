@@ -127,8 +127,8 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
   if (step === 'done') {
     return (
       <div className="card p-6">
-        <div className="inline-flex items-center gap-2 rounded-full bg-accent/10 px-3 py-1 text-sm text-accent">✓ {ru.onboarding.doneTitle}</div>
-        <p className="mt-3 text-sm muted">{ru.onboarding.doneText}</p>
+        <div className="inline-flex items-center gap-2 rounded-full bg-accent/10 px-3 py-1 t-small text-accent">✓ {ru.onboarding.doneTitle}</div>
+        <p className="mt-3 t-small muted">{ru.onboarding.doneText}</p>
         <Link href="/ru/cabinet" className="btn btn-accent mt-3">
           {ru.onboarding.toCabinet}
         </Link>
@@ -142,19 +142,19 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
     return (
       <section>
         <h2 className="t-title">{ru.onboarding.photosTitle}</h2>
-        <p className="mt-1 text-sm opacity-60">
+        <p className="mt-1 t-small opacity-60">
           {ru.onboarding.photosHint(ONBOARDING_PHOTOS_MIN, ONBOARDING_PHOTOS_MAX, MIN_LONG_SIDE)}
         </p>
 
-        <p className="mt-3 text-sm font-medium">{ru.onboarding.uploaded(uploaded, ONBOARDING_PHOTOS_MAX)}</p>
+        <p className="mt-3 t-small font-medium">{ru.onboarding.uploaded(uploaded, ONBOARDING_PHOTOS_MAX)}</p>
         {remaining > 0 && !uploadProgress && (
-          <p className="text-sm opacity-60">{ru.onboarding.needMore(remaining)}</p>
+          <p className="t-small opacity-60">{ru.onboarding.needMore(remaining)}</p>
         )}
 
         {limitHit && (
           <div className="mt-4 card border-recognition/40 bg-recognition-soft/30 p-4">
             <p className="font-medium text-recognition">{ru.onboarding.limitUpsellTitle}</p>
-            <p className="mt-1 text-sm muted">{ru.onboarding.limitUpsellText(ONBOARDING_PHOTOS_MAX)}</p>
+            <p className="mt-1 t-small muted">{ru.onboarding.limitUpsellText(ONBOARDING_PHOTOS_MAX)}</p>
             <Link href="/ru/pro" className="btn btn-accent btn-sm mt-3">{ru.onboarding.limitUpsellCta}</Link>
           </div>
         )}
@@ -162,7 +162,7 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
         {/* Живой прогресс загрузки пачки (skeleton-полоса, не спиннер) */}
         {uploadProgress && (
           <div className="mt-2">
-            <p className="text-sm">{ru.onboarding.uploadingN(uploadProgress.done, uploadProgress.total)}</p>
+            <p className="t-small">{ru.onboarding.uploadingN(uploadProgress.done, uploadProgress.total)}</p>
             <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-surface-2">
               <div className="h-full bg-accent transition-all" style={{ width: `${pct}%` }} />
             </div>
@@ -195,7 +195,7 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
               input.value = '';
             }} />
         </label>
-        {error && <p role="alert" className="mt-2 text-sm text-danger">{error}</p>}
+        {error && <p role="alert" className="mt-2 t-small text-danger">{error}</p>}
 
         <button type="button"
           onClick={() => setStep('done')}
@@ -205,7 +205,7 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
           {ru.onboarding.finish}
         </button>
         {uploaded < ONBOARDING_PHOTOS_MIN && (
-          <p className="mt-1 text-xs opacity-50">{ru.onboarding.finishHint(ONBOARDING_PHOTOS_MIN)}</p>
+          <p className="mt-1 t-fine opacity-50">{ru.onboarding.finishHint(ONBOARDING_PHOTOS_MIN)}</p>
         )}
       </section>
     );
@@ -216,7 +216,7 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
       <div>
         <label htmlFor="onb-username" className="field-label">{ru.onboarding.username}</label>
         {!editingUsername ? (
-          <div className="flex items-center justify-between gap-2 rounded-media border border-line bg-surface-2 px-3.5 py-2.5 text-sm">
+          <div className="flex items-center justify-between gap-2 rounded-media border border-line bg-surface-2 px-3.5 py-2.5 t-small">
             <span className="truncate muted">{ru.onboarding.usernamePreview(username)}</span>
             <button type="button" onClick={() => setEditingUsername(true)}
               className="shrink-0 font-medium text-accent">{ru.onboarding.usernameEdit}</button>
@@ -318,8 +318,8 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
           </button>
         )}
       </fieldset>
-      {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-      {chosenCats.length === 0 && <p className="text-sm muted">{ru.onboarding.needCategory}</p>}
+      {error && <p role="alert" className="t-small text-danger">{error}</p>}
+      {chosenCats.length === 0 && <p className="t-small muted">{ru.onboarding.needCategory}</p>}
       <button type="submit" disabled={pending || chosenCats.length === 0} className="btn btn-accent">
         {ru.onboarding.submitProfile}
       </button>

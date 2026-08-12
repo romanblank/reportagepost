@@ -30,7 +30,7 @@ export function Rating({
         ))}
       </span>
       {showCount && (
-        <span className="tnum text-sm">
+        <span className="tnum t-small">
           <b className="font-semibold">{value.toFixed(1)}</b>
           {count != null && <span className="muted"> ({count})</span>}
         </span>

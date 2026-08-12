@@ -39,7 +39,7 @@ export function ShowPhoneButton({ profileId }: { profileId: string }) {
         className="rounded-full border border-line px-3 py-1.5 transition hover:bg-surface-2 disabled:opacity-60">
         {pending ? ru.ui.loading : ru.profile.showPhone}
       </button>
-      {error && <span role="alert" className="text-xs text-danger">{error}</span>}
+      {error && <span role="alert" className="t-fine text-danger">{error}</span>}
     </span>
   );
 }

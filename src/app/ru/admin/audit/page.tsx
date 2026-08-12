@@ -39,15 +39,15 @@ export default async function AdminAuditPage(props: {
         title={ru.adminAudit.title}
         lead={ru.adminNav.auditLead}
       />
-      <p className="mt-1 text-sm muted">{ru.adminAudit.lead}</p>
+      <p className="mt-1 t-small muted">{ru.adminAudit.lead}</p>
 
       {rows.length === 0 ? (
-        <p className="mt-4 text-sm muted">{ru.adminAudit.empty}</p>
+        <p className="mt-4 t-small muted">{ru.adminAudit.empty}</p>
       ) : (
         <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[640px] text-sm">
+          <table className="w-full min-w-[640px] t-small">
             <thead>
-              <tr className="border-b border-line text-left text-xs uppercase muted">
+              <tr className="border-b border-line text-left t-fine uppercase muted">
                 <th className="py-2 pr-3">{ru.adminAudit.colTime}</th>
                 <th className="py-2 pr-3">{ru.adminAudit.colActor}</th>
                 <th className="py-2 pr-3">{ru.adminAudit.colAction}</th>
@@ -66,7 +66,7 @@ export default async function AdminAuditPage(props: {
                   </td>
                   <td className="py-2 pr-3 whitespace-nowrap font-medium">{r.action}</td>
                   <td className="py-2 pr-3 whitespace-nowrap muted">{r.targetType} · {r.targetId.slice(0, 8)}</td>
-                  <td className="py-2 font-mono text-xs muted">{r.meta ? JSON.stringify(r.meta) : '—'}</td>
+                  <td className="py-2 font-mono t-fine muted">{r.meta ? JSON.stringify(r.meta) : '—'}</td>
                 </tr>
               ))}
             </tbody>

@@ -71,7 +71,7 @@ export default async function SearchPage(props: {
         <p className="mt-8 muted">{ru.search.empty}</p>
       ) : (
         <>
-          <p className="mt-6 text-sm muted">
+          <p className="mt-6 t-small muted">
             {ru.search.found(result.items.length + (result.page - 1) * result.pageSize, result.total)}
             {result.correctedQuery && ` · ${ru.search.corrected(result.correctedQuery)}`}
           </p>
@@ -95,7 +95,7 @@ export default async function SearchPage(props: {
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={avatarUrl(r.avatarKey)} alt="" width={28} height={28} className="h-7 w-7 shrink-0 rounded-full object-cover" />
                       ) : (
-                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-surface-2 text-xs">
+                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-surface-2 t-fine">
                           {r.firstName.slice(0, 1)}{r.lastName.slice(0, 1)}
                         </span>
                       )}
@@ -103,9 +103,9 @@ export default async function SearchPage(props: {
                       {r.verified && <VerifiedBadge label={ru.profile.verified} size={15} />}
                     </span>
                     {r.reviewCount > 0 && (
-                      <p className="mt-1 text-sm muted">{ru.reviews.count(r.reviewCount)}</p>
+                      <p className="mt-1 t-small muted">{ru.reviews.count(r.reviewCount)}</p>
                     )}
-                    <p className="mt-1 text-sm muted">
+                    <p className="mt-1 t-small muted">
                       {cityNameRu(r.citySlug)} · {r.categories.map((c) => categoryNameRu(c)).join(' · ')}
                     </p>
                   </div>
@@ -120,7 +120,7 @@ export default async function SearchPage(props: {
               {result.page > 1 && (
                 <Link href={pageHref(result.page - 1)} className="btn btn-outline btn-sm">←</Link>
               )}
-              <span className="text-sm muted tnum">{result.page}</span>
+              <span className="t-small muted tnum">{result.page}</span>
               {result.hasNext && (
                 <Link href={pageHref(result.page + 1)} className="btn btn-outline btn-sm">{ru.search.more}</Link>
               )}

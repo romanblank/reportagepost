@@ -84,12 +84,12 @@ export function CatalogCards({ cards, cityName }: { cards: CatalogCard[]; cityNa
                   {card.verified && <VerifiedBadge label={ru.profile.verified} size={15} />}
                   {card.tier !== 'FREE' && <TierBadge tier={card.tier} label={ru.pro.tierName[card.tier]} />}
                 </span>
-                <span className="mt-1 truncate text-sm muted">
+                <span className="mt-1 truncate t-small muted">
                   {cityName}{catNames.length > 0 ? ` · ${catNames.join(', ')}` : ''}
                 </span>
 
                 {/* Нижняя строка: цена и факт доверия — то, по чему сравнивают */}
-                <span className="mt-auto flex items-baseline justify-between gap-3 border-t border-line pt-3 text-sm"
+                <span className="mt-auto flex items-baseline justify-between gap-3 border-t border-line pt-3 t-small"
                   style={{ marginTop: 'auto', paddingTop: '0.75rem' }}>
                   <span className="tnum">
                     {card.minPackage ? (
@@ -133,7 +133,7 @@ export function CategoryLinks({
   if (vertical) {
     const item = (href: string, label: string, active: boolean, count?: number) => (
       <Link key={href} href={href}
-        className={`flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm transition ${active ? 'bg-surface-2 font-medium text-accent' : 'muted hover:bg-surface-2 hover:text-ink'}`}>
+        className={`flex items-center justify-between gap-3 rounded-md px-3 py-2 t-small transition ${active ? 'bg-surface-2 font-medium text-accent' : 'muted hover:bg-surface-2 hover:text-ink'}`}>
         <span className="truncate">{label}</span>
         {count != null && count > 0 && <span className="shrink-0 tnum text-[12.5px] opacity-70">{count}</span>}
       </Link>

@@ -20,7 +20,7 @@ export function FeedMasonry({ photos }: { photos: FeedPhoto[] }) {
               alt={`${p.firstName} ${p.lastName}`} loading="lazy" width={p.width} height={p.height}
               className="w-full bg-cover bg-center transition duration-500 ease-out group-hover:scale-[1.03]"
               style={p.blurData ? { backgroundImage: `url(${p.blurData})` } : undefined} />
-            <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end bg-gradient-to-t from-black/55 to-transparent px-3 pb-2.5 pt-8 text-xs font-medium text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+            <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end bg-gradient-to-t from-black/55 to-transparent px-3 pb-2.5 pt-8 t-fine font-medium text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100">
               {p.firstName} {p.lastName}
             </span>
           </div>
@@ -72,7 +72,7 @@ export function FeedRow({ photos }: { photos: FeedPhoto[] }) {
           <img src={thumbVariantUrl(p.storageKey)} alt={`${p.firstName} ${p.lastName}`} loading="lazy" width={p.width} height={p.height}
             className="aspect-[4/5] w-full bg-cover bg-center object-cover transition duration-500 group-hover:scale-[1.03]"
             style={p.blurData ? { backgroundImage: `url(${p.blurData})` } : undefined} />
-          <span className="absolute inset-x-0 bottom-0 flex items-center bg-gradient-to-t from-black/60 to-transparent px-3 pb-3 pt-10 text-sm font-medium text-white">
+          <span className="absolute inset-x-0 bottom-0 flex items-center bg-gradient-to-t from-black/60 to-transparent px-3 pb-3 pt-10 t-small font-medium text-white">
             {p.firstName} {p.lastName}
           </span>
         </Link>

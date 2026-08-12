@@ -57,12 +57,12 @@ export function RejectedItem({
   }
 
   if (status === 'IN_REVIEW') {
-    return <p className="t-caption mt-2 muted">{ru.forum.inReview}</p>;
+    return <p className="t-fine mt-2 muted">{ru.forum.inReview}</p>;
   }
 
   return (
     <div className="mt-2">
-      <p className="text-sm">{ru.moderation.reasons[reason]}</p>
+      <p className="t-small">{ru.moderation.reasons[reason]}</p>
       {reasonQuote ? (
         <p className="t-caption mt-1 muted">
           {ru.moderation.quoteLabel}: <span className="text-ink">«{reasonQuote}»</span>

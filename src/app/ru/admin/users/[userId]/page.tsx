@@ -58,7 +58,7 @@ export default async function AdminUserPage(props: { params: Promise<{ userId: s
         title={`${u.firstName} ${u.lastName}`}
       />
       {u.profile && (
-        <p className="mt-1 text-sm">
+        <p className="mt-1 t-small">
           <Link href={`/ru/photographer/${u.profile.username}`} className="underline">
             {ru.adminUsers.openProfile}
           </Link>
@@ -66,7 +66,7 @@ export default async function AdminUserPage(props: { params: Promise<{ userId: s
         </p>
       )}
 
-      <dl className="mt-6 grid gap-2 rounded-media border border-line bg-surface-2 p-4 text-sm">
+      <dl className="mt-6 grid gap-2 rounded-media border border-line bg-surface-2 p-4 t-small">
         {facts.map(([k, v]) => (
           <div key={k} className="flex flex-wrap justify-between gap-3">
             <dt className="muted">{k}</dt>

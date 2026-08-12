@@ -52,15 +52,15 @@ export default function LoginPage() {
       <AuthScene>
         <h1 className="t-h2">{ru.auth.twoFa.challengeTitle}</h1>
         <form onSubmit={onVerify} className="mt-6 flex flex-col gap-4">
-          <p className="text-sm muted">{ru.auth.twoFa.challengeLead}</p>
+          <p className="t-small muted">{ru.auth.twoFa.challengeLead}</p>
           <div>
             <label className="field-label" htmlFor="code">{ru.auth.twoFa.codeLabel}</label>
             <input id="code" name="code" inputMode="numeric" autoComplete="one-time-code" autoFocus
               placeholder={ru.auth.twoFa.codePlaceholder}
-              className="input tnum text-center text-lg tracking-[0.3em]" />
+              className="input input-code" />
             <span className="field-hint">{ru.auth.twoFa.recoveryHint}</span>
           </div>
-          {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+          {error && <p role="alert" className="t-small text-danger">{error}</p>}
           <button type="submit" disabled={pending} className="btn btn-accent btn-lg mt-1">{ru.auth.twoFa.verify}</button>
         </form>
       </AuthScene>
@@ -78,15 +78,15 @@ export default function LoginPage() {
         <div>
           <div className="flex items-baseline justify-between">
             <label className="field-label" htmlFor="password">{ru.auth.password}</label>
-            <Link href="/ru/forgot" className="text-xs underline muted hover:text-ink">{ru.auth.pwreset.forgotLink}</Link>
+            <Link href="/ru/forgot" className="t-fine underline muted hover:text-ink">{ru.auth.pwreset.forgotLink}</Link>
           </div>
           <input id="password" name="password" type="password" required autoComplete="current-password" className="input" />
         </div>
-        {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+        {error && <p role="alert" className="t-small text-danger">{error}</p>}
         <button type="submit" disabled={pending} className="btn btn-accent btn-lg mt-1">
           {ru.auth.submitLogin}
         </button>
-        <p className="mt-2 text-sm muted">
+        <p className="mt-2 t-small muted">
           {ru.auth.noAccount}{' '}
           <Link href="/ru/register" className="underline hover:text-ink">{ru.auth.toRegister}</Link>
         </p>

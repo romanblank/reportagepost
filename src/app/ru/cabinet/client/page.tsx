@@ -53,14 +53,14 @@ export default async function ClientCabinetPage() {
       <section className="mt-6">
         <h2 className="t-title">{ru.clientCabinet.favoritesTitle}</h2>
         {favorites.length === 0 ? (
-          <p className="mt-2 text-sm muted">{ru.clientCabinet.favoritesEmpty}</p>
+          <p className="mt-2 t-small muted">{ru.clientCabinet.favoritesEmpty}</p>
         ) : (
           <ul className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {favorites.map((p) => (
               <li key={p.id} className="card p-3">
                 <Link href={`/ru/photographer/${p.username}`} className="block">
                   <span className="font-medium">{p.user.firstName} {p.user.lastName}</span>
-                  <span className="block text-xs muted">{cityNameRu(p.city.slug)}</span>
+                  <span className="block t-fine muted">{cityNameRu(p.city.slug)}</span>
                   <div className="mt-2 grid grid-cols-3 gap-1 overflow-hidden rounded-media">
                     {p.photos.map((ph) => (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -86,7 +86,7 @@ export default async function ClientCabinetPage() {
                   <Link href={`/ru/photographer/${s.username}`} className="font-medium hover:underline">
                     {s.firstName} {s.lastName}
                   </Link>
-                  <p className="text-xs muted">{ru.clientCabinet.shotTogether(s.count)}</p>
+                  <p className="t-fine muted">{ru.clientCabinet.shotTogether(s.count)}</p>
                 </div>
                 {s.reviewed ? (
                   <span className="t-caption shrink-0 text-recognition">{ru.clientCabinet.reviewed}</span>
@@ -104,17 +104,17 @@ export default async function ClientCabinetPage() {
       <section className="mt-8">
         <h2 className="t-title">{ru.clientCabinet.myInquiriesTitle}</h2>
         {inquiries.length === 0 ? (
-          <p className="mt-2 text-sm muted">{ru.clientCabinet.myInquiriesEmpty}</p>
+          <p className="mt-2 t-small muted">{ru.clientCabinet.myInquiriesEmpty}</p>
         ) : (
           <ul className="mt-3 flex flex-col gap-3">
             {inquiries.map((i) => (
-              <li key={i.id} className="card p-4 text-sm">
+              <li key={i.id} className="card p-4 t-small">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <span className="opacity-70">
                     {cityNameRu(i.city.slug)}
                     {i.category ? ` · ${categoryNameRu(i.category.slug)}` : ''}
                   </span>
-                  <span className="text-xs opacity-50">
+                  <span className="t-fine opacity-50">
                     {i.status === 'OPEN' ? ru.clientCabinet.inquiryStatusOpen : ru.clientCabinet.inquiryStatusClosed}
                   </span>
                 </div>
@@ -133,7 +133,7 @@ export default async function ClientCabinetPage() {
       </div>
 
       <section className="mt-8 border-t border-line pt-5">
-        <p className="text-sm font-medium">{ru.account.dangerTitle}</p>
+        <p className="t-small font-medium">{ru.account.dangerTitle}</p>
         <div className="mt-2"><DeleteAccountButton /></div>
       </section>
       </div>

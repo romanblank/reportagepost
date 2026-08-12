@@ -29,8 +29,8 @@ export function EmptyState({
           {icon}
         </div>
       )}
-      <p className="text-lg font-medium">{title}</p>
-      {subtitle && <p className="mt-1.5 text-sm muted">{subtitle}</p>}
+      <p className="t-h3">{title}</p>
+      {subtitle && <p className="mt-1.5 t-small muted">{subtitle}</p>}
       {acts.length > 0 && (
         <div className="mt-5 flex flex-wrap justify-center gap-2">
           {acts.map((a) => (

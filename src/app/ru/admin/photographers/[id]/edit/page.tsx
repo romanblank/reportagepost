@@ -40,7 +40,7 @@ export default async function AdminEditProfilePage(props: { params: Promise<{ id
         crumbs={[{ href: '/ru/admin', label: ru.adminHome.title }, { href: `/ru/admin/photographers/${profile.id}`, label: ru.adminPhotographers.manage }]}
         title={ru.editProfile.title}
       />
-      <p className="mt-1 text-sm muted">{profile.user.firstName} {profile.user.lastName} · @{profile.username}</p>
+      <p className="mt-1 t-small muted">{profile.user.firstName} {profile.user.lastName} · @{profile.username}</p>
       <EditProfileForm
         endpoint={`/api/admin/photographers/${profile.id}/edit`}
         showAvatar={false}

@@ -59,7 +59,7 @@ export function StoryComposer({ photos }: { photos: ComposerPhoto[] }) {
   }
 
   if (photos.length < MIN) {
-    return <p className="mt-4 text-sm muted">{ru.cabinetStories.needPhotos(MIN)}</p>;
+    return <p className="mt-4 t-small muted">{ru.cabinetStories.needPhotos(MIN)}</p>;
   }
 
   return (

@@ -52,7 +52,7 @@ export default async function AdminBillingPage() {
           { label: ru.adminBilling.statRequests, value: String(overview.pendingRequests) },
         ].map((s) => (
           <div key={s.label} className="rounded-media border border-line bg-surface-2 px-4 py-3">
-            <div className="tnum text-2xl">{s.value}</div>
+            <div className="tnum t-metric-sm">{s.value}</div>
             <div className="t-caption mt-1 muted">{s.label}</div>
           </div>
         ))}
@@ -61,7 +61,7 @@ export default async function AdminBillingPage() {
       {waiting.length > 0 && (
         <section className="mt-8">
           <h2 className="t-h3">{ru.adminBilling.waitingTitle}</h2>
-          <p className="t-caption mt-1 muted">{ru.adminBilling.waitingHint}</p>
+          <p className="t-fine mt-1 muted">{ru.adminBilling.waitingHint}</p>
           <ul className="mt-3 grid gap-2">
             {waiting.map((s) => (
               <li key={s.userId}
@@ -84,7 +84,7 @@ export default async function AdminBillingPage() {
       <section className="mt-8">
         <h2 className="t-h3">{ru.adminBilling.subsTitle}</h2>
         {subs.length === 0 ? (
-          <p className="mt-2 text-sm muted">{ru.adminBilling.subsEmpty}</p>
+          <p className="mt-2 t-small muted">{ru.adminBilling.subsEmpty}</p>
         ) : (
           <ul className="mt-3 grid gap-2">
             {subs.map((s) => (
@@ -110,10 +110,10 @@ export default async function AdminBillingPage() {
       <section className="mt-8">
         <h2 className="t-h3">{ru.adminBilling.paymentsTitle}</h2>
         {payments.length === 0 ? (
-          <p className="mt-2 text-sm muted">{ru.adminBilling.paymentsEmpty}</p>
+          <p className="mt-2 t-small muted">{ru.adminBilling.paymentsEmpty}</p>
         ) : (
           <div className="mt-3 overflow-x-auto">
-            <table className="w-full min-w-[640px] text-sm">
+            <table className="w-full min-w-[640px] t-small">
               <thead className="t-caption muted">
                 <tr className="border-b border-line text-left">
                   <th className="py-2 pr-4">{ru.adminBilling.colWhen}</th>
@@ -132,7 +132,7 @@ export default async function AdminBillingPage() {
                     <td className="py-2 pr-4 tnum whitespace-nowrap">{formatRubMinor(p.amountMinor)}</td>
                     <td className="py-2 pr-4">{ru.pro.tierName[p.tier] ?? p.tier}</td>
                     <td className="py-2 pr-4">{ru.adminBilling.status[p.status] ?? p.status}</td>
-                    <td className="py-2 font-mono text-xs muted">{p.orderId}</td>
+                    <td className="py-2 font-mono t-fine muted">{p.orderId}</td>
                   </tr>
                 ))}
               </tbody>
