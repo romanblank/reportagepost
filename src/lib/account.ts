@@ -79,8 +79,8 @@ export async function deleteAccount(userId: string): Promise<void> {
   const storageKeys: string[] = [];
   if (profile) {
     for (const ph of profile.photos) {
-      // Ключ всегда photos/<id>/original.jpg — но гардим формат (ревью №8):
-      // при неожиданном ключе не плодим неверные варианты-сироты.
+      // Ключ кадра указывает на вариант (web.jpg, у старых — original.jpg),
+      // но формат гардим (ревью №8): при неожиданном ключе не плодим сирот.
       // Через общий список: своя копия знала только про JPEG, и фотографии
       // удалённого человека оставались в бакете в формате WebP
       storageKeys.push(...photoStorageKeys(ph.storageKey));

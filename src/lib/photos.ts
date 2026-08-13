@@ -76,6 +76,13 @@ export async function analyzePhoto(input: Buffer): Promise<AnalyzedPhoto> {
 /**
  * Стадия 2 — варианты (web 2048, thumb 640) в хранилище. EXIF вычищается
  * (rotate применяет ориентацию до удаления метаданных).
+ *
+ * Полноразмерный оригинал НЕ хранится (решение 2026-08-14). Он не читался
+ * ничем: раздатчик отдаёт web/thumb, презентация берёт web, премодерация
+ * работает с буфером до сохранения. При этом на кадре с 24-мегапиксельной
+ * камеры оригинал — 4,5 МБ из 5,4, то есть 84% всего хранилища уходило на
+ * файл, который никто не открывает. Печать с платформы не идёт: заказчик
+ * получает файлы у автора напрямую, поэтому 2048 px хватает с запасом.
  */
 export async function storePhotoVariants(input: Buffer): Promise<{ storageKey: string }> {
   const id = randomUUID();
@@ -88,7 +95,6 @@ export async function storePhotoVariants(input: Buffer): Promise<{ storageKey: s
   // гигабайта: три одновременные загрузки клали прод. Теперь исходник
   // разбирается один раз, дальше уменьшенные варианты строятся из веб-версии.
   const rotated = await img(input).rotate().toBuffer();
-  const original = await img(rotated).jpeg({ quality: 92 }).toBuffer();
   const web = await img(rotated).resize(2048, 2048, { fit: 'inside' }).jpeg({ quality: 82 }).toBuffer();
   // Миниатюра и WebP — уже из веб-варианта: он меньше исходника на порядок, а
   // визуальная разница на 640px неразличима
@@ -96,13 +102,12 @@ export async function storePhotoVariants(input: Buffer): Promise<{ storageKey: s
   const webWebp = await img(web).webp({ quality: 80 }).toBuffer();
   const thumbWebp = await img(thumb).webp({ quality: 76 }).toBuffer();
 
-  await storage.put(`${base}/original.jpg`, original, 'image/jpeg');
   await storage.put(`${base}/web.jpg`, web, 'image/jpeg');
   await storage.put(`${base}/thumb.jpg`, thumb, 'image/jpeg');
   await storage.put(`${base}/web.webp`, webWebp, 'image/webp');
   await storage.put(`${base}/thumb.webp`, thumbWebp, 'image/webp');
 
-  return { storageKey: `${base}/original.jpg` };
+  return { storageKey: `${base}/web.jpg` };
 }
 
 /** Аватар: квадрат 400×400 (cover) в хранилище. Уникальный ключ на загрузку —
@@ -123,13 +128,39 @@ export function avatarUrl(key: string): string {
   return storage.publicUrl(key);
 }
 
-/** URL веб-варианта по ключу оригинала. */
+/**
+ * Папка кадра по его ключу.
+ *
+ * Ключей два поколения: до 2026-08-14 запись указывала на `original.jpg`,
+ * после — сразу на `web.jpg`. Разбирать это в каждом месте нельзя: ровно так
+ * появляются варианты, о которых знает не весь код (уже стоило нам вечно
+ * раздающегося WebP у отклонённых кадров). Место разбора одно — здесь.
+ *
+ * `null` — ключ не из наших вариантов (аватар, чужой формат): такой адресуется
+ * как есть.
+ */
+export function photoBase(storageKey: string): string | null {
+  const slash = storageKey.lastIndexOf('/');
+  if (slash < 0) return null;
+  const name = storageKey.slice(slash + 1);
+  const known = name === LEGACY_ORIGINAL || (PHOTO_VARIANTS as readonly string[]).includes(name);
+  return known ? storageKey.slice(0, slash) : null;
+}
+
+/** Ключ веб-варианта — для тех, кто читает файл из хранилища напрямую (PDF). */
+export function webVariantKey(storageKey: string): string {
+  const base = photoBase(storageKey);
+  return base ? `${base}/web.jpg` : storageKey;
+}
+
+/** URL веб-варианта по ключу кадра. */
 export function webVariantUrl(storageKey: string): string {
-  return storage.publicUrl(storageKey.replace('/original.jpg', '/web.jpg'));
+  return storage.publicUrl(webVariantKey(storageKey));
 }
 
 export function thumbVariantUrl(storageKey: string): string {
-  return storage.publicUrl(storageKey.replace('/original.jpg', '/thumb.jpg'));
+  const base = photoBase(storageKey);
+  return storage.publicUrl(base ? `${base}/thumb.jpg` : storageKey);
 }
 
 /**
@@ -140,18 +171,21 @@ export function thumbVariantUrl(storageKey: string): string {
  * Рассинхрон уже стоил того, что отклонённый кадр продолжал раздаваться.
  */
 export function photoStorageKeys(storageKey: string): string[] {
-  if (storageKey.endsWith('/original.jpg')) {
-    const base = storageKey.slice(0, -'/original.jpg'.length);
-    // Ровно то, что кладёт storePhotoVariants — список сверяется тестом.
-    // WebP тут не роскошь: именно его предпочитает каталог, и именно он
-    // раздавался вечно после отклонения кадра и удаления аккаунта.
-    return PHOTO_VARIANTS.map((v) => `${base}/${v}`);
-  }
-  return [storageKey];
+  const base = photoBase(storageKey);
+  if (!base) return [storageKey];
+  // Оригинал в списке УДАЛЕНИЯ, хотя больше не пишется: у кадров, залитых до
+  // 2026-08-14, он лежит в бакете, и забыть его здесь значит оставить самый
+  // тяжёлый файл раздаваться по прямой ссылке после отклонения по жалобе.
+  // Удаление отсутствующего объекта безвредно — S3 идемпотентен, дисковый
+  // адаптер глотает ENOENT.
+  return [...PHOTO_VARIANTS.map((v) => `${base}/${v}`), `${base}/${LEGACY_ORIGINAL}`];
 }
 
 /** Имена объектов, которые создаёт `storePhotoVariants`. Единственный список. */
-export const PHOTO_VARIANTS = ['original.jpg', 'web.jpg', 'thumb.jpg', 'web.webp', 'thumb.webp'] as const;
+export const PHOTO_VARIANTS = ['web.jpg', 'thumb.jpg', 'web.webp', 'thumb.webp'] as const;
+
+/** Полноразмерный оригинал — только у кадров до 2026-08-14. Не создаётся. */
+export const LEGACY_ORIGINAL = 'original.jpg';
 
 /**
  * Адрес WebP-варианта. `null`, если кадр загружен до появления формата —
@@ -159,7 +193,6 @@ export const PHOTO_VARIANTS = ['original.jpg', 'web.jpg', 'thumb.jpg', 'web.webp
  * нескольких процентов трафика дороже, чем оставить как есть.
  */
 export function webpVariantUrl(storageKey: string, kind: 'web' | 'thumb' = 'web'): string | null {
-  if (!storageKey.endsWith('/original.jpg')) return null;
-  const base = storageKey.slice(0, -'/original.jpg'.length);
-  return storage.publicUrl(`${base}/${kind}.webp`);
+  const base = photoBase(storageKey);
+  return base ? storage.publicUrl(`${base}/${kind}.webp`) : null;
 }

@@ -12,6 +12,7 @@ import { NextResponse } from 'next/server';
 import { cityNameRu } from '@/lib/geo-data';
 import { categoryNameRu } from '@/lib/category-data';
 import { APP_DOMAIN } from '@/lib/constants';
+import { webVariantKey } from '@/lib/photos';
 
 export const maxDuration = 120; // сорок кадров: чтение из хранилища + sharp
 export const dynamic = 'force-dynamic';
@@ -62,7 +63,7 @@ export function GET() {
     const load = async (storageKey: string): Promise<Buffer | null> => {
       // Ключ варианта, а не URL: раздатчик тут лишнее звено, и его формат
       // (dev-роут против CDN) не должен влиять на сборку файла
-      return storage.get(storageKey.replace('/original.jpg', '/web.jpg')).catch(() => null);
+      return storage.get(webVariantKey(storageKey)).catch(() => null);
     };
 
     const items: PdfPhoto[] = [];

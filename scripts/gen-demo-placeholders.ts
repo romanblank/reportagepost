@@ -55,7 +55,9 @@ async function main() {
   for (const p of photos) {
     const cat = CATS[p.category?.slug ?? ''] ?? FALLBACK;
     const dir = path.dirname(p.storageKey); // photos/<dir>
-    for (const v of ['web.jpg', 'thumb.jpg', 'original.jpg']) {
+    // Полноразмерный оригинал больше не хранится (2026-08-14) — заглушки
+    // повторяют реальный набор вариантов, иначе демо перестаёт быть демо
+    for (const v of ['web.jpg', 'thumb.jpg']) {
       await regen(path.join(UPLOADS, dir, v), cat);
     }
     n++;

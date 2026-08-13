@@ -59,7 +59,8 @@ const dirs = readdirSync(ROOT).filter((d) => d.startsWith('futazh-') && (!only |
 let n = 0;
 for (const d of dirs) {
   const cat = catOf(d);
-  for (const v of ['web.jpg', 'thumb.jpg', 'original.jpg']) {
+  // Оригинал не хранится с 2026-08-14 — см. storePhotoVariants
+  for (const v of ['web.jpg', 'thumb.jpg']) {
     await regen(path.join(ROOT, d, v), cat);
   }
   n++;
