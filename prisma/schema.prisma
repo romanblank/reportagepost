@@ -909,6 +909,9 @@ model Subscription {
   trialEndsAt      DateTime? @db.Timestamptz(3) // конец пробного периода (PRO по клику без карты)
   graceEndsAt      DateTime? @db.Timestamptz(3) // конец бесплатного бета-PRO → далее переход на оплату
   proRequestedAt   DateTime? @db.Timestamptz(3) // фотограф запросил подключение PRO (бета: ручная активация оператором)
+  // Какой уровень просил: без этого оператор получает «запросил подписку» и
+  // не знает, Prime или Elite активировать (аудит 2026-08-16)
+  proRequestedTier SubscriptionTier?
   createdAt        DateTime         @default(now()) @db.Timestamptz(3)
   updatedAt        DateTime         @updatedAt @db.Timestamptz(3)
   user             User             @relation(fields: [userId], references: [id])

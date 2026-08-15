@@ -14,7 +14,14 @@ import { ru } from '@/i18n/ru';
  * Выбор осознанный: по умолчанию не отмечено ничего. Автор подтверждает, что
  * работы его, — а дальше кадры идут обычным путём через модерацию.
  */
-export function PortfolioImport({ categories }: { categories: { slug: string; name: string }[] }) {
+export function PortfolioImport({
+  categories,
+  onImported,
+}: {
+  categories: { slug: string; name: string }[];
+  /** Онбордингу нужно знать число перенесённых: счётчик кадров у него свой. */
+  onImported?: (added: number) => void;
+}) {
   const router = useRouter();
   const [url, setUrl] = useState('');
   const [found, setFound] = useState<string[] | null>(null);
@@ -77,6 +84,7 @@ export function PortfolioImport({ categories }: { categories: { slug: string; na
     // Пропущенные кадры называем по причине: «перенесли 4 из 6» без объяснения
     // выглядит как сбой, хотя чаще это дубли или чужие работы
     setReport(ru.importPortfolio.report(res.data.added.length, res.data.skipped.map((s) => s.reason)));
+    onImported?.(res.data.added.length);
     setPicked(new Set());
     router.refresh();
   }

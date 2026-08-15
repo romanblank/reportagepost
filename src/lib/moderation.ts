@@ -87,12 +87,12 @@ export async function approveProfile(profileId: string, actorUserId?: string): P
     // Lifecycle: сообщить фотографу об одобрении (deep-think P0). Вторично — не роняем.
     const { notifyProfileApproved } = await import('@/lib/profile-lifecycle');
     await notifyProfileApproved(profileId).catch(() => {});
+    // Кэш города: без сброса одобренный автор появится в счётчиках жанров и в
+    // полке только через TTL — а человек ждёт результата сейчас.
+    // Аудит 2026-08-16: этот вызов стоял ПОСЛЕ return и не выполнялся никогда
+    dropCache('catalog', 'home');
     return result;
   });
-  // Кэш города: без сброса одобренный автор появится в счётчиках жанров и в
-  // полке только через TTL — а человек ждёт результата сейчас
-  // В Next 16 у revalidateTag два аргумента; 'max' даёт stale-while-revalidate
-  dropCache('catalog', 'home');
 }
 
 /** Отклонение: профиль REJECTED с обязательной причиной (честность к фотографу). */

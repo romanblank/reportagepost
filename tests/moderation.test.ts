@@ -82,3 +82,42 @@ describe.skipIf(!hasDb)('moderation: одобрение и отклонение 
     await cleanup(db, user.id, profile.id);
   });
 });
+
+/**
+ * Сброс кэша при одобрении — регрессия аудита 2026-08-16: вызов dropCache
+ * стоял ПОСЛЕ return и не выполнялся никогда. Одобренный автор появлялся на
+ * главной и в счётчиках города только по истечении TTL, хотя комментарий в
+ * коде обещал обратное. Мок ловит и удаление вызова, и его недостижимость.
+ */
+describe.skipIf(!hasDb)('moderation: одобрение сбрасывает кэш витрин (БД)', () => {
+  it('approveProfile зовёт dropCache с тегами каталога и главной', async () => {
+    const { vi } = await import('vitest');
+    vi.resetModules();
+    const dropCache = vi.fn();
+    vi.doMock('@/lib/cache-invalidate', () => ({ dropCache }));
+    const { approveProfile } = await import('@/lib/moderation');
+    const { db } = await import('@/lib/db');
+
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const city = await db.city.findFirstOrThrow({ where: { slug: 'moscow' } });
+    const u = await db.user.create({
+      data: { role: 'PHOTOGRAPHER', status: 'PENDING', firstName: 'Кэш', lastName: 'Сброс', email: `cache-${stamp}@test.local` },
+    });
+    const p = await db.photographerProfile.create({
+      data: { userId: u.id, username: `cache-${stamp}`, cityId: city.id, status: 'PENDING' },
+    });
+
+    try {
+      await approveProfile(p.id);
+      const tags = dropCache.mock.calls.flat();
+      expect(tags).toContain('catalog');
+      expect(tags).toContain('home');
+    } finally {
+      vi.doUnmock('@/lib/cache-invalidate');
+      await db.profileCategoryScore.deleteMany({ where: { profileId: p.id } });
+      await db.notification.deleteMany({ where: { userId: u.id } });
+      await db.photographerProfile.delete({ where: { id: p.id } });
+      await db.user.delete({ where: { id: u.id } });
+    }
+  });
+});

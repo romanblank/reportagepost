@@ -13,18 +13,24 @@ interface Props {
   proRequested: boolean;
   lockedPerks: string[]; // подписи выгод подписки (золотом)
   teaser?: { saves: number; reviews: number }; // хук для FREE: их скрытые метрики
+  /** Тариф, выбранный на витрине /ru/pro (?plan=): решение не переспрашивается. */
+  initialPlan?: 'PRIME' | 'ELITE';
 }
 
-export function CabinetProBlock({ tier, isFounding, graceUntil, proRequested, lockedPerks, teaser }: Props) {
+export function CabinetProBlock({ tier, isFounding, graceUntil, proRequested, lockedPerks, teaser, initialPlan }: Props) {
   const { toast } = useToast();
   const [requested, setRequested] = useState(proRequested);
   const [busy, setBusy] = useState(false);
+  // Elite должен быть покупаем ТЕМ ЖЕ путём, что Prime: раньше кнопка жёстко
+  // слала PRIME, и самый мотивированный тариф нельзя было ни купить, ни
+  // запросить (аудит 2026-08-16)
+  const [plan, setPlan] = useState<'PRIME' | 'ELITE'>(initialPlan ?? 'PRIME');
 
   async function request() {
     setBusy(true);
     // Сначала пробуем оплату через Т-Кассу. Если терминал ещё не выдан
     // (not_configured), роут вернёт не-ok → откатываемся на ручную заявку.
-    const pay = await apiFetch('/api/subscription/checkout', { method: 'POST', body: { tier: 'PRIME' } });
+    const pay = await apiFetch('/api/subscription/checkout', { method: 'POST', body: { tier: plan } });
     if (pay.ok) {
       const data = pay.data as { paymentUrl?: string } | null;
       if (data?.paymentUrl) {
@@ -33,7 +39,7 @@ export function CabinetProBlock({ tier, isFounding, graceUntil, proRequested, lo
       }
     }
     // Фолбэк — ручная заявка (оператор активирует в закрытой бете).
-    const res = await apiFetch('/api/subscription/request', { method: 'POST' });
+    const res = await apiFetch('/api/subscription/request', { method: 'POST', body: { tier: plan } });
     setBusy(false);
     if (!res?.ok) return toast(ru.cabinet.proError, 'danger');
     setRequested(true);
@@ -72,15 +78,37 @@ export function CabinetProBlock({ tier, isFounding, graceUntil, proRequested, lo
           </li>
         ))}
       </ul>
-      <div className="mt-4 flex flex-wrap items-center gap-3">
+      <div className="mt-4">
         {requested ? (
           <span className="t-small text-recognition">{ru.cabinet.proRequested}</span>
         ) : (
-          <button type="button" onClick={request} disabled={busy} className="btn btn-accent px-4 py-2">
-            {busy ? ru.cabinet.proRequesting : ru.cabinet.proRequestCta}
-          </button>
+          <>
+            {/* Выбор уровня — до кнопки: решение с витрины сюда доезжает
+                через ?plan=, но передумать можно на месте */}
+            <div role="radiogroup" aria-label={ru.cabinet.proPlanLabel} className="flex flex-wrap gap-2">
+              {(['PRIME', 'ELITE'] as const).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  role="radio"
+                  aria-checked={plan === p}
+                  onClick={() => setPlan(p)}
+                  className={`rounded-md border px-3 py-1.5 t-small transition-colors ${
+                    plan === p ? 'border-recognition text-recognition' : 'border-line text-muted hover:text-ink-2'
+                  }`}
+                >
+                  {ru.pro.tierName[p]}
+                </button>
+              ))}
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <button type="button" onClick={request} disabled={busy} className="btn btn-accent px-4 py-2">
+                {busy ? ru.cabinet.proRequesting : ru.cabinet.proRequestCta}
+              </button>
+              <Link href="/ru/pro" className="t-small underline muted">{ru.cabinet.proSeeTariff}</Link>
+            </div>
+          </>
         )}
-        <Link href="/ru/pro" className="t-small underline muted">{ru.cabinet.proSeeTariff}</Link>
       </div>
     </section>
   );

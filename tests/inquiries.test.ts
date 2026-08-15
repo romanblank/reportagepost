@@ -152,6 +152,49 @@ describe.skipIf(!hasDb)('заявки: фора подписчиков, но н�
     }
   });
 
+  it('без подписчиков в городе фора схлопывается: релиз всем сразу', async () => {
+    const { db } = await import('@/lib/db');
+    const { createInquiry, inquiriesForPhotographer } = await import('@/lib/inquiries');
+
+    // Город, который другие тесты не трогают: проверка «нет ни одного
+    // подписчика» глобальна по городу, и чужой Elite из параллельного файла
+    // сделал бы тест ложно-красным
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const city = await db.city.findFirstOrThrow({ where: { slug: 'omsk' } });
+
+    const u = await db.user.create({
+      data: { role: 'PHOTOGRAPHER', status: 'ACTIVE', firstName: 'Пустой', lastName: 'Город', email: `nosub-${stamp}@test.local` },
+    });
+    await db.photographerProfile.create({
+      data: { userId: u.id, username: `nosub-${stamp}`, cityId: city.id, status: 'APPROVED', proRank: 0 },
+    });
+
+    try {
+      // На платформе без подписчиков задержка наказывала бы заказчика ради
+      // пустого места: шесть часов заявку не видел бы ВООБЩЕ НИКТО
+      const { inquiryId, notified } = await createInquiry({
+        citySlug: 'omsk', description: 'Нужен фотограф на юбилей, вечер, ресторан в центре',
+        contactName: 'Тест', contactEmail: `nosub-cl-${stamp}@test.local`,
+      });
+
+      // Уведомление ушло сразу, хотя автор бесплатный
+      expect(notified).toBeGreaterThanOrEqual(1);
+      expect(
+        await db.notification.count({ where: { userId: u.id, type: 'notification.inquiry.new' } }),
+      ).toBe(1);
+
+      // И в кабинете заявка видна сразу, а не через шесть часов
+      const visible = (await inquiriesForPhotographer(u.id))?.some((i) => i.id === inquiryId);
+      expect(visible).toBe(true);
+
+      await db.inquiry.delete({ where: { id: inquiryId } });
+    } finally {
+      await db.notification.deleteMany({ where: { userId: u.id } });
+      await db.photographerProfile.deleteMany({ where: { userId: u.id } });
+      await db.user.delete({ where: { id: u.id } });
+    }
+  });
+
   it('фора действует и в кабинете, а не только в уведомлениях', async () => {
     const { db } = await import('@/lib/db');
     const { createInquiry, inquiriesForPhotographer } = await import('@/lib/inquiries');
@@ -207,4 +250,52 @@ describe.skipIf(!hasDb)('заявки: фора подписчиков, но н�
     }
   });
 
+});
+
+/**
+ * Текст заявки — тоже канал контактов (аудит 2026-08-16, P1): заказчики пишут
+ * телефон и мессенджер прямо в описание, и без маскировки весь механизм
+ * раскрытия (лимит, аудит-лог) обходится чтением description — выгрузка лидов
+ * города одним GET без следа.
+ */
+describe.skipIf(!hasDb)('заявки: контакты в тексте скрыты до раскрытия (БД)', () => {
+  it('description маскируется в списке и открывается взявшему в работу', async () => {
+    const { db } = await import('@/lib/db');
+    const { createInquiry, inquiriesForPhotographer, setInquiryHandling } = await import('@/lib/inquiries');
+
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const city = await db.city.findFirstOrThrow({ where: { slug: 'omsk' } });
+    const u = await db.user.create({
+      data: { role: 'PHOTOGRAPHER', status: 'ACTIVE', firstName: 'Маска', lastName: 'Текста', email: `mask-${stamp}@test.local` },
+    });
+    await db.photographerProfile.create({
+      data: { userId: u.id, username: `mask-${stamp}`, cityId: city.id, status: 'APPROVED', proRank: 0 },
+    });
+
+    try {
+      const { inquiryId } = await createInquiry({
+        citySlug: 'omsk',
+        contactName: 'Тест', contactEmail: `mask-cl-${stamp}@test.local`,
+        description: 'Съёмка юбилея. Пишите сразу мне: +7 999 123-45-67 или t.me/leadleak',
+      });
+
+      const before = (await inquiriesForPhotographer(u.id))?.find((i) => i.id === inquiryId);
+      expect(before).toBeTruthy();
+      // Ни телефона, ни ссылки в тексте до раскрытия
+      expect(before!.description).not.toContain('123-45-67');
+      expect(before!.description).not.toContain('t.me/leadleak');
+
+      // «Беру в работу» — легальный путь: текст открывается целиком
+      await setInquiryHandling(u.id, inquiryId, 'IN_PROGRESS');
+      const after = (await inquiriesForPhotographer(u.id))?.find((i) => i.id === inquiryId);
+      expect(after!.description).toContain('123-45-67');
+
+      await db.inquiryHandling.deleteMany({ where: { inquiryId } });
+      await db.inquiry.delete({ where: { id: inquiryId } });
+    } finally {
+      await db.notification.deleteMany({ where: { userId: u.id } });
+      await db.photographerProfile.deleteMany({ where: { userId: u.id } });
+      await db.user.delete({ where: { id: u.id } });
+    }
+  });
 });

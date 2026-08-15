@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ru } from '@/i18n/ru';
 import { normalizePhone, normalizeUrl } from '@/lib/phone-format';
 import { ONBOARDING_PHOTOS_MAX, ONBOARDING_PHOTOS_MIN, MIN_LONG_SIDE } from '@/lib/photos-constants';
+import { PortfolioImport } from '@/components/PortfolioImport';
 
 interface Option {
   slug: string;
@@ -150,6 +151,19 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
         {remaining > 0 && !uploadProgress && (
           <p className="t-small opacity-60">{ru.onboarding.needMore(remaining)}</p>
         )}
+
+        {/* Перенос по ссылке — прямо здесь, а не «потом в кабинете»: работы
+            уже лежат на сайте автора, и заставлять пере-загружать их руками в
+            момент пиковой мотивации — главный обрыв воронки (аудит 2026-08-16) */}
+        <details className="mt-4 card p-4">
+          <summary className="cursor-pointer t-small font-medium">{ru.onboarding.importSummary}</summary>
+          <div className="mt-3">
+            <PortfolioImport
+              categories={categories.map((c) => ({ slug: c.slug, name: c.nameRu }))}
+              onImported={(added) => setUploaded((u) => u + added)}
+            />
+          </div>
+        </details>
 
         {limitHit && (
           <div className="mt-4 card border-recognition/40 bg-recognition-soft/30 p-4">

@@ -97,6 +97,13 @@ export async function createInquiry(
   // Первыми узнают подписчики: Active+ сразу, Active через два часа, остальные
   // через шесть. Здесь отбираем тех, кому уведомление уходит СЕЙЧАС; всем
   // прочим заявка станет видна по расписанию (см. releaseInquiries).
+  //
+  // Фора живёт, только пока есть кому её давать (аудит 2026-08-16, P1): на
+  // платформе без подписчиков первая живая заявка была бы невидима ВСЕМ шесть
+  // часов — перк преимущества над коллегами штрафовал бы единственный спрос,
+  // а заказчик, которому обещано «фотографы свяжутся», получал бы тишину в
+  // решающие часы. Нет ни одного подписчика в выборке — релиз всем сразу.
+  const hasSubscribers = await selectionHasSubscribers(city.id, categoryId);
   const recipients = await db.photographerProfile.findMany({
     where: {
       status: 'APPROVED',
@@ -104,7 +111,7 @@ export async function createInquiry(
       ...(categoryId ? { categories: { some: { categoryId } } } : {}),
       // proRank отражает уровень подписки; сверка с реальным состоянием идёт
       // отдельной джобой, поэтому здесь достаточно денормализованного значения
-      proRank: { gte: ELITE_RANK },
+      ...(hasSubscribers ? { proRank: { gte: ELITE_RANK } } : {}),
     },
     select: {
       userId: true,
@@ -221,6 +228,24 @@ function maskEmail(email: string): string {
 }
 
 /**
+ * Есть ли в выборке получателей заявки (город + жанр) хоть один активный
+ * подписчик. От ответа зависит, действует ли фора: преимущество имеет смысл
+ * только НАД кем-то — задерживать заявку, которую не увидит ни один
+ * подписчик, значит наказывать заказчика ради пустого места.
+ */
+async function selectionHasSubscribers(cityId: string, categoryId?: string | null): Promise<boolean> {
+  const count = await db.photographerProfile.count({
+    where: {
+      status: 'APPROVED',
+      cityId,
+      ...(categoryId ? { categories: { some: { categoryId } } } : {}),
+      proRank: { gte: PRIME_RANK },
+    },
+  });
+  return count > 0;
+}
+
+/**
  * Заявки для фотографа: его город, открытые, с ЕГО отметкой обработки.
  * (PRO-гейт добавится в S5.)
  *
@@ -242,10 +267,28 @@ export async function inquiriesForPhotographer(userId: string, now: Date = new D
   const headStartHours = inquiryVisibleAfterHours(await tierOf(userId));
   const visibleFrom = new Date(now.getTime() - headStartHours * 3_600_000);
 
+  // Фора действует только на заявки, у которых есть подписчики-получатели
+  // (зеркало правила из createInquiry — иначе уведомление пришло бы сразу,
+  // а в кабинете заявка оставалась бы невидимой ещё шесть часов). Подписчиков
+  // города немного, один запрос дешевле, чем проверка на каждую заявку.
+  const subscribers = headStartHours > 0
+    ? await db.photographerProfile.findMany({
+        where: { status: 'APPROVED', cityId: profile.cityId, proRank: { gte: PRIME_RANK } },
+        select: { categories: { select: { categoryId: true } } },
+      })
+    : [];
+  const anySubscriber = subscribers.length > 0;
+  const subscriberCategoryIds = new Set(subscribers.flatMap((s) => s.categories.map((c) => c.categoryId)));
+  // Заявка без жанра уходит всем авторам города; с жанром — только совпавшим
+  const heldByHeadStart = (categoryId: string | null) =>
+    categoryId ? subscriberCategoryIds.has(categoryId) : anySubscriber;
+
   const rows = await db.inquiry.findMany({
-    where: { cityId: profile.cityId, status: 'OPEN', createdAt: { lte: visibleFrom } },
+    // Свежие берём тоже: часть из них видна сразу, если в их выборке нет
+    // подписчиков. Отбор — ниже, по этому признаку
+    where: { cityId: profile.cityId, status: 'OPEN' },
     orderBy: { createdAt: 'desc' },
-    take: 50,
+    take: 60,
     include: {
       category: true,
       city: true,
@@ -254,6 +297,8 @@ export async function inquiriesForPhotographer(userId: string, now: Date = new D
   });
 
   return rows
+    .filter((i) => i.createdAt <= visibleFrom || !heldByHeadStart(i.categoryId))
+    .slice(0, 50)
     .map((i) => {
       const handling = i.handlings[0]?.state ?? null;
       // Контакты открыты только тому, кто взял заявку в работу
@@ -264,6 +309,11 @@ export async function inquiriesForPhotographer(userId: string, now: Date = new D
         contactsRevealed: revealed,
         contactPhone: i.contactPhone && !revealed ? maskPhone(i.contactPhone) : i.contactPhone,
         contactEmail: i.contactEmail && !revealed ? maskEmail(i.contactEmail) : i.contactEmail,
+        // Текст заявки — тоже канал контактов: заказчики массово пишут телефон
+        // и мессенджер прямо в описание. Без маскировки весь механизм раскрытия
+        // (лимит 20/сутки, аудит-лог) обходится чтением description — выгрузка
+        // лидов города одним GET, не оставляющая следа (аудит 2026-08-16, P1)
+        description: revealed ? i.description : maskContactsInText(i.description),
       };
     })
     .sort((a, b) => {

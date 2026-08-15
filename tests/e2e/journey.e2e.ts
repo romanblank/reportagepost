@@ -97,6 +97,20 @@ describe.skipIf(!hasDb)('E2E: полный цикл фотографа и зак
     auditText('категория', categoryNameRu(cat.slug));
 
     // 5. Заказчик оставляет заявку → фотограф её видит
+    // Подписчик-коллега нужен сценарию: фора действует, только когда есть
+    // кому её давать (2026-08-16). Без него заявка ушла бы всем сразу, и
+    // сквозной путь перестал бы проверять очерёдность
+    const { ELITE_RANK } = await import('@/lib/subscription');
+    const eliteUser = await db.user.create({ data: { role: 'PHOTOGRAPHER', status: 'ACTIVE', firstName: 'Элит', lastName: 'Коллегин', email: `e2e-el-${stamp}@test.local` } });
+    ids.users.push(eliteUser.id);
+    const eliteProfile = await db.photographerProfile.create({
+      data: {
+        userId: eliteUser.id, username: `e2e-el-${stamp}`, cityId: city.id, status: 'APPROVED',
+        proRank: ELITE_RANK, categories: { create: [{ categoryId: cat.id }] },
+      },
+    });
+    ids.profiles.push(eliteProfile.id);
+
     const client = await db.user.create({ data: { role: 'CLIENT', status: 'ACTIVE', firstName: 'Ирина', lastName: 'Заказова', email: `e2e-cl-${stamp}@test.local` } });
     ids.users.push(client.id);
     const { inquiryId, notified } = await createInquiry({
@@ -105,9 +119,15 @@ describe.skipIf(!hasDb)('E2E: полный цикл фотографа и зак
     });
     expect(inquiryId).toBeTruthy();
     // Наш фотограф без подписки, и заявка до него доходит НЕ сразу: первые
-    // часы она у подписчиков. Сквозной путь обязан показывать именно это —
-    // иначе фора существует в коде, но не в том, что мы считаем нормой
-    expect(notified).toBe(0);
+    // часы она у подписчика. Сквозной путь обязан показывать именно это —
+    // иначе фора существует в коде, но не в том, что мы считаем нормой.
+    // Проверяем АДРЕСНО (у кого уведомление есть, у кого нет), а не общим
+    // счётчиком: на насыщенной базе в счёт попадают чужие подписчики
+    expect(notified).toBeGreaterThanOrEqual(1);
+    const gotInquiry = (userId: string) =>
+      db.notification.count({ where: { userId, type: 'notification.inquiry.new', payload: { path: ['inquiryId'], equals: inquiryId } } });
+    expect(await gotInquiry(eliteUser.id)).toBe(1); // подписчик — в первой волне
+    expect(await gotInquiry(photographer.id)).toBe(0); // бесплатный — ещё нет
     expect((await inquiriesForPhotographer(photographer.id))?.some((i) => i.id === inquiryId)).toBe(false);
 
     // …а после окончания форы — доходит, и это тот же самый заказ

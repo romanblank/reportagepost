@@ -69,6 +69,7 @@ export default async function AdminBillingPage() {
                 <span className="t-small">{s.name}</span>
                 <span className="t-caption muted">
                   {s.requestedAt ? formatDateRu(s.requestedAt) : ''}
+                  {s.requestedTier ? ` · ${ru.pro.tierName[s.requestedTier] ?? s.requestedTier}` : ''}
                 </span>
                 {s.username ? (
                   <Link href={`/ru/photographer/${s.username}`} className="t-caption underline muted">

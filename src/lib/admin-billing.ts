@@ -34,6 +34,7 @@ export type AdminSubscription = {
   until: Date | null;
   grandfathered: boolean;
   requestedAt: Date | null;
+  requestedTier: string | null;
 };
 
 export async function adminPayments(limit = 100): Promise<AdminPayment[]> {
@@ -66,6 +67,7 @@ export async function adminSubscriptions(): Promise<AdminSubscription[]> {
     orderBy: [{ proRequestedAt: 'desc' }, { currentPeriodEnd: 'desc' }],
     select: {
       userId: true, tier: true, currentPeriodEnd: true, grandfathered: true, proRequestedAt: true,
+      proRequestedTier: true,
       user: {
         select: { firstName: true, lastName: true, profile: { select: { username: true } } },
       },
@@ -86,6 +88,8 @@ export async function adminSubscriptions(): Promise<AdminSubscription[]> {
     until: s.currentPeriodEnd,
     grandfathered: s.grandfathered,
     requestedAt: s.proRequestedAt,
+    // Что именно просил: без этого оператор выдавал тариф наугад
+    requestedTier: s.proRequestedTier,
   }));
 }
 

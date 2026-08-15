@@ -1210,7 +1210,8 @@ export const ru = {
     mailBroken: (error: string) => `✉️ Почта не работает: ${error}. Проверка — /ru/admin/mail`,
     mailSendFailed: (subject: string, error: string) => `✉️ Письмо не отправлено (${subject}): ${error}`,
     newInquiry: '📨 Новая заявка заказчика. Разбор: https://reportagepost.com/ru/admin',
-    subscriptionRequested: '💳 Фотограф запросил подписку. Активировать: https://reportagepost.com/ru/admin',
+    subscriptionRequested: (tier: 'PRIME' | 'ELITE') =>
+      `💳 Фотограф запросил подписку ${tier === 'ELITE' ? 'Active+' : 'Active'}. Активировать: https://reportagepost.com/ru/admin/billing`,
     shootNeedsReview: '🔍 Подтверждение съёмки пришло с аккаунта без признаков доверия — проверьте в модерации',
     dailyTitle: '📊 Сводка за сутки',
     dailyNothing: 'событий не было',
@@ -1482,12 +1483,13 @@ export const ru = {
     proGraceUntil: (d: string) => `Бесплатная подписка беты — до ${d}`,
     proLockedLead: 'Подписка открывает:',
     proRequestCta: 'Подключить подписку',
+    proPlanLabel: 'Уровень подписки',
     proRequesting: 'Отправляем…',
     proRequested: 'Заявка отправлена — оператор подключит подписку в ближайшее время',
     proSeeTariff: 'Смотреть тарифы',
     proError: 'Не удалось отправить заявку. Попробуйте позже.',
     proTeaser: (saves: number, reviews: number) =>
-      `Вашу страницу сохранили ${saves} раз, отзывов — ${reviews}. Подписка покажет, кто и когда вас смотрит и откуда приходят заявки.`,
+      `Вашу страницу сохранили ${saves} раз, отзывов — ${reviews}. Подписка покажет, сколько раз вас открывали, динамику за месяц и сохранения.`,
     upsellElite: 'Active+ — больше участия и подробная аналитика →',
     statsTitle: 'Вас находят',
     statViews: 'Вас открыли',
@@ -1690,6 +1692,7 @@ export const ru = {
     addPackage: 'Добавить пакет',
     submitProfile: 'Сохранить страницу',
     photosTitle: 'Портфолио',
+    importSummary: 'Кадры уже на вашем сайте? Перенесите их по ссылке',
     photosHint: (min: number, max: number, side: number) =>
       `${min}–${max} фото, длинная сторона от ${side}px. Загружайте по одному или пачкой.`,
     uploaded: (n: number, max: number) => `Загружено: ${n} из ${max}`,
@@ -1708,7 +1711,7 @@ export const ru = {
     errPhoto: (msg: string) => `Фото отклонено: ${msg}`,
     uploadFailedGeneric: 'не удалось загрузить',
     photoError: {
-      too_small: 'слишком маленькое разрешение (нужна длинная сторона от 2400px)',
+      too_small: 'слишком маленькое разрешение (нужна длинная сторона от 2000px)',
       not_image: 'это не изображение',
       file_too_large: 'файл больше 40 МБ',
       photo_limit: 'достигнут лимит фото',

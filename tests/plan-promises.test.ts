@@ -55,6 +55,14 @@ describe('обещания тарифов совпадают с кодом', () 
     expect(mentions(ru.pro.features.portfolioBasic, FREE_PORTFOLIO_LIMIT)).toBe(true);
     expect(mentions(ru.pro.features.portfolioUnlimited, PRIME_PORTFOLIO_LIMIT)).toBe(true);
     expect(mentions(ru.pro.features.earlyAccess, ELITE_PORTFOLIO_LIMIT)).toBe(true);
+    // Обещания слежки «кто и когда вас смотрит», «откуда приходят заявки» —
+    // функциональность, которой нет: аналитика отдаёт агрегаты, а не личности
+    // и не атрибуцию (аудит 2026-08-16). Первым расхождение увидел бы
+    // оплативший — худшая аудитория для обмана
+    const teaser = ru.cabinet.proTeaser(3, 2);
+    expect(teaser).not.toMatch(/кто( и когда)? вас смотр/i);
+    expect(teaser).not.toMatch(/откуда приходят/i);
+
     // Слова «без ограничений» запрещены там, где ограничение есть
     expect(ru.pro.features.portfolioUnlimited).not.toMatch(/без ограничений|безлимит/i);
   });

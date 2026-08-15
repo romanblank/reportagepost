@@ -38,7 +38,14 @@ const STATUS_LABEL = {
   REJECTED: ru.cabinet.statusRejected,
 } as const;
 
-export default async function CabinetPage() {
+export default async function CabinetPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ plan?: string }>;
+}) {
+  // Тариф, выбранный на /ru/pro: решение с витрины не переспрашивается
+  const planParam = (await searchParams)?.plan?.toUpperCase();
+  const initialPlan = planParam === 'ELITE' || planParam === 'PRIME' ? planParam : undefined;
   const session = await getSession();
   if (!session) redirect('/ru/login');
   // Клиент → его кабинет (аудит P0: раньше попадал в пустой кабинет фотографа)
@@ -162,7 +169,7 @@ export default async function CabinetPage() {
           </section>
 
           {subStatus && (
-            <div className="mt-4">
+            <div className="mt-4" id="pro">
               <CabinetProBlock
                 tier={subStatus.tier}
                 isFounding={subStatus.isFounding}
@@ -170,6 +177,7 @@ export default async function CabinetPage() {
                 proRequested={subStatus.proRequested}
                 lockedPerks={lockedPerks}
                 teaser={profile ? { saves: profile._count.favoritedBy, reviews: profile._count.reviews } : undefined}
+                initialPlan={initialPlan}
               />
             </div>
           )}

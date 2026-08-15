@@ -100,19 +100,25 @@ export async function grantFoundingSub(
 
 // Зафиксировать заявку фотографа на подключение подписки (закрытая бета: оператор
 // активирует вручную). Идемпотентно.
-export async function requestSubscription(userId: string, now: Date = new Date()): Promise<void> {
+export async function requestSubscription(
+  userId: string,
+  tier: 'PRIME' | 'ELITE' = 'PRIME',
+  now: Date = new Date(),
+): Promise<void> {
   const sub = await subscriptionOf(userId);
   if (sub && isSubActive(sub)) return; // уже активна
+  // Уровень фиксируется в заявке: без него оператор получал «фотограф
+  // запросил подписку» и не знал, Prime или Elite активировать (аудит 2026-08-16)
   await db.subscription.upsert({
     where: { userId },
-    create: { userId, proRequestedAt: now },
-    update: { proRequestedAt: now },
+    create: { userId, proRequestedAt: now, proRequestedTier: tier },
+    update: { proRequestedAt: now, proRequestedTier: tier },
   });
 
   // Запрос подписки — ближайшая к деньгам точка на закрытой платформе:
   // активация пока ручная, и час ожидания здесь стоит дороже всего
   const { alertOperator } = await import('@/lib/telegram');
-  void alertOperator(ru.operatorAlerts.subscriptionRequested);
+  void alertOperator(ru.operatorAlerts.subscriptionRequested(tier));
 }
 
 /**

@@ -43,11 +43,13 @@ export default async function ProPage() {
   const elitePrice = priceForCity(citySlug ?? 'moscow', 'ELITE');
   const cityLabel = citySlug ? cityNameRu(citySlug) : null;
 
+  // CTA несёт выбранный тариф: раньше обе карточки вели в общий кабинет, и
+  // решение, принятое на витрине, приходилось принимать заново (аудит 2026-08-16)
   const cta = session
     ? isPhotographer
-      ? { href: '/ru/cabinet', label: ru.pro.ctaBecomePro }
-      : { href: '/ru/cabinet', label: ru.pro.ctaInCabinet }
-    : { href: '/ru/register', label: ru.pro.ctaRegister };
+      ? { href: '/ru/cabinet?plan=prime#pro', hrefElite: '/ru/cabinet?plan=elite#pro', label: ru.pro.ctaBecomePro }
+      : { href: '/ru/cabinet#pro', hrefElite: '/ru/cabinet#pro', label: ru.pro.ctaInCabinet }
+    : { href: '/ru/register', hrefElite: '/ru/register', label: ru.pro.ctaRegister };
 
   const priceNote = cityLabel ? ru.pro.priceForCity(cityLabel) : ru.pro.priceVaries;
 
@@ -103,7 +105,7 @@ export default async function ProPage() {
             <span className="t-small muted">{ru.pro.perMonth}</span>
           </div>
           <p className="mt-1 t-small muted">{formatRubMinor(elitePrice.annualMinor)} {ru.pro.perYear} · {priceNote}</p>
-          <Link href={cta.href} className="btn btn-outline mt-5 w-full py-2.5">{cta.label}</Link>
+          <Link href={cta.hrefElite} className="btn btn-outline mt-5 w-full py-2.5">{cta.label}</Link>
         </div>
       </div>
 
