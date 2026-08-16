@@ -75,6 +75,14 @@ export async function createPhotographerByAdmin(
       userId: user.id,
     });
     return { profileId: profile.id, username: profile.username };
+  }).catch((e: unknown) => {
+    // Гонка двойного сабмита формы: предпроверки email/username выше её не
+    // закрывают, уникальный индекс — закрывает; его нарушение — это 409,
+    // а не необъяснимый 500 (аудит 2026-08-16)
+    if (e && typeof e === 'object' && 'code' in e && e.code === 'P2002') {
+      throw new DomainError('username_taken', 409);
+    }
+    throw e;
   });
 
   if (input.publish) {

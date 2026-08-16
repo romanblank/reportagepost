@@ -30,7 +30,11 @@ export default async function InquiryPage(props: { searchParams: Promise<{ photo
   if (photographer) {
     const p = await db.photographerProfile.findFirst({
       where: { username: photographer, status: 'APPROVED' },
-      include: { user: true, city: true, categories: { include: { category: true } } },
+      include: {
+        user: { select: { firstName: true, lastName: true } },
+        city: true,
+        categories: { include: { category: true } },
+      },
     });
     if (p) {
       prefill = {

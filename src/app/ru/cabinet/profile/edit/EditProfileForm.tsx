@@ -103,6 +103,11 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
         username_taken: ru.adminPhotographers.errUsernameTaken,
         city_not_found: ru.onboarding.needCategory,
         category_not_found: ru.onboarding.needCategory,
+        // Модерация публичных текстов анкеты: отказ обязан называть причину,
+        // а не прятаться за «что-то пошло не так»
+        ...Object.fromEntries(
+          Object.entries(ru.moderation.reasons).map(([code, label]) => [`profile_text_${code}`, label]),
+        ),
       },
       fallback: ru.inquiry.errorGeneric,
       body: {

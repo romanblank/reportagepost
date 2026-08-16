@@ -26,7 +26,7 @@ const findStory = cache(async (storyId: string) => {
     // открывала бы контент снятого с публикации профиля (консистентно с дискавери).
     where: { id: storyId, status: 'APPROVED', profile: { status: 'APPROVED' } },
     include: {
-      profile: { include: { user: true } },
+      profile: { include: { user: { select: { firstName: true, lastName: true } } } },
       photos: { where: { status: 'APPROVED' }, orderBy: { uploadedAt: 'asc' } },
       _count: { select: { likes: true } },
     },

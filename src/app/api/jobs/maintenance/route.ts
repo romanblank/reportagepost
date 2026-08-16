@@ -66,6 +66,12 @@ export function POST(req: Request) {
     // Протухшие одноразовые токены (сброс пароля, подтверждение почты)
     const [{ count: resets }, { count: verifications }] = await Promise.all([
       db.passwordReset.deleteMany({ where: { expiresAt: { lt: cutoff } } }),
+      // Согласия на cookie: срок доказательной ценности конечен (аудит
+      // 2026-08-16 — таблица не чистилась вовсе). Три года покрывают любой
+      // мыслимый разбор, дальше запись — только раздувание дампа
+      db.cookieConsent.deleteMany({
+        where: { createdAt: { lt: new Date(Date.now() - 3 * 365 * 86_400_000) } },
+      }),
       db.emailVerification.deleteMany({ where: { expiresAt: { lt: cutoff } } }),
     ]);
 

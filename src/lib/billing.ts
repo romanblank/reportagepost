@@ -56,10 +56,26 @@ export async function applyPaymentStatus(
     if (!payment) return { found: false, credited: false };
 
     if (status !== 'CONFIRMED') {
-      // Возврат денег обязан отзывать и оплаченный уровень. Раньше REFUNDED
-      // только менял статус платежа: человек получал деньги обратно и
-      // продолжал пользоваться подпиской до конца оплаченного периода.
-      if (status === 'REFUNDED' && payment.userId) {
+      // Статусы монотонны: подтверждённый платёж не может «расподтвердиться»
+      // из-за переупорядоченного вебхука (REJECTED — только из NEW). Возврат
+      // легитимен ТОЛЬКО по подтверждённому платежу: REFUNDED — из CONFIRMED.
+      const allowed: Prisma.PaymentWhereInput =
+        status === 'REFUNDED'
+          ? { id: payment.id, status: 'CONFIRMED' }
+          : { id: payment.id, status: 'NEW' };
+      const applied = await tx.payment.updateMany({
+        where: allowed,
+        data: { status, tinkoffPaymentId: tinkoffPaymentId ?? payment.tinkoffPaymentId },
+      });
+
+      // Возврат денег обязан отзывать и оплаченный уровень — но ровно ОДИН
+      // раз и только если этот платёж был зачислен (аудит 2026-08-16, P1:
+      // откат шёл при КАЖДОМ входящем REFUNDED, а Т-Касса ретраит вебхуки —
+      // повторный возврат съедал у автора лишний оплаченный месяц; REFUNDED
+      // по отклонённому платежу откатывал период, выданный другим платежом).
+      // Атомарный переход выше — тот же приём, что у CONFIRMED: проигравший
+      // гонку видит count=0 и подписку не трогает.
+      if (status === 'REFUNDED' && applied.count > 0 && payment.userId) {
         const sub = await tx.subscription.findUnique({
           where: { userId: payment.userId },
           select: { currentPeriodEnd: true },
@@ -84,16 +100,6 @@ export async function applyPaymentStatus(
           }
         }
       }
-
-      // Статусы монотонны: подтверждённый платёж не может «расподтвердиться»
-      // из-за переупорядоченного вебхука. Иначе бухгалтерский след разойдётся
-      // с реальностью — деньги получены, а в базе REJECTED.
-      const allowed: Prisma.PaymentWhereInput =
-        status === 'REFUNDED' ? { id: payment.id } : { id: payment.id, status: 'NEW' };
-      await tx.payment.updateMany({
-        where: allowed,
-        data: { status, tinkoffPaymentId: tinkoffPaymentId ?? payment.tinkoffPaymentId },
-      });
       return { found: true, credited: false };
     }
 

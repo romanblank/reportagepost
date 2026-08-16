@@ -76,7 +76,7 @@ export async function assertCanPublish(userId: string): Promise<void> {
   if (count >= RESTRICT_AFTER) throw new DomainError('publishing_restricted', 403);
 }
 
-async function recordViolation(userId: string, kind: TextKind, reason: string): Promise<number> {
+export async function recordViolation(userId: string, kind: TextKind, reason: string): Promise<number> {
   await db.contentViolation.create({ data: { userId, kind, reason } });
   const count = await violationCount(userId);
 

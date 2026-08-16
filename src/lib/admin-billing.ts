@@ -102,9 +102,13 @@ export async function billingOverview(periodDays = 30): Promise<{
 }> {
   const since = new Date(Date.now() - periodDays * 86_400_000);
   const [confirmed, pendingRequests, activeSubs] = await Promise.all([
-    db.payment.findMany({
+    // aggregate, а не выгрузка строк с reduce (аудит 2026-08-16): это самая
+    // денежная страница админки, и тянуть в приложение ВСЕ платежи периода
+    // ради одной суммы — расти линейно там, где БД считает за один проход
+    db.payment.aggregate({
       where: { status: 'CONFIRMED', createdAt: { gte: since }, user: REAL_USER },
-      select: { amountMinor: true },
+      _sum: { amountMinor: true },
+      _count: true,
     }),
     db.subscription.count({ where: { proRequestedAt: { not: null }, tier: 'FREE' } }),
     db.subscription.count({
@@ -113,8 +117,8 @@ export async function billingOverview(periodDays = 30): Promise<{
   ]);
 
   return {
-    paidCount: confirmed.length,
-    paidMinor: confirmed.reduce((sum, p) => sum + p.amountMinor, 0),
+    paidCount: confirmed._count,
+    paidMinor: confirmed._sum.amountMinor ?? 0,
     pendingRequests,
     activeSubs,
   };

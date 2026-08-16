@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { db } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import { rateLimit } from '@/lib/rate-limit';
-import { handleRoute } from '@/lib/errors';
+import { DomainError, handleRoute } from '@/lib/errors';
 import { ProfileEditSchema, applyProfileEdit } from '@/lib/profile-edit';
 
 // Онбординг, шаг 1: анкета фотографа (город, категории, цены пакетами, контакты)
@@ -78,6 +78,10 @@ export function POST(req: Request) {
       return NextResponse.json({ error: 'category_not_found' }, { status: 400 });
     }
 
+    // Предпроверки выше — быстрый отказ, но не гарантия (гонка двойного
+    // сабмита): настоящая защита — уникальные индексы, их нарушение
+    // переводим в тот же 409, что и предпроверка (аудит 2026-08-16 —
+    // раньше гонка давала необъяснимый 500)
     const profile = await db.photographerProfile.create({
       data: {
         userId: session.userId,
@@ -94,10 +98,17 @@ export function POST(req: Request) {
         categories: {
           create: categories.map((c) => ({ categoryId: c.id })),
         },
+        // minPriceMinor — денормализация для сортировки по цене (см. схему)
+        minPriceMinor: data.packages.length ? Math.min(...data.packages.map((p) => p.priceMinor)) : null,
         packages: {
           create: data.packages.map((p, i) => ({ ...p, sortOrder: i })),
         },
       },
+    }).catch((e: unknown) => {
+      if (e && typeof e === 'object' && 'code' in e && e.code === 'P2002') {
+        throw new DomainError('username_taken', 409);
+      }
+      throw e;
     });
 
     return NextResponse.json(

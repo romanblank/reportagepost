@@ -62,7 +62,10 @@ const findProfile = cache(async (username: string) => {
   return db.photographerProfile.findFirst({
     where: { username, status: 'APPROVED' },
     include: {
-      user: true,
+      // Явный select (аудит 2026-08-16): include user:true тянул и
+      // passwordHash с totpSecret — одна неосторожная передача объекта в
+      // client-компонент вывезла бы их в RSC-payload публичной страницы
+      user: { select: { firstName: true, lastName: true, lastSeenAt: true, phone: true } },
       city: true,
       categories: { include: { category: true } },
       packages: { orderBy: { sortOrder: 'asc' } },

@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next';
+import { unstable_cache } from 'next/cache';
 import { db } from '@/lib/db';
 import { sitemapEntries, type SitemapCity, type SitemapCityCategory } from '@/lib/sitemap';
 import { forumSectionSlugs } from '@/lib/forum-sections';
@@ -7,7 +8,17 @@ import { forumSectionSlugs } from '@/lib/forum-sections';
 // DATABASE_URL падает (урок 2026-07-14, как /ru/community).
 export const dynamic = 'force-dynamic';
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+// Час кэша (аудит 2026-08-16): это самый дорогой публичный адрес платформы —
+// все профили, все комбо город×жанр, до 7000 тем и статей — и самый любимый
+// у ботов. force-dynamic оставляем (пререндер без БД), но считаем раз в час,
+// а не на каждый заход краулера.
+export default function sitemap(): Promise<MetadataRoute.Sitemap> {
+  return cachedSitemap();
+}
+
+const cachedSitemap = unstable_cache(buildSitemap, ['sitemap'], { revalidate: 3600 });
+
+async function buildSitemap(): Promise<MetadataRoute.Sitemap> {
   const [grouped, profiles] = await Promise.all([
     db.photographerProfile.groupBy({
       by: ['cityId'],

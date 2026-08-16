@@ -34,6 +34,11 @@ export function POST(req: Request) {
     // пользователя важнее, чем наша бухгалтерия по нему.
     const session = await getSession().catch(() => null);
     const ip = clientIp(req);
+    // Лимит (аудит 2026-08-16): единственная неаутентифицированная запись в
+    // БД без ограничения — скрипт мог неограниченно раздувать таблицу с
+    // хешами IP (дорожают дамп и restore-drill, растёт объём ПДн-производных)
+    const { rateLimit } = await import('@/lib/rate-limit');
+    await rateLimit(`consent:ip:${ip ?? 'unknown'}`, 20, 3600);
     void db.cookieConsent
       .create({
         data: {

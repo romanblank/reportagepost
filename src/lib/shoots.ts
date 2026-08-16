@@ -66,6 +66,11 @@ export async function requestShootConfirmation(
   });
   if (duplicate) throw new DomainError('shoot_already_marked', 409);
 
+  // Явная проверка выше неатомарна: двойной клик проходит оба findFirst до
+  // первого create. Дубль ловит БД — уникальный индекс (для NULL-дат —
+  // частичный, миграция 2026-08-16), здесь только переводим P2002 в тот же
+  // 409. «Снимали вместе N раз» считается от числа записей — дубль это
+  // накрутка доверия, а не безобидный мусор
   const shoot = await db.shootConfirmation.create({
     data: {
       clientUserId,
@@ -75,6 +80,11 @@ export async function requestShootConfirmation(
       // и подтверждения, начатые заказчиком, имеют разный вес доверия
       initiatedBy: 'PHOTOGRAPHER',
     },
+  }).catch((e: unknown) => {
+    if (e && typeof e === 'object' && 'code' in e && e.code === 'P2002') {
+      throw new DomainError('shoot_already_marked', 409);
+    }
+    throw e;
   });
 
   // Заказчику — одно действие: «да, снимали» или «нет»
@@ -126,8 +136,15 @@ export async function confirmShoot(clientUserId: string, profileId: string, even
   });
   if (duplicate) throw new DomainError('shoot_already_marked', 409);
 
+  // Гонку двойного клика закрывает БД (уникальный индекс, для NULL-дат —
+  // частичный); P2002 → тот же 409, что и явная проверка
   await db.shootConfirmation.create({
     data: { clientUserId, profileId, eventDate: eventDate ?? undefined },
+  }).catch((e: unknown) => {
+    if (e && typeof e === 'object' && 'code' in e && e.code === 'P2002') {
+      throw new DomainError('shoot_already_marked', 409);
+    }
+    throw e;
   });
 
   // Фотографу — приглашение подтвердить: без его ответа отметка не публична

@@ -57,6 +57,29 @@ export async function applyProfileEdit(
   const site = d.siteUrl?.trim();
   if (site && !/^https?:\/\//i.test(site)) throw new DomainError('validation', 400);
 
+  // Публичные тексты анкеты после одобрения меняются БЕЗ повторной модерации
+  // анкеты — но не без модерации вообще (аудит 2026-08-16): иначе автор
+  // проходит проверку с чистым bio, а потом дописывает в него что угодно.
+  // Уровень — модель+guard, БЕЗ программных антиконтактных правил форума:
+  // сайт и контакты в анкете легитимны (это её поля), а вот оскорбления и
+  // спам — нет. Без ключа модели вердикта не будет — как и в комментариях,
+  // это осознанная деградация, а не тихий провал.
+  const publicText = [
+    d.bio,
+    d.teamInfo,
+    d.equipment,
+    ...(d.faq ?? []).flatMap((f) => [f.q, f.a]),
+  ]
+    .filter((t): t is string => typeof t === 'string' && t.trim().length > 0)
+    .join('\n');
+  if (publicText.length > 0) {
+    const { modelVerdict } = await import('@/lib/text-moderation');
+    const verdict = await modelVerdict(publicText);
+    if (verdict?.action === 'reject') {
+      throw new DomainError(`profile_text_${verdict.reason}`, 400);
+    }
+  }
+
   let newUsername: string | undefined;
   if (d.username && d.username !== currentUsername) {
     // Предварительная проверка — быстрый и понятный отказ, но НЕ гарантия:
@@ -141,6 +164,12 @@ export async function applyProfileEdit(
         await tx.pricePackage.deleteMany({ where: { profileId } });
         await tx.pricePackage.createMany({
           data: d.packages.map((p, i) => ({ profileId, hours: p.hours, priceMinor: p.priceMinor, currency: p.currency, sortOrder: i })),
+        });
+        // Денормализованный минимум — в ТОЙ ЖЕ транзакции, что и пакеты:
+        // на нём держится сортировка «сначала недорогие» и «от <цена>» карточки
+        await tx.photographerProfile.update({
+          where: { id: profileId },
+          data: { minPriceMinor: d.packages.length ? Math.min(...d.packages.map((p) => p.priceMinor)) : null },
         });
       }
     });

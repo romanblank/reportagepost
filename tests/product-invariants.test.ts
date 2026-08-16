@@ -141,3 +141,21 @@ describe('инвариант: заголовки используют типо-�
     ).toEqual([]);
   });
 });
+
+/**
+ * `user: true` на публичных страницах запрещён (аудит 2026-08-16): полный
+ * объект User несёт passwordHash, totpSecret, tokenVersion — одна передача
+ * `{...profile.user}` в client-компонент вывезла бы их в RSC-payload прямо в
+ * HTML. Явный select делает утечку невозможной по построению. Админка
+ * исключена: она за гейтом, и ей полный объект бывает нужен.
+ */
+describe('публичные страницы: только явный select полей User', () => {
+  it('в src/app/ru вне /admin нет include user:true', async () => {
+    const { execSync } = await import('node:child_process');
+    const out = execSync(
+      String.raw`grep -rn "user: true" src/app/ru --include='*.tsx' --include='*.ts' | grep -v "/admin/" || true`,
+      { encoding: 'utf8', cwd: process.cwd() },
+    ).trim();
+    expect(out, `Полный объект User на публичной странице:\n${out}`).toBe('');
+  });
+});

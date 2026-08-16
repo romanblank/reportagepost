@@ -174,7 +174,10 @@ const CATALOG_INCLUDE = {
   doesVideo: true,
   user: { select: { firstName: true, lastName: true, subscription: true } },
   categories: { select: { category: { select: { slug: true } } } },
-  packages: { select: { hours: true, priceMinor: true, currency: true }, orderBy: { sortOrder: 'asc' } },
+  // ДЕШЁВЫЙ пакет, а не первый введённый (аудит 2026-08-16): «от 45 000»
+  // у автора, чей второй пакет стоит 8 000, завышал вход в пять раз и
+  // прогонял заказчика с бюджетом
+  packages: { select: { hours: true, priceMinor: true, currency: true }, orderBy: { priceMinor: 'asc' } },
   photos: {
     where: { status: 'APPROVED' as const },
     select: { id: true, storageKey: true, hasWebp: true },
@@ -340,10 +343,24 @@ export async function catalogForCity(filters: CatalogFilters): Promise<CatalogPa
 
   // Порядок: merit по умолчанию; «сначала недорогие» и «новые авторы» — выбор
   // заказчика. Tiebreaker всегда id — пагинация обязана быть стабильной.
+  //
+  // Цена сортируется В БАЗЕ по денормализованному minPriceMinor (аудит
+  // 2026-08-16): прежняя сортировка страницы в приложении давала не «дешёвые
+  // первыми по городу», а «страница merit-порядка, перетасованная по цене» —
+  // дешёвый автор с 30-го места merit не попадал на первую страницу дешёвых
+  // никогда. Комментарий-обоснование той версии («цена только у подписчиков»)
+  // устарел ещё 2026-08-04, когда цену открыли всем. Авторы без пакетов — в
+  // конце: сравнить их по этому признаку нельзя.
   const orderBy =
     filters.sort === 'fresh'
       ? [{ createdAt: 'desc' as const }, { id: 'asc' as const }]
-      : [{ ratingScore: 'desc' as const }, { id: 'asc' as const }];
+      : filters.sort === 'priceAsc'
+        ? [
+            { minPriceMinor: { sort: 'asc' as const, nulls: 'last' as const } },
+            { ratingScore: 'desc' as const },
+            { id: 'asc' as const },
+          ]
+        : [{ ratingScore: 'desc' as const }, { id: 'asc' as const }];
 
   const rows = await db.photographerProfile.findMany({
     where,
@@ -355,18 +372,6 @@ export async function catalogForCity(filters: CatalogFilters): Promise<CatalogPa
 
   const hasNext = rows.length > CATALOG_PAGE_SIZE;
   const cards = await toCards(rows.slice(0, CATALOG_PAGE_SIZE));
-
-  // «Сначала недорогие» сортируем уже по карточкам: цена показывается только у
-  // подписчиков (перк), поэтому в SQL её порядок был бы неполным. Авторы без
-  // цены уходят вниз — не потому что хуже, а потому что сравнить их по этому
-  // признаку нельзя.
-  if (filters.sort === 'priceAsc') {
-    cards.sort((a, b) => {
-      const pa = a.minPackage?.priceMinor ?? Number.POSITIVE_INFINITY;
-      const pb = b.minPackage?.priceMinor ?? Number.POSITIVE_INFINITY;
-      return pa - pb;
-    });
-  }
 
   return { cards, page, hasNext };
 }

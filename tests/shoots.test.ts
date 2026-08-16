@@ -200,3 +200,53 @@ describe.skipIf(!hasDb)('shoots: инициатива фотографа и за
     }
   });
 });
+
+/**
+ * Гонка двойной отметки БЕЗ даты (аудит 2026-08-16, P1): составной уникальный
+ * индекс NULL-даты пропускает (NULL ≠ NULL), а findFirst→create неатомарен —
+ * двойной клик создавал два подтверждения. «Снимали вместе N раз» считается
+ * от числа записей, то есть дубль — накрутка доверия. Закрыто частичным
+ * уникальным индексом + P2002→409.
+ */
+describe.skipIf(!hasDb)('съёмки: гонка двойной отметки без даты (БД)', () => {
+  it('параллельные confirmShoot дают ровно одну запись', async () => {
+    const { db } = await import('@/lib/db');
+    const { confirmShoot } = await import('@/lib/shoots');
+
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const city = await db.city.findFirstOrThrow({ where: { slug: 'moscow' } });
+    const author = await db.user.create({
+      data: { role: 'PHOTOGRAPHER', status: 'ACTIVE', firstName: 'Гонка', lastName: 'Автор', email: `race-a-${stamp}@test.local` },
+    });
+    const profile = await db.photographerProfile.create({
+      data: { userId: author.id, username: `race-${stamp}`, cityId: city.id, status: 'APPROVED' },
+    });
+    const client = await db.user.create({
+      data: { role: 'CLIENT', status: 'ACTIVE', firstName: 'Гонка', lastName: 'Клиент', email: `race-c-${stamp}@test.local` },
+    });
+    // Переписка в обе стороны — гард confirmShoot требует контакта
+    await db.message.create({ data: { senderId: client.id, recipientId: author.id, body: 'были на съёмке' } });
+    await db.message.create({ data: { senderId: author.id, recipientId: client.id, body: 'да, отснято' } });
+
+    try {
+      // Пять одновременных попыток — как серия двойных кликов
+      const results = await Promise.allSettled(
+        Array.from({ length: 5 }, () => confirmShoot(client.id, profile.id, null)),
+      );
+      const okCount = results.filter((r) => r.status === 'fulfilled').length;
+      expect(okCount).toBeGreaterThanOrEqual(1);
+
+      // Инвариант — в БАЗЕ: запись ровно одна, сколько бы кликов ни прошло
+      const rows = await db.shootConfirmation.count({
+        where: { clientUserId: client.id, profileId: profile.id, eventDate: null },
+      });
+      expect(rows).toBe(1);
+    } finally {
+      await db.shootConfirmation.deleteMany({ where: { clientUserId: client.id } });
+      await db.message.deleteMany({ where: { senderId: { in: [client.id, author.id] } } });
+      await db.notification.deleteMany({ where: { userId: { in: [client.id, author.id] } } });
+      await db.photographerProfile.delete({ where: { id: profile.id } });
+      await db.user.deleteMany({ where: { id: { in: [client.id, author.id] } } });
+    }
+  });
+});

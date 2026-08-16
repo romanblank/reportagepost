@@ -39,6 +39,11 @@ async function assertTargetApproved(target: CommentTarget): Promise<void> {
 export async function addComment(userId: string, target: CommentTarget, rawBody: string) {
   const body = validateCommentBody(rawBody);
   await assertTargetApproved(target);
+  // Ограниченный за нарушения не публикует и КОММЕНТАРИИ (аудит 2026-08-16):
+  // без этого гейта лестница эскалации не действовала на самой массовой
+  // поверхности — спамер, запертый на форуме, продолжал писать под работами
+  const { assertCanPublish } = await import('@/lib/forum');
+  await assertCanPublish(userId);
   await rateLimit(`comment:user:${userId}`, 10, 60); // 10/мин на пользователя
 
   // Программный guard выше ловит контакты и ссылки, но грубость без единой
@@ -48,7 +53,12 @@ export async function addComment(userId: string, target: CommentTarget, rawBody:
   const { moderateText } = await import('@/lib/text-moderation');
   const verdict = await moderateText({ text: body, kind: 'comment' });
   if (verdict.action === 'reject') {
-    await db.contentViolation.create({ data: { userId, kind: 'comment', reason: verdict.reason } });
+    // Через ОБЩУЮ лестницу, а не прямую вставку ContentViolation: прямая
+    // запись копила нарушения, но ограничение (5) и авто-блокировка (12)
+    // не срабатывали никогда — «автомодерация обязана уметь закрывать
+    // доступ» на комментариях не выполнялась (аудит 2026-08-16)
+    const { recordViolation } = await import('@/lib/forum');
+    await recordViolation(userId, 'comment', verdict.reason);
     throw new DomainError(`comment_${verdict.reason}`, 400);
   }
 

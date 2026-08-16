@@ -227,11 +227,16 @@ async function runSearch(
       where: { profileId: { in: ids } },
       select: { profileId: true, category: { select: { slug: true } } },
     }),
-    db.photo.findMany({
-      where: { profileId: { in: ids }, status: 'APPROVED' },
-      orderBy: { publishedAt: 'desc' },
-      select: { profileId: true, storageKey: true },
-    }),
+    // По ТРИ свежих кадра на профиль прямо в SQL (аудит 2026-08-16): findMany
+    // без take тянул все approved-кадры найденных — до 300 на Elite-профиль,
+    // 7200 строк ради 72 превью на странице выдачи
+    db.$queryRaw<{ profileId: string; storageKey: string }[]>`
+      SELECT "profileId", "storageKey" FROM (
+        SELECT "profileId", "storageKey",
+               ROW_NUMBER() OVER (PARTITION BY "profileId" ORDER BY "publishedAt" DESC) AS rn
+        FROM "Photo"
+        WHERE "profileId" = ANY(${ids}) AND status = 'APPROVED'
+      ) ranked WHERE rn <= 3`,
     db.review.groupBy({
       by: ['profileId'],
       where: { profileId: { in: ids }, status: 'VISIBLE', rating: { gte: 4 }, verified: true },
