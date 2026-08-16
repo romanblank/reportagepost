@@ -44,6 +44,7 @@ export async function exchangeCode(code: string): Promise<string> {
   const secret = clientSecret();
   if (!id || !secret) throw new Error('Яндекс OAuth не сконфигурирован (нет ClientID/секрета)');
   const res = await fetch(TOKEN_URL, {
+    signal: AbortSignal.timeout(10_000),
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
@@ -78,7 +79,7 @@ const InfoSchema = z.object({
 });
 
 export async function fetchYandexUser(accessToken: string): Promise<YandexProfile> {
-  const res = await fetch(INFO_URL, { headers: { Authorization: `OAuth ${accessToken}` } });
+  const res = await fetch(INFO_URL, { headers: { Authorization: `OAuth ${accessToken}` }, signal: AbortSignal.timeout(10_000) });
   if (!res.ok) throw new Error(`yandex info failed: ${res.status}`);
   const info = InfoSchema.parse(await res.json());
   const email = info.default_email || info.emails?.[0] || null;

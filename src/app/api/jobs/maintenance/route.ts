@@ -112,10 +112,10 @@ export function POST(req: Request) {
       );
     }
 
-    // Волны доставки заявок: подписчики получают фору, остальные —
-    // по расписанию. Заявка доходит до всех, вопрос только в очерёдности.
-    const { releaseInquiries } = await import('@/lib/inquiries');
-    const inquiriesDelivered = await releaseInquiries();
+    // Волны доставки заявок отсюда УБРАНЫ (аудит 2026-08-16): у них свой
+    // кран каждые 15 минут (rp-inquiries.sh), и в 02:30 два прогона под
+    // разными файловыми локами пересекались гарантированно — read-then-write
+    // дедуп пропускал дубль, и уведомление о заявке уходило дважды.
 
     // ── Сроки хранения персональных данных (аудит 152-ФЗ 2026-08-03) ──────
     // Политика обещает уничтожение «по достижении целей», но в коде срок не был
@@ -159,7 +159,6 @@ export function POST(req: Request) {
       profiles,
       ranksFixed,
       cleaned: { rateLimitRows, resets, verifications, activityRows, jobRuns, inquiriesAnon, reportsAnon, notificationsGone },
-      inquiriesDelivered,
       tookMs: Date.now() - startedAt,
     });
   });

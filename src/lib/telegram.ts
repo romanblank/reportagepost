@@ -18,6 +18,7 @@ export async function tgSend(chatId: string, text: string): Promise<void> {
     await fetch(`${API}/bot${token}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(10_000),
       // БЕЗ parse_mode: сообщения — plain text (email-версия тоже plain). HTML-режим
       // допускал инъекцию ссылок/подделку через пользовательский excerpt заявки и
       // молчаливую потерю уведомления на невалидном HTML (аудит 2026-07-28, P2).
@@ -34,7 +35,7 @@ async function botUsername(): Promise<string | null> {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) return null;
   try {
-    const res = await fetch(`${API}/bot${token}/getMe`);
+    const res = await fetch(`${API}/bot${token}/getMe`, { signal: AbortSignal.timeout(10_000) });
     const data = await res.json();
     cachedUsername = data?.result?.username ?? null;
     return cachedUsername;

@@ -26,28 +26,36 @@ export async function GET(
     return NextResponse.json({ error: 'not_found' }, { status: 404 });
   }
 
-  let total: number | null;
-  try {
-    total = await storage.size(joined);
-  } catch (e) {
-    // Недоступность хранилища — это 503 «попробуйте позже», а не 404 «нет
-    // такого файла». Разница принципиальная: 404 браузер и поисковик кэшируют
-    // и считают окончательным ответом, а мониторинг видит здоровую систему.
+  const contentType = contentTypeForKey(joined) ?? 'image/jpeg';
+  const cache = 'public, max-age=31536000, immutable';
+
+  // Недоступность хранилища — это 503 «попробуйте позже», а не 404 «нет
+  // такого файла». Разница принципиальная: 404 браузер и поисковик кэшируют
+  // и считают окончательным ответом, а мониторинг видит здоровую систему.
+  const unavailable = (e: unknown) => {
     if (e instanceof StorageUnavailableError) {
       console.error('[files] storage unavailable:', e.message);
       return NextResponse.json({ error: 'storage_unavailable' }, { status: 503 });
     }
     return NextResponse.json({ error: 'bad_key' }, { status: 400 });
-  }
-  if (total === null) return NextResponse.json({ error: 'not_found' }, { status: 404 });
+  };
 
-  const contentType = contentTypeForKey(joined) ?? 'image/jpeg';
-  const cache = 'public, max-age=31536000, immutable';
-
-  // Range-запрос (перемотка видео): отдаём 206 с нужным срезом.
+  // Range-запрос (перемотка видео): отдаём 206 с нужным срезом. Только здесь
+  // нужен предварительный размер (суффикс-диапазон и кламп конца) — обычный
+  // GET обходится ОДНИМ обращением к S3: getStream сам возвращает total, и
+  // лишний HeadObject на каждый показ каждой миниатюры — это удвоение
+  // обращений на самом горячем пути платформы (аудит 2026-08-16).
   const range = req.headers.get('range');
   const m = range?.match(/^bytes=(\d*)-(\d*)$/);
   if (m) {
+    let total: number | null;
+    try {
+      total = await storage.size(joined);
+    } catch (e) {
+      return unavailable(e);
+    }
+    if (total === null) return NextResponse.json({ error: 'not_found' }, { status: 404 });
+
     let start: number;
     let end: number;
     if (m[1] === '' && m[2] !== '') {
@@ -81,13 +89,18 @@ export async function GET(
     });
   }
 
-  const whole = await storage.getStream(joined);
+  let whole;
+  try {
+    whole = await storage.getStream(joined);
+  } catch (e) {
+    return unavailable(e);
+  }
   if (!whole) return NextResponse.json({ error: 'not_found' }, { status: 404 });
   return new NextResponse(whole.body, {
     headers: {
       'Content-Type': contentType,
       'Accept-Ranges': 'bytes',
-      'Content-Length': String(total),
+      'Content-Length': String(whole.total),
       'Cache-Control': cache,
       'X-Content-Type-Options': 'nosniff',
     },

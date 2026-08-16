@@ -85,6 +85,37 @@ jobs:
             [ "$FAIL" -eq 0 ] || { echo "❌ RESTORE DRILL ПРОВАЛЕН"; exit 1; }
             echo "✅ Восстановление из ${LATEST} проверено успешно"
 
+            # ── Медиа-бэкап: проверка СКАЧИВАНИЕМ, не листингом (аудит 2026-08-16).
+            # До этого восстановимость фотографий была предположением — ровно тем,
+            # чем были дампы БД до июльского аудита. Берём случайные ключи из
+            # восстановленной БД и достаём каждый из бэкап-бакета: сверка идёт
+            # против того, что понадобится при настоящей аварии.
+            BACKUP_BUCKET=$(grep -E '^S3_BACKUP_BUCKET=' /opt/reportagepost/.env.prod | cut -d= -f2- || true)
+            if [ -n "${BACKUP_BUCKET:-}" ]; then
+              KEYS=$(q_restored "SELECT \"storageKey\" FROM public.\"Photo\" ORDER BY random() LIMIT 5;")
+              MFAIL=0; CHECKED=0
+              for K in $KEYS; do
+                # Ключ указывает на вариант (web.jpg / старый original.jpg) —
+                # в бэкапе проверяем сам файл варианта
+                SIZE=$(docker run --rm \
+                  -e AWS_ACCESS_KEY_ID="$S3_ACCESS_KEY_ID" \
+                  -e AWS_SECRET_ACCESS_KEY="$S3_SECRET_ACCESS_KEY" -e AWS_DEFAULT_REGION=ru-central1 \
+                  amazon/aws-cli --endpoint-url "$S3_ENDPOINT" \
+                  s3api head-object --bucket "$BACKUP_BUCKET" --key "media/$K" \
+                  --query ContentLength --output text 2>/dev/null || echo "MISS")
+                CHECKED=$((CHECKED+1))
+                if [ "$SIZE" = "MISS" ] || [ "${SIZE:-0}" = "0" ]; then
+                  echo "  ❌ media/$K отсутствует в бэкап-бакете"; MFAIL=1
+                else
+                  echo "  media/$K: $SIZE байт"
+                fi
+              done
+              [ "$MFAIL" -eq 0 ] || { echo "❌ МЕДИА-БЭКАП НЕПОЛОН"; exit 1; }
+              echo "✅ Медиа-бэкап: $CHECKED случайных объектов на месте"
+            else
+              echo "⚠️ S3_BACKUP_BUCKET не задан — восстановимость медиа не проверена"
+            fi
+
       - name: Telegram-алерт при провале учения
         if: failure()
         env:

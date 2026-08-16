@@ -150,7 +150,10 @@ export async function createPayment(input: InitInput): Promise<{ paymentUrl: str
   if (!input.email && !input.phone) throw new Error('receipt_requires_email_or_phone');
 
   const request = buildInitRequest(input, terminalKey, password);
+  // Дедлайн: Init стоит в пути оформления подписки — единственном пути к
+  // метрике №1; зависший банк не должен держать запрос вечно
   const res = await fetch(`${TINKOFF_API}/Init`, {
+    signal: AbortSignal.timeout(15_000),
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),

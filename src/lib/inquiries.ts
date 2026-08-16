@@ -389,6 +389,29 @@ export async function setInquiryHandling(
  * наличия уведомления по этой заявке.
  */
 export async function releaseInquiries(now: Date = new Date()): Promise<number> {
+  // Advisory lock в БАЗЕ (аудит 2026-08-16): функцию звали два независимых
+  // крона под разными файловыми локами, и в 02:30 они пересекались — дедуп
+  // здесь read-then-write, оба прогона читали «не уходило» и слали дубль.
+  // Блокировка в PostgreSQL не зависит от того, сколько машин и кронов её
+  // дёргают. Именно xact-вариант ВНУТРИ транзакции: обычный
+  // pg_try_advisory_lock через пул соединений ставится на одном коннекте, а
+  // unlock уходит на другой — блокировка «утекает» до закрытия соединения.
+  // Транзакция держит один коннект, и БД снимает замок сама при выходе.
+  // Не взяли замок — волну уже гонит кто-то другой: выходим.
+  const LOCK_KEY = 0x52504951; // 'RPIQ'
+  return db.$transaction(
+    async (tx) => {
+      const [{ locked }] = await tx.$queryRaw<{ locked: boolean }[]>`
+        SELECT pg_try_advisory_xact_lock(${LOCK_KEY}) AS locked`;
+      if (!locked) return 0;
+      return releaseInquiriesLocked(now);
+    },
+    // Волна ходит по заявкам суток — дефолтных 5 секунд не хватит
+    { timeout: 120_000, maxWait: 5_000 },
+  );
+}
+
+async function releaseInquiriesLocked(now: Date): Promise<number> {
   const { INQUIRY_HEAD_START_HOURS } = await import('@/lib/pricing');
   const waves: { after: number; minRank: number; maxRank: number }[] = [
     { after: INQUIRY_HEAD_START_HOURS.ELITE - INQUIRY_HEAD_START_HOURS.PRIME, minRank: PRIME_RANK, maxRank: ELITE_RANK - 1 },

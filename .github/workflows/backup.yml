@@ -132,8 +132,22 @@ jobs:
                 amazon/aws-cli --endpoint-url "$S3_ENDPOINT" \
                 s3 sync "s3://${S3_BUCKET}/videos/" "s3://${BACKUP_BUCKET}/media/videos/" --only-show-errors || true
               echo "Медиа синхронизированы"
+              MEDIA_OK=true
+              MEDIA_NOTE="синхронизировано в ${BACKUP_BUCKET}"
             else
               echo "⚠️ S3_BACKUP_BUCKET не задан — ФОТОГРАФИИ НЕ БЭКАПЯТСЯ (только БД)"
+              MEDIA_OK=false
+              MEDIA_NOTE="S3_BACKUP_BUCKET не задан — медиа без бэкапа"
+            fi
+            # Отметка медиа-бэкапа В ПЛАТФОРМЕ (аудит 2026-08-16): выключенный
+            # медиа-бэкап был виден только строкой в логе Actions. ok=false
+            # держит failed в /health и панели, пока оператор не заведёт бакет
+            SECRET=$(grep -E '^JOBS_SECRET=' .env.prod | cut -d= -f2-)
+            if [ -n "${SECRET:-}" ]; then
+              curl -sf -m 20 -X POST http://127.0.0.1:3000/api/jobs/heartbeat \
+                -H "Authorization: Bearer $SECRET" -H 'Content-Type: application/json' \
+                -d "{\"name\":\"backup_media\",\"ok\":${MEDIA_OK},\"note\":\"${MEDIA_NOTE}\"}" >/dev/null \
+                && echo "отметка медиа записана" || echo "отметка медиа не прошла"
             fi
 
       # Отметка о прогоне В САМОЙ платформе. Бэкап выполняется здесь, снаружи,

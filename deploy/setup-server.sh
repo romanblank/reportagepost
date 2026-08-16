@@ -32,7 +32,14 @@ limit_conn_zone $binary_remote_addr zone=rp_conn:10m;
 # 429, а не дефолтный 503: клиент должен понимать, что это лимит, а не поломка
 limit_req_status 429;
 limit_conn_status 429;
+# Кэш медиа: 10 ГБ на диске, ключи иммутабельны (см. location /files/).
+# inactive больше TTL, чтобы горячие объекты не выселялись раньше срока
+proxy_cache_path /var/cache/nginx/rp-media levels=1:2 keys_zone=rp_media:50m
+                 max_size=10g inactive=30d use_temp_path=off;
 LIM
+
+sudo mkdir -p /var/cache/nginx/rp-media
+sudo chown -R www-data:www-data /var/cache/nginx/rp-media
 
 PROXY_BLOCK='
     limit_conn rp_conn 60;
@@ -61,6 +68,19 @@ PROXY_BLOCK='
 
     location ^~ /files/ {
         limit_req zone=rp_files burst=200 nodelay;
+        # Кэш медиа (аудит 2026-08-16): без него КАЖДЫЙ показ каждой миниатюры
+        # шёл через Node и S3 — двойной трафик и event-loop веб-процесса на
+        # раздаче байтов. Ключи иммутабельны (uuid в пути, замена = новый ключ),
+        # поэтому 30 дней безопасны; инвалидация не нужна — удалённый объект
+        # доживает в кэше максимум месяц по TTL, а отклонённые кадры и так
+        # убираются из разметки. proxy_cache_lock схлопывает штурм одного ключа.
+        proxy_cache rp_media;
+        proxy_cache_valid 200 206 30d;
+        proxy_cache_valid 404 1m;
+        proxy_cache_lock on;
+        proxy_cache_use_stale error timeout updating;
+        proxy_cache_key $uri$is_args$args$http_range;
+        add_header X-Cache-Status $upstream_cache_status;
         proxy_pass http://127.0.0.1:3000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;

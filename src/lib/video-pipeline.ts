@@ -29,7 +29,12 @@ import {
 const run = promisify(execFile);
 
 /** Транскод — тяжёлая операция; на одной VM больше пары зараз запускать нельзя. */
-export const VIDEO_BATCH = 2;
+// Партия = 1 (аудит 2026-08-16): ffmpeg живёт в ОДНОМ контейнере с сайтом,
+// и два параллельных транскода забирали полтора ядра из полутора выделенных —
+// на время обработки чужого шоурила вставал каталог. Один транскод под nice
+// оставляет сайту приоритет; очередь двигается медленнее, но сайт не стоит.
+// Настоящая изоляция (отдельный контейнер-воркер) — при росте потока видео.
+export const VIDEO_BATCH = 1;
 const FFMPEG_TIMEOUT_MS = 10 * 60_000;
 const KEYFRAMES_FOR_MODERATION = 3;
 
@@ -47,7 +52,9 @@ async function ffprobe(file: string): Promise<VideoProbe | null> {
 }
 
 async function ffmpeg(args: string[]): Promise<void> {
-  await run('ffmpeg', args, { timeout: FFMPEG_TIMEOUT_MS, maxBuffer: 8 * 1024 * 1024 });
+  // nice -n 15: транскод уступает ядро веб-процессу. Alpine-овский nice
+  // есть в образе (busybox); фоновой задаче приоритет и не нужен
+  await run('nice', ['-n', '15', 'ffmpeg', ...args], { timeout: FFMPEG_TIMEOUT_MS, maxBuffer: 8 * 1024 * 1024 });
 }
 
 /** Доступен ли ffmpeg. Без него воркер обязан молчать, а не валить очередь. */

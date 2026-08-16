@@ -8,7 +8,7 @@ import { getPremoderationProvider } from '@/lib/premoderation';
 import { smsProvider } from '@/lib/sms';
 import { tinkoffConfigured } from '@/lib/tinkoff';
 import { verificationRequired } from '@/lib/email-verification';
-import { JOB_THRESHOLDS } from '@/lib/job-thresholds';
+import { JOB_MAX_RUN_MINUTES, JOB_THRESHOLDS } from '@/lib/job-thresholds';
 
 // Честный health (урок 2026-07-13: без проверки БД деплой был «зелёным»
 // при мёртвом TLS к PostgreSQL): проверяем реальный запрос к базе.
@@ -52,8 +52,14 @@ export async function GET() {
       names.map((name, i) => {
         const run = runs[i];
         if (!run) return [name, 'never'];
-        const stale = Date.now() - run.startedAt.getTime() > JOB_THRESHOLDS[name] * 3_600_000;
-        return [name, stale ? 'stale' : run.ok === false ? 'failed' : 'ok'];
+        const age = Date.now() - run.startedAt.getTime();
+        const stale = age > JOB_THRESHOLDS[name] * 3_600_000;
+        // Оборванный прогон (finishedAt нет, идёт дольше мыслимого) — это
+        // failed СЕЙЧАС, а не «ok до порога молчания»: рестарт контейнера
+        // посреди обслуживания оставлял ok=null на 26 часов зелени
+        const aborted =
+          run.finishedAt === null && age > (JOB_MAX_RUN_MINUTES[name] ?? 30) * 60_000;
+        return [name, stale ? 'stale' : aborted || run.ok === false ? 'failed' : 'ok'];
       }),
     );
   } catch {

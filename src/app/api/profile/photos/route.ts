@@ -85,10 +85,6 @@ export function POST(req: Request) {
       return NextResponse.json({ error }, { status: 409 });
     }
 
-    // AI-премодерация: ПОДСКАЗКА модератору (aiVerdict), не решение. Без ключа
-    // модели — null (тихо), статус всё равно PENDING → ручная модерация.
-    const verdict = await premoderate(buffer);
-
     // Стадия 2: запись вариантов + строка Photo
     const stored = await storePhotoVariants(buffer);
 
@@ -109,10 +105,8 @@ export function POST(req: Request) {
         phash: analyzed.phash,
         blurhash: analyzed.blurData,
         hasWebp: true, // storePhotoVariants кладёт web.webp/thumb.webp рядом
-        // Prisma Json-поле требует индекс-сигнатуру — типизированный вердикт
-        // сериализуем через каст (структура плоская, JSON-совместимая).
-        aiVerdict: verdict ? (verdict as unknown as Prisma.InputJsonObject) : undefined,
-        // status: PENDING по умолчанию — публикация только после модерации
+        // status: PENDING по умолчанию — публикация только после модерации;
+        // aiVerdict допишет фоновая премодерация ниже
       },
       });
     }).catch(async (e) => {
@@ -124,6 +118,24 @@ export function POST(req: Request) {
       }
       throw e;
     });
+
+    // AI-премодерация — ФОНОМ (аудит 2026-08-16): это ПОДСКАЗКА модератору
+    // (aiVerdict), не решение, а Vision стоял в пути ответа — деградация
+    // внешнего API до минуты на ответ держала бы 40-МБ буферы параллельных
+    // загрузок до OOM. Кадр в PENDING в любом случае; вердикт доедет к
+    // моменту, когда модератор откроет очередь. Сервер персистентный —
+    // промис доживёт после ответа; сбой = null = просто без подсказки.
+    void premoderate(buffer)
+      .then((verdict) =>
+        verdict
+          ? db.photo.update({
+              where: { id: photo.id },
+              // Prisma Json-поле требует индекс-сигнатуру — вердикт плоский
+              data: { aiVerdict: verdict as unknown as Prisma.InputJsonObject },
+            })
+          : null,
+      )
+      .catch(() => {});
 
     return NextResponse.json(
       { photoId: photo.id, uploaded: photoCount + 1, limit },

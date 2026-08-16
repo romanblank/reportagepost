@@ -71,7 +71,8 @@ async function iamToken(): Promise<string | null> {
   try {
     const res = await fetch(
       'http://169.254.169.254/computeMetadata/v1/instance/service-accounts/default/token',
-      { headers: { 'Metadata-Flavor': 'Google' } },
+      // Metadata отвечает мгновенно или недоступен вовсе — ждать нечего
+      { headers: { 'Metadata-Flavor': 'Google' }, signal: AbortSignal.timeout(2_000) },
     );
     const data = await res.json();
     return data?.access_token ?? null;
@@ -104,6 +105,10 @@ export function getPremoderationProvider(): PremoderationProvider | null {
       if (!token) return null;
       const res = await fetch('https://vision.api.cloud.yandex.net/vision/v1/batchAnalyze', {
         method: 'POST',
+        // Дедлайн обязателен (аудит 2026-08-16): вызов живёт в пути загрузки
+        // фото, и деградация Vision до минуты на ответ копила бы 40-МБ буферы
+        // параллельных загрузок до OOM. Сбой = null = кадр к человеку
+        signal: AbortSignal.timeout(8_000),
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           folderId,

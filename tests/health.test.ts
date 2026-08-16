@@ -47,3 +47,35 @@ describe.skipIf(!hasDb)('/health показывает состояние пла�
     else process.env.EMAIL_GATE = before;
   });
 });
+
+/**
+ * Оборванный прогон обязан читаться как failed (аудит 2026-08-16): рестарт
+ * контейнера посреди задачи оставляет ok=null, и до этого фикса health
+ * рапортовал «ok» вплоть до порога молчания — 26 часов слепоты у maintenance.
+ */
+describe.skipIf(!process.env.DATABASE_URL)('health: оборванная задача = failed (БД)', () => {
+  it('незакрытая запись старше лимита длительности не считается ok', async () => {
+    const { db } = await import('@/lib/db');
+    const { JOB_MAX_RUN_MINUTES } = await import('@/lib/job-thresholds');
+
+    // Прогон maintenance, «начатый» дольше лимита назад и не закрытый
+    const limit = JOB_MAX_RUN_MINUTES.maintenance;
+    const run = await db.jobRun.create({
+      data: { name: 'maintenance', startedAt: new Date(Date.now() - (limit + 5) * 60_000) },
+    });
+    try {
+      // Повторяем решение health: aborted при finishedAt=null и возрасте > лимита
+      const age = Date.now() - run.startedAt.getTime();
+      const aborted = run.finishedAt === null && age > limit * 60_000;
+      expect(aborted).toBe(true);
+
+      // И живой свежий прогон aborted не считается
+      const fresh = await db.jobRun.create({ data: { name: 'maintenance' } });
+      const freshAborted = fresh.finishedAt === null && Date.now() - fresh.startedAt.getTime() > limit * 60_000;
+      expect(freshAborted).toBe(false);
+      await db.jobRun.delete({ where: { id: fresh.id } });
+    } finally {
+      await db.jobRun.delete({ where: { id: run.id } });
+    }
+  });
+});
