@@ -18,6 +18,11 @@ export const JOB_THRESHOLDS: Record<string, number> = {
   // логе Actions, который никто не читает, — повтор ошибки «пять молчащих
   // ночей», применённой к БД, но не к фотографиям
   backup_media: 36,
+  // Внешняя проба (uptime.yml, раз в 10 минут). Её молчание — отключённые
+  // scheduled-workflows (60 дней без коммитов), исчерпанная квота Actions или
+  // сбой раннеров: всё это уже случалось, и всякий раз молчание читалось как
+  // «всё хорошо» (аудит 2026-08-16)
+  uptime: 1,
 };
 
 /**
@@ -34,4 +39,5 @@ export const JOB_MAX_RUN_MINUTES: Record<string, number> = {
   inquiries: 10,
   backup: 90, // pg_dump + заливка растут с базой
   backup_media: 120, // s3 sync растёт с числом объектов
+  uptime: 5,
 };

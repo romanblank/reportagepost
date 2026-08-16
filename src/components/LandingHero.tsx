@@ -9,7 +9,7 @@ export function LandingHero({ photographers, photos, backdropSrc, featured }: {
   photographers: number;
   photos: number;
   backdropSrc: string | null;
-  featured: { src: string; name: string; href: string } | null;
+  featured: { src: string; name: string; href: string; isDemo: boolean } | null;
 }) {
   return (
     <section className="relative isolate flex items-center overflow-hidden bg-paper"
@@ -80,6 +80,11 @@ export function LandingHero({ photographers, photos, backdropSrc, featured }: {
             <span className="absolute inset-x-5 bottom-5">
               <span className="block t-small text-ink-2">
                 {ru.landing.featuredShotBy} <b className="text-accent">{featured.name}</b>
+                {featured.isDemo && (
+                  <span className="ml-2 rounded-sm border border-line px-1.5 py-0.5 t-fine text-muted">
+                    {ru.demo.badge}
+                  </span>
+                )}
               </span>
               <span className="mt-1 block t-caption text-muted transition group-hover:text-ink">
                 {ru.landing.featuredViewShot} →

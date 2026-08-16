@@ -74,6 +74,35 @@ export async function analyzePhoto(input: Buffer): Promise<AnalyzedPhoto> {
 }
 
 /**
+ * Процессный семафор обработки изображений (аудит 2026-08-16, P1).
+ *
+ * `sharp.concurrency(1)` ограничивает потоки libvips ВНУТРИ одной операции,
+ * но не число одновременных загрузок: rate-limit по 60 файлов/час — на
+ * ПОЛЬЗОВАТЕЛЯ, и десять авторов, заливающих портфолио в один день онбординга
+ * беты, держали в контейнере на 1400 МБ десять 40-МБ буферов с каскадами
+ * распакованных слоёв. Три одновременные обработки — потолок; сверх — честный
+ * 429 «попробуйте через минуту», который лучше OOM всего сайта.
+ */
+const MAX_CONCURRENT_PROCESSING = 3;
+let processingNow = 0;
+
+export class PhotoBusyError extends Error {
+  constructor() {
+    super('too_many_concurrent_uploads');
+  }
+}
+
+export async function withPhotoSlot<T>(work: () => Promise<T>): Promise<T> {
+  if (processingNow >= MAX_CONCURRENT_PROCESSING) throw new PhotoBusyError();
+  processingNow += 1;
+  try {
+    return await work();
+  } finally {
+    processingNow -= 1;
+  }
+}
+
+/**
  * Стадия 2 — варианты (web 2048, thumb 640) в хранилище. EXIF вычищается
  * (rotate применяет ориентацию до удаления метаданных).
  *

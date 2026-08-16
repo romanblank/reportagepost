@@ -119,3 +119,28 @@ describe('варианты изображений', () => {
     expect(card).toContain('type="image/webp"');
   });
 });
+
+/**
+ * Семафор одновременных обработок (аудит 2026-08-16, P1): rate-limit — на
+ * пользователя, а память контейнера — общая. Сверх трёх слотов — честный
+ * отказ, который лучше OOM всего сайта.
+ */
+describe('семафор обработки изображений', () => {
+  it('четвёртая параллельная обработка получает отказ, слот освобождается', async () => {
+    const { withPhotoSlot, PhotoBusyError } = await import('@/lib/photos');
+    let release!: () => void;
+    const gate = new Promise<void>((r) => { release = r; });
+
+    // Три обработки занимают все слоты
+    const busy = Array.from({ length: 3 }, () => withPhotoSlot(() => gate.then(() => 'ok')));
+    // Дать слотам захватиться
+    await new Promise((r) => setTimeout(r, 10));
+    // Четвёртая — отказ немедленно, без очереди
+    await expect(withPhotoSlot(async () => 'never')).rejects.toThrow(PhotoBusyError);
+
+    release();
+    await expect(Promise.all(busy)).resolves.toEqual(['ok', 'ok', 'ok']);
+    // После освобождения слоты снова доступны
+    await expect(withPhotoSlot(async () => 'again')).resolves.toBe('again');
+  });
+});

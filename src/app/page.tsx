@@ -35,6 +35,10 @@ export default async function Home() {
         src: webVariantUrl(heroFeatured.storageKey),
         name: `${heroFeatured.firstName} ${heroFeatured.lastName}`.trim(),
         href: `/ru/photographer/${heroFeatured.username}`,
+        // Пометка «Пример» есть в каталоге и на странице автора — герой
+        // главной не имеет права быть единственным местом, где демо выглядит
+        // настоящим (аудит 2026-08-16)
+        isDemo: heroFeatured.isDemo,
       }
     : null;
 

@@ -17,6 +17,8 @@ export interface FeedPhoto {
   username: string;
   firstName: string;
   lastName: string;
+  /** Демо-витрина: карточка обязана быть помечена «Пример» */
+  isDemo: boolean;
   scoreMilli: number;
   avatarKey: string | null; // аватар автора (или инициалы)
   blurData: string | null; // LQIP-плейсхолдер (Photo.blurhash) — фон при загрузке
@@ -28,7 +30,18 @@ export interface FeedPhoto {
 // alt или признак видео — почти гарантированно было бы забыто в паре мест, и
 // лента поехала бы только на части вкладок.
 const FEED_INCLUDE = {
-  profile: { include: { user: { select: { firstName: true, lastName: true } } } },
+  profile: {
+    select: {
+      username: true,
+      avatarKey: true,
+      proRank: true,
+      // Признак демо доезжает до карточек лент: герой главной подписывал
+      // выдуманного автора без пометки «Пример» (аудит 2026-08-16) — первый
+      // экран платформы не имеет права врать первым
+      isDemo: true,
+      user: { select: { firstName: true, lastName: true } },
+    },
+  },
 } as const;
 
 type FeedRow = Prisma.PhotoGetPayload<{ include: typeof FEED_INCLUDE }>;
@@ -42,6 +55,7 @@ function toFeedPhoto(p: FeedRow, scoreMilli = 0): FeedPhoto {
     username: p.profile.username,
     firstName: p.profile.user.firstName,
     lastName: p.profile.user.lastName,
+    isDemo: p.profile.isDemo,
     scoreMilli,
     avatarKey: p.profile.avatarKey,
     blurData: p.blurhash,

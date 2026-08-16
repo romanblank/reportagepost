@@ -43,7 +43,7 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
     return v.toLowerCase().replace(/[\s_]+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-').replace(/^-+/, '').slice(0, 30);
   }
 
-  const PHOTO_ERRORS = ru.onboarding.photoError;
+  const PHOTO_ERRORS = { ...ru.onboarding.photoError, busy_try_later: ru.onboarding.uploadBusy };
 
   const FIELD_NAMES: Record<string, string> = {
     username: ru.onboarding.fieldUsername,

@@ -21,6 +21,7 @@ jobs:
         env:
           TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TG_CHAT: ${{ secrets.TELEGRAM_ALERT_CHAT_ID }}
+          JOBS_SECRET: ${{ secrets.JOBS_SECRET }}
         run: |
           set -uo pipefail
           URL="https://reportagepost.com/health"
@@ -64,5 +65,16 @@ jobs:
                 fi
                 ;;
             esac
+          fi
+          # Отметка пробы В ПЛАТФОРМЕ: молчание uptime (квота Actions,
+          # отключение scheduled, сбой раннеров) иначе неотличимо от «всё
+          # хорошо». Без JOBS_SECRET в секретах репо — предупреждение, и
+          # /health честно держит uptime: never, пока оператор не заведёт
+          if [ -n "${JOBS_SECRET:-}" ]; then
+            curl -s -m 15 -X POST "${URL%/health}/api/jobs/heartbeat" \
+              -H "Authorization: Bearer ${JOBS_SECRET}" -H 'Content-Type: application/json' \
+              -d '{"name":"uptime","ok":true}' >/dev/null || true
+          else
+            echo "JOBS_SECRET не задан — отметка uptime не пишется"
           fi
           echo "OK: ${JSON}"

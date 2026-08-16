@@ -46,7 +46,10 @@ function RegisterForm() {
     setPending(false);
 
     if (res.ok) {
-      router.push('/ru/cabinet');
+      // Фотографа — сразу в онбординг (аудит 2026-08-16): кабинет без анкеты —
+      // тупиковый экран, единственный смысл которого — кнопка «создать
+      // страницу». Лишний шаг между «хочу» и «делаю» в момент пиковой мотивации
+      router.push(f.get('role') === 'PHOTOGRAPHER' ? '/ru/onboarding' : '/ru/cabinet');
       router.refresh(); // обновить серверный layout (шапку) под новую сессию
       return;
     }

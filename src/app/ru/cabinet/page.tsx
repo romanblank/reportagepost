@@ -59,6 +59,11 @@ export default async function CabinetPage({
         })
       : null;
 
+  // Фотограф без анкеты — сразу в онбординг (аудит 2026-08-16): кабинет без
+  // страницы был тупиком с одной кнопкой. Админ без анкеты — легитимен, ему
+  // кабинет нужен как вход в администрирование
+  if (session.role === 'PHOTOGRAPHER' && !profile) redirect('/ru/onboarding');
+
   const completeness = profile
     ? profileCompleteness({
         hasAvatar: Boolean(profile.avatarKey),

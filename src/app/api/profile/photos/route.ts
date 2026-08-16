@@ -3,8 +3,10 @@ import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import {
+  PhotoBusyError,
   analyzePhoto,
   storePhotoVariants,
+  withPhotoSlot,
   photoStorageKeys,
 } from '@/lib/photos';
 import { findNearDuplicate } from '@/lib/photo-dedup';
@@ -74,6 +76,10 @@ export function POST(req: Request) {
 
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
+    // Обе тяжёлые стадии — под процессным семафором (аудит 2026-08-16):
+    // rate-limit на пользователя не ограничивает СУММАРНУЮ конкуренцию, а
+    // десять параллельных 40-МБ обработок — это OOM контейнера
+    return await withPhotoSlot(async () => {
     // Стадия 1: анализ + phash (без записи в хранилище)
     const analyzed = await analyzePhoto(buffer);
 
@@ -141,11 +147,16 @@ export function POST(req: Request) {
       { photoId: photo.id, uploaded: photoCount + 1, limit },
       { status: 201 },
     );
+    });
   } catch (e) {
     // PhotoValidationError теперь сам несёт код и статус — его разбирает
     // handleRoute; здесь остаётся только лимит с его полем limit в теле.
     if (e instanceof PhotoLimitError) {
       return NextResponse.json({ error: 'photo_limit', limit: e.limit }, { status: 409 });
+    }
+    if (e instanceof PhotoBusyError) {
+      // Слоты заняты чужими загрузками — временно, повтор через минуту
+      return NextResponse.json({ error: 'busy_try_later' }, { status: 429 });
     }
     throw e;
   }
