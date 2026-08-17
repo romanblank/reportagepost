@@ -32,6 +32,17 @@ limit_conn_zone $binary_remote_addr zone=rp_conn:10m;
 # 429, а не дефолтный 503: клиент должен понимать, что это лимит, а не поломка
 limit_req_status 429;
 limit_conn_status 429;
+# Кэш медиа: 10 ГБ на диске, ключи иммутабельны (см. location /files/).
+# inactive больше TTL, чтобы горячие объекты не выселялись раньше срока
+proxy_cache_path /var/cache/nginx/rp-media levels=1:2 keys_zone=rp_media:50m
+                 max_size=10g inactive=30d use_temp_path=off;
+# Латентность в логе (аудит 2026-08-16, наблюдаемость трендов): $request_time
+# — единственный источник p95, не требующий ни кода в приложении, ни новых
+# сервисов. Суточный отчёт считает rp-latency.sh
+log_format rp_timing '$time_iso8601 $status $request_time $request_method $uri';
+access_log /var/log/nginx/rp-timing.log rp_timing;
+LIM
+
 # Активный порт приложения: все локальные пробы и кроны обязаны спрашивать
 # его здесь, а не помнить «3000» — после blue-green жёсткий порт означает
 # пробу мёртвого цвета (или пустоты)
@@ -53,17 +64,6 @@ if [ ! -f /etc/nginx/conf.d/rp-upstream.conf ]; then
 upstream rp_upstream { server 127.0.0.1:3000; }
 UPS
 fi
-
-# Кэш медиа: 10 ГБ на диске, ключи иммутабельны (см. location /files/).
-# inactive больше TTL, чтобы горячие объекты не выселялись раньше срока
-proxy_cache_path /var/cache/nginx/rp-media levels=1:2 keys_zone=rp_media:50m
-                 max_size=10g inactive=30d use_temp_path=off;
-# Латентность в логе (аудит 2026-08-16, наблюдаемость трендов): $request_time
-# — единственный источник p95, не требующий ни кода в приложении, ни новых
-# сервисов. Суточный отчёт считает rp-latency.sh
-log_format rp_timing '$time_iso8601 $status $request_time $request_method $uri';
-access_log /var/log/nginx/rp-timing.log rp_timing;
-LIM
 
 sudo mkdir -p /var/cache/nginx/rp-media
 sudo chown -R www-data:www-data /var/cache/nginx/rp-media
