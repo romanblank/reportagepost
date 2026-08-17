@@ -808,6 +808,7 @@ export const ru = {
     accountAge: (hours: number) => `аккаунту ${hours} ч`,
     shotOn: (date: string) => `съёмка ${date}`,
     approvedSoFar: (n: number) => `по приглашениям уже одобрено: ${n}`,
+    sameAddress: (n: number) => `⚠ с этого же адреса ещё: ${n}`,
   },
   shootInvite: {
     eyebrow: 'Подтверждение съёмки',

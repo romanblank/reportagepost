@@ -316,3 +316,76 @@ describe.skipIf(!hasDb)('съёмки: подтверждение по приг�
     }
   });
 });
+
+/**
+ * Тихий выпуск после выдержки (2026-08-17): человек смотрит только аномалии.
+ * Чистая запись (почта подтверждена, нет всплеска, нет кластера адреса)
+ * публикуется сама через 72 часа; любой флаг оставляет её в очереди.
+ */
+describe.skipIf(!hasDb)('съёмки: тихий выпуск приглашённых подтверждений (БД)', () => {
+  it('чистая — выпускается, кластер одного адреса — остаётся человеку', async () => {
+    const { db } = await import('@/lib/db');
+    const { releaseShootConfirmations } = await import('@/lib/shoots');
+
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const city = await db.city.findFirstOrThrow({ where: { slug: 'omsk' } });
+    const mkUser = (tag: string, verified: boolean) =>
+      db.user.create({
+        data: {
+          role: 'CLIENT', status: 'ACTIVE', firstName: tag, lastName: 'Р',
+          email: `rel-${tag}-${stamp}@test.local`,
+          ...(verified ? { emailVerifiedAt: new Date() } : {}),
+        },
+      });
+    // ДВА автора: флаг всплеска считается по профилю, и чистый случай не
+    // должен попадать под всплеск, созданный фермой соседнего теста
+    const author = await db.user.create({
+      data: { role: 'PHOTOGRAPHER', status: 'ACTIVE', firstName: 'Рел', lastName: 'Автор', email: `rel-a-${stamp}@test.local` },
+    });
+    const profile = await db.photographerProfile.create({
+      data: { userId: author.id, username: `rel-${stamp}`, cityId: city.id, status: 'APPROVED' },
+    });
+    const author2 = await db.user.create({
+      data: { role: 'PHOTOGRAPHER', status: 'ACTIVE', firstName: 'Рел2', lastName: 'Автор', email: `rel-a2-${stamp}@test.local` },
+    });
+    const profile2 = await db.photographerProfile.create({
+      data: { userId: author2.id, username: `rel2-${stamp}`, cityId: city.id, status: 'APPROVED' },
+    });
+    const clean = await mkUser('clean', true);
+    const farmA = await mkUser('farma', true);
+    const farmB = await mkUser('farmb', true);
+    const noMail = await mkUser('nomail', false);
+
+    const old = new Date(Date.now() - 80 * 3_600_000); // старше 72ч
+    const mkShoot = (clientId: string, ipHash: string | null, date: string, profId = profile.id) =>
+      db.shootConfirmation.create({
+        data: {
+          clientUserId: clientId, profileId: profId, initiatedBy: 'PHOTOGRAPHER',
+          state: 'CONFIRMED', needsReview: true, ipHash, createdAt: old,
+          eventDate: new Date(date),
+        },
+      });
+
+    try {
+      const ok = await mkShoot(clean.id, `hash-clean-${stamp}`, '2026-05-01');
+      // Ферма — ВТОРОМУ автору: два РАЗНЫХ клиента с одного адреса
+      const f1 = await mkShoot(farmA.id, `hash-farm-${stamp}`, '2026-05-02', profile2.id);
+      const f2 = await mkShoot(farmB.id, `hash-farm-${stamp}`, '2026-05-03', profile2.id);
+      // Без подтверждённой почты
+      const nm = await mkShoot(noMail.id, `hash-nm-${stamp}`, '2026-05-04', profile2.id);
+
+      await releaseShootConfirmations();
+
+      const state = async (id: string) =>
+        (await db.shootConfirmation.findUniqueOrThrow({ where: { id }, select: { needsReview: true } })).needsReview;
+      expect(await state(ok.id)).toBe(false); // чистая вышла
+      expect(await state(f1.id)).toBe(true); // кластер — ждёт человека
+      expect(await state(f2.id)).toBe(true);
+      expect(await state(nm.id)).toBe(true); // без почты — ждёт
+    } finally {
+      await db.shootConfirmation.deleteMany({ where: { profileId: { in: [profile.id, profile2.id] } } });
+      await db.photographerProfile.deleteMany({ where: { id: { in: [profile.id, profile2.id] } } });
+      await db.user.deleteMany({ where: { id: { in: [author.id, author2.id, clean.id, farmA.id, farmB.id, noMail.id] } } });
+    }
+  });
+});

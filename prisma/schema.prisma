@@ -614,6 +614,9 @@ model ShootConfirmation {
   /// Подтверждено, но ответ пришёл с аккаунта без признаков доверия —
   /// публичного факта не даёт до проверки человеком
   needsReview  Boolean           @default(false)
+  /// Хеш адреса, с которого пришло подтверждение по приглашению: кластер
+  /// «разные клиенты, один адрес» — главный признак фермы (2026-08-17)
+  ipHash       String?
   // Момент реакции фотографа: подтвердил или оспорил
   respondedAt  DateTime? @db.Timestamptz(3)
   createdAt    DateTime          @default(now()) @db.Timestamptz(3)

@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { getSession } from '@/lib/auth';
 import { verifyShootInvite } from '@/lib/shoot-invite';
 import { confirmShootByInvite } from '@/lib/shoots';
+import { clientIp } from '@/lib/rate-limit';
+import { createHash } from 'node:crypto';
 import { handleRoute, jsonError } from '@/lib/errors';
 
 const schema = z.object({
@@ -22,10 +24,15 @@ export function POST(req: Request) {
     const invite = await verifyShootInvite(parsed.data.token);
     if (!invite) return jsonError('invite_invalid', 400);
 
+    // Хеш, не сырой адрес: сам по себе IP — персональные данные, а для
+    // поимки кластера хватает совпадения
+    const ip = clientIp(req);
+    const ipHash = ip ? createHash('sha256').update(`shoot:${ip}`).digest('hex') : null;
     const { needsReview } = await confirmShootByInvite(
       session.userId,
       invite.profileId,
       parsed.data.eventDate ?? null,
+      ipHash,
     );
     return NextResponse.json({ ok: true, needsReview });
   });

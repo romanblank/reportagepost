@@ -34,7 +34,7 @@ export default async function AdminQueuePage() {
     orderBy: { createdAt: 'asc' },
     take: 50,
     select: {
-      id: true, createdAt: true, eventDate: true, profileId: true,
+      id: true, createdAt: true, eventDate: true, profileId: true, ipHash: true, clientUserId: true,
       client: { select: { firstName: true, lastName: true, emailVerifiedAt: true, createdAt: true } },
       profile: { select: { username: true, user: { select: { firstName: true, lastName: true } } } },
     },
@@ -55,10 +55,16 @@ export default async function AdminQueuePage() {
   const approvedByProfile = new Map(approvedInvites.map((a) => [a.profileId, a._count]));
   // Возраст аккаунта — через lib-хелпер: react-compiler запрещает Date.now()
   // в рендере, а внутрь импортов не заглядывает
+  // Кластер адреса — главный отпечаток фермы: аккаунты разные, ноутбук один
+  const hashCounts = new Map<string, number>();
+  for (const sh of shootsToReview) {
+    if (sh.ipHash) hashCounts.set(sh.ipHash, (hashCounts.get(sh.ipHash) ?? 0) + 1);
+  }
   const shootsReview = shootsToReview.map((sh) => ({
     ...sh,
     ageHours: hoursSince(sh.client.createdAt),
     approvedInvites: approvedByProfile.get(sh.profileId) ?? 0,
+    sameAddress: sh.ipHash ? (hashCounts.get(sh.ipHash) ?? 1) - 1 : 0,
   }));
 
   return (
@@ -122,6 +128,9 @@ export default async function AdminQueuePage() {
                   {' · '}
                   <a href={`/ru/photographer/${sh.profile.username}`} className="underline">{sh.profile.username}</a>
                   {' · '}{ru.adminShoots.approvedSoFar(sh.approvedInvites)}
+                  {sh.sameAddress > 0 && (
+                    <span className="text-warning"> · {ru.adminShoots.sameAddress(sh.sameAddress)}</span>
+                  )}
                 </p>
                 <ShootReviewDecision shootId={sh.id} />
               </li>

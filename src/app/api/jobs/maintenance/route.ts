@@ -118,6 +118,11 @@ export function POST(req: Request) {
       );
     }
 
+    // Тихий выпуск приглашённых подтверждений съёмок: чистые публикуются
+    // после 72ч выдержки, флагованные ждут человека (см. releaseShootConfirmations)
+    const { releaseShootConfirmations } = await import('@/lib/shoots');
+    const shootsReleased = await releaseShootConfirmations();
+
     // Волны доставки заявок отсюда УБРАНЫ (аудит 2026-08-16): у них свой
     // кран каждые 15 минут (rp-inquiries.sh), и в 02:30 два прогона под
     // разными файловыми локами пересекались гарантированно — read-then-write
@@ -164,6 +169,7 @@ export function POST(req: Request) {
       ok: true,
       profiles,
       ranksFixed,
+      shootsReleased,
       cleaned: { rateLimitRows, resets, verifications, activityRows, jobRuns, inquiriesAnon, reportsAnon, notificationsGone },
       tookMs: Date.now() - startedAt,
     });

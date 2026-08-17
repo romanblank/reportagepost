@@ -108,6 +108,7 @@ export async function confirmShootByInvite(
   clientUserId: string,
   profileId: string,
   eventDate?: Date | null,
+  ipHash?: string | null,
 ): Promise<{ needsReview: boolean }> {
   const profile = await db.photographerProfile.findUnique({
     where: { id: profileId },
@@ -138,6 +139,7 @@ export async function confirmShootByInvite(
       state: 'CONFIRMED',
       respondedAt: new Date(),
       needsReview,
+      ipHash: ipHash ?? undefined,
     },
   }).catch((e: unknown) => {
     if (e && typeof e === 'object' && 'code' in e && e.code === 'P2002') {
@@ -153,6 +155,65 @@ export async function confirmShootByInvite(
   const { notifyInApp } = await import('@/lib/notifications');
   void notifyInApp(profile.userId, 'notification.shoot.invite_confirmed', { profileId }).catch(() => {});
   return { needsReview };
+}
+
+
+/**
+ * Тихий выпуск приглашённых подтверждений после выдержки (2026-08-17, ответ
+ * на вопрос оператора «мне сколько людей на модерации потребуется?»).
+ *
+ * Человек смотрит только АНОМАЛИИ. Чистая запись публикуется сама, но не
+ * сразу: 72 часа выдержки — окно, за которое ферма успевает себя выдать
+ * (всплеск, кластер адреса), а честный случай ничего не теряет: публичный
+ * счёт «снимали вместе» не скоропортящийся.
+ *
+ * Флаги, любой из которых оставляет запись человеку:
+ *  — почта клиента не подтверждена (не осилил минимальную проверяемость);
+ *  — больше трёх подтверждений автору за 7 дней (всплеск);
+ *  — с того же адреса подтверждал другой клиент этого же автора (кластер —
+ *    главный отпечаток фермы: аккаунты разные, ноутбук один).
+ *
+ * Это НЕ «автоматическая дверь с улицы»: дверь с задержкой, капом и флагами,
+ * и цена ошибки ограничена — спорное всё равно ждёт человека, а одобренное
+ * оператор может отозвать решением по жалобе.
+ */
+export async function releaseShootConfirmations(now: Date = new Date()): Promise<number> {
+  const matured = await db.shootConfirmation.findMany({
+    where: {
+      needsReview: true,
+      state: 'CONFIRMED',
+      initiatedBy: 'PHOTOGRAPHER',
+      createdAt: { lte: new Date(now.getTime() - 72 * 3_600_000) },
+    },
+    select: {
+      id: true, profileId: true, ipHash: true, clientUserId: true,
+      client: { select: { emailVerifiedAt: true } },
+    },
+    take: 200,
+  });
+  if (matured.length === 0) return 0;
+
+  let released = 0;
+  for (const sc of matured) {
+    if (!sc.client.emailVerifiedAt) continue;
+
+    const weekAgo = new Date(now.getTime() - 7 * 86_400_000);
+    const recentForProfile = await db.shootConfirmation.count({
+      where: { profileId: sc.profileId, initiatedBy: 'PHOTOGRAPHER', createdAt: { gte: weekAgo } },
+    });
+    if (recentForProfile > 3) continue;
+
+    if (sc.ipHash) {
+      const sameAddress = await db.shootConfirmation.count({
+        where: { profileId: sc.profileId, ipHash: sc.ipHash, clientUserId: { not: sc.clientUserId } },
+      });
+      if (sameAddress > 0) continue;
+    }
+
+    await db.shootConfirmation.update({ where: { id: sc.id }, data: { needsReview: false } });
+    released += 1;
+  }
+  return released;
 }
 
 /** Заказчик отмечает съёмку сам. Публичной она станет после подтверждения автором. */
