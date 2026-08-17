@@ -7,6 +7,7 @@ import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { inquiriesForPhotographer } from '@/lib/inquiries';
+import { FirstSteps } from '@/components/FirstSteps';
 import { cityNameRu } from '@/lib/geo-data';
 import { categoryNameRu } from '@/lib/category-data';
 import { formatRubMinor } from '@/lib/money';
@@ -79,6 +80,15 @@ export default async function CabinetPage({
 
   const inquiries =
     profile?.status === 'APPROVED' ? await inquiriesForPhotographer(session.userId) : null;
+
+  // «Первые шаги» — пока пусто: ни заявок, ни подтверждённых съёмок. Блок
+  // исчезает сам, как только у автора появляется настоящая активность
+  const confirmedShoots =
+    profile?.status === 'APPROVED'
+      ? await db.shootConfirmation.count({ where: { profileId: profile.id, state: 'CONFIRMED' } })
+      : 0;
+  const showFirstSteps =
+    profile?.status === 'APPROVED' && confirmedShoots === 0 && (inquiries?.length ?? 0) === 0;
 
   const pendingCount =
     session.role === 'ADMIN'
@@ -184,6 +194,12 @@ export default async function CabinetPage({
                 teaser={profile ? { saves: profile._count.favoritedBy, reviews: profile._count.reviews } : undefined}
                 initialPlan={initialPlan}
               />
+            </div>
+          )}
+
+          {showFirstSteps && profile && (
+            <div className="mt-4">
+              <FirstSteps username={profile.username} />
             </div>
           )}
 

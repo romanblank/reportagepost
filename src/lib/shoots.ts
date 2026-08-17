@@ -92,6 +92,67 @@ export async function requestShootConfirmation(
   void notifyInApp(clientUserId, 'notification.shoot.confirm_request_client', { shootId: shoot.id }).catch(() => {});
 }
 
+
+/**
+ * Подтверждение по ПРИГЛАШЕНИЮ автора (импорт репутации, 2026-08-17).
+ *
+ * Отличие от confirmShoot: гард «есть переписка» снят — приглашение и есть
+ * контакт (заказчик пришёл по подписанной ссылке автора). Trust-модель при
+ * этом строже, а не мягче: state сразу CONFIRMED (интент автора выражен самим
+ * приглашением), но публичный вес — только после проверки человеком, если
+ * аккаунт без признаков доверия. Приглашённый заказчик почти всегда свежий,
+ * то есть почти всегда needsReview: первые «снимали вместе» пройдут через
+ * оператора, и это осознанная цена запуска механизма на пустой платформе.
+ */
+export async function confirmShootByInvite(
+  clientUserId: string,
+  profileId: string,
+  eventDate?: Date | null,
+): Promise<{ needsReview: boolean }> {
+  const profile = await db.photographerProfile.findUnique({
+    where: { id: profileId },
+    select: { status: true, userId: true },
+  });
+  if (!profile || profile.status !== 'APPROVED') throw new DomainError('not_found', 404);
+  if (profile.userId === clientUserId) throw new DomainError('shoot_self', 400);
+
+  await rateLimit(`shoot-invite:user:${clientUserId}`, 5, 86_400);
+
+  const client = await db.user.findUnique({
+    where: { id: clientUserId },
+    select: { createdAt: true, emailVerifiedAt: true },
+  });
+  const seasoned =
+    Boolean(client?.emailVerifiedAt) ||
+    Boolean(client && Date.now() - client.createdAt.getTime() > TRUSTED_CLIENT_AGE_MS);
+
+  const needsReview = !seasoned;
+  await db.shootConfirmation.create({
+    data: {
+      clientUserId,
+      profileId,
+      eventDate: eventDate ?? undefined,
+      initiatedBy: 'PHOTOGRAPHER',
+      state: 'CONFIRMED',
+      respondedAt: new Date(),
+      needsReview,
+    },
+  }).catch((e: unknown) => {
+    if (e && typeof e === 'object' && 'code' in e && e.code === 'P2002') {
+      throw new DomainError('shoot_already_marked', 409);
+    }
+    throw e;
+  });
+
+  if (needsReview) {
+    const { alertOperator } = await import('@/lib/telegram');
+    void alertOperator(ru.operatorAlerts.shootNeedsReview).catch(() => {});
+  }
+  const { notifyInApp } = await import('@/lib/notifications');
+  void notifyInApp(profile.userId, 'notification.shoot.invite_confirmed', { profileId }).catch(() => {});
+  return { needsReview };
+}
+
 /** Заказчик отмечает съёмку сам. Публичной она станет после подтверждения автором. */
 export async function confirmShoot(clientUserId: string, profileId: string, eventDate?: Date | null): Promise<void> {
   const profile = await db.photographerProfile.findUnique({

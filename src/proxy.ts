@@ -37,6 +37,7 @@ const APP_SECTIONS = new Set([
   'admin',
   'auth',
   'cabinet',
+  'confirm',
   'community',
   'forgot',
   'forum',

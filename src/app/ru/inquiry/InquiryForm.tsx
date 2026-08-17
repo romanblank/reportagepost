@@ -16,7 +16,7 @@ interface ContactPrefill { name?: string; email?: string }
 
 export function InquiryForm({ cities, categories, prefill, contact }: { cities: Option[]; categories: Option[]; prefill?: Prefill; contact?: ContactPrefill }) {
   const [pending, setPending] = useState(false);
-  const [sent, setSent] = useState<{ notified: number } | null>(null);
+  const [sent, setSent] = useState<{ notified: number; cityHasAuthors?: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [consent, setConsent] = useState(false);
   // Дата события — не раньше сегодня. Считаем в рендере (клиентский компонент;
@@ -54,7 +54,7 @@ export function InquiryForm({ cities, categories, prefill, contact }: { cities: 
     setPending(false);
 
     if (res.ok) {
-      setSent(res.data as { notified: number });
+      setSent(res.data as { notified: number; cityHasAuthors?: boolean });
       return;
     }
     setError(res.error);
@@ -63,7 +63,10 @@ export function InquiryForm({ cities, categories, prefill, contact }: { cities: 
   if (sent) {
     return (
       <p role="status" className="card border-accent/40 bg-accent/5 p-4 t-small">
-        {ru.inquiry.sent} {sent.notified > 0 && ru.inquiry.sentNotified(sent.notified)}
+        {/* Городу без авторов не обещаем «свяжутся»: честный текст вместо
+            обещания в пустоту (аудит 2026-08-16, №7) */}
+        {sent.cityHasAuthors === false ? ru.inquiry.sentQuiet : ru.inquiry.sent}{' '}
+        {sent.notified > 0 && ru.inquiry.sentNotified(sent.notified)}
       </p>
     );
   }

@@ -14,7 +14,7 @@ jobs:
           key: ${{ secrets.PROD_SSH_KEY }}
           script: |
             # hairpin NAT: свой публичный IP изнутри недоступен — ходим на localhost
-            B="http://127.0.0.1:3000"
+            B="http://127.0.0.1:$(/usr/local/bin/rp-port.sh 2>/dev/null || echo 3000)"
             EMAIL="diag-$RANDOM@test.local"
             echo "--- register:"
             curl -si -c /tmp/cj -X POST "$B/api/auth/register" \

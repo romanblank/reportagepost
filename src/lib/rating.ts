@@ -84,6 +84,29 @@ async function scoreOne(
 ): Promise<{ total: number; byCategory: Map<string, number> }> {
   const approvedPhotos = p.photos.filter((ph) => ph.status === 'APPROVED');
   const perPhoto = await engagementByPhoto(approvedPhotos.map((ph) => ph.id), now);
+  const rev = await db.review.aggregate({
+    where: { profileId: p.id, status: 'VISIBLE', verified: true },
+    _avg: { rating: true },
+    _count: true,
+  });
+  return computeScores(p, perPhoto, { avg: rev._avg.rating ?? 0, count: rev._count }, now);
+}
+
+/**
+ * Чистый расчёт скоров из ЗАРАНЕЕ взятых данных (аудит 2026-08-16, P1):
+ * плановый пересчёт делал по 2 запроса НА КАЖДЫЙ профиль — на 5000 авторов
+ * это ~10 000 SELECT в одном HTTP-вызове с потолком 300 секунд, и обрыв был
+ * бы молчаливым (каталог просто ранжирует по вчерашнему дню). Теперь страница
+ * из 200 профилей собирает лайки и отзывы ДВУМЯ запросами, а сам расчёт —
+ * арифметика без обращений к базе.
+ */
+function computeScores(
+  p: ProfileForRating,
+  perPhoto: Map<string, number>,
+  review: { avg: number; count: number },
+  now: Date,
+): { total: number; byCategory: Map<string, number> } {
+  const approvedPhotos = p.photos.filter((ph) => ph.status === 'APPROVED');
   let engagement = 0;
   const engagementByCat = new Map<string, number>();
   for (const ph of approvedPhotos) {
@@ -106,27 +129,10 @@ async function scoreOne(
     lastPublishedAt,
     now,
   });
-  // Отзывы — только VISIBLE (скрытые админом в рейтинг не идут)
-  const rev = await db.review.aggregate({
-    // ТОЛЬКО подтверждённые съёмкой отзывы. Иначе конкурента топят двадцатью
-    // аккаунтами с оценкой «1» — бесплатно, навсегда (отзывы не затухают) и
-    // невидимо для жертвы: низкие оценки публично не показываются, среднего
-    // балла на странице нет. Это ровно тот сигнал, который платформа
-    // объявляет единственным честным, — им и считаем.
-    where: { profileId: p.id, status: 'VISIBLE', verified: true },
-    _avg: { rating: true },
-    _count: true,
-  });
-  // Вклад отзывов (аудит 2026-07-31, P1 — БЫЛА ЛОГИЧЕСКАЯ ОШИБКА).
-  // Прежняя формула avg × count × 200 РОСЛА от плохого отзыва: 5×1×200=1000,
-  // а после отзыва на 1 балл → 3×2×200=1200. То есть недовольный заказчик
-  // поднимал автора в выдаче.
-  //
-  // Теперь: байесовское сглаживание (защищает от «один отзыв на 5 → в топ»)
-  // и отсчёт от НЕЙТРАЛИ — вклад положителен только выше неё и отрицателен
-  // ниже. Согласуется с доброжелательным рейтингом: низкие оценки кормят
-  // внутренний порядок, но публично не показываются.
-  const reviewMilli = reviewContribution(rev._avg.rating ?? 0, rev._count);
+  // Отзывы: ТОЛЬКО VISIBLE и verified (см. scoreOne/страничный сбор) —
+  // байесовское сглаживание и отсчёт от нейтрали, чтобы плохой отзыв не
+  // ПОДНИМАЛ автора (регрессия старой формулы avg×count)
+  const reviewMilli = reviewContribution(review.avg, review.count);
   const base = completeness * 1000 + reviewMilli;
 
   // Жанровые скоры — для всех категорий профиля (даже без лайков: база различает
@@ -198,10 +204,32 @@ export async function recomputeRatings(now = new Date()): Promise<number> {
     });
     if (page.length === 0) break;
 
-    // Внутри страницы — батчами: кап конкуренции бережёт пул соединений
+    // Данные страницы — ДВУМЯ запросами вместо двух на каждый профиль
+    // (аудит 2026-08-16, P1): лайки всех кадров страницы одним IN,
+    // отзывы всех профилей одним groupBy. Дальше — чистая арифметика.
+    const pagePhotoIds = page.flatMap((p) =>
+      p.photos.filter((ph) => ph.status === 'APPROVED').map((ph) => ph.id),
+    );
+    const perPhoto = await engagementByPhoto(pagePhotoIds, now);
+    const reviewRows = await db.review.groupBy({
+      by: ['profileId'],
+      where: { profileId: { in: page.map((p) => p.id) }, status: 'VISIBLE', verified: true },
+      _avg: { rating: true },
+      _count: true,
+    });
+    const reviewMap = new Map(
+      reviewRows.map((r) => [r.profileId, { avg: r._avg.rating ?? 0, count: r._count }]),
+    );
+
+    // Запись — батчами: кап конкуренции бережёт пул соединений
     for (let i = 0; i < page.length; i += CHUNK) {
       await Promise.all(
-        page.slice(i, i + CHUNK).map(async (p) => persistScores(p.id, await scoreOne(p, now))),
+        page.slice(i, i + CHUNK).map((p) =>
+          persistScores(
+            p.id,
+            computeScores(p, perPhoto, reviewMap.get(p.id) ?? { avg: 0, count: 0 }, now),
+          ),
+        ),
       );
     }
     processed += page.length;

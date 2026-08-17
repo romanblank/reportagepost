@@ -298,6 +298,10 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
           <div><label htmlFor="onb-team" className="field-label">{ru.onboarding.team}</label>
             <input id="onb-team" name="teamInfo" maxLength={300} placeholder={ru.onboarding.teamPlaceholder} className="input" /></div>
         </div>
+        {/* Честно о видимости: техника и команда публикуются на Active.
+            Обещать «заказчик увидит» и показать пустоту — потерять доверие
+            на первом же взгляде на свою страницу (аудит 2026-08-16, №5) */}
+        <p className="field-hint mt-2">{ru.onboarding.paidFieldsHint}</p>
       </div>
       <div>
         <span className="field-hint mt-0 mb-2 block">{ru.onboarding.contactsHint}</span>

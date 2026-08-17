@@ -250,3 +250,51 @@ describe.skipIf(!hasDb)('съёмки: гонка двойной отметки 
     }
   });
 });
+
+/**
+ * Импорт репутации (2026-08-17): приглашённый заказчик подтверждает съёмку,
+ * состоявшуюся до платформы. Trust-модель не ослабляется: свежий аккаунт →
+ * needsReview → человек. Токен подписан — подделка profileId невозможна.
+ */
+describe.skipIf(!hasDb)('съёмки: подтверждение по приглашению (БД)', () => {
+  it('свежий аккаунт подтверждает → needsReview, публичного веса нет', async () => {
+    const { db } = await import('@/lib/db');
+    const { confirmShootByInvite, shootStats } = await import('@/lib/shoots');
+    const { createShootInvite, verifyShootInvite } = await import('@/lib/shoot-invite');
+
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const city = await db.city.findFirstOrThrow({ where: { slug: 'moscow' } });
+    const author = await db.user.create({
+      data: { role: 'PHOTOGRAPHER', status: 'ACTIVE', firstName: 'Инв', lastName: 'Автор', email: `inv-a-${stamp}@test.local` },
+    });
+    const profile = await db.photographerProfile.create({
+      data: { userId: author.id, username: `inv-${stamp}`, cityId: city.id, status: 'APPROVED' },
+    });
+    // Свежий заказчик без подтверждённой почты — типичный приглашённый
+    const client = await db.user.create({
+      data: { role: 'CLIENT', status: 'ACTIVE', firstName: 'Инв', lastName: 'Клиент', email: `inv-c-${stamp}@test.local` },
+    });
+
+    try {
+      // Токен: подписывается и разбирается, чужой не проходит
+      const token = await createShootInvite(profile.id);
+      expect((await verifyShootInvite(token))?.profileId).toBe(profile.id);
+      expect(await verifyShootInvite(token.slice(0, -3) + 'abc')).toBeNull();
+
+      const { needsReview } = await confirmShootByInvite(client.id, profile.id, null);
+      expect(needsReview).toBe(true);
+
+      // Запись есть, но публичная статистика её НЕ считает до решения человека
+      const stats = await shootStats(profile.id);
+      expect(stats.count).toBe(0);
+
+      // Повторное подтверждение той же съёмки — 409, не дубль
+      await expect(confirmShootByInvite(client.id, profile.id, null)).rejects.toMatchObject({ status: 409 });
+    } finally {
+      await db.shootConfirmation.deleteMany({ where: { profileId: profile.id } });
+      await db.notification.deleteMany({ where: { userId: { in: [author.id, client.id] } } });
+      await db.photographerProfile.delete({ where: { id: profile.id } });
+      await db.user.deleteMany({ where: { id: { in: [author.id, client.id] } } });
+    }
+  });
+});

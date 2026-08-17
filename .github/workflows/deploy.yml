@@ -158,62 +158,76 @@ jobs:
             docker run --rm --env-file .env.prod "$IMAGE" \
               sh -c 'npx prisma migrate deploy && npm run db:seed'
 
-            IMAGE="$IMAGE" docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
-            # health-check с ожиданием (миграции на старте)
+            # ── BLUE-GREEN (аудит 2026-08-16, P1 №5) ──────────────────────
+            # Раньше `up -d` подменял единственный контейнер: 20-40с даунтайма
+            # на каждый релиз и 2-3 минуты при откате — ровно тогда, когда всё
+            # плохо. Теперь новый цвет поднимается РЯДОМ, nginx переключает
+            # upstream после health, старый живёт до успешного smoke: откат —
+            # это переключение обратно, мгновенное и без re-pull.
+            export COMPOSE_IGNORE_ORPHANS=1
+            ACTIVE=$(cat .active-color 2>/dev/null || echo none)
+            if [ "$ACTIVE" = "blue" ]; then NEW=green; NEW_PORT=3002; OLD_CONT=reportagepost-blue
+            else NEW=blue; NEW_PORT=3001; OLD_CONT=reportagepost-green; fi
+            echo "Активен: $ACTIVE → поднимаем $NEW на :$NEW_PORT"
+
+            COLOR="$NEW" APP_PORT="$NEW_PORT" IMAGE="$IMAGE"               docker compose --env-file .env.prod -f docker-compose.prod.yml -p "rp-$NEW" up -d app
+
+            switch_upstream() {
+              echo "upstream rp_upstream { server 127.0.0.1:$1; }" | sudo tee /etc/nginx/conf.d/rp-upstream.conf >/dev/null
+              sudo nginx -t && sudo systemctl reload nginx
+            }
+
+            DEPLOY_OK=0
             for i in $(seq 1 20); do
               sleep 6
-              if curl -sf http://127.0.0.1:3000/health >/dev/null; then
-                echo "HEALTH OK"
-                # Smoke реальных страниц: /health трогает только базу и отвечает
-                # 200 даже при падающем каталоге. Провал здесь = прод неисправен,
-                # уходим на общий путь отката ниже.
-                if ! ./smoke.sh; then
-                  echo "SMOKE ПРОВАЛЕН — откатываемся"
-                  break
+              if curl -sf "http://127.0.0.1:$NEW_PORT/health" >/dev/null; then
+                echo "HEALTH OK на новом цвете — переключаем трафик"
+                switch_upstream "$NEW_PORT"
+                echo "$NEW" > .active-color
+                # Smoke по НАСТОЯЩЕМУ домену: /health трогает только базу и
+                # отвечает 200 даже при падающем каталоге
+                if ./smoke.sh; then
+                  DEPLOY_OK=1
+                else
+                  echo "SMOKE ПРОВАЛЕН — мгновенный откат upstream"
                 fi
-                # КОРЕНЬ ИНЦИДЕНТА 2026-07-24: prune раньше шёл ДО up (заменяемый образ
-                # был «в использовании» → не удалялся) + exit 0 сразу. За 17 деплоев
-                # образы Next.js (~1.5ГБ) накопились → диск забит. ФИКС: чистим образы
-                # ПОСЛЕ успешного up — на диске остаётся только рабочий (откат re-pull'ит).
-                # Удаляем старые образы, КРОМЕ текущего и предыдущего: иначе
-                # откат зависит от доступности GHCR ровно в тот момент, когда
-                # всё плохо. Полтора гигабайта на диске дешевле неработающего
-                # отката.
-                PREV_IMG=$(grep -E '^IMAGE=' .previous-deploy 2>/dev/null | cut -d= -f2-)
-                docker images --format '{{.Repository}}:{{.Tag}} {{.ID}}' \
-                  | grep -F "$(echo "$IMAGE" | cut -d: -f1)" \
-                  | grep -v -F "$IMAGE" \
-                  | { [ -n "$PREV_IMG" ] && grep -v -F "$PREV_IMG" || cat; } \
-                  | awk '{print $2}' | xargs -r docker rmi -f >/dev/null 2>&1 || true
-                docker image prune -f >/dev/null 2>&1 || true
-                # Диагностика диска → в бакет (Actions-логи агенту недоступны, PAT 403)
-                { echo "== df =="; df -h /; echo; echo "== docker system df =="; docker system df; \
-                  echo; echo "== du (top dirs) =="; sudo du -sh /var/lib/docker /var/log /var/log/journal /opt/reportagepost 2>/dev/null; \
-                  echo; echo "== docker images =="; docker images --format '{{.Repository}}:{{.Tag}} {{.Size}}'; } > /tmp/diskdiag.txt 2>&1 || true
-                S3ID=$(grep '^S3_ACCESS_KEY_ID=' .env.prod | cut -d= -f2-); S3KEY=$(grep '^S3_SECRET_ACCESS_KEY=' .env.prod | cut -d= -f2-)
-                S3EP=$(grep '^S3_ENDPOINT=' .env.prod | cut -d= -f2-); S3B=$(grep '^S3_BUCKET=' .env.prod | cut -d= -f2-)
-                docker run --rm -v /tmp:/w -e AWS_ACCESS_KEY_ID="$S3ID" -e AWS_SECRET_ACCESS_KEY="$S3KEY" \
-                  amazon/aws-cli --endpoint-url "$S3EP" s3 cp /w/diskdiag.txt "s3://$S3B/_diag/diskdiag.txt" >/dev/null 2>&1 || true
-                exit 0
+                break
               fi
             done
-            # АВТО-ОТКАТ (deep-think Ops P0): при провале health поднимаем прошлый
-            # образ из .previous-deploy, чтобы прод не остался на битом. Безопасно,
-            # т.к. миграции — expand-contract (аддитивны, совместимы с прошлым образом).
-            echo "HEALTH FAILED — сбор логов в S3 + авто-откат на .previous-deploy"
-            { echo "== SHA ${IMAGE##*:} =="; echo "== df =="; df -h /; echo; echo "== docker ps -a =="; docker ps -a; echo; echo "== docker compose logs (tail) =="; IMAGE="$IMAGE" docker compose --env-file .env.prod -f docker-compose.prod.yml logs --tail 100 2>&1; } > /tmp/healthfail.txt 2>&1 || true
-            s3put healthfail.txt healthfail.txt
-            if [ -f .previous-deploy ]; then
-              PREV_IMAGE=$(grep -oE 'IMAGE=.*' .previous-deploy | cut -d= -f2-)
-              if [ -n "$PREV_IMAGE" ]; then
-                echo "Откат на $PREV_IMAGE"
-                docker pull "$PREV_IMAGE" || true
-                IMAGE="$PREV_IMAGE" docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
-                cp .previous-deploy .deploy.env
-                for i in $(seq 1 20); do
-                  sleep 6
-                  if curl -sf http://127.0.0.1:3000/health >/dev/null; then echo "ОТКАТ OK — прод на прошлом образе"; break; fi
-                done
-              fi
+
+            if [ "$DEPLOY_OK" = "1" ]; then
+              # Старый цвет и легаси-контейнер гасим ТОЛЬКО после успеха
+              docker rm -f "$OLD_CONT" reportagepost >/dev/null 2>&1 || true
+              # Воркер транскода — на новый образ (свой проект, чтобы не
+              # конфликтовать по именам между цветами)
+              IMAGE="$IMAGE" docker compose --env-file .env.prod -f docker-compose.prod.yml -p rp-worker up -d worker
+              # Чистка образов ПОСЛЕ успеха: остаются текущий и предыдущий —
+              # откат не должен зависеть от доступности GHCR (урок 2026-07-24)
+              PREV_IMG=$(grep -E '^IMAGE=' .previous-deploy 2>/dev/null | cut -d= -f2-)
+              docker images --format '{{.Repository}}:{{.Tag}} {{.ID}}' \
+                | grep -F "$(echo "$IMAGE" | cut -d: -f1)" \
+                | grep -v -F "$IMAGE" \
+                | { [ -n "$PREV_IMG" ] && grep -v -F "$PREV_IMG" || cat; } \
+                | awk '{print $2}' | xargs -r docker rmi -f >/dev/null 2>&1 || true
+              docker image prune -f >/dev/null 2>&1 || true
+              { echo "== df =="; df -h /; echo; echo "== docker system df =="; docker system df; \
+                echo; echo "== docker images =="; docker images --format '{{.Repository}}:{{.Tag}} {{.Size}}'; } > /tmp/diskdiag.txt 2>&1 || true
+              s3put diskdiag.txt diskdiag.txt
+              exit 0
             fi
+
+            # ── ОТКАТ ─────────────────────────────────────────────────────────
+            # Старый цвет всё ещё работает: возвращаем на него трафик и гасим
+            # неудавшийся новый. Ни секунды даунтайма, ни одного re-pull.
+            echo "ОТКАТ: возвращаем upstream на прежний цвет"
+            { echo "== SHA ${IMAGE##*:} =="; echo "== df =="; df -h /; echo; echo "== docker ps -a =="; docker ps -a; echo; \
+              echo "== логи нового цвета =="; docker logs "reportagepost-$NEW" --tail 100 2>&1; } > /tmp/healthfail.txt 2>&1 || true
+            s3put healthfail.txt healthfail.txt
+            case "$ACTIVE" in
+              blue)  switch_upstream 3001; echo blue > .active-color ;;
+              green) switch_upstream 3002; echo green > .active-color ;;
+              *)     switch_upstream 3000 ;; # легаси-контейнер ещё на 3000
+            esac
+            docker rm -f "reportagepost-$NEW" >/dev/null 2>&1 || true
+            cp .previous-deploy .deploy.env 2>/dev/null || true
             echo "Деплой провалил health — откат выполнен (если был прошлый образ)"; exit 1

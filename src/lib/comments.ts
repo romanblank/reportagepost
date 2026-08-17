@@ -42,7 +42,7 @@ export async function addComment(userId: string, target: CommentTarget, rawBody:
   // Ограниченный за нарушения не публикует и КОММЕНТАРИИ (аудит 2026-08-16):
   // без этого гейта лестница эскалации не действовала на самой массовой
   // поверхности — спамер, запертый на форуме, продолжал писать под работами
-  const { assertCanPublish } = await import('@/lib/forum');
+  const { assertCanPublish } = await import('@/lib/publish-guard');
   await assertCanPublish(userId);
   await rateLimit(`comment:user:${userId}`, 10, 60); // 10/мин на пользователя
 
@@ -57,7 +57,7 @@ export async function addComment(userId: string, target: CommentTarget, rawBody:
     // запись копила нарушения, но ограничение (5) и авто-блокировка (12)
     // не срабатывали никогда — «автомодерация обязана уметь закрывать
     // доступ» на комментариях не выполнялась (аудит 2026-08-16)
-    const { recordViolation } = await import('@/lib/forum');
+    const { recordViolation } = await import('@/lib/publish-guard');
     await recordViolation(userId, 'comment', verdict.reason);
     throw new DomainError(`comment_${verdict.reason}`, 400);
   }

@@ -36,3 +36,9 @@ const MONTHS_NOM = [
 export function monthLabelRu(d: Date): string {
   return MONTHS_NOM[d.getUTCMonth()];
 }
+
+/** Полных часов с момента. Живёт здесь, а не в компоненте: react-compiler
+ *  запрещает Date.now() в рендере даже серверных страниц. */
+export function hoursSince(d: Date): number {
+  return Math.max(0, Math.round((Date.now() - d.getTime()) / 3_600_000));
+}

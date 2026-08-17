@@ -3,7 +3,7 @@
 import { Suspense, useState } from 'react';
 import { apiFetch } from '@/lib/api';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ru } from '@/i18n/ru';
 import { AuthScene } from '@/components/AuthScene';
 import { YandexLoginButton } from '@/components/YandexLoginButton';
@@ -19,6 +19,7 @@ export default function RegisterPage() {
 
 function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [consent, setConsent] = useState(false);
@@ -46,10 +47,14 @@ function RegisterForm() {
     setPending(false);
 
     if (res.ok) {
+      // ?next= возвращает туда, откуда пришли (приглашение подтвердить съёмку):
+      // только локальный путь — открытый редирект по чужому URL запрещён
+      const next = searchParams?.get('next');
+      const safeNext = next && /^\/ru\//.test(next) ? next : null;
       // Фотографа — сразу в онбординг (аудит 2026-08-16): кабинет без анкеты —
       // тупиковый экран, единственный смысл которого — кнопка «создать
       // страницу». Лишний шаг между «хочу» и «делаю» в момент пиковой мотивации
-      router.push(f.get('role') === 'PHOTOGRAPHER' ? '/ru/onboarding' : '/ru/cabinet');
+      router.push(safeNext ?? (f.get('role') === 'PHOTOGRAPHER' ? '/ru/onboarding' : '/ru/cabinet'));
       router.refresh(); // обновить серверный layout (шапку) под новую сессию
       return;
     }

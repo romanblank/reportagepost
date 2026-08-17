@@ -2,11 +2,14 @@
 # healthcheck + limits + restart на каждом сервисе; запуск только с --env-file.
 services:
   app:
-    container_name: reportagepost
+    # Blue-green (аудит 2026-08-16): цвет и порт задаёт деплой. Один цвет
+    # обслуживает трафик, второй поднимается рядом, nginx переключает upstream
+    # после health — релиз без даунтайма, откат = переключение обратно.
+    container_name: reportagepost-${COLOR:-blue}
     image: ${IMAGE:?set IMAGE to ghcr tag}
     restart: unless-stopped
     ports:
-      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:${APP_PORT:-3001}:3000"
     env_file:
       - .env.prod
     # Ротация логов (deep-think Ops P1): диск 30GB, инцидент no-space-left 2026-07-13.
@@ -30,3 +33,24 @@ services:
           # тут же поднимет docker.
           memory: 1400m
           cpus: "1.5"
+
+  # Воркер транскода (аудит 2026-08-16): свой cgroup — ffmpeg больше не
+  # конкурирует с сайтом за ядро и не роняет его через общий лимит памяти.
+  # Тот же образ, другой entrypoint; захват задач в базе исключает дубли.
+  worker:
+    container_name: reportagepost-worker
+    image: ${IMAGE:?set IMAGE to ghcr tag}
+    restart: unless-stopped
+    command: ["npx", "tsx", "scripts/video-worker.ts"]
+    env_file:
+      - .env.prod
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 700m
+          cpus: "0.5"

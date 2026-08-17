@@ -144,7 +144,7 @@ jobs:
             # держит failed в /health и панели, пока оператор не заведёт бакет
             SECRET=$(grep -E '^JOBS_SECRET=' .env.prod | cut -d= -f2-)
             if [ -n "${SECRET:-}" ]; then
-              curl -sf -m 20 -X POST http://127.0.0.1:3000/api/jobs/heartbeat \
+              curl -sf -m 20 -X POST http://127.0.0.1:$(/usr/local/bin/rp-port.sh 2>/dev/null || echo 3000)/api/jobs/heartbeat \
                 -H "Authorization: Bearer $SECRET" -H 'Content-Type: application/json' \
                 -d "{\"name\":\"backup_media\",\"ok\":${MEDIA_OK},\"note\":\"${MEDIA_NOTE}\"}" >/dev/null \
                 && echo "отметка медиа записана" || echo "отметка медиа не прошла"
@@ -168,7 +168,7 @@ jobs:
             cd /opt/reportagepost
             SECRET=$(grep -E '^JOBS_SECRET=' .env.prod | cut -d= -f2-)
             [ -z "${SECRET:-}" ] && { echo "JOBS_SECRET не задан — отметка пропущена"; exit 0; }
-            curl -sf -m 20 -X POST http://127.0.0.1:3000/api/jobs/heartbeat \
+            curl -sf -m 20 -X POST http://127.0.0.1:$(/usr/local/bin/rp-port.sh 2>/dev/null || echo 3000)/api/jobs/heartbeat \
               -H "Authorization: Bearer $SECRET" -H 'Content-Type: application/json' \
               -d '{"name":"backup","ok":true}' >/dev/null && echo "отметка записана"
 

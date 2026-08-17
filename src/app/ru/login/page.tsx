@@ -3,14 +3,27 @@
 import Link from 'next/link';
 import { apiFetch } from '@/lib/api';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ru } from '@/i18n/ru';
 import { AuthScene } from '@/components/AuthScene';
 import { YandexLoginButton } from '@/components/YandexLoginButton';
 
+// useSearchParams требует Suspense (иначе падает next build — урок Брендоскопа).
 export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // Возврат по ?next= (приглашение подтвердить съёмку): только локальный путь
+  const next = searchParams?.get('next');
+  const safeNext = next && /^\/ru\//.test(next) ? next : '/ru/cabinet';
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [twoFactor, setTwoFactor] = useState(false);
@@ -26,7 +39,7 @@ export default function LoginPage() {
     if (res.ok) {
       const data = res.data as { twoFactor?: boolean } | undefined;
       if (data?.twoFactor) { setTwoFactor(true); return; }
-      router.push('/ru/cabinet');
+      router.push(safeNext);
       router.refresh(); // обновить серверный layout (шапку) под новую сессию
       return;
     }
@@ -43,7 +56,7 @@ export default function LoginPage() {
     const code = new FormData(e.currentTarget).get('code');
     const res = await apiFetch('/api/auth/2fa/verify', { method: 'POST', body: { code } });
     setPending(false);
-    if (res?.ok) { router.push('/ru/cabinet'); router.refresh(); return; }
+    if (res?.ok) { router.push(safeNext); router.refresh(); return; }
     setError(ru.auth.twoFa.badCode);
   }
 

@@ -61,7 +61,7 @@ export class InquiryError extends DomainError {
  */
 export async function createInquiry(
   input: CreateInquiryInput,
-): Promise<{ inquiryId: string; notified: number }> {
+): Promise<{ inquiryId: string; notified: number; cityHasAuthors: boolean }> {
   if (!input.contactPhone && !input.contactEmail && !input.clientUserId) {
     throw new InquiryError('no_contact'); // гостю нужен хотя бы один контакт
   }
@@ -158,7 +158,36 @@ export async function createInquiry(
   // доходит» здесь лучше, чем «мгновенно и половина потеряна».
   void deliverExternal(recipients, subject, text).catch(() => {});
 
-  return { inquiryId: inquiry.id, notified: recipients.length };
+  // Город без единого автора (частый случай на старте: справочник — 60
+  // городов, живые авторы в одном-двух). Раньше «фотографы свяжутся»
+  // обещалось в пустоту. Механизм выездов уже ЗНАЕТ, кто едет в этот город, —
+  // подключаем его к спросу: заявку получают авторы с travel-планом,
+  // покрывающим город (и дату, если названа). Аудит 2026-08-16, №7
+  let travelNotified = 0;
+  if (recipients.length === 0) {
+    const travellers = await db.travelPlan.findMany({
+      where: {
+        cityId: city.id,
+        toDate: { gte: input.eventDate ?? new Date() },
+        ...(input.eventDate ? { fromDate: { lte: input.eventDate } } : {}),
+        profile: {
+          status: 'APPROVED',
+          ...(categoryId ? { categories: { some: { categoryId } } } : {}),
+        },
+      },
+      select: { profile: { select: { userId: true } } },
+    });
+    const travelUserIds = [...new Set(travellers.map((t) => t.profile.userId))];
+    if (travelUserIds.length > 0) {
+      await notifyManyInApp(travelUserIds, 'notification.inquiry.new', {
+        citySlug: input.citySlug,
+        inquiryId: inquiry.id,
+      });
+      travelNotified = travelUserIds.length;
+    }
+  }
+
+  return { inquiryId: inquiry.id, notified: recipients.length + travelNotified, cityHasAuthors: recipients.length > 0 || travelNotified > 0 };
 }
 
 /** Внешняя доставка пачками с паузой — щадит лимиты Telegram и SMTP. */
@@ -427,29 +456,54 @@ async function releaseInquiriesLocked(now: Date): Promise<number> {
       select: { id: true, cityId: true, categoryId: true, city: { select: { slug: true } } },
     });
 
-    for (const inquiry of inquiries) {
-      const recipients = await db.photographerProfile.findMany({
-        where: {
-          status: 'APPROVED',
-          cityId: inquiry.cityId,
-          ...(inquiry.categoryId ? { categories: { some: { categoryId: inquiry.categoryId } } } : {}),
-          proRank: { gte: wave.minRank, lte: wave.maxRank },
-        },
-        select: { userId: true },
-      });
-      if (recipients.length === 0) continue;
+    if (inquiries.length === 0) continue;
 
-      // Кому уже уходило уведомление по этой заявке — пропускаем
-      const already = await db.notification.findMany({
-        where: {
-          userId: { in: recipients.map((r) => r.userId) },
-          type: 'notification.inquiry.new',
-          payload: { path: ['inquiryId'], equals: inquiry.id },
-        },
-        select: { userId: true },
-      });
-      const seen = new Set(already.map((a) => a.userId));
-      const targets = recipients.map((r) => r.userId).filter((id) => !seen.has(id));
+    // Батчами, а не по заявке (аудит 2026-08-16, P2 N+1): получатели всех
+    // городов волны — одним запросом, дедуп доставки — одним запросом по всем
+    // inquiryId. Джоб идёт каждые 15 минут и растёт с числом заявок; два
+    // запроса на волну растут куда медленнее, чем два на заявку.
+    const cityIds = [...new Set(inquiries.map((i) => i.cityId))];
+    const candidates = await db.photographerProfile.findMany({
+      where: {
+        status: 'APPROVED',
+        cityId: { in: cityIds },
+        proRank: { gte: wave.minRank, lte: wave.maxRank },
+      },
+      select: { userId: true, cityId: true, categories: { select: { categoryId: true } } },
+    });
+    const byCity = new Map<string, typeof candidates>();
+    for (const c of candidates) {
+      const list = byCity.get(c.cityId) ?? [];
+      list.push(c);
+      byCity.set(c.cityId, list);
+    }
+
+    // Кому уже уходило по КАЖДОЙ из заявок волны — один запрос.
+    // JSONB-путь без индекса — seq scan по Notification; сужение по типу и
+    // получателям делает его пропорциональным свежим уведомлениям, а не всей
+    // таблице. Отдельная таблица доставки — если вырастем из этого.
+    const already = await db.notification.findMany({
+      where: {
+        userId: { in: candidates.map((c) => c.userId) },
+        type: 'notification.inquiry.new',
+      },
+      select: { userId: true, payload: true },
+    });
+    const seen = new Set(
+      already.map((a) => {
+        const inqId = (a.payload as { inquiryId?: string } | null)?.inquiryId;
+        return inqId ? `${a.userId}:${inqId}` : '';
+      }),
+    );
+
+    for (const inquiry of inquiries) {
+      const recipients = (byCity.get(inquiry.cityId) ?? []).filter(
+        (c) =>
+          !inquiry.categoryId || c.categories.some((cat) => cat.categoryId === inquiry.categoryId),
+      );
+      const targets = recipients
+        .map((r) => r.userId)
+        .filter((id) => !seen.has(`${id}:${inquiry.id}`));
       if (targets.length === 0) continue;
 
       await notifyManyInApp(targets, 'notification.inquiry.new', {

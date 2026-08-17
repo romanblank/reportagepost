@@ -9,7 +9,7 @@
 #
 # Возврат 1 означает «прод неисправен» — вызывающий деплой откатывается.
 set -uo pipefail
-B="${SMOKE_BASE:-http://127.0.0.1:3000}"
+B="${SMOKE_BASE:-http://127.0.0.1:$(/usr/local/bin/rp-port.sh 2>/dev/null || echo 3000)}"
 FAIL=0
 
 check() { # $1 — путь, $2 — ожидаемый код, $3 — что это

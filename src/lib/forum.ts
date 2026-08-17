@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { assertCanPublish, recordViolation } from '@/lib/publish-guard';
 import { DomainError } from '@/lib/errors';
 import { rateLimit } from '@/lib/rate-limit';
 import { slugifyWithId } from '@/lib/slugify';
@@ -29,9 +30,6 @@ import { tierOf } from '@/lib/subscription';
  * Окно скользящее: счётчик смотрит только недавнее, иначе система наказывает
  * за прошлое, а не защищает настоящее.
  */
-const VIOLATION_WINDOW_DAYS = 30;
-const RESTRICT_AFTER = 5;
-const BLOCK_AFTER = 12;
 
 export type PublishOutcome = {
   status: 'PUBLISHED' | 'REJECTED' | 'IN_REVIEW';
@@ -43,18 +41,9 @@ export type PublishOutcome = {
   violations?: number;
 };
 
-/**
- * Ограничение публикаций за систематические нарушения.
- *
- * Считаем только недавнее окно: человек, оступившийся однажды, не должен
- * носить это вечно — иначе система наказывает за прошлое, а не защищает
- * настоящее.
- */
-export async function violationCount(userId: string, now: Date = new Date()): Promise<number> {
-  return db.contentViolation.count({
-    where: { userId, createdAt: { gte: new Date(now.getTime() - VIOLATION_WINDOW_DAYS * 86_400_000) } },
-  });
-}
+// Лестница эскалации вынесена в publish-guard.ts (общая для форума, статей и
+// комментариев); ре-экспорт сохраняет прежние импорты
+export { violationCount, assertCanPublish, recordViolation } from '@/lib/publish-guard';
 
 /** Сколько тем автор завёл в этом календарном месяце (отклонённые не в счёт). */
 export async function threadsThisMonth(userId: string, now: Date = new Date()): Promise<number> {
@@ -69,38 +58,6 @@ export async function threadQuotaLeft(userId: string): Promise<{ left: number; q
   const quota = THREAD_QUOTA[await tierOf(userId)];
   const used = await threadsThisMonth(userId);
   return { left: Math.max(0, quota - used), quota };
-}
-
-export async function assertCanPublish(userId: string): Promise<void> {
-  const count = await violationCount(userId);
-  if (count >= RESTRICT_AFTER) throw new DomainError('publishing_restricted', 403);
-}
-
-export async function recordViolation(userId: string, kind: TextKind, reason: string): Promise<number> {
-  await db.contentViolation.create({ data: { userId, kind, reason } });
-  const count = await violationCount(userId);
-
-  // Систематическое злоупотребление закрывает доступ. Делает это система, а не
-  // администратор: ждать, пока человек дойдёт до очереди, значит оставить
-  // спамера работать сутки. Путь назад — через поддержку, и он назван прямо в
-  // самом уведомлении, иначе блокировка выглядит как исчезновение платформы.
-  if (count >= BLOCK_AFTER) {
-    const user = await db.user.findUnique({ where: { id: userId }, select: { status: true, role: true } });
-    if (user && user.status === 'ACTIVE' && user.role !== 'ADMIN') {
-      await db.user.update({
-        where: { id: userId },
-        // tokenVersion — отзыв живых сессий: иначе блокировка начинает
-        // действовать только со следующего входа, а вкладка уже открыта
-        data: { status: 'BANNED', tokenVersion: { increment: 1 } },
-      });
-      const { notifyInApp } = await import('@/lib/notifications');
-      await notifyInApp(userId, 'notification.moderation.blocked', { violations: count }).catch(() => {});
-      const { alertOperator } = await import('@/lib/telegram');
-      await alertOperator(`Auto-block by moderation: user ${userId}, violations ${count}`).catch(() => {});
-    }
-  }
-
-  return count;
 }
 
 /** Недавние тексты автора — для правил повтора и флуда. */
