@@ -117,16 +117,18 @@ export async function confirmShootByInvite(
   if (profile.userId === clientUserId) throw new DomainError('shoot_self', 400);
 
   await rateLimit(`shoot-invite:user:${clientUserId}`, 5, 86_400);
+  // Кап на ПРОФИЛЬ: поток приглашённых подтверждений одному автору ограничен,
+  // иначе накрутчик заваливает очередь оператора сотней записей за вечер
+  await rateLimit(`shoot-invite-accept:profile:${profileId}`, 10, 86_400);
 
-  const client = await db.user.findUnique({
-    where: { id: clientUserId },
-    select: { createdAt: true, emailVerifiedAt: true },
-  });
-  const seasoned =
-    Boolean(client?.emailVerifiedAt) ||
-    Boolean(client && Date.now() - client.createdAt.getTime() > TRUSTED_CLIENT_AGE_MS);
-
-  const needsReview = !seasoned;
+  // ВСЕГДА к человеку — без исключений (закрыто 2026-08-17 по вопросу
+  // оператора «так можно накрутить?»). Первая версия пропускала мимо очереди
+  // аккаунты с подтверждённой почтой или старше 48 часов — но у приглашённого
+  // пути нет второго сигнала обычного пути («аккаунт заведён ДО первого
+  // контакта»), а подтвердить почту накрутчику — пять минут. Единственный
+  // честный сигнал платформы не должен иметь автоматической двери с улицы:
+  // объём на старте штучный, и взгляд человека — осознанная цена механизма.
+  const needsReview = true;
   await db.shootConfirmation.create({
     data: {
       clientUserId,

@@ -284,6 +284,24 @@ describe.skipIf(!hasDb)('съёмки: подтверждение по приг�
       const { needsReview } = await confirmShootByInvite(client.id, profile.id, null);
       expect(needsReview).toBe(true);
 
+      // И ДАЖЕ «выдержанный» аккаунт (почта подтверждена) идёт к человеку:
+      // первая версия пропускала таких мимо очереди, а подтвердить почту
+      // накрутчику — пять минут (закрыто по вопросу оператора 2026-08-17)
+      const seasonedClient = await db.user.create({
+        data: {
+          role: 'CLIENT', status: 'ACTIVE', firstName: 'Выдержанный', lastName: 'Клиент',
+          email: `inv-s-${stamp}@test.local`, emailVerifiedAt: new Date(),
+          createdAt: new Date(Date.now() - 10 * 86_400_000),
+        },
+      });
+      try {
+        const r2 = await confirmShootByInvite(seasonedClient.id, profile.id, new Date('2026-06-01'));
+        expect(r2.needsReview).toBe(true);
+      } finally {
+        await db.shootConfirmation.deleteMany({ where: { clientUserId: seasonedClient.id } });
+        await db.user.delete({ where: { id: seasonedClient.id } });
+      }
+
       // Запись есть, но публичная статистика её НЕ считает до решения человека
       const stats = await shootStats(profile.id);
       expect(stats.count).toBe(0);

@@ -34,18 +34,31 @@ export default async function AdminQueuePage() {
     orderBy: { createdAt: 'asc' },
     take: 50,
     select: {
-      id: true, createdAt: true, eventDate: true,
+      id: true, createdAt: true, eventDate: true, profileId: true,
       client: { select: { firstName: true, lastName: true, emailVerifiedAt: true, createdAt: true } },
       profile: { select: { username: true, user: { select: { firstName: true, lastName: true } } } },
     },
   });
 
   const counters = await adminCounters();
+  // Сколько по приглашениям у этих авторов УЖЕ одобрено — сигнал фермы:
+  // десять «прошлых заказчиков» за неделю у автора без единой заявки выглядят
+  // иначе, чем два за месяц у работающего
+  const profileIds = [...new Set(shootsToReview.map((sh) => sh.profileId))];
+  const approvedInvites = profileIds.length
+    ? await db.shootConfirmation.groupBy({
+        by: ['profileId'],
+        where: { profileId: { in: profileIds }, initiatedBy: 'PHOTOGRAPHER', state: 'CONFIRMED', needsReview: false },
+        _count: true,
+      })
+    : [];
+  const approvedByProfile = new Map(approvedInvites.map((a) => [a.profileId, a._count]));
   // Возраст аккаунта — через lib-хелпер: react-compiler запрещает Date.now()
   // в рендере, а внутрь импортов не заглядывает
   const shootsReview = shootsToReview.map((sh) => ({
     ...sh,
     ageHours: hoursSince(sh.client.createdAt),
+    approvedInvites: approvedByProfile.get(sh.profileId) ?? 0,
   }));
 
   return (
@@ -108,6 +121,7 @@ export default async function AdminQueuePage() {
                   {ru.adminShoots.accountAge(sh.ageHours)}
                   {' · '}
                   <a href={`/ru/photographer/${sh.profile.username}`} className="underline">{sh.profile.username}</a>
+                  {' · '}{ru.adminShoots.approvedSoFar(sh.approvedInvites)}
                 </p>
                 <ShootReviewDecision shootId={sh.id} />
               </li>

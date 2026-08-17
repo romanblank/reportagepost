@@ -807,6 +807,7 @@ export const ru = {
     emailNot: 'почта не подтверждена',
     accountAge: (hours: number) => `аккаунту ${hours} ч`,
     shotOn: (date: string) => `съёмка ${date}`,
+    approvedSoFar: (n: number) => `по приглашениям уже одобрено: ${n}`,
   },
   shootInvite: {
     eyebrow: 'Подтверждение съёмки',
