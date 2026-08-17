@@ -80,7 +80,10 @@ describe('nginx: лимиты запросов на периметре', () => {
   });
 
   it('каждый location проксирует в приложение', () => {
-    const blocks = [...setupScript.matchAll(/location ([^{]+)\{([^}]*)\}/g)];
+    // Якорь на начало строки: слово «location» в КОММЕНТАРИИ конфига однажды
+    // склеило кусок комментария со следующим блоком (upstream), и тест
+    // требовал proxy_pass там, где его быть не должно
+    const blocks = [...setupScript.matchAll(/^\s*location ([^{]+)\{([^}]*)\}/gm)];
     expect(blocks.length).toBeGreaterThanOrEqual(4);
     for (const [, head, body] of blocks) {
       // Служебные блоки certbot и редиректа на https проксировать не должны
