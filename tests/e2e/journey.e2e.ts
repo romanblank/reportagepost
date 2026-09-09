@@ -118,23 +118,19 @@ describe.skipIf(!hasDb)('E2E: полный цикл фотографа и зак
       citySlug: 'moscow', categorySlug: 'concerts-festivals', description: 'Нужен фотограф на фестиваль, полный день, две сцены.',
     });
     expect(inquiryId).toBeTruthy();
-    // Наш фотограф без подписки, и заявка до него доходит НЕ сразу: первые
-    // часы она у подписчика. Сквозной путь обязан показывать именно это —
-    // иначе фора существует в коде, но не в том, что мы считаем нормой.
-    // Проверяем АДРЕСНО (у кого уведомление есть, у кого нет), а не общим
-    // счётчиком: на насыщенной базе в счёт попадают чужие подписчики
-    expect(notified).toBeGreaterThanOrEqual(1);
+    // Фора выключена (решение партнёра 2026-08-18): заявка уходит ВСЕМ
+    // одновременно, подписка очерёдность не покупает. Elite в сценарии
+    // остаётся сторожем: при возврате ненулевых констант бесплатный снова
+    // перестал бы видеть заявку, и эта проверка покраснела бы первой
+    expect(notified).toBeGreaterThanOrEqual(2);
     const gotInquiry = (userId: string) =>
       db.notification.count({ where: { userId, type: 'notification.inquiry.new', payload: { path: ['inquiryId'], equals: inquiryId } } });
-    expect(await gotInquiry(eliteUser.id)).toBe(1); // подписчик — в первой волне
-    expect(await gotInquiry(photographer.id)).toBe(0); // бесплатный — ещё нет
-    expect((await inquiriesForPhotographer(photographer.id))?.some((i) => i.id === inquiryId)).toBe(false);
-
-    // …а после окончания форы — доходит, и это тот же самый заказ
-    const { INQUIRY_HEAD_START_HOURS } = await import('@/lib/pricing');
-    const afterHeadStart = new Date(Date.now() + (INQUIRY_HEAD_START_HOURS.ELITE + 1) * 3_600_000);
-    await releaseInquiries(afterHeadStart);
-    const feed = await inquiriesForPhotographer(photographer.id, afterHeadStart);
+    expect(await gotInquiry(eliteUser.id)).toBe(1);
+    expect(await gotInquiry(photographer.id)).toBe(1); // бесплатный — сразу же
+    // Волны при нулях — no-op: дублей не появляется
+    await releaseInquiries(new Date(Date.now() + 7 * 3_600_000));
+    expect(await gotInquiry(photographer.id)).toBe(1);
+    const feed = await inquiriesForPhotographer(photographer.id);
     expect(feed?.some((i) => i.id === inquiryId)).toBe(true);
     auditText('описание заявки', feed![0].description);
 

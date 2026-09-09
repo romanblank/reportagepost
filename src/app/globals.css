@@ -251,7 +251,10 @@ body {
     transition: background var(--dur-fast), border-color var(--dur-fast);
   }
   .chip:hover { background: var(--surface-2); }
-  .chip-active { border-color: var(--ink); font-weight: 600; }
+  /* Выбор обязан быть однозначным (правка партнёра 2026-08-18: «так и не
+     понял, выбрал ли я что-то»): заливка + галочка, а не только рамка */
+  .chip-active { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); font-weight: 600; }
+  .chip-active::before { content: '✓ '; color: var(--accent); }
 
   .field-label { @apply mb-1.5 block text-sm font-medium; color: var(--ink); }
   .field-hint { @apply mt-1 block text-xs; color: var(--muted); }

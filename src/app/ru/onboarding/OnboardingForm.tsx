@@ -326,6 +326,15 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
               <div><label className="field-hint">{ru.onboarding.priceRub}</label>
                 <input type="number" min={1} step={1} value={p.priceRub || ''} required className="input w-32"
                   onChange={(e) => setPackages((prev) => prev.map((x, j) => j === i ? { ...x, priceRub: Number(e.target.value) } : x))} /></div>
+              {/* Удаление пакета (правка партнёра 2026-08-18): случайный ввод
+                  или передумал. Последний пакет не удаляем — цена обязана быть */}
+              {packages.length > 1 && (
+                <button type="button" className="btn btn-ghost btn-sm mb-0.5"
+                  aria-label={ru.onboarding.removePackage}
+                  onClick={() => setPackages((prev) => prev.filter((_, j) => j !== i))}>
+                  {ru.onboarding.removePackage}
+                </button>
+              )}
             </div>
           ))}
         </div>

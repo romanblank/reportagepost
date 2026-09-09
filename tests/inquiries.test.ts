@@ -96,7 +96,7 @@ describe.skipIf(!hasDb)('inquiries: создание и доставка (БД)'
  * означало бы оставить заказчика с меньшим выбором.
  */
 describe.skipIf(!hasDb)('заявки: фора подписчиков, но не эксклюзив (БД)', () => {
-  it('первыми узнают Active+, остальные — следующей волной', async () => {
+  it('фора выключена: уведомление приходит всем уровням одновременно', async () => {
     const { db } = await import('@/lib/db');
     const { createInquiry, releaseInquiries } = await import('@/lib/inquiries');
     const { ELITE_RANK, PRIME_RANK } = await import('@/lib/subscription');
@@ -126,23 +126,20 @@ describe.skipIf(!hasDb)('заявки: фора подписчиков, но н�
       const got = async (userId: string) =>
         db.notification.count({ where: { userId, type: 'notification.inquiry.new' } });
 
-      // Сразу после создания уведомление есть только у верхнего уровня
+      // Решение партнёра 2026-08-18: заявка уходит всем сразу, без очерёдности
       expect(await got(elite)).toBe(1);
-      expect(await got(prime)).toBe(0);
-      expect(await got(free)).toBe(0);
+      expect(await got(prime)).toBe(1);
+      expect(await got(free)).toBe(1);
 
-      // Отматываем создание на семь часов назад — прошли обе волны
+      // Волны при нулях — no-op: дублей не появляется
       await db.inquiry.update({
         where: { id: inquiryId },
         data: { createdAt: new Date(Date.now() - 7 * 3_600_000) },
       });
       await releaseInquiries();
-
-      // Заявка дошла до ВСЕХ — подписка влияет только на очерёдность
+      expect(await got(elite)).toBe(1);
       expect(await got(prime)).toBe(1);
       expect(await got(free)).toBe(1);
-      // И никому не продублировалась
-      expect(await got(elite)).toBe(1);
 
       await db.inquiry.delete({ where: { id: inquiryId } });
     } finally {
@@ -195,13 +192,15 @@ describe.skipIf(!hasDb)('заявки: фора подписчиков, но н�
     }
   });
 
-  it('фора действует и в кабинете, а не только в уведомлениях', async () => {
+  it('фора выключена: бесплатный видит заявку сразу, даже когда рядом Elite', async () => {
     const { db } = await import('@/lib/db');
     const { createInquiry, inquiriesForPhotographer } = await import('@/lib/inquiries');
     const { ELITE_RANK } = await import('@/lib/subscription');
 
-    // Фора, которую видно только в письмах, — не фора: фотограф без подписки
-    // откроет кабинет и увидит тот же заказ в ту же минуту. Проверяем ленту
+    // Решение партнёра 2026-08-18: заявка видна ВСЕМ одновременно, подписка
+    // очерёдность не покупает. Elite в сценарии нужен ровно затем, чтобы
+    // поймать возврат форы: с ним «схлопывание на пустой платформе» не
+    // сработает, и ненулевые константы снова спрятали бы заявку от FREE
     const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
     const city = await db.city.findFirstOrThrow({ where: { slug: 'chita' } });
     const category = await db.category.findFirstOrThrow({ where: { slug: 'sports' } });
@@ -237,7 +236,7 @@ describe.skipIf(!hasDb)('заявки: фора подписчиков, но н�
       (await inquiriesForPhotographer(userId))?.some((i) => i.id === inquiryId) ?? false;
 
     expect(await seen(elite.u.id)).toBe(true);
-    expect(await seen(free.u.id)).toBe(false);
+    expect(await seen(free.u.id)).toBe(true);
 
     await db.inquiry.delete({ where: { id: inquiryId } });
     await db.notification.deleteMany({ where: { type: 'notification.inquiry.new' } });

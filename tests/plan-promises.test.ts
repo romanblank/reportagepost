@@ -74,9 +74,12 @@ describe('обещания тарифов совпадают с кодом', () 
     expect(PAID_VIDEO_SECONDS).toBe(90);
   });
 
-  it('фора на заявку названа в тех же часах, что действует', () => {
-    const primeAhead = INQUIRY_HEAD_START_HOURS.PRIME - INQUIRY_HEAD_START_HOURS.FREE;
-    expect(mentions(ru.pro.features.inquiryHeadStart, primeAhead)).toBe(true);
+  it('фора выключена решением партнёра (2026-08-18) и не продаётся на витрине', () => {
+    // Нули = заявка уходит всем одновременно. Если фору вернут константами,
+    // этот тест напомнит вернуть и строку витрины (и наоборот)
+    expect(INQUIRY_HEAD_START_HOURS.ELITE).toBe(0);
+    expect(INQUIRY_HEAD_START_HOURS.PRIME).toBe(0);
+    expect('inquiryHeadStart' in ru.pro.features).toBe(false);
   });
 
   it('квоты и лимиты перков совпадают с числами в текстах', () => {

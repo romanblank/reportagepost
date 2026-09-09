@@ -10,7 +10,7 @@ import { APP_DOMAIN } from '@/lib/constants';
 import { cityNameRu } from '@/lib/geo-data';
 import { categoryNameRu } from '@/lib/category-data';
 import { formatRubMinor } from '@/lib/money';
-import { inquiryVisibleAfterHours } from '@/lib/pricing';
+import { INQUIRY_HEAD_START_HOURS, inquiryVisibleAfterHours } from '@/lib/pricing';
 import { ru } from '@/i18n/ru';
 import { PDN_CONSENT_VERSION } from '@/lib/constants';
 
@@ -94,16 +94,11 @@ export async function createInquiry(
     },
   });
 
-  // Первыми узнают подписчики: Active+ сразу, Active через два часа, остальные
-  // через шесть. Здесь отбираем тех, кому уведомление уходит СЕЙЧАС; всем
-  // прочим заявка станет видна по расписанию (см. releaseInquiries).
-  //
-  // Фора живёт, только пока есть кому её давать (аудит 2026-08-16, P1): на
-  // платформе без подписчиков первая живая заявка была бы невидима ВСЕМ шесть
-  // часов — перк преимущества над коллегами штрафовал бы единственный спрос,
-  // а заказчик, которому обещано «фотографы свяжутся», получал бы тишину в
-  // решающие часы. Нет ни одного подписчика в выборке — релиз всем сразу.
-  const hasSubscribers = await selectionHasSubscribers(city.id, categoryId);
+  // Фора выключается КОНСТАНТОЙ (решение партнёра 2026-08-18): при нулях
+  // первая волна — это все, без фильтра по подписке. Проверка привязана к
+  // константе, а не удалена: возврат форы не потребует вспоминать это место
+  const headStartActive = INQUIRY_HEAD_START_HOURS.ELITE > 0;
+  const hasSubscribers = headStartActive && (await selectionHasSubscribers(city.id, categoryId));
   const recipients = await db.photographerProfile.findMany({
     where: {
       status: 'APPROVED',
