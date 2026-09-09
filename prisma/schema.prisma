@@ -273,6 +273,10 @@ model PhotographerProfile {
   // Денормализованный рейтинг для сортировки каталога (пересчёт фоном).
   // v1: полнота профиля + свежесть; v2 (S2): взвешенные лайки со сгоранием.
   ratingScore      Int               @default(0)
+  // Лайк больше НЕ пересчитывает рейтинг синхронно (аудит 2026-09-10, П1):
+  // он лишь взводит флаг, а пересчёт коалесцируется 15-минутным джобом —
+  // сто лайков виральной серии = один recompute, а не сто
+  needsRescore     Boolean           @default(false)
   // Минимальная цена пакета, денормализованная при записи пакетов (аудит
   // 2026-08-16): сортировка «сначала недорогие» по связанной таблице в SQL
   // невыразима в Prisma, а сортировка страницы В ПРИЛОЖЕНИИ давала не
@@ -302,6 +306,7 @@ model PhotographerProfile {
   categoryScores     ProfileCategoryScore[]
 
   @@index([cityId, status, ratingScore(sort: Desc), proRank(sort: Desc)])
+  @@index([needsRescore])
   // Индексы похожести для поиска (pg_trgm). Описаны здесь, а не только в
   // raw-миграции: иначе `migrate diff` их не видит и КАЖДЫЙ раз предлагает
   // удалить — рано или поздно это молча уехало бы в миграцию и поиск потерял
@@ -316,6 +321,9 @@ model PhotographerProfile {
   bankName         String?
   bic              String?
 
+  // Лента админ-активности сортирует по голому createdAt (UNION ALL шести
+  // таблиц) — без индекса Seq Scan + Sort на каждый заход (аудит 2026-09-10)
+  @@index([createdAt])
 }
 
 model ProfileCategory {
@@ -677,6 +685,9 @@ model ShootConfirmation {
   @@unique([clientUserId, profileId, eventDate])
   @@index([profileId, state, createdAt])
   @@index([clientUserId, profileId])
+  // Лента админ-активности сортирует по голому createdAt (UNION ALL шести
+  // таблиц) — без индекса Seq Scan + Sort на каждый заход (аудит 2026-09-10)
+  @@index([createdAt])
 }
 
 enum ShootConfirmState {
@@ -706,6 +717,9 @@ model Review {
   // по всей платформе — аудит перф 2026-07-30.
   @@index([status, rating, verified])
   @@index([authorUserId])
+  // Лента админ-активности сортирует по голому createdAt (UNION ALL шести
+  // таблиц) — без индекса Seq Scan + Sort на каждый заход (аудит 2026-09-10)
+  @@index([createdAt])
 }
 
 model Comment {
@@ -724,6 +738,10 @@ model Comment {
   @@index([photoId, status, createdAt])
   @@index([storyId, status, createdAt])
   @@index([authorUserId, createdAt])
+  // Очередь модерации: WHERE status='IN_REVIEW' ORDER BY createdAt — без
+  // этого индекса каждый заход в /ru/admin/queue сканировал таблицу
+  // (аудит 2026-09-10, EXPLAIN подтвердил Seq Scan)
+  @@index([status, createdAt])
 }
 
 model Follow {
@@ -879,6 +897,9 @@ model Report {
   @@index([status, createdAt(sort: Desc)])
   // Сколько раз жаловались на объект (сигнал для модерации)
   @@index([targetType, targetId])
+  // Лента админ-активности сортирует по голому createdAt (UNION ALL шести
+  // таблиц) — без индекса Seq Scan + Sort на каждый заход (аудит 2026-09-10)
+  @@index([createdAt])
 }
 
 // Блокировка собеседника: заблокированный не может писать в личку.

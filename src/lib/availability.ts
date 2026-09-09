@@ -23,14 +23,22 @@ export async function toggleBusyDate(userId: string, dateStr: string): Promise<b
   const profile = await approvedProfile(userId);
   const date = parseDate(dateStr);
 
+  // Идемпотентный toggle, как у всех остальных (favorites/save/like/follow):
+  // read-then-write с голыми delete/create на двойном тапе давал гонку —
+  // P2025 или P2002 наружу как 500 (аудит 2026-09-10, П2)
   const existing = await db.busyDate.findUnique({
     where: { profileId_date: { profileId: profile.id, date } },
   });
   if (existing) {
-    await db.busyDate.delete({ where: { id: existing.id } });
+    await db.busyDate.deleteMany({ where: { profileId: profile.id, date } });
     return false;
   }
-  await db.busyDate.create({ data: { profileId: profile.id, date } });
+  try {
+    await db.busyDate.create({ data: { profileId: profile.id, date } });
+  } catch (e) {
+    // Параллельный запрос уже отметил день — итог тот же: занят
+    if ((e as { code?: string }).code !== 'P2002') throw e;
+  }
   return true;
 }
 

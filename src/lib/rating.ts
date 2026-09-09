@@ -178,6 +178,26 @@ export async function recomputeOne(profileId: string, now = new Date()): Promise
 }
 
 /**
+ * Дренаж отложенных пересчётов (аудит 2026-09-10, П1): лайк взводит
+ * needsRescore, джоб раз в 15 минут пересчитывает помеченных. Флаг снимается
+ * ДО пересчёта: лайк, прилетевший во время recomputeOne, снова пометит профиль
+ * и будет учтён следующим прогоном — потерь нет, а лишний прогон дешевле
+ * потерянного.
+ */
+export async function rescoreMarked(limit = 50, now = new Date()): Promise<number> {
+  const marked = await db.photographerProfile.findMany({
+    where: { needsRescore: true },
+    select: { id: true },
+    take: limit,
+  });
+  for (const { id } of marked) {
+    await db.photographerProfile.update({ where: { id }, data: { needsRescore: false } });
+    await recomputeOne(id, now);
+  }
+  return marked.length;
+}
+
+/**
  * Полный пересчёт рейтингов (плановый джоб, НЕ в HTTP-запросе).
  * ratingScore = engagement (милли) + completeness×1000.
  */

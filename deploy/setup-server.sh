@@ -402,13 +402,26 @@ REPORT=$(awk '{
   { t[++cnt] = $2; errs += $3 }
   END { flush() }')
 cd /opt/reportagepost
+# Тренд длительности фоновых задач (аудит 2026-09-10, П2): деградация джоба
+# видна как stale только ПОСЛЕ поломки; максимум за сутки против среднего за
+# неделю показывает «стало медленнее» заранее. Данные уже есть в JobRun.
+DBURL=$(grep -E '^DATABASE_URL=' .env.prod | cut -d= -f2- || true)
+JOBS=""
+if [ -n "${DBURL:-}" ]; then
+  JOBS=$(docker run --rm postgres:17-alpine psql "$DBURL" -tA -c 'SELECT name || '\'': сутки макс '\'' || COALESCE((MAX(CASE WHEN "startedAt" > now() - interval '\''24 hours'\'' THEN "tookMs" END) / 1000)::int::text, '\''—'\'') || '\''с, неделя ср '\'' || COALESCE((AVG(CASE WHEN "startedAt" > now() - interval '\''7 days'\'' THEN "tookMs" END) / 1000)::int::text, '\''—'\'') || '\''с'\'' FROM "JobRun" WHERE ok AND "tookMs" IS NOT NULL GROUP BY name ORDER BY name' 2>/dev/null || true)
+fi
 TG_TOKEN=$(grep -E '^TELEGRAM_BOT_TOKEN=' .env.prod | cut -d= -f2- || true)
 TG_CHAT=$(grep -E '^TELEGRAM_ALERT_CHAT_ID=' .env.prod | cut -d= -f2- || true)
 if [ -n "${TG_TOKEN:-}" ] && [ -n "${TG_CHAT:-}" ] && [ -n "$REPORT" ]; then
+  TEXT="📈 Латентность за сутки (p95):
+${REPORT}"
+  [ -n "$JOBS" ] && TEXT="${TEXT}
+
+⏱ Фоновые задачи:
+${JOBS}"
   curl -s -m 15 "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
     --data-urlencode "chat_id=${TG_CHAT}" \
-    --data-urlencode "text=📈 Латентность за сутки (p95):
-${REPORT}" >/dev/null || true
+    --data-urlencode "text=${TEXT}" >/dev/null || true
 fi
 # Ротация своими руками: логом владеем мы, logrotate про него не знает.
 # copytruncate-семантика: nginx держит дескриптор, truncate безопасен

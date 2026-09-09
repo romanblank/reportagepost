@@ -123,10 +123,10 @@ export default async function CatalogPage(props: {
   );
   // Есть ли в городе авторы ВООБЩЕ (без фильтров): пустая выдача с датой
   // раньше говорила «в городе есть авторы — смягчите условия» при нуле
-  // авторов — ложь во флагманском пути быстрого поиска (аудит 2026-09-09)
-  const cityHasAnyAuthors =
-    (await db.photographerProfile.count({ where: { cityId: city.id, status: 'APPROVED' } })) > 0;
-  const [{ cards, hasNext }, facets, visiting] = await Promise.all([
+  // авторов — ложь во флагманском пути быстрого поиска (аудит 2026-09-09).
+  // Запрос — В ОБЩЕМ батче: добавленный мимо него await был лишним серийным
+  // round-trip на самой посещаемой SEO-странице (аудит 2026-09-10)
+  const [{ cards, hasNext }, facets, visiting, cityAuthorCount] = await Promise.all([
     catalogForCity({
       citySlug: city.slug, categorySlug, availableOn, page, videoOnly,
       maxPackagePriceMinor: maxPriceRub ? maxPriceRub * 100 : undefined,
@@ -139,7 +139,9 @@ export default async function CatalogPage(props: {
     // адресе — берём их из кэша, а не пересчитываем на каждый заход
     cachedCityFacets(city.slug),
     page === 1 ? visitingCity(city.slug, availableOn) : Promise.resolve([]),
+    db.photographerProfile.count({ where: { cityId: city.id, status: 'APPROVED' } }),
   ]);
+  const cityHasAnyAuthors = cityAuthorCount > 0;
   const { categories: categoryCounts, brands: brandCounts } = facets;
   // Полка показывается только на первой странице без фильтров: с фильтрами она
   // сбивала бы выбор посетителя

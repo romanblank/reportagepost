@@ -9,6 +9,9 @@ import { parseShowreel } from '@/lib/showreel';
 // Схема и применение правки анкеты. Общее для self-роута (фотограф правит свою)
 // и админ-роута (оператор правит анкету заведённого фотографа). Всё, что после
 // zod-парсинга — здесь, чтобы логика не расходилась между двумя точками входа.
+/** Сколько дней освободившийся username закрыт для ЧУЖИХ профилей. */
+export const USERNAME_QUARANTINE_DAYS = 90;
+
 export const ProfileEditSchema = z.object({
   username: z.string().trim().toLowerCase().regex(/^[a-z0-9][a-z0-9-]{2,29}$/).optional(),
   citySlug: z.string().trim().optional(),
@@ -91,6 +94,18 @@ export async function applyProfileEdit(
     // (аудит 2026-08-01, P2: раньше гонка давала 500).
     const taken = await db.photographerProfile.findUnique({ where: { username: d.username } });
     if (taken) throw new DomainError('username_taken', 409);
+    // Карантин освободившихся имён (аудит 2026-09-10, П2): известный автор
+    // переименовался — его прежний адрес живёт 301-редиректом в UsernameHistory
+    // (визитки, соцсети, выдача). Немедленное занятие имени ЧУЖИМ профилем
+    // стирало бы эту историю и наследовало весь накопленный трафик автора —
+    // готовый фишинг заказчиков. Своё прежнее имя вернуть можно сразу.
+    const held = await db.usernameHistory.findUnique({ where: { username: d.username } });
+    if (held && held.profileId !== profileId) {
+      const quarantineMs = USERNAME_QUARANTINE_DAYS * 24 * 3_600_000;
+      if (Date.now() - held.changedAt.getTime() < quarantineMs) {
+        throw new DomainError('username_taken', 409);
+      }
+    }
     newUsername = d.username;
   }
   let newCityId: string | undefined;
@@ -128,6 +143,8 @@ export async function applyProfileEdit(
         // Прежние ссылки (мессенджеры, соцсети, визитки, выдача) продолжают
         // работать: для платформы, где профиль и есть продукт автора, молча
         // ломать их — потеря аудитории на ровном месте.
+        // Сюда попадаем только мимо карантина (своё прежнее имя или чужое
+        // старше 90 дней) — снять отработавший редирект теперь легитимно
         await tx.usernameHistory.deleteMany({ where: { username: newUsername } });
         await tx.usernameHistory.upsert({
           where: { username: currentUsername },

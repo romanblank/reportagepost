@@ -54,7 +54,9 @@ export async function photographerExportRows(): Promise<ExportRow[]> {
       city: true,
       categories: { include: { category: true } },
       packages: { orderBy: { priceMinor: 'asc' }, take: 1 },
-      photos: { where: { status: 'APPROVED' }, select: { id: true } },
+      // Счётчик агрегатом, а не материализацией id: список до 300 строк на
+      // профиль тянулся ради .length (аудит 2026-09-10, П3)
+      _count: { select: { photos: { where: { status: 'APPROVED' } } } },
     },
     orderBy: { createdAt: 'asc' },
   });
@@ -72,7 +74,7 @@ export async function photographerExportRows(): Promise<ExportRow[]> {
     lighting: p.lighting.join(' | '),
     equipment: p.equipment ?? '',
     min_price_rub: p.packages[0] ? Math.round(p.packages[0].priceMinor / 100) : null,
-    photos_count: p.photos.length,
+    photos_count: p._count.photos,
     verified: p.verified,
   }));
 }

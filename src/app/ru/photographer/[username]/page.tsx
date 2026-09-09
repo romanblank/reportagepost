@@ -59,12 +59,21 @@ function relativeOnline(lastSeen: Date | null): string | null {
 // платформы делала тяжёлый джойн ДВАЖДЫ на каждый заход. cache() из react
 // уже применён так же к getSession (src/lib/auth.ts).
 const findProfile = cache(async (username: string) => {
-  return db.photographerProfile.findFirst({
+  const row = await db.photographerProfile.findFirst({
     where: { username, status: 'APPROVED' },
+    // Банковские реквизиты автора обещаны «публично не показываются нигде»
+    // (profile-edit) — на публичной странице их не должно быть даже В ПАМЯТИ
+    // рендера: одна передача profile={profile} в client-компонент вывезла бы
+    // их в RSC-payload (аудит 2026-09-10, П2). omit держит инвариант в данных,
+    // а не в дисциплине пропсов; страж — tests/public-page-select.test.ts
+    omit: { inn: true, bankAccount: true, bankName: true, bic: true, legalName: true },
     include: {
       // Явный select (аудит 2026-08-16): include user:true тянул и
       // passwordHash с totpSecret — одна неосторожная передача объекта в
-      // client-компонент вывезла бы их в RSC-payload публичной страницы
+      // client-компонент вывезла бы их в RSC-payload публичной страницы.
+      // Телефона здесь НЕТ тем же правилом: механика «Показать номер»
+      // держится на том, что номера нет в SSR-разметке — сюда идёт только
+      // булев признак наличия
       user: { select: { firstName: true, lastName: true, lastSeenAt: true, phone: true } },
       city: true,
       categories: { include: { category: true } },
@@ -80,6 +89,12 @@ const findProfile = cache(async (username: string) => {
       },
     },
   });
+  if (!row) return null;
+  // Сырой номер не покидает эту функцию: наружу — только факт наличия.
+  // Механика «Показать номер» держится на том, что номера нет в SSR-разметке
+  const { user, ...profileRest } = row;
+  const { phone, ...userRest } = user;
+  return { ...profileRest, user: { ...userRest, hasPhone: Boolean(phone) } };
 });
 
 /**
@@ -145,7 +160,13 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
   const session = await getSession();
   // Все независимые запросы — одним Promise.all (ревью №7: было 4 сериализованных
   // round-trip'а на каждый force-dynamic заход).
-  const [favoritedRow, likes, myLikes, following, followers, moreInCity, reviews, alreadyReviewedRow, followingCount, photographerTier, shoots, iShotWith] = await Promise.all([
+  // Занятость текущего месяца зависит только от profile.id — считаем границы
+  // до батча, чтобы запрос вошёл в общий Promise.all (аудит 2026-09-10:
+  // mySaves и busyRows дважды добавлялись новыми фичами МИМО батча)
+  const now = new Date();
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const monthEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+  const [favoritedRow, likes, myLikes, following, followers, moreInCity, reviews, alreadyReviewedRow, followingCount, photographerTier, shoots, iShotWith, mySaves, busyRows] = await Promise.all([
     session
       ? db.favoritePhotographer.findUnique({
           where: { userId_profileId: { userId: session.userId, profileId: profile.id } },
@@ -196,19 +217,23 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
     tierOf(profile.userId), // бейдж уровня (Prime/Elite) в шапке
     shootStats(profile.id), // факты «снимали вместе» (доброжелательная система)
     session ? hasShotWith(session.userId, profile.id) : Promise.resolve(false),
+    // Закладки зрителя (вкладка «Сохранённые») — начальное состояние кнопок
+    session
+      ? db.savedPhoto.findMany({
+          where: { userId: session.userId, photo: { profileId: profile.id } },
+          select: { photoId: true },
+        })
+      : Promise.resolve([] as { photoId: string }[]),
+    // Занятость на текущий месяц — для панели обращения
+    db.busyDate.findMany({
+      where: { profileId: profile.id, date: { gte: monthStart, lt: monthEnd } },
+      select: { date: true },
+    }),
   ]);
   const favorited = Boolean(favoritedRow);
   const alreadyReviewed = Boolean(alreadyReviewedRow);
   const likeCount = new Map(likes.map((l) => [l.photoId, l._count]));
   const likedSet = new Set(myLikes.map((l) => l.photoId));
-  // Закладки зрителя (вкладка «Сохранённые» фотоленты): начальное состояние
-  // кнопки на каждом кадре
-  const mySaves = session
-    ? await db.savedPhoto.findMany({
-        where: { userId: session.userId, photo: { profileId: profile.id } },
-        select: { photoId: true },
-      })
-    : [];
   const savedSet = new Set(mySaves.map((sv) => sv.photoId));
   const isSelf = session?.userId === profile.userId;
   const lastSeen = profile.user.lastSeenAt;
@@ -232,15 +257,8 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
 
   // Техника — карточками (прототип v9). Парк оборудования для событийной
   // съёмки professional-аргумент: второй корпус, светосильная оптика, свет.
-  // Занятость на текущий месяц — для панели обращения. Данные вёл сам автор в
-  // кабинете, но заказчик их не видел, хотя это его первый вопрос при дате.
-  const now = new Date();
-  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-  const monthEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
-  const busyRows = await db.busyDate.findMany({
-    where: { profileId: profile.id, date: { gte: monthStart, lt: monthEnd } },
-    select: { date: true },
-  });
+  // Занятость данные вёл сам автор в кабинете, но заказчик их не видел, хотя
+  // это его первый вопрос при дате (запрос — в общем батче выше).
   const busyDays = busyRows.map((b) => b.date.getUTCDate());
   const daysInMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0)).getUTCDate();
   // В России неделя начинается с понедельника, getUTCDay() — с воскресенья
@@ -362,7 +380,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
             monthLabel={monthLabelRu(now)}
             daysInMonth={daysInMonth}
             firstWeekday={firstWeekday}
-            canShowPhone={Boolean(profile.showPhone && profile.user.phone)}
+            canShowPhone={Boolean(profile.showPhone && profile.user.hasPhone)}
           />
           </div>
         )}

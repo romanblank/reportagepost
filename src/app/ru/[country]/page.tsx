@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { cache } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { db } from '@/lib/db';
@@ -10,9 +11,11 @@ import { BASE_URL } from '@/lib/sitemap';
 // динамическое, ISR тут не работает (аудит: revalidate был мёртвым).
 export const dynamic = 'force-dynamic';
 
-async function findCountry(slug: string) {
+// cache(): generateMetadata и тело зовут независимо — без дедупа 2 запроса
+// на заход (аудит 2026-09-10, П2; приём findProfile/findCity)
+const findCountry = cache(async (slug: string) => {
   return db.country.findFirst({ where: { slug, active: true } });
-}
+});
 
 export async function generateMetadata(props: { params: Promise<{ country: string }> }): Promise<Metadata> {
   const { country } = await props.params;

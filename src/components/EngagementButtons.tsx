@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { ru } from '@/i18n/ru';
 import { apiOk } from '@/lib/api';
@@ -22,39 +22,68 @@ import { useToast } from '@/components/ui/Toast';
  * Образец правильного поведения в проекте был (AvailabilityCalendar с Set
  * pending), до кнопок вовлечения его просто не донесли.
  */
-function useToggle(path: string, initial: boolean, authed: boolean) {
+// ── Общий стор состояния переключателей ──────────────────────────────────────
+// Один и тот же кадр рендерится ДВУМЯ независимыми экземплярами кнопок: в
+// сетке портфолио и в лайтбоксе. Локальный useState на каждом давал рассинхрон
+// (аудит 2026-09-10, П2): лайкнул в просмотре, закрыл — сетка показывает
+// старое сердечко и счётчик. Стор в памяти модуля, ключ — path переключателя
+// (уникален на сущность×действие), подписка — useSyncExternalStore.
+type ToggleState = { on: boolean; count: number };
+const toggleStore = new Map<string, ToggleState>();
+const toggleSubs = new Map<string, Set<() => void>>();
+// Барьер двойного тапа — тоже на КЛЮЧ, а не на экземпляр: две копии кнопки
+// одного кадра не должны отправлять два POST-а разом
+const togglesInFlight = new Set<string>();
+
+function writeToggle(key: string, next: ToggleState) {
+  toggleStore.set(key, next);
+  toggleSubs.get(key)?.forEach((fn) => fn());
+}
+
+function useToggle(path: string, initial: boolean, authed: boolean, initialCount = 0) {
   const router = useRouter();
   const { toast } = useToast();
-  const [on, setOn] = useState(initial);
   const [busy, setBusy] = useState(false);
-  // ref, а не state: нужен мгновенный барьер для второго тапа в том же кадре,
-  // до того как React успеет перерисовать кнопку с disabled.
-  const inFlight = useRef(false);
+  // Снимок initial-пропсов стабилен на жизнь экземпляра: getSnapshot обязан
+  // возвращать один и тот же объект, пока стор молчит
+  const initialRef = useRef<ToggleState>({ on: initial, count: initialCount });
+
+  const subscribe = useCallback((cb: () => void) => {
+    let set = toggleSubs.get(path);
+    if (!set) {
+      set = new Set();
+      toggleSubs.set(path, set);
+    }
+    set.add(cb);
+    return () => { toggleSubs.get(path)?.delete(cb); };
+  }, [path]);
+  const getSnapshot = useCallback(() => toggleStore.get(path) ?? initialRef.current, [path]);
+  const state = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
   async function toggle(): Promise<boolean | null> {
     if (!authed) {
       router.push('/ru/login');
       return null;
     }
-    if (inFlight.current) return null;
-    inFlight.current = true;
+    if (togglesInFlight.has(path)) return null;
+    togglesInFlight.add(path);
     setBusy(true);
 
-    const next = !on;
-    setOn(next);
+    // Откат — от ЯВНОГО снимка, а не от текущего значения (урок 2026-08-01)
+    const prev = state;
+    const next = !prev.on;
+    writeToggle(path, { on: next, count: Math.max(0, prev.count + (next ? 1 : -1)) });
     const ok = await apiOk(path, { method: 'POST' });
     if (!ok) {
-      // Откат от ЯВНОГО снимка, а не от текущего значения: второй источник
-      // правды здесь и приводил к расхождению счётчика.
-      setOn(!next);
+      writeToggle(path, prev);
       toast(ru.ui.toastError, 'danger');
     }
-    inFlight.current = false;
+    togglesInFlight.delete(path);
     setBusy(false);
     return ok ? next : null;
   }
 
-  return { on, busy, toggle };
+  return { on: state.on, count: state.count, busy, toggle };
 }
 
 export function LikeButton({ photoId, initialLiked, initialCount, authed, onDark = false }: {
@@ -64,14 +93,12 @@ export function LikeButton({ photoId, initialLiked, initialCount, authed, onDark
   authed: boolean;
   onDark?: boolean;
 }) {
-  const { on: liked, busy, toggle } = useToggle(`/api/photos/${photoId}/like`, initialLiked, authed);
-  const [count, setCount] = useState(initialCount);
+  const { on: liked, count, busy, toggle } = useToggle(`/api/photos/${photoId}/like`, initialLiked, authed, initialCount);
 
   async function onClick() {
-    const applied = await toggle();
-    // Счётчик двигаем ТОЛЬКО по подтверждённому результату — иначе неудачный
-    // запрос оставлял бы число «оптимистично» неверным.
-    if (applied !== null) setCount((c) => Math.max(0, c + (applied ? 1 : -1)));
+    // Счётчик живёт в общем сторе: оптимистичное значение откатывается тем же
+    // снимком, что и само состояние — расходиться им больше не из чего
+    await toggle();
   }
 
   if (onDark) {

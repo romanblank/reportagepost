@@ -1,5 +1,7 @@
 import { getSession } from '@/lib/auth';
 import { subscribeUser } from '@/lib/realtime';
+import { rateLimit } from '@/lib/rate-limit';
+import { DomainError } from '@/lib/errors';
 
 // SSE-поток событий пользователя (живая личка/уведомления). Самодостаточен для
 // nginx: X-Accel-Buffering=no отключает буферизацию этого ответа, heartbeat
@@ -10,6 +12,16 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   const session = await getSession();
   if (!session) return new Response('unauthorized', { status: 401 });
+
+  // Открытие соединения — под лимитом (аудит 2026-09-10, П2): реконнекты
+  // EventSource редки (браузер сам держит паузу), 30/мин хватает даже на
+  // нестабильной сети, а цикл «открыл-бросил» скрипта упирается в 429
+  try {
+    await rateLimit(`sse:user:${session.userId}`, 30, 60);
+  } catch (e) {
+    if (e instanceof DomainError) return new Response('rate_limited', { status: 429 });
+    throw e;
+  }
 
   const encoder = new TextEncoder();
   let unsub: () => void = () => {};

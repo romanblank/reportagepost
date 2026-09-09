@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { db } from '@/lib/db';
 import { assertCanPublish, recordViolation } from '@/lib/publish-guard';
 import { DomainError } from '@/lib/errors';
@@ -539,7 +540,10 @@ export type ThreadView = {
   }[];
 };
 
-export async function threadBySlug(slug: string, page = 1): Promise<ThreadView | null> {
+// cache(): generateMetadata и тело страницы зовут это независимо, Prisma-вызовы
+// Next не дедуплицирует — без обёртки каждый просмотр темы делал 4 запроса
+// вместо 2 (аудит 2026-09-10, П2; тот же приём, что findProfile/findCity)
+export const threadBySlug = cache(async (slug: string, page = 1): Promise<ThreadView | null> => {
   const t = await db.forumThread.findUnique({
     where: { slug },
     select: {
@@ -578,7 +582,7 @@ export async function threadBySlug(slug: string, page = 1): Promise<ThreadView |
       authorUsername: p.author.profile?.status === 'APPROVED' ? p.author.profile.username : null,
     })),
   };
-}
+});
 
 /** Сводка по разделам для главной форума. */
 export async function threadCountInSection(sectionSlug: string): Promise<number> {

@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { COOKIE_CONSENT_NAME, PDN_CONSENT_VERSION } from '@/lib/constants';
 import { handleRoute, jsonError } from '@/lib/errors';
-import { createHash } from 'node:crypto';
 import { db } from '@/lib/db';
+import { hashIp } from '@/lib/ip-hash';
 import { getSession } from '@/lib/auth';
 import { clientIp } from '@/lib/rate-limit';
 
@@ -44,7 +44,8 @@ export function POST(req: Request) {
         data: {
           decision,
           policyVersion: PDN_CONSENT_VERSION,
-          ipHash: ip ? createHash('sha256').update(`${ip}:${PDN_CONSENT_VERSION}`).digest('hex') : null,
+          // HMAC, не голый sha256: несолёный хеш IPv4 перебирается (аудит 2026-09-10)
+          ipHash: hashIp(`consent-v${PDN_CONSENT_VERSION}`, ip),
           userId: session?.userId ?? null,
         },
       })

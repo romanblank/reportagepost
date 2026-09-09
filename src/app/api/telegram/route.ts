@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { timingSafeEqual } from 'node:crypto';
 import { handleTelegramUpdate } from '@/lib/telegram';
 
 export const dynamic = 'force-dynamic';
@@ -8,7 +9,11 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: Request) {
   const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
   if (!secret) return NextResponse.json({ ok: false }, { status: 503 });
-  if (req.headers.get('x-telegram-bot-api-secret-token') !== secret) {
+  // Constant-time, как у jobs-роутов: обычное !== в теории отдаёт длину
+  // совпавшего префикса таймингом (аудит 2026-09-10, П3 — единообразие)
+  const got = Buffer.from(req.headers.get('x-telegram-bot-api-secret-token') ?? '');
+  const want = Buffer.from(secret);
+  if (got.length !== want.length || !timingSafeEqual(got, want)) {
     return NextResponse.json({ ok: false }, { status: 401 });
   }
 

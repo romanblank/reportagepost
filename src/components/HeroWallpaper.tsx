@@ -15,10 +15,26 @@ const HOLD_MS = 6000;
 
 export function HeroWallpaper() {
   const [idx, setIdx] = useState(0);
+  // Скользящая загрузка (аудит 2026-09-10, П2): рендер всех десяти слоёв с
+  // backgroundImage сразу заставлял браузер тянуть ~2-3 МБ полноразмерных
+  // кадров со стороннего CDN прямо в LCP самой посещаемой страницы. Держим
+  // загруженными текущий и следующий — остальные получают url только когда
+  // до них доходит очередь.
+  const [loaded, setLoaded] = useState<Set<number>>(() => new Set([0, 1 % HERO_SHOTS.length]));
 
   useEffect(() => {
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const t = setInterval(() => setIdx((i) => (i + 1) % HERO_SHOTS.length), HOLD_MS);
+    const t = setInterval(() => setIdx((i) => {
+      const next = (i + 1) % HERO_SHOTS.length;
+      setLoaded((prev) => {
+        const after = (next + 1) % HERO_SHOTS.length;
+        if (prev.has(after)) return prev;
+        const upd = new Set(prev);
+        upd.add(after);
+        return upd;
+      });
+      return next;
+    }), HOLD_MS);
     return () => clearInterval(t);
   }, []);
 
@@ -32,7 +48,7 @@ export function HeroWallpaper() {
           <div
             key={s.id}
             className={`hw-layer${i === idx ? ' on' : ''}`}
-            style={{ backgroundImage: `url(${heroImageUrl(s)})` }}
+            style={loaded.has(i) ? { backgroundImage: `url(${heroImageUrl(s)})` } : undefined}
           />
         ))}
         <div className="hw-grain" />

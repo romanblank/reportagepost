@@ -216,6 +216,98 @@ describe.skipIf(!hasDb)('Яндекс-complete: гард линковки про
   });
 });
 
+// ─── 2FA обязана действовать и на Яндекс-путях (аудит 2026-09-10, П1) ───────
+// Второй фактор ставят ровно на случай компрометации пароля/почты, а вход
+// через Яндекс — это и есть вход по чужому паролю Яндекса или доступу к ящику.
+// Полная сессия без кода превращала бы 2FA в декорацию.
+describe.skipIf(!hasDb)('Яндекс-вход не обходит 2FA (БД)', () => {
+  it('callback: привязанный аккаунт с 2FA получает pending-cookie, а НЕ сессию', async () => {
+    const { db } = await import('@/lib/db');
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const user = await db.user.create({
+      data: {
+        role: 'CLIENT', status: 'ACTIVE', firstName: 'Д', lastName: 'Вухфакторный',
+        email: `tfa-${stamp}@test.local`, yandexId: `yx-tfa-${stamp}`,
+        emailVerifiedAt: new Date(), twoFactorEnabledAt: new Date(),
+      },
+    });
+    try {
+      yx.profile = { yandexId: `yx-tfa-${stamp}`, email: user.email!, firstName: 'Д', lastName: 'В' };
+      const res = await yandexCallback(stamp);
+
+      expect(res.headers.get('location')).toContain('/ru/login?2fa=1');
+      const cookies = setCookies(res);
+      expect(cookies).toContain('rp_2fa=');
+      expect(cookies).not.toContain('rp_session=');
+    } finally {
+      await db.user.delete({ where: { id: user.id } });
+    }
+  });
+
+  it('callback: линковка по email при 2FA откладывается до второго фактора', async () => {
+    const { db } = await import('@/lib/db');
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const email = `tfa-link-${stamp}@test.local`;
+    const user = await db.user.create({
+      data: {
+        role: 'CLIENT', status: 'ACTIVE', firstName: 'Д', lastName: 'Вухфакторная',
+        email, emailVerifiedAt: new Date(), twoFactorEnabledAt: new Date(),
+      },
+    });
+    try {
+      yx.profile = { yandexId: `yx-tfl-${stamp}`, email, firstName: 'Д', lastName: 'В' };
+      const res = await yandexCallback(stamp);
+
+      expect(res.headers.get('location')).toContain('/ru/login?2fa=1');
+      expect(setCookies(res)).not.toContain('rp_session=');
+      // yandexId НЕ привязан: доступ к ящику не должен давать чужому Яндексу
+      // тихий плацдарм в аккаунте с 2FA
+      const after = await db.user.findUniqueOrThrow({ where: { id: user.id } });
+      expect(after.yandexId).toBeNull();
+    } finally {
+      await db.user.delete({ where: { id: user.id } });
+    }
+  });
+
+  it('complete: существующий аккаунт с 2FA получает twoFactor-ответ без сессии', async () => {
+    const { db } = await import('@/lib/db');
+    const { createYandexPendingToken, YANDEX_PENDING_COOKIE } = await import('@/lib/auth');
+    const { NextRequest } = await import('next/server');
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const user = await db.user.create({
+      data: {
+        role: 'CLIENT', status: 'ACTIVE', firstName: 'Д', lastName: 'Вухфакторный',
+        email: `tfa-c-${stamp}@test.local`, yandexId: `yx-tfc-${stamp}`,
+        emailVerifiedAt: new Date(), twoFactorEnabledAt: new Date(),
+      },
+    });
+    try {
+      const pending = await createYandexPendingToken({
+        yandexId: `yx-tfc-${stamp}`, email: user.email!, firstName: 'Д', lastName: 'В',
+      });
+      const { POST } = await import('@/app/api/auth/yandex/complete/route');
+      const res = await POST(new NextRequest('https://reportagepost.com/api/auth/yandex/complete', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          cookie: `${YANDEX_PENDING_COOKIE}=${pending}`,
+          'x-real-ip': '10.7.7.8',
+        },
+        body: JSON.stringify({ role: 'CLIENT', pdnConsent: true }),
+      }));
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.twoFactor).toBe(true);
+      const cookies = setCookies(res);
+      expect(cookies).toContain('rp_2fa=');
+      expect(cookies).not.toContain('rp_session=');
+    } finally {
+      await db.user.delete({ where: { id: user.id } });
+    }
+  });
+});
+
 // ─── Login: rate-limit — единственный антибрутфорс платформы ────────────────
 describe('login: rate-limit подключён, а не только написан', () => {
   const loginReq = (body: unknown) =>

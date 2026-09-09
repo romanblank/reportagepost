@@ -14,12 +14,26 @@ type Listener = (e: RealtimeEvent) => void;
 const g = globalThis as unknown as { __rtBus?: Map<string, Set<Listener>> };
 const bus: Map<string, Set<Listener>> = (g.__rtBus ??= new Map());
 
+/**
+ * Потолок слушателей на пользователя (аудит 2026-09-10, П2): каждое
+ * SSE-соединение держит heartbeat-таймер и подписку, а открывать их можно
+ * было без предела — скрипт с тысячами EventSource грузил бы единственный
+ * процесс без сопротивления. Живому человеку хватает шести вкладок; при
+ * превышении вытесняется САМАЯ СТАРАЯ подписка (Set хранит порядок вставки) —
+ * её вкладка перестаёт получать live-события, но страница остаётся рабочей.
+ */
+const MAX_LISTENERS_PER_USER = 6;
+
 /** Подписка на события пользователя. Возвращает функцию отписки. */
 export function subscribeUser(userId: string, cb: Listener): () => void {
   let set = bus.get(userId);
   if (!set) {
     set = new Set();
     bus.set(userId, set);
+  }
+  if (set.size >= MAX_LISTENERS_PER_USER) {
+    const oldest = set.values().next().value;
+    if (oldest) set.delete(oldest);
   }
   set.add(cb);
   return () => {

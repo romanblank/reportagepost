@@ -64,22 +64,30 @@ describe.skipIf(!hasDb)('username: прежний адрес живёт, гон�
       .rejects.toMatchObject({ code: 'username_taken', status: 409 });
   });
 
-  it('если освободившееся имя занял другой автор — редиректа на чужой профиль не будет', async () => {
+  it('освободившееся имя чужой занимает только ПОСЛЕ карантина — тогда редирект снят', async () => {
     const { db } = await import('@/lib/db');
-    const { applyProfileEdit } = await import('@/lib/profile-edit');
+    const { applyProfileEdit, USERNAME_QUARANTINE_DAYS } = await import('@/lib/profile-edit');
     const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
     const owner = await mk('d', stamp);
     const other = await mk('e', stamp);
     const freed = owner.username;
 
-    // Первый освобождает имя, второй его занимает
+    // Первый освобождает имя — его прежний адрес живёт редиректом
     await applyProfileEdit(owner.id, freed, { username: `un-moved-${stamp}` });
     expect(await db.usernameHistory.findUnique({ where: { username: freed } })).not.toBeNull();
 
-    await applyProfileEdit(other.id, other.username, { username: freed });
+    // Свежеосвобождённое имя чужому НЕ отдаётся (аудит 2026-09-10: иначе
+    // перехват адреса известного автора со всеми внешними ссылками)
+    await expect(applyProfileEdit(other.id, other.username, { username: freed }))
+      .rejects.toMatchObject({ code: 'username_taken' });
 
-    // Запись истории снята: честный показ нового владельца лучше редиректа
-    // на постороннего автора.
+    // После карантина имя доступно, история снята: честный показ нового
+    // владельца лучше редиректа на постороннего автора
+    await db.usernameHistory.update({
+      where: { username: freed },
+      data: { changedAt: new Date(Date.now() - (USERNAME_QUARANTINE_DAYS + 1) * 24 * 3_600_000) },
+    });
+    await applyProfileEdit(other.id, other.username, { username: freed });
     expect(await db.usernameHistory.findUnique({ where: { username: freed } })).toBeNull();
     const now = await db.photographerProfile.findUniqueOrThrow({ where: { id: other.id } });
     expect(now.username).toBe(freed);

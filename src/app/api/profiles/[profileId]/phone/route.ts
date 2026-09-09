@@ -1,7 +1,7 @@
-import { createHash } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { revealPhone } from '@/lib/phone-reveal';
+import { hashIp } from '@/lib/ip-hash';
 import { handleRoute } from '@/lib/errors';
 import { clientIp, rateLimit } from '@/lib/rate-limit';
 
@@ -19,8 +19,9 @@ export function POST(req: Request, { params }: { params: Promise<{ profileId: st
       await rateLimit(`phone-reveal:ip:${clientIp(req)}`, 20, 3600);
     }
     const { profileId } = await params;
-    // Гостевой ключ для дедупа событий — ХЭШ IP (сырой IP в БД не пишем, PII)
-    const guestKey = session ? null : createHash('sha256').update(clientIp(req)).digest('hex').slice(0, 16);
+    // Гостевой ключ для дедупа событий — HMAC-хеш IP (сырой IP в БД не пишем,
+    // PII; голый sha256 перебирался бы — аудит 2026-09-10)
+    const guestKey = session ? null : hashIp('phone-reveal', clientIp(req))?.slice(0, 16) ?? null;
     return NextResponse.json(await revealPhone(profileId, session?.userId ?? null, guestKey));
   });
 }

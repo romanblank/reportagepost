@@ -1299,6 +1299,7 @@ export const ru = {
     dailyQueues: (n: number) => `ждёт решения: ${n}`,
     dailyStale: (names: string) => `молчат задачи: ${names}`,
     maintenanceNote: (profiles: number, cleaned: number) => `профилей ${profiles}, чистка ${cleaned}`,
+    maintenanceFailures: (list: string) => `сбой: ${list}`,
     inquiriesNote: (n: number) => `разослано ${n}`,
     videoNote: (done: number, failed: number) => `обработано ${done}, с ошибкой ${failed}`,
   },

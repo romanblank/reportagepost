@@ -33,6 +33,13 @@ export interface Dialog {
 /**
  * Диалоги пользователя без лимита 500 (аудит P1-4): последнее сообщение на
  * собеседника через DISTINCT ON + отдельный подсчёт непрочитанных.
+ *
+ * Окно по последним сообщениям (аудит 2026-09-10, П2): подзапрос без границы
+ * читал ВСЮ историю переписки пользователя на каждый заход в /ru/messages
+ * (и на каждый SSE-рефреш) — у активного автора это тысячи строк ради списка
+ * диалогов. 2000 последних сообщений покрывают любой живой список; диалог,
+ * весь ушедший за окно, из списка выпадает — это диалог, в котором за
+ * последние 2000 сообщений не было НИ ОДНОГО, живым его не назвать.
  */
 export async function dialogsFor(userId: string): Promise<Dialog[]> {
   const lasts = await db.$queryRaw<
@@ -45,6 +52,8 @@ export async function dialogsFor(userId: string): Promise<Dialog[]> {
              body, "createdAt"
       FROM "Message"
       WHERE "senderId" = ${userId} OR "recipientId" = ${userId}
+      ORDER BY "createdAt" DESC
+      LIMIT 2000
     ) m
     JOIN "User" u ON u.id = m.peer_id
     ORDER BY peer_id, m."createdAt" DESC

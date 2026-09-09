@@ -26,7 +26,9 @@ function LoginForm() {
   const safeNext = next && /^\/ru\//.test(next) ? next : '/ru/cabinet';
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [twoFactor, setTwoFactor] = useState(false);
+  // ?2fa=1 — приход с Яндекс-входа при включённой 2FA: pending-cookie уже
+  // стоит, пароль не нужен — сразу экран кода (аудит 2026-09-10, П1)
+  const [twoFactor, setTwoFactor] = useState(searchParams?.get('2fa') === '1');
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

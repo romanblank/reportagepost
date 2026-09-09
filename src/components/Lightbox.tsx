@@ -175,8 +175,9 @@ export function LightboxModal({
         <Icon name="x" size={18} />
       </button>
       {current.photoId && (
-        // key={current.photoId} — кнопки держат состояние в useState от initial-
-        // пропсов; без пересоздания при листании они показывали бы предыдущий кадр
+        // key={current.photoId} — при листании кнопки пересоздаются под новый
+        // кадр; само состояние живёт в общем сторе EngagementButtons (синхронно
+        // с сеткой), initial-пропсы — только сид первого показа
         <span key={current.photoId}
           onClick={(e) => e.stopPropagation()}
           className="absolute bottom-5 right-4 z-10 flex items-center gap-3 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm sm:right-6">

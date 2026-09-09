@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { db } from '@/lib/db';
 import { DomainError } from '@/lib/errors';
 import { rateLimit } from '@/lib/rate-limit';
@@ -155,7 +156,8 @@ export async function publishedArticles(limit = 20): Promise<ArticleCard[]> {
 
 export type ArticleView = ArticleCard & { body: string };
 
-export async function articleBySlug(slug: string): Promise<ArticleView | null> {
+// cache(): дедуп generateMetadata+тела страницы (аудит 2026-09-10, П2)
+export const articleBySlug = cache(async (slug: string): Promise<ArticleView | null> => {
   const a = await db.article.findUnique({
     where: { slug },
     select: {
@@ -175,7 +177,7 @@ export async function articleBySlug(slug: string): Promise<ArticleView | null> {
     authorUsername: a.author.profile?.status === 'APPROVED' ? a.author.profile.username : null,
     coverKey: a.cover?.storageKey ?? null,
   };
-}
+});
 
 /**
  * Решение редакции по статье.

@@ -158,4 +158,19 @@ describe('публичные страницы: только явный select п
     ).trim();
     expect(out, `Полный объект User на публичной странице:\n${out}`).toBe('');
   });
+
+  // Реквизиты обещаны «публично не показываются нигде» (profile-edit), а
+  // «Показать номер» держится на том, что номера нет в SSR-разметке. Обе
+  // гарантии — в данных, не в дисциплине пропсов: на публичных страницах эти
+  // поля не должны даже ВЫБИРАТЬСЯ (аудит 2026-09-10, П2). У страницы профиля
+  // реквизиты закрыты omit-ом, phone преобразуется в hasPhone внутри
+  // findProfile — прямых упоминаний в выборках быть не должно.
+  it('в src/app/ru вне /admin и /cabinet не выбираются реквизиты и телефон', async () => {
+    const { execSync } = await import('node:child_process');
+    const out = execSync(
+      String.raw`grep -rnE "(inn|bankAccount|bankName|bic|legalName): true" src/app/ru --include='*.tsx' --include='*.ts' | grep -v "/admin/" | grep -v "/cabinet/" | grep -v "omit:" || true`,
+      { encoding: 'utf8', cwd: process.cwd() },
+    ).trim();
+    expect(out, `Реквизиты в выборке публичной страницы:\n${out}`).toBe('');
+  });
 });

@@ -4,6 +4,66 @@ import 'dotenv/config';
 const hasDb = Boolean(process.env.DATABASE_URL);
 
 describe.skipIf(!hasDb)('applyProfileEdit: общая правка анкеты (self + админ) (БД)', () => {
+  it('карантин username: освободившееся имя чужому профилю не отдаётся 90 дней, себе — сразу', async () => {
+    const { db } = await import('@/lib/db');
+    const { createPhotographerByAdmin } = await import('@/lib/admin-onboard');
+    const { applyProfileEdit, USERNAME_QUARANTINE_DAYS } = await import('@/lib/profile-edit');
+
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const admin = await db.user.create({ data: { role: 'ADMIN', status: 'ACTIVE', firstName: 'А', lastName: 'Д', email: `adm-q-${stamp}@test.local` } });
+    const cat = await db.category.findFirstOrThrow({ where: { active: true } });
+
+    const known = await createPhotographerByAdmin(admin.id, {
+      firstName: 'Иван', lastName: 'И', username: `ivan-${stamp}`,
+      citySlug: 'moscow', categorySlugs: [cat.slug], publish: false,
+    });
+    const squatter = await createPhotographerByAdmin(admin.id, {
+      firstName: 'С', lastName: 'Кваттер', username: `sq-${stamp}`,
+      citySlug: 'moscow', categorySlugs: [cat.slug], publish: false,
+    });
+
+    try {
+      // Известный автор переименовался — прежний адрес ушёл в историю (301)
+      await applyProfileEdit(known.profileId, known.username, { username: `ivan-new-${stamp}` });
+
+      // Чужой профиль пытается занять освободившееся имя — карантин
+      await expect(
+        applyProfileEdit(squatter.profileId, `sq-${stamp}`, { username: `ivan-${stamp}` }),
+      ).rejects.toMatchObject({ code: 'username_taken' });
+      // История НЕ затёрта: старые ссылки автора продолжают вести к нему
+      const hist = await db.usernameHistory.findUniqueOrThrow({ where: { username: `ivan-${stamp}` } });
+      expect(hist.profileId).toBe(known.profileId);
+
+      // Сам автор возвращает своё имя без ожидания
+      await applyProfileEdit(known.profileId, `ivan-new-${stamp}`, { username: `ivan-${stamp}` });
+      const back = await db.photographerProfile.findUniqueOrThrow({ where: { id: known.profileId } });
+      expect(back.username).toBe(`ivan-${stamp}`);
+
+      // По истечении карантина имя доступно чужим
+      await applyProfileEdit(known.profileId, `ivan-${stamp}`, { username: `ivan-new-${stamp}` });
+      await db.usernameHistory.update({
+        where: { username: `ivan-${stamp}` },
+        data: { changedAt: new Date(Date.now() - (USERNAME_QUARANTINE_DAYS + 1) * 24 * 3_600_000) },
+      });
+      await applyProfileEdit(squatter.profileId, `sq-${stamp}`, { username: `ivan-${stamp}` });
+      const taken = await db.photographerProfile.findUniqueOrThrow({ where: { id: squatter.profileId } });
+      expect(taken.username).toBe(`ivan-${stamp}`);
+    } finally {
+      await db.usernameHistory.deleteMany({ where: { profileId: { in: [known.profileId, squatter.profileId] } } });
+      for (const p of [known, squatter]) {
+        // createPhotographerByAdmin возвращает только profileId — userId берём из профиля
+        const prof = await db.photographerProfile.findUnique({ where: { id: p.profileId }, select: { userId: true } });
+        // FK-грабля из CLAUDE.md: profileCategoryScore удалять ДО профиля
+        await db.profileCategoryScore.deleteMany({ where: { profileId: p.profileId } });
+        await db.profileCategory.deleteMany({ where: { profileId: p.profileId } });
+        await db.photographerProfile.delete({ where: { id: p.profileId } });
+        if (prof) await db.user.delete({ where: { id: prof.userId } });
+      }
+      await db.adminAudit.deleteMany({ where: { actorUserId: admin.id } });
+      await db.user.delete({ where: { id: admin.id } });
+    }
+  });
+
   it('меняет bio/город/жанры/username; коллизия username → DomainError', async () => {
     const { db } = await import('@/lib/db');
     const { createPhotographerByAdmin } = await import('@/lib/admin-onboard');

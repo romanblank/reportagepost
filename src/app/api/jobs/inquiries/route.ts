@@ -31,8 +31,19 @@ export function POST(req: Request) {
     const { startJobRun, finishJobRun } = await import('@/lib/job-run');
     const runId = await startJobRun('inquiries');
     const delivered = await releaseInquiries();
+    // Дренаж отложенных пересчётов рейтинга: лайк взводит needsRescore, а
+    // считаем здесь — 15-минутный такт достаточно быстр для merit-порядка и
+    // коалесцирует вирусные всплески (аудит 2026-09-10, П1). Ошибка пересчёта
+    // не должна ронять волны заявок — изолируем.
+    let rescored = 0;
+    try {
+      const { rescoreMarked } = await import('@/lib/rating');
+      rescored = await rescoreMarked();
+    } catch (e) {
+      console.error('[jobs/inquiries] rescoreMarked failed:', e);
+    }
     await finishJobRun(runId, true, ru.operatorAlerts.inquiriesNote(delivered));
 
-    return NextResponse.json({ ok: true, delivered });
+    return NextResponse.json({ ok: true, delivered, rescored });
   });
 }
