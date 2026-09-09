@@ -3,12 +3,20 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from '@/components/ui/Icon';
+import { LikeButton, SavePhotoButton } from '@/components/EngagementButtons';
 import { ru } from '@/i18n/ru';
 
 export interface LightboxImage {
   src: string;
   width?: number;
   height?: number;
+  // Данные для лайка/закладки ПРЯМО в просмотре: на телефоне лайтбокс — основной
+  // режим разглядывания, и без кнопок здесь отметить кадр было негде
+  // (аудит 2026-09-09, мобила). Не переданы — панель не рендерится.
+  photoId?: string;
+  liked?: boolean;
+  likeCount?: number;
+  saved?: boolean;
 }
 
 // Полноэкранная модалка просмотра (стрелки, клавиатура, a11y-фокус). Управляется
@@ -19,10 +27,12 @@ export function LightboxModal({
   images,
   index,
   setIndex,
+  authed = false,
 }: {
   images: LightboxImage[];
   index: number | null;
   setIndex: (i: number | null) => void;
+  authed?: boolean;
 }) {
   const closeRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -164,6 +174,16 @@ export function LightboxModal({
       >
         <Icon name="x" size={18} />
       </button>
+      {current.photoId && (
+        // key={current.photoId} — кнопки держат состояние в useState от initial-
+        // пропсов; без пересоздания при листании они показывали бы предыдущий кадр
+        <span key={current.photoId}
+          onClick={(e) => e.stopPropagation()}
+          className="absolute bottom-5 right-4 z-10 flex items-center gap-3 rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm sm:right-6">
+          <SavePhotoButton photoId={current.photoId} initialSaved={current.saved ?? false} authed={authed} />
+          <LikeButton photoId={current.photoId} initialLiked={current.liked ?? false} initialCount={current.likeCount ?? 0} authed={authed} onDark />
+        </span>
+      )}
       {images.length > 1 && (
         <span className="tnum absolute bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-white/10 px-3 py-1 t-small text-white/80 backdrop-blur-sm">
           {index + 1} / {images.length}

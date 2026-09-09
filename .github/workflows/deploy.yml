@@ -226,8 +226,23 @@ jobs:
             case "$ACTIVE" in
               blue)  switch_upstream 3001; echo blue > .active-color ;;
               green) switch_upstream 3002; echo green > .active-color ;;
-              *)     switch_upstream 3000 ;; # легаси-контейнер ещё на 3000
+              *)
+                # ПЕРВЫЙ blue-green деплой: легаси-контейнера на :3000 может
+                # уже не быть — слепое переключение отправило бы upstream в
+                # пустоту (аудит 2026-09-09, П1 №16). Возвращаемся только на
+                # то, что реально отвечает.
+                if curl -sf http://127.0.0.1:3000/health >/dev/null 2>&1; then
+                  switch_upstream 3000; rm -f .active-color
+                elif curl -sf "http://127.0.0.1:$NEW_PORT/health" >/dev/null 2>&1; then
+                  # Легаси нет, новый цвет прошёл health (упал smoke):
+                  # оставляем трафик на нём — деплой всё равно красный
+                  switch_upstream "$NEW_PORT"; echo "$NEW" > .active-color; KEEP_NEW=1
+                else
+                  echo "НИ ОДИН порт не отвечает — upstream не трогаем, нужен человек"
+                fi
+                ;;
             esac
-            docker rm -f "reportagepost-$NEW" >/dev/null 2>&1 || true
+            # Не гасим новый цвет, если откатываться было некуда и трафик остался на нём
+            [ "${KEEP_NEW:-0}" = "1" ] || docker rm -f "reportagepost-$NEW" >/dev/null 2>&1 || true
             cp .previous-deploy .deploy.env 2>/dev/null || true
             echo "Деплой провалил health — откат выполнен (если был прошлый образ)"; exit 1

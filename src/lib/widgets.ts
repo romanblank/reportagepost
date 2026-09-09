@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { CAMERA_MODELS } from '@/lib/gear-models';
 
 // Виджеты дашборда: агрегаты сообщества (дёшево, кэшируются ISR на странице).
 export interface CommunityStats {
@@ -12,15 +13,15 @@ export async function communityStats(): Promise<CommunityStats> {
   // Публичная витрина считает только контент публичных (APPROVED) профилей —
   // работы снятых с публикации авторов не должны раздувать «N работ».
   const [photographers, photos, cities, stories] = await Promise.all([
-    db.photographerProfile.count({ where: { status: 'APPROVED' } }),
-    db.photo.count({ where: { status: 'APPROVED', profile: { status: 'APPROVED' } } }),
+    db.photographerProfile.count({ where: { status: 'APPROVED', isDemo: false } }),
+    db.photo.count({ where: { status: 'APPROVED', profile: { status: 'APPROVED', isDemo: false } } }),
     // Города, где ЕСТЬ авторы, а не города из справочника. Раньше витрина
     // показывала «2 города» при одном фотографе в одном городе — цифра обещала
     // выбор, которого нет, и это первое, что заказчик проверяет
     db.photographerProfile
-      .groupBy({ by: ['cityId'], where: { status: 'APPROVED' } })
+      .groupBy({ by: ['cityId'], where: { status: 'APPROVED', isDemo: false } })
       .then((rows) => rows.length),
-    db.story.count({ where: { status: 'APPROVED', profile: { status: 'APPROVED' } } }),
+    db.story.count({ where: { status: 'APPROVED', profile: { status: 'APPROVED', isDemo: false } } }),
   ]);
   return { photographers, photos, cities, stories };
 }
@@ -113,6 +114,24 @@ export async function communityGeo(): Promise<{ slug: string; count: number }[]>
  * загруженных кадров. Второй источник честнее первого: анкету заполняют
  * словами, EXIF пишет сама камера.
  */
+
+/**
+ * Приводит EXIF-имя камеры к имени из справочника: камеры пишут в Model
+ * машинные строки («NIKON Z 6_2», «ILCE-7M4»), и без канонизации одна и та же
+ * модель дробилась на варианты написания. Незнакомое имя остаётся как есть —
+ * лучше честная строка, чем потерянная камера.
+ */
+function canonicalCameraModel(exifModel: string): string {
+  const norm = (v: string) => v.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const target = norm(exifModel);
+  for (const known of CAMERA_MODELS) {
+    const k = norm(known);
+    // EXIF-строка часто без бренда («Z 6_2») — сверяем и целиком, и без него
+    if (k === target || k.endsWith(target) || target.endsWith(k)) return known;
+  }
+  return exifModel.trim();
+}
+
 export async function communityGear(): Promise<{
   brands: { brand: string; count: number }[];
   topCameras: { model: string; count: number }[];
@@ -129,16 +148,31 @@ export async function communityGear(): Promise<{
     .map(([brand, count]) => ({ brand, count }))
     .sort((a, b) => b.count - a.count);
 
+  // Профиль тоже APPROVED: кадры неодобренных анкет — не «сообщество»
   const cams = await db.photo.groupBy({
     by: ['cameraModel'],
-    where: { status: 'APPROVED', cameraModel: { not: null }, profile: { isDemo: false } },
+    where: {
+      status: 'APPROVED',
+      cameraModel: { not: null },
+      profile: { isDemo: false, status: 'APPROVED' },
+    },
     _count: true,
     orderBy: { _count: { cameraModel: 'desc' } },
-    take: 12,
+    // Больше финальной дюжины: EXIF пишет «NIKON Z 6_2», «ILCE-7M4» и прочие
+    // машинные имена — после канонизации по справочнику строки сливаются,
+    // и добирать надо С ЗАПАСОМ, иначе объединённые модели теряют места
+    take: 40,
   });
-  const topCameras = cams
-    .filter((c) => c.cameraModel)
-    .map((c) => ({ model: c.cameraModel as string, count: c._count }));
+  const merged = new Map<string, number>();
+  for (const c of cams) {
+    if (!c.cameraModel) continue;
+    const model = canonicalCameraModel(c.cameraModel);
+    merged.set(model, (merged.get(model) ?? 0) + c._count);
+  }
+  const topCameras = [...merged]
+    .map(([model, count]) => ({ model, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 12);
 
   return { brands, topCameras };
 }

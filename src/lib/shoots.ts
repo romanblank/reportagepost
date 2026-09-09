@@ -117,18 +117,30 @@ export async function confirmShootByInvite(
   if (!profile || profile.status !== 'APPROVED') throw new DomainError('not_found', 404);
   if (profile.userId === clientUserId) throw new DomainError('shoot_self', 400);
 
+  // Роль — как в обычном пути (аудит 2026-09-09): без этого гарда пара
+  // одобренных фотографов обменивалась бы инвайтами и взаимно накручивала
+  // «снимали вместе» — а авто-выпуск публиковал бы это без человека
+  const client = await db.user.findUnique({ where: { id: clientUserId }, select: { role: true } });
+  if (!client || client.role !== 'CLIENT') throw new DomainError('shoot_role', 403);
+
+  // Дубль проверяем ДО списания капа (аудит 2026-09-09): реплей одного и
+  // того же подтверждения (409) выжигал кап 10/сутки чужого автора
+  const duplicate = await db.shootConfirmation.findFirst({
+    where: { clientUserId, profileId, eventDate: eventDate ?? null },
+    select: { id: true },
+  });
+  if (duplicate) throw new DomainError('shoot_already_marked', 409);
+
   await rateLimit(`shoot-invite:user:${clientUserId}`, 5, 86_400);
   // Кап на ПРОФИЛЬ: поток приглашённых подтверждений одному автору ограничен,
   // иначе накрутчик заваливает очередь оператора сотней записей за вечер
   await rateLimit(`shoot-invite-accept:profile:${profileId}`, 10, 86_400);
 
   // ВСЕГДА к человеку — без исключений (закрыто 2026-08-17 по вопросу
-  // оператора «так можно накрутить?»). Первая версия пропускала мимо очереди
-  // аккаунты с подтверждённой почтой или старше 48 часов — но у приглашённого
-  // пути нет второго сигнала обычного пути («аккаунт заведён ДО первого
-  // контакта»), а подтвердить почту накрутчику — пять минут. Единственный
-  // честный сигнал платформы не должен иметь автоматической двери с улицы:
-  // объём на старте штучный, и взгляд человека — осознанная цена механизма.
+  // оператора «так можно накрутить?»): у приглашённого пути нет сигнала
+  // «аккаунт заведён ДО первого контакта», а подтвердить почту накрутчику —
+  // пять минут. Дальше запись либо выпустит тихий выпуск (см. ниже), либо
+  // посмотрит человек.
   const needsReview = true;
   await db.shootConfirmation.create({
     data: {
@@ -140,6 +152,8 @@ export async function confirmShootByInvite(
       respondedAt: new Date(),
       needsReview,
       ipHash: ipHash ?? undefined,
+      // Явный признак пути: тихий выпуск работает ТОЛЬКО по нему
+      viaInvite: true,
     },
   }).catch((e: unknown) => {
     if (e && typeof e === 'object' && 'code' in e && e.code === 'P2002') {
@@ -148,10 +162,8 @@ export async function confirmShootByInvite(
     throw e;
   });
 
-  if (needsReview) {
-    const { alertOperator } = await import('@/lib/telegram');
-    void alertOperator(ru.operatorAlerts.shootNeedsReview).catch(() => {});
-  }
+  const { alertOperator } = await import('@/lib/telegram');
+  void alertOperator(ru.operatorAlerts.shootNeedsReview).catch(() => {});
   const { notifyInApp } = await import('@/lib/notifications');
   void notifyInApp(profile.userId, 'notification.shoot.invite_confirmed', { profileId }).catch(() => {});
   return { needsReview };
@@ -159,59 +171,88 @@ export async function confirmShootByInvite(
 
 
 /**
- * Тихий выпуск приглашённых подтверждений после выдержки (2026-08-17, ответ
- * на вопрос оператора «мне сколько людей на модерации потребуется?»).
+ * Тихий выпуск приглашённых подтверждений после выдержки (2026-08-17;
+ * переписан по аудиту 2026-09-09 — шесть дыр одной функции).
  *
  * Человек смотрит только АНОМАЛИИ. Чистая запись публикуется сама, но не
- * сразу: 72 часа выдержки — окно, за которое ферма успевает себя выдать
- * (всплеск, кластер адреса), а честный случай ничего не теряет: публичный
- * счёт «снимали вместе» не скоропортящийся.
+ * сразу: 72 часа выдержки — окно, за которое ферма успевает себя выдать.
  *
- * Флаги, любой из которых оставляет запись человеку:
- *  — почта клиента не подтверждена (не осилил минимальную проверяемость);
- *  — больше трёх подтверждений автору за 7 дней (всплеск);
- *  — с того же адреса подтверждал другой клиент этого же автора (кластер —
- *    главный отпечаток фермы: аккаунты разные, ноутбук один).
+ * Границы механизма (каждая — закрытая дыра):
+ *  — ТОЛЬКО инвайт-путь (`viaInvite`): needsReview обычного пути значит
+ *    «к человеку и только к человеку» — там второй сигнал (аккаунт заведён
+ *    после контакта) машина не перепроверит;
+ *  — только записи с подтверждённой почтой — В ЗАПРОСЕ, а не в цикле:
+ *    вечно-флагованные не забивают выборку до голодания;
+ *  — ОДНА авто-выпущенная съёмка на пару клиент×автор: повторные даты того
+ *    же клиента — капельная само-накрутка, они всегда ждут человека;
+ *  — всплеск: >3 ЧУЖИХ инвайт-подтверждений автору за неделю (кандидат и
+ *    PENDING обычного пути не считаются — активный автор не флагует сам
+ *    себя своей же законной активностью);
+ *  — кластер адреса: другой клиент того же автора с того же ipHash,
+ *    только CONFIRMED (отклонённые споры не пятнают адрес).
  *
- * Это НЕ «автоматическая дверь с улицы»: дверь с задержкой, капом и флагами,
- * и цена ошибки ограничена — спорное всё равно ждёт человека, а одобренное
- * оператор может отозвать решением по жалобе.
+ * Выпуск — updateMany с гардом needsReview: гонка с одновременным решением
+ * человека не роняет прогон и не перетирает его решение.
  */
 export async function releaseShootConfirmations(now: Date = new Date()): Promise<number> {
   const matured = await db.shootConfirmation.findMany({
     where: {
       needsReview: true,
       state: 'CONFIRMED',
-      initiatedBy: 'PHOTOGRAPHER',
-      createdAt: { lte: new Date(now.getTime() - 72 * 3_600_000) },
+      viaInvite: true,
+      // Выдержка от момента ФАКТИЧЕСКОГО подтверждения; у инвайт-записей
+      // respondedAt ставится при создании
+      respondedAt: { lte: new Date(now.getTime() - 72 * 3_600_000) },
+      client: { emailVerifiedAt: { not: null } },
     },
-    select: {
-      id: true, profileId: true, ipHash: true, clientUserId: true,
-      client: { select: { emailVerifiedAt: true } },
-    },
+    select: { id: true, profileId: true, ipHash: true, clientUserId: true },
+    orderBy: { createdAt: 'asc' },
     take: 200,
   });
   if (matured.length === 0) return 0;
 
   let released = 0;
   for (const sc of matured) {
-    if (!sc.client.emailVerifiedAt) continue;
+    // Повторный клиент: если этой паре уже засчитана публичная съёмка —
+    // новые даты только через человека (анти-капельная накрутка)
+    const alreadyPublic = await db.shootConfirmation.count({
+      where: {
+        profileId: sc.profileId,
+        clientUserId: sc.clientUserId,
+        state: 'CONFIRMED',
+        needsReview: false,
+      },
+    });
+    if (alreadyPublic > 0) continue;
 
     const weekAgo = new Date(now.getTime() - 7 * 86_400_000);
     const recentForProfile = await db.shootConfirmation.count({
-      where: { profileId: sc.profileId, initiatedBy: 'PHOTOGRAPHER', createdAt: { gte: weekAgo } },
+      where: {
+        profileId: sc.profileId,
+        viaInvite: true,
+        id: { not: sc.id },
+        createdAt: { gte: weekAgo },
+      },
     });
     if (recentForProfile > 3) continue;
 
     if (sc.ipHash) {
       const sameAddress = await db.shootConfirmation.count({
-        where: { profileId: sc.profileId, ipHash: sc.ipHash, clientUserId: { not: sc.clientUserId } },
+        where: {
+          profileId: sc.profileId,
+          ipHash: sc.ipHash,
+          state: 'CONFIRMED',
+          clientUserId: { not: sc.clientUserId },
+        },
       });
       if (sameAddress > 0) continue;
     }
 
-    await db.shootConfirmation.update({ where: { id: sc.id }, data: { needsReview: false } });
-    released += 1;
+    const { count } = await db.shootConfirmation.updateMany({
+      where: { id: sc.id, needsReview: true },
+      data: { needsReview: false },
+    });
+    released += count;
   }
   return released;
 }

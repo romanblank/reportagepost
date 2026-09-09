@@ -121,6 +121,11 @@ export default async function CatalogPage(props: {
   const hasActiveFilters = Boolean(
     categorySlug || availableOn || maxPriceRub || minPriceRub || videoOnly || trustedOnly || selectedBrands.length,
   );
+  // Есть ли в городе авторы ВООБЩЕ (без фильтров): пустая выдача с датой
+  // раньше говорила «в городе есть авторы — смягчите условия» при нуле
+  // авторов — ложь во флагманском пути быстрого поиска (аудит 2026-09-09)
+  const cityHasAnyAuthors =
+    (await db.photographerProfile.count({ where: { cityId: city.id, status: 'APPROVED' } })) > 0;
   const [{ cards, hasNext }, facets, visiting] = await Promise.all([
     catalogForCity({
       citySlug: city.slug, categorySlug, availableOn, page, videoOnly,
@@ -401,14 +406,18 @@ export default async function CatalogPage(props: {
       )}
 
       {mainCards.length === 0 && recommended.length === 0 && visiting.length === 0 ? (
-        hasActiveFilters ? (
+        hasActiveFilters && cityHasAnyAuthors ? (
           // Под фильтры пусто (а не «в городе никого») — не сбиваем с толку CTA
-          // регистрации; предлагаем сбросить фильтры.
+          // регистрации; предлагаем сбросить фильтры. Ветка ТОЛЬКО при
+          // реальном наличии авторов: иначе «в городе есть авторы» — ложь
           <EmptyState
             icon={<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>}
             title={ru.catalog.emptyFiltered}
             subtitle={ru.catalog.emptyFilteredHint}
-            actions={[{ href: basePath, label: ru.catalog.resetFilters, variant: 'accent' }]}
+            actions={[
+              { href: basePath, label: ru.catalog.resetFilters, variant: 'accent' },
+              { href: '/ru/inquiry', label: ru.catalog.emptyInquiry, variant: 'outline' },
+            ]}
           />
         ) : (
           <EmptyState

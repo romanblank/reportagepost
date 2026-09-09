@@ -318,6 +318,59 @@ describe.skipIf(!hasDb)('съёмки: подтверждение по приг�
 });
 
 /**
+ * Кап 10/сутки на профиль (2026-08-17): поток приглашённых подтверждений
+ * одному автору ограничен, иначе накрутчик заваливает очередь оператора
+ * сотней записей за вечер. Кап — на ПРОФИЛЬ, поэтому и обходом через
+ * десяток свежих «заказчиков» его не снять.
+ */
+describe.skipIf(!hasDb)('съёмки: кап приглашённых подтверждений на профиль (БД)', () => {
+  it('десять подтверждений разных клиентов проходят, одиннадцатое — 429', async () => {
+    const { db } = await import('@/lib/db');
+    const { confirmShootByInvite } = await import('@/lib/shoots');
+
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const city = await db.city.findFirstOrThrow({ where: { slug: 'moscow' } });
+    const author = await db.user.create({
+      data: { role: 'PHOTOGRAPHER', status: 'ACTIVE', firstName: 'Кап', lastName: 'Автор', email: `cap-a-${stamp}@test.local` },
+    });
+    const profile = await db.photographerProfile.create({
+      data: { userId: author.id, username: `cap-${stamp}`, cityId: city.id, status: 'APPROVED' },
+    });
+    // Клиенты РАЗНЫЕ: личный лимит клиента (5/сутки) не должен маскировать
+    // проверку капа профиля — иначе тест зеленел бы и без него
+    const clients = await Promise.all(
+      Array.from({ length: 11 }, (_, i) =>
+        db.user.create({
+          data: { role: 'CLIENT', status: 'ACTIVE', firstName: `К${i}`, lastName: 'Кап', email: `cap-c${i}-${stamp}@test.local` },
+        }),
+      ),
+    );
+
+    try {
+      for (let i = 0; i < 10; i++) {
+        const { needsReview } = await confirmShootByInvite(clients[i].id, profile.id, new Date(`2026-03-${String(i + 1).padStart(2, '0')}`));
+        expect(needsReview).toBe(true);
+      }
+      await expect(
+        confirmShootByInvite(clients[10].id, profile.id, new Date('2026-03-20')),
+      ).rejects.toMatchObject({ code: 'rate_limited', status: 429 });
+      // Одиннадцатая запись НЕ создана — отказ до create, а не после
+      expect(await db.shootConfirmation.count({ where: { profileId: profile.id } })).toBe(10);
+    } finally {
+      // notifyInApp — fire-and-forget: даём десятку уведомлений долететь,
+      // иначе cleanup удаляет пользователей раньше вставки (FK RESTRICT)
+      await new Promise((r) => setTimeout(r, 150));
+      await db.shootConfirmation.deleteMany({ where: { profileId: profile.id } });
+      await db.rateLimit.deleteMany({ where: { key: { contains: profile.id } } });
+      await db.rateLimit.deleteMany({ where: { key: { in: clients.map((c) => `shoot-invite:user:${c.id}`) } } });
+      await db.notification.deleteMany({ where: { userId: { in: [author.id, ...clients.map((c) => c.id)] } } });
+      await db.photographerProfile.delete({ where: { id: profile.id } });
+      await db.user.deleteMany({ where: { id: { in: [author.id, ...clients.map((c) => c.id)] } } });
+    }
+  });
+});
+
+/**
  * Тихий выпуск после выдержки (2026-08-17): человек смотрит только аномалии.
  * Чистая запись (почта подтверждена, нет всплеска, нет кластера адреса)
  * публикуется сама через 72 часа; любой флаг оставляет её в очереди.
@@ -357,11 +410,14 @@ describe.skipIf(!hasDb)('съёмки: тихий выпуск приглашё�
     const noMail = await mkUser('nomail', false);
 
     const old = new Date(Date.now() - 80 * 3_600_000); // старше 72ч
-    const mkShoot = (clientId: string, ipHash: string | null, date: string, profId = profile.id) =>
+    const mkShoot = (clientId: string, ipHash: string | null, date: string, profId = profile.id, viaInvite = true) =>
       db.shootConfirmation.create({
         data: {
           clientUserId: clientId, profileId: profId, initiatedBy: 'PHOTOGRAPHER',
           state: 'CONFIRMED', needsReview: true, ipHash, createdAt: old,
+          // Выдержка теперь меряется от respondedAt (аудит 2026-09-09)
+          respondedAt: old,
+          viaInvite,
           eventDate: new Date(date),
         },
       });
@@ -382,6 +438,17 @@ describe.skipIf(!hasDb)('съёмки: тихий выпуск приглашё�
       expect(await state(f1.id)).toBe(true); // кластер — ждёт человека
       expect(await state(f2.id)).toBe(true);
       expect(await state(nm.id)).toBe(true); // без почты — ждёт
+
+      // Дыры аудита 2026-09-09 закрыты и стерегутся:
+      // (а) needsReview ОБЫЧНОГО пути (viaInvite=false, ipHash=null) машина
+      // не выпускает никогда — только человек
+      const regular = await mkShoot(clean.id, null, '2026-04-01', profile2.id, false);
+      // (б) повторная дата УЖЕ ЗАСЧИТАННОГО клиента — капельная накрутка,
+      // всегда к человеку
+      const drip = await mkShoot(clean.id, `hash-clean2-${stamp}`, '2026-04-15');
+      await releaseShootConfirmations();
+      expect(await state(regular.id)).toBe(true); // обычный путь не тронут
+      expect(await state(drip.id)).toBe(true); // у clean уже есть публичная — вторая ждёт человека
     } finally {
       await db.shootConfirmation.deleteMany({ where: { profileId: { in: [profile.id, profile2.id] } } });
       await db.photographerProfile.deleteMany({ where: { id: { in: [profile.id, profile2.id] } } });

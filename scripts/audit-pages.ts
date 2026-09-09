@@ -46,6 +46,16 @@ async function targets(): Promise<Target[]> {
     { path: '/ru/register', label: 'регистрация' },
     { path: '/ru/inquiry', label: 'заявка заказчика' },
     { path: '/ru/search?q=%D0%BC%D0%BE%D1%81%D0%BA%D0%B2%D0%B0', label: 'поиск' },
+    // Разделы партнёрской структуры меню (2026-08-18): не были в обходе, и
+    // дефект на любом из них жил бы до ручной проверки (аудит 2026-09-09)
+    { path: '/ru/about', label: 'о сайте' },
+    { path: '/ru/news', label: 'новости' },
+    { path: '/ru/photographers', label: 'отмеченные' },
+    { path: '/ru/photo', label: 'лента фото' },
+    { path: '/ru/favorites', label: 'избранное (гость)' },
+    // Битая ссылка-приглашение обязана давать штатную страницу с объяснением,
+    // а не 500: по ней приходят люди ИЗВНЕ, до всякой регистрации
+    { path: '/ru/confirm/invalid-token-not-a-jwt', label: 'приглашение с битым токеном' },
     { path: '/ru/russia/nowhere', expect: 404, label: 'несуществующий город' },
     { path: '/ru/photographer/no-such-author', expect: 404, label: 'несуществующий автор' },
   ];

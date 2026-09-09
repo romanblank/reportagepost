@@ -2,6 +2,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { CoverShowreel } from '@/components/CoverShowreel';
 import { VerifiedBadge, TierBadge } from '@/components/ui/Badge';
 import type { Tier } from '@/lib/subscription';
+import { ru } from '@/i18n/ru';
 
 /**
  * Обложка профиля по прототипу v9 (scratchpad/designs/v9-profile.html).
@@ -112,6 +113,9 @@ export function ProfileHero({
               <div className="mt-3.5 flex flex-wrap gap-2">
                 {categories.map((c) => (
                   <span key={c}
+                    // ✦ без расшифровки — просто загадочный символ: подсказка
+                    // объясняет отметку (аудит 2026-09-09, П2)
+                    title={c.startsWith('\u2726') ? ru.profile.favoriteGenreHint : undefined}
                     className="rounded-full border border-white/15 bg-surface/60 px-3 py-1 text-[12.5px] text-white backdrop-blur-sm">
                     {c}
                   </span>

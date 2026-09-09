@@ -173,3 +173,59 @@ describe.skipIf(!hasDb)('catalog: обложка автора уважается
     expect(card!.coverKey).toBe(`photos/${username}-0/original.jpg`);
   });
 });
+
+/**
+ * «Отмеченные» (страница «Фотографы», партнёр 2026-08-18): окно строго 30 дней
+ * и только НЕнулевой суммарный вес. Лайк с нулевым весом — свежий/неподтверждённый
+ * аккаунт: вывод по нему означал бы, что на страницу «для внешних глаз» выходят
+ * свежереги без единой настоящей отметки (аудит 2026-09-09).
+ */
+describe.skipIf(!hasDb)('catalog: «Отмеченные» — окно 30 дней и ненулевой вес (БД)', () => {
+  it('свежий взвешенный лайк выводит, 31-дневный и нулевой — нет', async () => {
+    const { db } = await import('@/lib/db');
+    const { markedPhotographers } = await import('@/lib/catalog');
+
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const city = await db.city.findFirstOrThrow({ where: { slug: 'moscow' } });
+    const cat = await db.category.findFirstOrThrow({ where: { slug: 'concerts-festivals' } });
+    const liker = await db.user.create({
+      data: { role: 'CLIENT', status: 'ACTIVE', firstName: 'Лай', lastName: 'Кер', email: `mk-liker-${stamp}@test.local` },
+    });
+
+    const mk = async (tag: string) => {
+      const u = await db.user.create({
+        data: { role: 'PHOTOGRAPHER', status: 'ACTIVE', firstName: tag, lastName: 'Отм', email: `mk-${tag}-${stamp}@test.local` },
+      });
+      const p = await db.photographerProfile.create({
+        data: { userId: u.id, username: `mk-${tag}-${stamp}`, cityId: city.id, status: 'APPROVED' },
+      });
+      const photo = await db.photo.create({
+        data: { profileId: p.id, categoryId: cat.id, storageKey: `photos/mk-${tag}-${stamp}/web.jpg`, width: 2400, height: 1600, status: 'APPROVED', publishedAt: new Date() },
+      });
+      return { userId: u.id, username: p.username, photoId: photo.id, profileId: p.id };
+    };
+    const fresh = await mk('fresh'); // свежий лайк с весом → в выдаче
+    const stale = await mk('stale'); // лайк 31-дневной давности → вне окна
+    const zero = await mk('zero'); // свежий лайк с нулевым весом → не выводит
+
+    try {
+      await db.like.create({ data: { userId: liker.id, photoId: fresh.photoId, weightMilli: 1000 } });
+      await db.like.create({
+        data: { userId: liker.id, photoId: stale.photoId, weightMilli: 1000, createdAt: new Date(Date.now() - 31 * 86_400_000) },
+      });
+      await db.like.create({ data: { userId: liker.id, photoId: zero.photoId, weightMilli: 0 } });
+
+      // Лимит заведомо больше содержимого базы — правило тестов лент
+      const usernames = (await markedPhotographers(500)).map((c) => c.username);
+      expect(usernames).toContain(fresh.username);
+      expect(usernames, 'лайк старше 30 дней не должен выводить на страницу').not.toContain(stale.username);
+      expect(usernames, 'нулевой суммарный вес — не отметка заказчика').not.toContain(zero.username);
+    } finally {
+      const profileIds = [fresh.profileId, stale.profileId, zero.profileId];
+      await db.like.deleteMany({ where: { userId: liker.id } });
+      await db.photo.deleteMany({ where: { profileId: { in: profileIds } } });
+      await db.photographerProfile.deleteMany({ where: { id: { in: profileIds } } });
+      await db.user.deleteMany({ where: { id: { in: [liker.id, fresh.userId, stale.userId, zero.userId] } } });
+    }
+  });
+});

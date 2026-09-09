@@ -243,6 +243,7 @@ async function toCards(shown: CatalogRow[]): Promise<CatalogCard[]> {
       })
     : [];
   const coverMap = new Map(extraCovers.map((c) => [c.id, c.storageKey]));
+  const coverWebpMap = new Map(extraCovers.map((c) => [c.id, c.hasWebp]));
 
   return shown.map((p) => ({
     username: p.username,
@@ -272,8 +273,12 @@ async function toCards(shown: CatalogRow[]): Promise<CatalogCard[]> {
         (p.photos.find((ph) => ph.id === p.coverPhotoId)?.storageKey ?? coverMap.get(p.coverPhotoId))) ||
       p.photos[0]?.storageKey ||
       null,
+    // Догруженная обложка тоже знает про WebP: без coverWebpMap флаг терялся
+    // именно у авторов с выбранной обложкой вне свежей шестёрки (аудит 2026-09-09)
     coverHasWebp:
-      (p.coverPhotoId ? p.photos.find((ph) => ph.id === p.coverPhotoId)?.hasWebp : p.photos[0]?.hasWebp) ?? false,
+      (p.coverPhotoId
+        ? (p.photos.find((ph) => ph.id === p.coverPhotoId)?.hasWebp ?? coverWebpMap.get(p.coverPhotoId))
+        : p.photos[0]?.hasWebp) ?? false,
     photoKeys: p.photos.map((ph) => ph.storageKey),
     recommendCount: recMap.get(p.id) ?? 0,
     saveCount: p._count.favoritedBy,
@@ -417,6 +422,10 @@ export async function markedPhotographers(limit = 24): Promise<CatalogCard[]> {
     byProfile.set(p.profileId, (byProfile.get(p.profileId) ?? 0) + (weightByPhoto.get(p.id) ?? 0));
   }
   const topIds = [...byProfile.entries()]
+    // Нулевой суммарный вес — это лайки свежих/неподтверждённых аккаунтов:
+    // «отметили заказчики» они не означают, и выводить профиль на страницу
+    // для внешних глаз по ним нельзя (аудит 2026-09-09)
+    .filter(([, weight]) => weight > 0)
     .sort((a, b) => b[1] - a[1])
     .slice(0, limit)
     .map(([id]) => id);

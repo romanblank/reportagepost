@@ -51,3 +51,53 @@ describe.skipIf(!hasDb)('applyProfileEdit: общая правка анкеты 
     await db.user.deleteMany({ where: { id: { in: [...userIds, admin.id] } } });
   });
 });
+
+/**
+ * Командировки и загранпаспорт (партнёр 2026-08-18): паспорт осмыслен только
+ * при travelScope=ABROAD. Уход с ABROAD обязан сбрасывать флаг — иначе на
+ * анкете остаётся устаревший факт, которому заказчик поверит.
+ */
+describe.skipIf(!hasDb)('applyProfileEdit: загранпаспорт живёт только при ABROAD (БД)', () => {
+  it('смена travelScope с ABROAD сбрасывает hasIntlPassport, попутный true игнорируется', async () => {
+    const { db } = await import('@/lib/db');
+    const { createPhotographerByAdmin } = await import('@/lib/admin-onboard');
+    const { applyProfileEdit } = await import('@/lib/profile-edit');
+
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const admin = await db.user.create({ data: { role: 'ADMIN', status: 'ACTIVE', firstName: 'А', lastName: 'П', email: `adm-tr-${stamp}@test.local` } });
+    const cat = await db.category.findFirstOrThrow({ where: { active: true } });
+    const a = await createPhotographerByAdmin(admin.id, {
+      firstName: 'Тр', lastName: 'Авел', username: `travel-${stamp}`,
+      citySlug: 'moscow', categorySlugs: [cat.slug], publish: false,
+    });
+
+    const passport = async () =>
+      (await db.photographerProfile.findUniqueOrThrow({ where: { id: a.profileId }, select: { hasIntlPassport: true, travelScope: true } }));
+
+    try {
+      // Зарубежные командировки + паспорт — сохраняется
+      await applyProfileEdit(a.profileId, a.username, { travelScope: 'ABROAD', hasIntlPassport: true });
+      expect(await passport()).toMatchObject({ travelScope: 'ABROAD', hasIntlPassport: true });
+
+      // Ушёл с ABROAD — паспорт сброшен, даже без явного null в правке
+      await applyProfileEdit(a.profileId, a.username, { travelScope: 'COUNTRY' });
+      expect(await passport()).toMatchObject({ travelScope: 'COUNTRY', hasIntlPassport: null });
+
+      // Паспорт при не-ABROAD игнорируется, а не сохраняется «на будущее»
+      await applyProfileEdit(a.profileId, a.username, { travelScope: 'NONE', hasIntlPassport: true });
+      expect(await passport()).toMatchObject({ travelScope: 'NONE', hasIntlPassport: null });
+
+      // Правка БЕЗ travelScope паспорт не трогает (поле «не менять»)
+      await applyProfileEdit(a.profileId, a.username, { travelScope: 'ABROAD', hasIntlPassport: true });
+      await applyProfileEdit(a.profileId, a.username, { bio: 'просто текст о съёмке' });
+      expect(await passport()).toMatchObject({ travelScope: 'ABROAD', hasIntlPassport: true });
+    } finally {
+      const userId = (await db.photographerProfile.findUniqueOrThrow({ where: { id: a.profileId }, select: { userId: true } })).userId;
+      await db.adminAudit.deleteMany({ where: { actorUserId: admin.id } });
+      await db.profileCategory.deleteMany({ where: { profileId: a.profileId } });
+      await db.profileCategoryScore.deleteMany({ where: { profileId: a.profileId } });
+      await db.photographerProfile.delete({ where: { id: a.profileId } });
+      await db.user.deleteMany({ where: { id: { in: [userId, admin.id] } } });
+    }
+  });
+});

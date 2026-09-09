@@ -359,6 +359,12 @@ async function main() {
         currency: 'RUB', sortOrder: i,
       })),
     });
+    // Денормализованный minPriceMinor — как в profile-edit: без него сортировка
+    // «сначала недорогие» не видит витринные профили (аудит 2026-09-09, П2)
+    await db.photographerProfile.update({
+      where: { id: profile.id },
+      data: { minPriceMinor: Math.min(...spec.packages.map((p) => p.priceRub * 100)) },
+    });
 
     // 3) Кадры. Берём по 6 на профиль, чередуя, чтобы соседи не совпадали.
     const existing = await db.photo.count({ where: { profileId: profile.id, status: 'APPROVED' } });

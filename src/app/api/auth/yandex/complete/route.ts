@@ -5,7 +5,7 @@ import { PDN_CONSENT_VERSION } from '@/lib/constants';
 import { rateLimit, clientIp } from '@/lib/rate-limit';
 import {
   SESSION_COOKIE, createSessionToken, sessionCookieOptions,
-  YANDEX_PENDING_COOKIE, verifyYandexPendingToken, shortLivedCookieOptions,
+  YANDEX_NEXT_COOKIE, YANDEX_PENDING_COOKIE, verifyYandexPendingToken, shortLivedCookieOptions,
 } from '@/lib/auth';
 
 const Schema = z.object({
@@ -31,10 +31,15 @@ export async function POST(req: NextRequest) {
   const { role } = parsed.data;
 
   const clearPending = (res: NextResponse) => { res.cookies.set(YANDEX_PENDING_COOKIE, '', shortLivedCookieOptions(0)); return res; };
+  // Возврат по next-cookie (ссылка-приглашение подтвердить съёмку) важнее
+  // дефолтного кабинета; принимаем только локальный /ru/-путь
+  const nextCookie = req.cookies.get(YANDEX_NEXT_COOKIE)?.value;
+  const safeNext = nextCookie && /^\/ru\//.test(nextCookie) ? nextCookie : null;
   const finish = async (userId: string, r: 'PHOTOGRAPHER' | 'CLIENT' | 'ADMIN', tokenVersion: number, to: string) => {
     const token = await createSessionToken({ userId, role: r, tokenVersion });
-    const res = NextResponse.json({ ok: true, redirect: to });
+    const res = NextResponse.json({ ok: true, redirect: safeNext ?? to });
     res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions());
+    res.cookies.set(YANDEX_NEXT_COOKIE, '', shortLivedCookieOptions(0));
     return clearPending(res);
   };
 

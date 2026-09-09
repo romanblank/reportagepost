@@ -76,8 +76,12 @@ export async function analyzePhoto(input: Buffer): Promise<AnalyzedPhoto> {
       const tags = exifReader(meta.exif);
       const make = tags.Image?.Make?.toString().trim() ?? '';
       const model = tags.Image?.Model?.toString().trim() ?? '';
-      // Модель часто уже содержит марку («Canon EOS R5») — не дублируем
-      cameraModel = model ? (model.toLowerCase().startsWith(make.toLowerCase()) ? model : `${make} ${model}`.trim()) : null;
+      // Модель часто уже содержит марку («Canon EOS R5») — не дублируем.
+      // Make без Model — тоже сигнал («Canon» лучше пустоты): часть камер и
+      // редакторов пишут только марку (аудит 2026-09-09, П2)
+      cameraModel = model
+        ? (model.toLowerCase().startsWith(make.toLowerCase()) ? model : `${make} ${model}`.trim())
+        : make || null;
       lensModel = tags.Photo?.LensModel?.toString().trim() || null;
       if (cameraModel) cameraModel = cameraModel.slice(0, 120);
       if (lensModel) lensModel = lensModel.slice(0, 120);

@@ -130,6 +130,9 @@ export function sessionCookieOptions() {
 
 // ─── Яндекс OAuth: CSRF-state + промежуточный профиль (до выбора роли) ────────
 export const YANDEX_STATE_COOKIE = 'rp_yx_state';
+/// Возврат после OAuth-входа (например, на страницу приглашения /ru/confirm/…):
+/// без него заказчик по инвайту, выбравший Яндекс, терял ссылку (аудит 2026-09-09)
+export const YANDEX_NEXT_COOKIE = 'rp_yx_next';
 export const YANDEX_PENDING_COOKIE = 'rp_yx_pending';
 
 export interface YandexPending {

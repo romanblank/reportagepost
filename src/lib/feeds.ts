@@ -181,7 +181,9 @@ export async function toggleSavePhoto(userId: string, photoId: string): Promise<
     where: { userId_photoId: { userId, photoId } },
   });
   if (existing) {
-    await db.savedPhoto.delete({ where: { userId_photoId: { userId, photoId } } });
+    // deleteMany, не delete: двойной тап снятия даёт два параллельных
+    // удаления, и второй delete бросал бы необработанный P2025 → 500
+    await db.savedPhoto.deleteMany({ where: { userId, photoId } });
     return { saved: false };
   }
   // Кадр обязан существовать и быть публичным — закладка на скрытое

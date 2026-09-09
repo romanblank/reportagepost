@@ -65,6 +65,7 @@ export default async function EditProfilePage() {
           username: profile.username,
           citySlug: profile.city.slug,
           categorySlugs: profile.categories.map((c) => catSlugById.get(c.categoryId)).filter((s): s is string => Boolean(s)),
+          favoriteSlugs: profile.categories.filter((c) => c.favorite).map((c) => catSlugById.get(c.categoryId)).filter((s): s is string => Boolean(s)),
           bio: profile.bio ?? '',
           siteUrl: profile.siteUrl ?? '',
           whatsapp: profile.whatsapp ?? '',

@@ -104,7 +104,7 @@ function LoginForm() {
           <Link href="/ru/register" className="underline hover:text-ink">{ru.auth.toRegister}</Link>
         </p>
       </form>
-      <YandexLoginButton />
+      <YandexLoginButton next={searchParams?.get('next') ?? undefined} />
     </AuthScene>
   );
 }

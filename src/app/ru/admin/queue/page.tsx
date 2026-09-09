@@ -55,11 +55,19 @@ export default async function AdminQueuePage() {
   const approvedByProfile = new Map(approvedInvites.map((a) => [a.profileId, a._count]));
   // Возраст аккаунта — через lib-хелпер: react-compiler запрещает Date.now()
   // в рендере, а внутрь импортов не заглядывает
-  // Кластер адреса — главный отпечаток фермы: аккаунты разные, ноутбук один
-  const hashCounts = new Map<string, number>();
-  for (const sh of shootsToReview) {
-    if (sh.ipHash) hashCounts.set(sh.ipHash, (hashCounts.get(sh.ipHash) ?? 0) + 1);
-  }
+  // Кластер адреса — главный отпечаток фермы: аккаунты разные, ноутбук один.
+  // Считаем по ВСЕЙ таблице, а не по странице очереди (аудит 2026-09-09, П2):
+  // ферма, чьи прошлые записи уже одобрены или ушли с первой полусотни,
+  // выглядела бы «чистым» одиночным адресом
+  const pageHashes = [...new Set(shootsToReview.map((sh) => sh.ipHash).filter((h): h is string => Boolean(h)))];
+  const hashTotals = pageHashes.length
+    ? await db.shootConfirmation.groupBy({
+        by: ['ipHash'],
+        where: { ipHash: { in: pageHashes } },
+        _count: true,
+      })
+    : [];
+  const hashCounts = new Map(hashTotals.map((h) => [h.ipHash as string, h._count]));
   const shootsReview = shootsToReview.map((sh) => ({
     ...sh,
     ageHours: hoursSince(sh.client.createdAt),

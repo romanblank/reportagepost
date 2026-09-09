@@ -20,6 +20,9 @@ export default function RegisterPage() {
 function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  // Пришедший по приглашению подтвердить съёмку — ЗАКАЗЧИК: предвыбранный
+  // «Фотограф» отправлял его в чужой онбординг (аудит 2026-09-09)
+  const invitedClient = (searchParams?.get('next') ?? '').startsWith('/ru/confirm/');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [consent, setConsent] = useState(false);
@@ -68,10 +71,10 @@ function RegisterForm() {
       <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-2">
             <label className="chip flex-1 justify-center has-[:checked]:border-ink has-[:checked]:bg-ink has-[:checked]:text-paper">
-              <input type="radio" name="role" value="PHOTOGRAPHER" defaultChecked className="sr-only" /> {ru.auth.rolePhotographer}
+              <input type="radio" name="role" value="PHOTOGRAPHER" defaultChecked={!invitedClient} className="sr-only" /> {ru.auth.rolePhotographer}
             </label>
             <label className="chip flex-1 justify-center has-[:checked]:border-ink has-[:checked]:bg-ink has-[:checked]:text-paper">
-              <input type="radio" name="role" value="CLIENT" className="sr-only" /> {ru.auth.roleClient}
+              <input type="radio" name="role" value="CLIENT" defaultChecked={invitedClient} className="sr-only" /> {ru.auth.roleClient}
             </label>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -112,7 +115,7 @@ function RegisterForm() {
             <Link href="/ru/login" className="underline hover:text-ink">{ru.auth.toLogin}</Link>
           </p>
         </form>
-        <YandexLoginButton />
+        <YandexLoginButton next={searchParams?.get('next') ?? undefined} />
     </AuthScene>
   );
 }

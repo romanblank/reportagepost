@@ -123,8 +123,17 @@ describe.skipIf(!hasDb)('заявки: фора подписчиков, но н�
         contactName: 'Тест', contactEmail: `cl-${stamp}@test.local`,
       });
 
+      // Считаем ТОЛЬКО по своей заявке: волны ходят по всем заявкам суток, и
+      // остатки от упавших прогонов в dev-базе иначе досылались бы нашим же
+      // свежим пользователям (грабля «тест зависит от наполненности БД»)
       const got = async (userId: string) =>
-        db.notification.count({ where: { userId, type: 'notification.inquiry.new' } });
+        db.notification.count({
+          where: {
+            userId,
+            type: 'notification.inquiry.new',
+            payload: { path: ['inquiryId'], equals: inquiryId },
+          },
+        });
 
       // Решение партнёра 2026-08-18: заявка уходит всем сразу, без очерёдности
       expect(await got(elite)).toBe(1);

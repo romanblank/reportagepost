@@ -112,8 +112,11 @@ describe('роуты: админ-гейт на всех администрати
       import('@/app/api/admin/photographers/[id]/grant-pro/route'),
       import('@/app/api/admin/queue/route'),
       import('@/app/api/admin/forum/route'),
+      // Решения по подтверждениям съёмок (2026-08-17): снятый гейт означал бы,
+      // что needsReview снимает КТО УГОДНО — то есть накрутчик сам себе
+      import('@/app/api/admin/shoots/route'),
     ]);
-    const paramsFor = [undefined, undefined, undefined, undefined, undefined, undefined, { photoId: 'x' }, { id: 'x' }, undefined, undefined];
+    const paramsFor = [undefined, undefined, undefined, undefined, undefined, undefined, { photoId: 'x' }, { id: 'x' }, undefined, undefined, undefined];
 
     for (const who of [null, { userId: 'u1', role: 'CLIENT', tokenVersion: 0 }, { userId: 'u2', role: 'PHOTOGRAPHER', tokenVersion: 0 }]) {
       session.current = who;
@@ -333,6 +336,124 @@ describe('роут heartbeat фоновых задач', () => {
 
     if (before === undefined) delete process.env.JOBS_SECRET;
     else process.env.JOBS_SECRET = before;
+  });
+});
+
+// Решение по подтверждению съёмки в needsReview: единственная ручка, снимающая
+// флаг «к человеку». Ошибка здесь публикует непроверенный факт доверия.
+describe.skipIf(!hasDb)('роуты: решения по подтверждениям съёмок (БД)', () => {
+  it('approve снимает needsReview, reject удаляет, чужой/чистый id → 404', async () => {
+    const { db } = await import('@/lib/db');
+    const { POST } = await import('@/app/api/admin/shoots/route');
+
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const city = await db.city.findFirstOrThrow({ where: { slug: 'moscow' } });
+    const admin = await db.user.create({
+      data: { role: 'ADMIN', status: 'ACTIVE', firstName: 'А', lastName: 'Ш', email: `sha-${stamp}@test.local` },
+    });
+    const author = await db.user.create({
+      data: { role: 'PHOTOGRAPHER', status: 'ACTIVE', firstName: 'Ш', lastName: 'А', email: `sha-a-${stamp}@test.local` },
+    });
+    const profile = await db.photographerProfile.create({
+      data: { userId: author.id, username: `sha-${stamp}`, cityId: city.id, status: 'APPROVED' },
+    });
+    const client = await db.user.create({
+      data: { role: 'CLIENT', status: 'ACTIVE', firstName: 'Ш', lastName: 'К', email: `sha-c-${stamp}@test.local` },
+    });
+    const mkShoot = (date: string) =>
+      db.shootConfirmation.create({
+        data: {
+          clientUserId: client.id, profileId: profile.id, initiatedBy: 'PHOTOGRAPHER',
+          state: 'CONFIRMED', respondedAt: new Date(), needsReview: true, viaInvite: true,
+          eventDate: new Date(date),
+        },
+      });
+    session.current = { userId: admin.id, role: 'ADMIN', tokenVersion: 0 };
+
+    try {
+      const a = await mkShoot('2026-05-01');
+      const b = await mkShoot('2026-06-01');
+
+      // approve: факт становится публичным
+      expect((await POST(req({ shootId: a.id, action: 'approve' }))).status).toBe(200);
+      const afterA = await db.shootConfirmation.findUniqueOrThrow({ where: { id: a.id } });
+      expect(afterA.needsReview).toBe(false);
+
+      // уже решённая запись второй раз не решается — 404, а не тихий успех
+      expect((await POST(req({ shootId: a.id, action: 'approve' }))).status).toBe(404);
+
+      // reject: запись удаляется, не остаётся «посмотреть позже»
+      expect((await POST(req({ shootId: b.id, action: 'reject' }))).status).toBe(200);
+      expect(await db.shootConfirmation.findUnique({ where: { id: b.id } })).toBeNull();
+
+      // несуществующий id → 404; мусорный payload → 400
+      expect((await POST(req({ shootId: 'no-such-shoot', action: 'approve' }))).status).toBe(404);
+      expect((await POST(req({ shootId: a.id, action: 'publish' }))).status).toBe(400);
+
+      // оба решения оставили след в журнале
+      expect(await db.adminAudit.count({ where: { actorUserId: admin.id, action: { startsWith: 'shoot.review.' } } })).toBe(2);
+    } finally {
+      await db.adminAudit.deleteMany({ where: { actorUserId: admin.id } });
+      await db.shootConfirmation.deleteMany({ where: { profileId: profile.id } });
+      await db.photographerProfile.delete({ where: { id: profile.id } });
+      await db.user.deleteMany({ where: { id: { in: [admin.id, author.id, client.id] } } });
+    }
+  });
+});
+
+// Подтверждение по приглашению — единственная дверь в trust-контур «с улицы»
+// (по ссылке приходят люди извне). Контракт роута: без аккаунта нельзя,
+// неподписанный/протухший токен не проходит, дата из будущего отклоняется.
+describe('роуты: подтверждение съёмки по приглашению', () => {
+  it('без сессии → 401', async () => {
+    const { POST } = await import('@/app/api/shoots/confirm-invite/route');
+    session.current = null;
+    expect((await POST(req({ token: 'какой-угодно-токен-достаточной-длины' }))).status).toBe(401);
+  });
+
+  it('битый и протухший токены → отказ, не 500', async () => {
+    const { POST } = await import('@/app/api/shoots/confirm-invite/route');
+    session.current = { userId: 'u-invite', role: 'CLIENT', tokenVersion: 0 };
+
+    const saved = process.env.AUTH_SECRET;
+    process.env.AUTH_SECRET = randomBytes(32).toString('hex');
+    try {
+      // мусор вместо JWT
+      const bad = await POST(req({ token: 'совсем-не-jwt-но-достаточно-длинный' }));
+      expect(bad.status).toBe(400);
+      expect((await bad.json()).error).toBe('invite_invalid');
+
+      // честно подписанный, но истёкший — приглашение живёт 30 дней
+      const { SignJWT } = await import('jose');
+      const expired = await new SignJWT({ profileId: 'p1', purpose: 'shoot-invite' })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuedAt(Math.floor(Date.now() / 1000) - 40 * 86_400)
+        .setExpirationTime(Math.floor(Date.now() / 1000) - 10 * 86_400)
+        .sign(new TextEncoder().encode(process.env.AUTH_SECRET));
+      const stale = await POST(req({ token: expired }));
+      expect(stale.status).toBe(400);
+      expect((await stale.json()).error).toBe('invite_invalid');
+
+      // токен с чужим назначением (подпись верна, purpose — нет)
+      const alien = await new SignJWT({ profileId: 'p1', purpose: 'password-reset' })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuedAt()
+        .setExpirationTime('30d')
+        .sign(new TextEncoder().encode(process.env.AUTH_SECRET));
+      expect((await POST(req({ token: alien }))).status).toBe(400);
+    } finally {
+      if (saved === undefined) delete process.env.AUTH_SECRET;
+      else process.env.AUTH_SECRET = saved;
+    }
+  });
+
+  it('дата съёмки из будущего → 400 (подтвердить можно только состоявшееся)', async () => {
+    const { POST } = await import('@/app/api/shoots/confirm-invite/route');
+    session.current = { userId: 'u-invite', role: 'CLIENT', tokenVersion: 0 };
+    const future = new Date(Date.now() + 7 * 86_400_000).toISOString();
+    const res = await POST(req({ token: 'токен-не-важен-валидация-раньше', eventDate: future }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe('validation');
   });
 });
 

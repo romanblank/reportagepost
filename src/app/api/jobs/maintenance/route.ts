@@ -63,8 +63,11 @@ export function POST(req: Request) {
       where: { windowStart: { lt: cutoff } },
     });
 
-    // Протухшие одноразовые токены (сброс пароля, подтверждение почты)
-    const [{ count: resets }, { count: verifications }] = await Promise.all([
+    // Протухшие одноразовые токены (сброс пароля, подтверждение почты).
+    // Деструктуризация ПОИМЕНОВАНА по позициям — вставка cookieConsent
+    // вторым элементом молча сдвинула счётчики, и «verifications» в отчёте
+    // было числом удалённых согласий (аудит 2026-09-09)
+    const [{ count: resets }, { count: consents }, { count: verifications }] = await Promise.all([
       db.passwordReset.deleteMany({ where: { expiresAt: { lt: cutoff } } }),
       // Согласия на cookie: срок доказательной ценности конечен (аудит
       // 2026-08-16 — таблица не чистилась вовсе). Три года покрывают любой
@@ -170,7 +173,7 @@ export function POST(req: Request) {
       profiles,
       ranksFixed,
       shootsReleased,
-      cleaned: { rateLimitRows, resets, verifications, activityRows, jobRuns, inquiriesAnon, reportsAnon, notificationsGone },
+      cleaned: { rateLimitRows, resets, consents, verifications, activityRows, jobRuns, inquiriesAnon, reportsAnon, notificationsGone },
       tookMs: Date.now() - startedAt,
     });
   });

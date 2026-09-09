@@ -10,6 +10,7 @@ interface Initial {
   username: string;
   citySlug: string;
   categorySlugs: string[];
+  favoriteSlugs: string[];
   bio: string;
   siteUrl: string;
   whatsapp: string;
@@ -51,6 +52,7 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
   const [username, setUsername] = useState(initial.username);
   const [citySlug, setCitySlug] = useState(initial.citySlug);
   const [cats, setCats] = useState<string[]>(initial.categorySlugs);
+  const [favCats, setFavCats] = useState<string[]>(initial.favoriteSlugs);
   const [bio, setBio] = useState(initial.bio);
   const [siteUrl, setSiteUrl] = useState(initial.siteUrl);
   const [whatsapp, setWhatsapp] = useState(initial.whatsapp);
@@ -118,6 +120,7 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
         username: username.trim().toLowerCase(),
         citySlug,
         categorySlugs: cats,
+        favoriteSlugs: favCats,
         bio: bio.trim(),
         siteUrl: siteUrl.trim() ? normalizeUrl(siteUrl.trim()) : '',
         whatsapp: whatsapp.trim() ? normalizePhone(whatsapp.trim()) : '',
@@ -217,10 +220,28 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
           <div className="mt-1 flex flex-wrap gap-2">
             {categories.map((c) => (
               <button type="button" key={c.slug}
-                onClick={() => setCats((prev) => prev.includes(c.slug) ? prev.filter((s) => s !== c.slug) : [...prev, c.slug])}
+                onClick={() => setCats((prev) => {
+                  const next = prev.includes(c.slug) ? prev.filter((s) => s !== c.slug) : [...prev, c.slug];
+                  setFavCats((fav) => fav.filter((s) => next.includes(s)));
+                  return next;
+                })}
                 className={`chip ${cats.includes(c.slug) ? 'chip-active' : ''}`}>{c.name}</button>
             ))}
           </div>
+          {/* Любимые — из рабочих (аудит 2026-09-09: пометки из онбординга
+              было негде править, и любое сохранение их стирало) */}
+          {cats.length > 1 && (
+            <div className="mt-3">
+              <span className="field-hint mt-0 mb-2 block">{ru.onboarding.favoritesHint}</span>
+              <div className="flex flex-wrap gap-2">
+                {categories.filter((c) => cats.includes(c.slug)).map((c) => (
+                  <button type="button" key={c.slug}
+                    onClick={() => setFavCats((prev) => prev.includes(c.slug) ? prev.filter((s) => s !== c.slug) : [...prev, c.slug])}
+                    className={`chip ${favCats.includes(c.slug) ? 'chip-active' : ''}`}>{c.name}</button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <label className="field-label">{ru.onboarding.bio}</label>

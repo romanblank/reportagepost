@@ -105,7 +105,20 @@ export async function applyProfileEdit(
     const cats = await db.category.findMany({ where: { slug: { in: d.categorySlugs }, active: true } });
     if (cats.length !== d.categorySlugs.length) throw new DomainError('category_not_found', 400);
     newCategoryIds = cats.map((c) => c.id);
-    newCategories = cats.map((c) => ({ id: c.id, favorite: Boolean(d.favoriteSlugs?.includes(c.slug)) }));
+    // favoriteSlugs НЕ ПРИШЛИ — сохраняем текущие пометки (аудит 2026-09-09:
+    // форма без поля любимых стирала «✦», выбранные в онбординге, при каждом
+    // сохранении анкеты). Отсутствие поля = «не менять», пустой массив = «снять все»
+    let favoriteIds: Set<string>;
+    if (d.favoriteSlugs !== undefined) {
+      favoriteIds = new Set(cats.filter((c) => d.favoriteSlugs?.includes(c.slug)).map((c) => c.id));
+    } else {
+      const current = await db.profileCategory.findMany({
+        where: { profileId, favorite: true },
+        select: { categoryId: true },
+      });
+      favoriteIds = new Set(current.map((c) => c.categoryId));
+    }
+    newCategories = cats.map((c) => ({ id: c.id, favorite: favoriteIds.has(c.id) }));
   }
 
   try {

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { unstable_cache } from 'next/cache';
 import Link from 'next/link';
 import { communityStats, valuedPhotographers, communityGeo, communityGear } from '@/lib/widgets';
 import { bestOfWeek } from '@/lib/feeds';
@@ -16,13 +17,19 @@ export const metadata: Metadata = {
 // падал без DATABASE_URL (урок ре-аудита 2026-07-14). Кэш вернём в S6 масштаба.
 export const dynamic = 'force-dynamic';
 
+// География и техника ходят по всем анкетам и группируют кадры — при
+// force-dynamic это выполнялось на КАЖДЫЙ заход (аудит 2026-09-09, П2).
+// Меняются они темпом появления авторов: часа кэша достаточно.
+const cachedGeo = unstable_cache(() => communityGeo(), ['community-geo'], { revalidate: 3600, tags: ['catalog'] });
+const cachedGear = unstable_cache(() => communityGear(), ['community-gear'], { revalidate: 3600, tags: ['catalog'] });
+
 export default async function CommunityPage() {
   const [stats, best, valued, geo, gear] = await Promise.all([
     communityStats(),
     bestOfWeek(12),
     valuedPhotographers(),
-    communityGeo(),
-    communityGear(),
+    cachedGeo(),
+    cachedGear(),
   ]);
 
   const tiles = [

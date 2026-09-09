@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { unstable_cache } from 'next/cache';
 import Link from 'next/link';
 import { markedPhotographers } from '@/lib/catalog';
 import { CatalogCards } from '@/components/CatalogCards';
@@ -12,13 +13,20 @@ export const metadata: Metadata = {
 };
 export const dynamic = 'force-dynamic';
 
+// Подборка сканирует месяц взвешенных лайков — на каждый заход это дорого,
+// а меняется она медленно. Тег catalog: сброс тем же dropCache, что у каталога
+const cachedMarked = unstable_cache(() => markedPhotographers(24), ['marked-photographers'], {
+  revalidate: 600,
+  tags: ['catalog'],
+});
+
 /**
  * «Отмеченные» — глобальная подборка авторов по живому отклику заказчиков
  * за месяц (партнёр 2026-08-18, меню «Фотографы»). Без мест и баллов:
  * подборка, а не таблица чемпионата — инвариант доброжелательного рейтинга.
  */
 export default async function MarkedPhotographersPage() {
-  const cards = await markedPhotographers(24);
+  const cards = await cachedMarked();
 
   return (
     <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-10 sm:py-14">

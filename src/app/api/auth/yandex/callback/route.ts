@@ -4,7 +4,7 @@ import { APP_DOMAIN } from '@/lib/constants';
 import { exchangeCode, fetchYandexUser, yandexOAuthConfigured } from '@/lib/yandex-oauth';
 import {
   SESSION_COOKIE, createSessionToken, sessionCookieOptions,
-  YANDEX_STATE_COOKIE, YANDEX_PENDING_COOKIE, createYandexPendingToken, shortLivedCookieOptions,
+  YANDEX_NEXT_COOKIE, YANDEX_STATE_COOKIE, YANDEX_PENDING_COOKIE, createYandexPendingToken, shortLivedCookieOptions,
 } from '@/lib/auth';
 
 const BASE = `https://${APP_DOMAIN}`;
@@ -33,10 +33,15 @@ export async function GET(req: NextRequest) {
   }
 
   const clearState = (res: NextResponse) => { res.cookies.set(YANDEX_STATE_COOKIE, '', shortLivedCookieOptions(0)); return res; };
+  // Возврат по next-cookie (приглашение подтвердить съёмку): дефолтные
+  // адреса перекрываются только локальным /ru/-путём из нашей же cookie
+  const nextCookie = req.cookies.get(YANDEX_NEXT_COOKIE)?.value;
+  const safeNext = nextCookie && /^\/ru\//.test(nextCookie) ? nextCookie : null;
   const login = async (userId: string, role: 'PHOTOGRAPHER' | 'CLIENT' | 'ADMIN', tokenVersion: number, to: string) => {
     const token = await createSessionToken({ userId, role, tokenVersion });
-    const res = NextResponse.redirect(abs(to));
+    const res = NextResponse.redirect(abs(safeNext ?? to));
     res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions());
+    res.cookies.set(YANDEX_NEXT_COOKIE, '', shortLivedCookieOptions(0));
     return clearState(res);
   };
 

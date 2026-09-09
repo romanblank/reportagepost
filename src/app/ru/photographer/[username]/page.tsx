@@ -271,9 +271,10 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
           lastName: profile.user.lastName,
           username: profile.username,
           cityName: cityNameRu(profile.city.slug),
+          // Без ✦: структурированная разметка — для машин, символ отметки там мусор
           categories: [...profile.categories]
             .sort((a, b) => Number(b.favorite) - Number(a.favorite))
-            .map((c) => (c.favorite ? `✦ ${categoryNameRu(c.category.slug)}` : categoryNameRu(c.category.slug))),
+            .map((c) => categoryNameRu(c.category.slug)),
           imageUrls: profile.photos.slice(0, 5).map((p) => absUrl(webVariantUrl(p.storageKey))),
           bio: profile.bio,
         })}

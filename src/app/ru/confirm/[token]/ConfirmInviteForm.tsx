@@ -21,6 +21,8 @@ export function ConfirmInviteForm({ token, authorUsername }: { token: string; au
         invite_invalid: t.invalidText,
         shoot_already_marked: t.alreadyMarked,
         shoot_self: t.ownOwn,
+        shoot_role: t.roleClientOnly,
+        validation: t.dateInvalid,
       },
       fallback: ru.ui.toastError,
     });

@@ -102,6 +102,36 @@ describe('matching.guardParsed — валидация вывода LLM', () => {
   });
 });
 
+// Полнота словаря подбора (аудит 2026-09-09): жанры выросли 6→11, а механика
+// подбора живёт на СВОИХ словарях (ключевые слова эвристики, маппинг guard'а).
+// Жанр, о котором подбор не знает, молча выпадает из «поймём сами» — тест
+// требует, чтобы КАЖДЫЙ жанр справочника был достижим обоими путями.
+describe('matching: подбор знает все жанры справочника', () => {
+  it('guardParsed маппит имя каждого жанра из CATEGORIES в его slug', async () => {
+    const { CATEGORIES } = await import('@/lib/category-data');
+    expect(CATEGORIES.length).toBeGreaterThanOrEqual(11); // структура партнёра 2026-08-18
+    for (const c of CATEGORIES) {
+      const p = guardParsed(JSON.stringify({ city: null, category: c.nameRu, budgetRub: null }));
+      expect(p.categorySlug, `жанр «${c.nameRu}» неизвестен guard'у LLM-вывода`).toBe(c.slug);
+    }
+  });
+
+  it('эвристика распознаёт новые жанры по ключевым словам', () => {
+    // По одной характерной формулировке на каждый новый слаг: пустой ответ
+    // означал бы, что жанр добавлен в справочник, но не в словарь подбора
+    const cases: Array<[string, string]> = [
+      ['новостной сюжет для редакции', 'news'],
+      ['документальный проект о буднях волонтёров', 'documentary'],
+      ['премьера спектакля, нужна съёмка', 'theatre'],
+      ['нужен хедшот для команды', 'business-portrait'],
+      ['съёмка на заводе, производство', 'industrial'],
+    ];
+    for (const [text, slug] of cases) {
+      expect(parseBriefHeuristic(text).categorySlug, `«${text}»`).toBe(slug);
+    }
+  });
+});
+
 describe('matching.buildReason — честное обоснование из фактов', () => {
   const card: CatalogCard = {
     username: 'ivan', firstName: 'Иван', lastName: 'Петров', avatarKey: null, coverKey: null,

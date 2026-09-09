@@ -105,7 +105,7 @@ export async function processVideo(videoId: string): Promise<ProcessResult> {
   const claimedAt = new Date();
   const claimed = await db.profileVideo.updateMany({
     where: { id: videoId, processing: 'UPLOADED' },
-    data: { processing: 'PROCESSING', claimedAt },
+    data: { processing: 'PROCESSING', claimedAt, attempts: { increment: 1 } },
   });
   if (claimed.count === 0) return { id: videoId, ok: false, reason: 'already_claimed' };
 
@@ -209,8 +209,22 @@ export async function processVideo(videoId: string): Promise<ProcessResult> {
  */
 const STUCK_AFTER_MS = 30 * 60_000;
 
+/**
+ * Потолок захватов. Ролик-отрава — файл, на котором ffmpeg умирает каждый раз
+ * (OOM, деградация кодека) — без потолка крутился бы вечно: requeue → захват →
+ * смерть воркера → requeue. Три полных попытки достаточно, чтобы отличить
+ * транзиентный сбой (деплой, рестарт VM) от систематического.
+ */
+const MAX_ATTEMPTS = 3;
+
 export async function requeueStuck(now: Date = new Date()): Promise<number> {
   const threshold = new Date(now.getTime() - STUCK_AFTER_MS);
+  // Исчерпавшие попытки — в FAILED с внутренним кодом причины (техдетали
+  // автору не показываем, у словаря есть общий текст сбоя)
+  await db.profileVideo.updateMany({
+    where: { processing: 'PROCESSING', claimedAt: { lt: threshold }, attempts: { gte: MAX_ATTEMPTS } },
+    data: { processing: 'FAILED', failureReason: 'video_transcode_crash', processedAt: now },
+  });
   const { count } = await db.profileVideo.updateMany({
     // ОТ МОМЕНТА ЗАХВАТА, а не от загрузки: считая от createdAt, порог
     // срабатывал на любом ролике, пролежавшем в очереди дольше получаса, —

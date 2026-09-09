@@ -3,7 +3,7 @@ import { resolveCity } from '@/lib/geo-resolve';
 import { rateLimit } from '@/lib/rate-limit';
 import { DomainError } from '@/lib/errors';
 import { notifyManyInApp } from '@/lib/notifications';
-import { ELITE_RANK, PRIME_RANK, tierOf } from '@/lib/subscription';
+import { ELITE_RANK, PRIME_RANK, rankForTier, tierOf } from '@/lib/subscription';
 import { sendEmail } from '@/lib/email';
 import { tgSend } from '@/lib/telegram';
 import { APP_DOMAIN } from '@/lib/constants';
@@ -98,15 +98,33 @@ export async function createInquiry(
   // первая волна — это все, без фильтра по подписке. Проверка привязана к
   // константе, а не удалена: возврат форы не потребует вспоминать это место
   const headStartActive = INQUIRY_HEAD_START_HOURS.ELITE > 0;
-  const hasSubscribers = headStartActive && (await selectionHasSubscribers(city.id, categoryId));
+  // Вся выборка города+жанра одним запросом: из неё считаем и «есть ли в
+  // городе авторы вообще» (для travel-ветки и честного ответа заказчику), и
+  // ВЫСШИЙ уровень подписки в выборке. Первая волна идёт по нему, а не жёстко
+  // по Elite (аудит 2026-09-09, П1 №14): гейт от Prime при фильтре от Elite
+  // означал, что город с Prime без Elite не получал заявку НИКТО — ни сразу,
+  // ни травел-веткой (она смотрела на пустую первую волну).
+  const selection = await db.photographerProfile.findMany({
+    where: {
+      status: 'APPROVED',
+      cityId: city.id,
+      ...(categoryId ? { categories: { some: { categoryId } } } : {}),
+    },
+    select: { proRank: true },
+  });
+  // proRank отражает уровень подписки; сверка с реальным состоянием идёт
+  // отдельной джобой, поэтому здесь достаточно денормализованного значения
+  const topRank = selection.reduce((m, p) => Math.max(m, p.proRank), 0);
+  // Фора имеет смысл только НАД кем-то: задерживать заявку, которую не увидит
+  // ни один подписчик, значит наказывать заказчика ради пустого места
+  const headStart = headStartActive && topRank >= PRIME_RANK;
+  const firstWaveRank = topRank >= ELITE_RANK ? ELITE_RANK : PRIME_RANK;
   const recipients = await db.photographerProfile.findMany({
     where: {
       status: 'APPROVED',
       cityId: city.id,
       ...(categoryId ? { categories: { some: { categoryId } } } : {}),
-      // proRank отражает уровень подписки; сверка с реальным состоянием идёт
-      // отдельной джобой, поэтому здесь достаточно денормализованного значения
-      ...(hasSubscribers ? { proRank: { gte: ELITE_RANK } } : {}),
+      ...(headStart ? { proRank: { gte: firstWaveRank } } : {}),
     },
     select: {
       userId: true,
@@ -158,8 +176,11 @@ export async function createInquiry(
   // обещалось в пустоту. Механизм выездов уже ЗНАЕТ, кто едет в этот город, —
   // подключаем его к спросу: заявку получают авторы с travel-планом,
   // покрывающим город (и дату, если названа). Аудит 2026-08-16, №7
+  // Судим по ПОЛНОЙ выборке города, а не по первой волне: при действующей
+  // форе первая волна уже, чем город, и травел-ветка с ответом «отправили
+  // тихо» срабатывали бы ложно (аудит 2026-09-09, П1 №14)
   let travelNotified = 0;
-  if (recipients.length === 0) {
+  if (selection.length === 0) {
     const travellers = await db.travelPlan.findMany({
       where: {
         cityId: city.id,
@@ -182,7 +203,7 @@ export async function createInquiry(
     }
   }
 
-  return { inquiryId: inquiry.id, notified: recipients.length + travelNotified, cityHasAuthors: recipients.length > 0 || travelNotified > 0 };
+  return { inquiryId: inquiry.id, notified: recipients.length + travelNotified, cityHasAuthors: selection.length > 0 || travelNotified > 0 };
 }
 
 /** Внешняя доставка пачками с паузой — щадит лимиты Telegram и SMTP. */
@@ -239,9 +260,11 @@ async function deliverExternal(
  * отличить заявки друг от друга, но недостаточно, чтобы связаться в обход.
  */
 function maskPhone(phone: string): string {
-  // +7 999 123-45-67 → +7 ••• ••• 67
+  // +7 999 123-45-67 → +7 ••• ••• 67. Для номера в 8-формате «первые два
+  // символа» были бы «89» — открывали бы лишнюю цифру; префикс тогда — «8»
+  const head = phone.startsWith('+') ? phone.slice(0, 2) : phone.slice(0, 1);
   const tail = phone.slice(-2);
-  return `${phone.slice(0, 2)} ••• ••• ${tail}`;
+  return `${head} ••• ••• ${tail}`;
 }
 
 function maskEmail(email: string): string {
@@ -249,24 +272,6 @@ function maskEmail(email: string): string {
   if (!domain) return '•••';
   const head = name.slice(0, 1);
   return `${head}${'•'.repeat(Math.max(2, Math.min(name.length - 1, 5)))}@${domain}`;
-}
-
-/**
- * Есть ли в выборке получателей заявки (город + жанр) хоть один активный
- * подписчик. От ответа зависит, действует ли фора: преимущество имеет смысл
- * только НАД кем-то — задерживать заявку, которую не увидит ни один
- * подписчик, значит наказывать заказчика ради пустого места.
- */
-async function selectionHasSubscribers(cityId: string, categoryId?: string | null): Promise<boolean> {
-  const count = await db.photographerProfile.count({
-    where: {
-      status: 'APPROVED',
-      cityId,
-      ...(categoryId ? { categories: { some: { categoryId } } } : {}),
-      proRank: { gte: PRIME_RANK },
-    },
-  });
-  return count > 0;
 }
 
 /**
@@ -288,16 +293,19 @@ export async function inquiriesForPhotographer(userId: string, now: Date = new D
   // Уровень берём из самой подписки, а не из proRank: ранг обновляется
   // фоновой сверкой и после окончания оплаченного периода какое-то время
   // остаётся высоким — фору получал бы тот, кто уже не платит.
-  const headStartHours = inquiryVisibleAfterHours(await tierOf(userId));
+  const tier = await tierOf(userId);
+  const headStartHours = inquiryVisibleAfterHours(tier);
   const visibleFrom = new Date(now.getTime() - headStartHours * 3_600_000);
 
   // Фора действует только на заявки, у которых есть подписчики-получатели
-  // (зеркало правила из createInquiry — иначе уведомление пришло бы сразу,
+  // ВЫШЕ уровнем, чем смотрящий (зеркало правила из createInquiry: первая
+  // волна идёт по высшему уровню выборки — иначе уведомление пришло бы сразу,
   // а в кабинете заявка оставалась бы невидимой ещё шесть часов). Подписчиков
   // города немного, один запрос дешевле, чем проверка на каждую заявку.
+  const myRank = rankForTier(tier);
   const subscribers = headStartHours > 0
     ? await db.photographerProfile.findMany({
-        where: { status: 'APPROVED', cityId: profile.cityId, proRank: { gte: PRIME_RANK } },
+        where: { status: 'APPROVED', cityId: profile.cityId, proRank: { gt: myRank } },
         select: { categories: { select: { categoryId: true } } },
       })
     : [];
@@ -437,6 +445,10 @@ export async function releaseInquiries(now: Date = new Date()): Promise<number> 
 
 async function releaseInquiriesLocked(now: Date): Promise<number> {
   const { INQUIRY_HEAD_START_HOURS } = await import('@/lib/pricing');
+  // Фора выключена константами → волн не существует: создание заявки уже
+  // уведомило всех, и каждый 15-минутный прогон впустую сканировал заявки
+  // суток и уведомления (аудит 2026-09-09, П2)
+  if (INQUIRY_HEAD_START_HOURS.ELITE <= 0) return 0;
   const waves: { after: number; minRank: number; maxRank: number }[] = [
     { after: INQUIRY_HEAD_START_HOURS.ELITE - INQUIRY_HEAD_START_HOURS.PRIME, minRank: PRIME_RANK, maxRank: ELITE_RANK - 1 },
     { after: INQUIRY_HEAD_START_HOURS.ELITE, minRank: 0, maxRank: PRIME_RANK - 1 },
@@ -481,6 +493,11 @@ async function releaseInquiriesLocked(now: Date): Promise<number> {
       where: {
         userId: { in: candidates.map((c) => c.userId) },
         type: 'notification.inquiry.new',
+        // Волна смотрит заявки последних суток+фора — уведомления старше этого
+        // окна дедупу не нужны, а без границы запрос рос со ВСЕЙ историей
+        // уведомлений (аудит 2026-09-09, П2). Запас в сутки — на часовые пояса
+        // и задержки кронов.
+        createdAt: { gte: new Date(now.getTime() - 3 * 24 * 3_600_000) },
       },
       select: { userId: true, payload: true },
     });

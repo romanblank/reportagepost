@@ -56,8 +56,10 @@ export function PortfolioGallery({
               style={photo.blurhash ? { backgroundImage: `url(${photo.blurhash})` } : undefined}
               className="w-full cursor-zoom-in bg-cover bg-center transition duration-500 ease-out group-hover:scale-[1.02] focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
             />
-            {/* лайк — тонкой накладкой на фото (проступает на ховере), не «пилюлей под кадром» */}
-            <figcaption className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-end bg-gradient-to-t from-black/45 to-transparent px-2 pb-2 pt-8 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+            {/* лайк — тонкой накладкой на фото. На устройствах с ховером
+                проступает на ховере; на touch ховера НЕТ — кнопки видимы всегда,
+                иначе закладку и лайк с телефона не найти (аудит 2026-09-09) */}
+            <figcaption className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-end bg-gradient-to-t from-black/45 to-transparent px-2 pb-2 pt-8 transition-opacity duration-300 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100">
               <span className="pointer-events-auto flex items-center gap-3">
                 <SavePhotoButton photoId={photo.id} initialSaved={photo.saved} authed={authed} />
                 <LikeButton photoId={photo.id} initialLiked={photo.liked} initialCount={photo.likeCount} authed={authed} onDark />
@@ -66,7 +68,14 @@ export function PortfolioGallery({
           </figure>
         ))}
       </div>
-      <LightboxModal images={items} index={index} setIndex={setIndex} />
+      {/* photoId включает панель лайка/закладки в самом просмотре — на
+          телефоне это единственное место, где кнопки под пальцем */}
+      <LightboxModal
+        images={items.map((p) => ({ ...p, photoId: p.id }))}
+        index={index}
+        setIndex={setIndex}
+        authed={authed}
+      />
     </>
   );
 }

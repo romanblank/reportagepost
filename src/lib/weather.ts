@@ -20,8 +20,9 @@ export interface CityWeather {
 function summarize(code: number): CityWeather['summary'] {
   if (code === 0 || code === 1) return 'clear';
   if (code >= 95) return 'storm';
-  if (code >= 71 && code <= 77) return 'snow';
-  if ((code >= 51 && code <= 67) || (code >= 80 && code <= 86)) return 'rain';
+  // 85/86 — снеговые ливни (WMO), в «дожде» они путали бы фотографа зимой
+  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return 'snow';
+  if ((code >= 51 && code <= 67) || (code >= 80 && code <= 84)) return 'rain';
   return 'cloudy';
 }
 

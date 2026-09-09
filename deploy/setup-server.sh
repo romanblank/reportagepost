@@ -194,14 +194,27 @@ notify() { # $1 — текст; шлём, если заведены токен �
     --data-urlencode "chat_id=${chat}" --data-urlencode "text=$1" >/dev/null || true
 }
 
-# 1. Активный цвет жив? (blue-green: имя контейнера зависит от .active-color;
-# легаси-имя reportagepost — переходный период до первого blue-green деплоя)
+# 1. Активный цвет жив? Легаси-ветка (имя reportagepost на :3000) удалена:
+# после перехода на blue-green она стала ловушкой (аудит 2026-09-09, П1 №15) —
+# при потерянном .active-color watchdog ждал контейнер reportagepost, а compose
+# по умолчанию поднимал reportagepost-blue: цикл «поднял»-алертов при лежащем
+# сайте. Теперь потерянный файл состояния ВОССТАНАВЛИВАЕТСЯ: активным считаем
+# живой цвет (или blue, если не жив никто), upstream доводим до него же.
 ACTIVE=$(cat .active-color 2>/dev/null || echo none)
+if [ "$ACTIVE" != "blue" ] && [ "$ACTIVE" != "green" ]; then
+  if docker ps --format '{{.Names}}' | grep -q '^reportagepost-green$'; then ACTIVE=green; else ACTIVE=blue; fi
+  echo "$ACTIVE" > .active-color
+  notify "⚠️ Reportage Post: .active-color отсутствовал — watchdog принял $ACTIVE и восстановил состояние"
+fi
 case "$ACTIVE" in
   blue)  CONT=reportagepost-blue;  PORT=3001 ;;
   green) CONT=reportagepost-green; PORT=3002 ;;
-  *)     CONT=reportagepost;       PORT=3000 ;;
 esac
+# upstream мог указывать в пустоту (легаси-:3000) — доводим до активного порта
+if ! grep -q "127.0.0.1:${PORT}" /etc/nginx/conf.d/rp-upstream.conf 2>/dev/null; then
+  echo "upstream rp_upstream { server 127.0.0.1:${PORT}; }" | sudo tee /etc/nginx/conf.d/rp-upstream.conf >/dev/null
+  sudo nginx -t >/dev/null 2>&1 && sudo systemctl reload nginx || notify "🔴 Reportage Post: watchdog не смог переключить upstream на :${PORT}"
+fi
 export COMPOSE_IGNORE_ORPHANS=1
 if ! docker ps --format '{{.Names}}' | grep -q "^${CONT}$"; then
   IMAGE=$(grep -E '^IMAGE=' .deploy.env 2>/dev/null | cut -d= -f2-)
@@ -209,13 +222,8 @@ if ! docker ps --format '{{.Names}}' | grep -q "^${CONT}$"; then
     notify "🔴 Reportage Post: контейнер $CONT лежит, а .deploy.env без IMAGE — watchdog поднять не может"
     exit 1
   fi
-  if [ "$ACTIVE" = "none" ]; then
-    UPCMD=(docker compose --env-file .env.prod -f docker-compose.prod.yml up -d app)
-    IMAGE="$IMAGE" "${UPCMD[@]}" >/tmp/rp-watchdog.log 2>&1 && UP_OK=1 || UP_OK=0
-  else
-    COLOR="$ACTIVE" APP_PORT="$PORT" IMAGE="$IMAGE" \
-      docker compose --env-file .env.prod -f docker-compose.prod.yml -p "rp-$ACTIVE" up -d app >/tmp/rp-watchdog.log 2>&1 && UP_OK=1 || UP_OK=0
-  fi
+  COLOR="$ACTIVE" APP_PORT="$PORT" IMAGE="$IMAGE" \
+    docker compose --env-file .env.prod -f docker-compose.prod.yml -p "rp-$ACTIVE" up -d app >/tmp/rp-watchdog.log 2>&1 && UP_OK=1 || UP_OK=0
   if [ "${UP_OK:-0}" = "1" ]; then
     notify "⚠️ Reportage Post: контейнер $CONT был мёртв — watchdog поднял его заново ($IMAGE)"
   else
@@ -308,8 +316,24 @@ SECRET=$(grep -E '^JOBS_SECRET=' .env.prod 2>/dev/null | cut -d= -f2-)
 [ -z "$SECRET" ] && exit 0
 exec 9>/var/lock/rp-inquiries.lock
 flock -n 9 || exit 0
-curl -s -m 120 -o /dev/null -X POST -H "Authorization: Bearer ${SECRET}" \
-  http://127.0.0.1:$(/usr/local/bin/rp-port.sh)/api/jobs/inquiries
+# Код ответа проверяем (аудит 2026-09-09, П2): молчаливый провал волн означал бы,
+# что фора при её включении тихо превращается в «заявку не получает никто второй
+# волной». Алерт — не чаще раза в 6 часов, чтобы не спамить на транзиентах.
+CODE=$(curl -s -m 120 -o /dev/null -w '%{http_code}' -X POST -H "Authorization: Bearer ${SECRET}" \
+  http://127.0.0.1:$(/usr/local/bin/rp-port.sh)/api/jobs/inquiries)
+if [ "$CODE" != "200" ]; then
+  STAMP=/var/tmp/rp-inquiries-alerted
+  if [ ! -f "$STAMP" ] || [ $(( $(date +%s) - $(stat -c %Y "$STAMP") )) -gt 21600 ]; then
+    TOK=$(grep -E '^TELEGRAM_BOT_TOKEN=' .env.prod 2>/dev/null | cut -d= -f2-)
+    CHAT=$(grep -E '^TELEGRAM_ALERT_CHAT_ID=' .env.prod 2>/dev/null | cut -d= -f2-)
+    if [ -n "$TOK" ] && [ -n "$CHAT" ]; then
+      curl -s -m 15 "https://api.telegram.org/bot${TOK}/sendMessage" \
+        --data-urlencode "chat_id=${CHAT}" \
+        --data-urlencode "text=🔴 Reportage Post: волны заявок отвечают ${CODE} вместо 200" >/dev/null || true
+      touch "$STAMP"
+    fi
+  fi
+fi
 INQ
 sudo chmod +x /usr/local/bin/rp-inquiries.sh
 echo '*/15 * * * * root /usr/local/bin/rp-inquiries.sh >/dev/null 2>&1' | sudo tee /etc/cron.d/rp-inquiries >/dev/null
@@ -364,7 +388,7 @@ REPORT=$(awk '{
     p = $5
     if (p ~ /^\/files\//) grp = "files"
     else if (p ~ /^\/api\//) grp = "api"
-    else if (p ~ /^\/ru\//) { split(p, a, "/"); grp = "ru-" a[3] }
+    else if (p ~ /^\/ru\//) { split(p, a, "/"); grp = (a[3] == "" ? "ru" : "ru-" a[3]) }
     else grp = "other"
     print grp, $3, ($2 >= 500 ? 1 : 0)
   }' "$LOG" | sort -k1,1 -k2,2n | awk '
@@ -453,7 +477,10 @@ printf '{"log-driver":"json-file","log-opts":{"max-size":"10m","max-file":"3"}}\
 # (docker не рестартим в setup — избежать downtime; compose уже имеет logging;
 #  daemon.json применится при следующем штатном рестарте демона)
 # 3) еженедельная авто-чистка (cron) — на случай долгого простоя без деплоев
-printf '0 4 * * 0 root docker system prune -af >/dev/null 2>&1; journalctl --vacuum-size=100M >/dev/null 2>&1; sudo apt-get clean >/dev/null 2>&1\n' | sudo tee /etc/cron.d/rp-diskclean >/dev/null
+# БЕЗ -a: prune -af сносил и образ ПРЕДЫДУЩЕГО деплоя — откат начинал зависеть
+# от доступности GHCR (аудит 2026-09-09, П2). Висячие слои и мусор чистятся,
+# помеченные (текущий+предыдущий) образы остаются — их чистит сам деплой.
+printf '0 4 * * 0 root docker system prune -f >/dev/null 2>&1; journalctl --vacuum-size=100M >/dev/null 2>&1; sudo apt-get clean >/dev/null 2>&1\n' | sudo tee /etc/cron.d/rp-diskclean >/dev/null
 
 # ── Харденинг sshd против сканеров (S0, урок инцидентов Verifi) ──────────────
 # Публичный 22-й порт непрерывно перебирают. Пароли и так выключены, но каждая

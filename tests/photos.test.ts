@@ -169,4 +169,45 @@ describe('EXIF: камера и объектив читаются при ана�
     expect(b.cameraModel).toBeNull();
     expect(b.lensModel).toBeNull();
   });
+
+  // Битые метаданные — норма, а не исключение: редакторы и мессенджеры пишут
+  // EXIF как попало. Загрузка кадра от этого падать не должна (аудит 2026-09-09).
+  it('искорёженный EXIF не роняет загрузку — кадр проходит без техники', async () => {
+    const sharp = (await import('sharp')).default;
+    const withExif = await sharp({
+      create: { width: MIN_LONG_SIDE, height: 1600, channels: 3, background: { r: 20, g: 20, b: 20 } },
+    })
+      .withExif({ IFD0: { Make: 'Nikon', Model: 'Nikon Z9' } })
+      .jpeg().toBuffer();
+
+    // Портим сам EXIF-блок: sharp его отдаст, exif-reader — не разберёт
+    const broken = Buffer.from(withExif);
+    const at = broken.indexOf('Exif');
+    expect(at).toBeGreaterThan(-1);
+    broken.fill(0xff, at + 6, at + 26);
+
+    const a = await analyzePhoto(broken);
+    expect(a.width).toBe(MIN_LONG_SIDE); // кадр принят
+    expect(a.cameraModel).toBeNull(); // техника честно отсутствует, а не мусор
+    expect(a.lensModel).toBeNull();
+  });
+
+  it('километровые строки EXIF обрезаются до 120 символов', async () => {
+    const sharp = (await import('sharp')).default;
+    const longModel = 'X'.repeat(300);
+    const longLens = 'Y'.repeat(300);
+    const img = await sharp({
+      create: { width: MIN_LONG_SIDE, height: 1600, channels: 3, background: { r: 20, g: 20, b: 20 } },
+    })
+      .withExif({ IFD0: { Make: 'Canon', Model: longModel }, IFD2: { LensModel: longLens } })
+      .jpeg().toBuffer();
+
+    const a = await analyzePhoto(img);
+    // Поле в анкете и даталистах рассчитано на имя техники, а не на роман:
+    // без обрезки мусорная строка уехала бы в статистику сообщества
+    expect(a.cameraModel).not.toBeNull();
+    expect(a.cameraModel!.length).toBeLessThanOrEqual(120);
+    expect(a.lensModel).not.toBeNull();
+    expect(a.lensModel!.length).toBeLessThanOrEqual(120);
+  });
 });
