@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { communityStats, valuedPhotographers, communityGeo, communityGear } from '@/lib/widgets';
 import { bestOfWeek } from '@/lib/feeds';
 import { cityNameRu } from '@/lib/geo-data';
-import { webVariantUrl, thumbVariantUrl, avatarUrl } from '@/lib/photos';
+import { webVariantUrl, avatarUrl } from '@/lib/photos';
 import { ru } from '@/i18n/ru';
 import { BASE_URL } from '@/lib/sitemap';
 

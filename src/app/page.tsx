@@ -4,7 +4,6 @@ import { ru } from "@/i18n/ru";
 import { cityNameRu } from "@/lib/geo-data";
 import { webVariantUrl } from "@/lib/photos";
 import { cachedHomeData } from "@/lib/home-data";
-import { Avatar } from "@/components/ui/Avatar";
 import { LandingHero } from "@/components/LandingHero";
 import { FeedMasonry } from "@/components/FeedGallery";
 
@@ -20,7 +19,7 @@ export default async function Home() {
   // Витрина кешируется на 2 минуты (аудит P1): раньше каждый заход заново
   // агрегировал лайки за неделю и все ленты. Персонализации на главной нет,
   // поэтому кеш общий и безопасный.
-  const { week, fresh, newAuthors, photographers, photos, cityAuthors } = await cachedHomeData();
+  const { week, fresh, photographers, photos, cityAuthors } = await cachedHomeData();
 
   // Прототип показывает одну ленту отклика; берём лучшее за неделю, а на малых
   // данных честно подставляем свежее — пустая секция хуже, чем свежая.
@@ -108,47 +107,8 @@ export default async function Home() {
         </section>
       )}
 
-      {/* Новые авторы — автоматически по дате прихода (без курирования) */}
-      {newAuthors.length > 0 && (
-        <section className="mx-auto w-full max-w-7xl px-4 pb-12 sm:pb-14">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <p className="t-caption muted" style={{ fontFamily: 'var(--font-mono)' }}>{ru.landing.newAuthorsKicker}</p>
-              <h2 className="t-h2 mt-1">{ru.landing.newAuthorsTitle(cityNameRu('moscow'))}</h2>
-            </div>
-            <Link href="/ru/community" className="t-small text-accent hover:underline">{ru.landing.newAuthorsMore}</Link>
-          </div>
-          <ul className="mt-4 grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-4">
-            {newAuthors.map((a) => (
-              <li key={a.username} className="group">
-                <Link href={`/ru/photographer/${a.username}`} className="block">
-                  <div className="relative overflow-hidden rounded-media bg-surface-2">
-                    {a.photos[0] ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={webVariantUrl(a.photos[0].storageKey)}
-                        alt={`${a.user.firstName} ${a.user.lastName}`} loading="lazy"
-                        className="aspect-[3/4] w-full object-cover transition duration-500 group-hover:scale-[1.04]" />
-                    ) : (
-                      <div className="grid aspect-[3/4] w-full place-items-center">
-                        <Avatar avatarKey={a.avatarKey} firstName={a.user.firstName} lastName={a.user.lastName} size={64} />
-                      </div>
-                    )}
-                    <span className="absolute left-2.5 top-2.5 rounded-full border border-line bg-surface/70 px-2.5 py-1 text-[11px] backdrop-blur-sm"
-                      style={{ color: "var(--verified)" }}>
-                      {ru.landing.newAuthorBadge}
-                    </span>
-                  </div>
-                  <div className="mt-3">
-                    <div className="t-small truncate font-medium">{a.user.firstName} {a.user.lastName}</div>
-                    {a.city && <div className="t-caption mt-0.5 truncate muted">{cityNameRu(a.city.slug)}</div>}
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
+      {/* «Недавно присоединившиеся» с главной убраны (партнёр 2026-08-18):
+          их место — журнал, а главная — лаконичный вход, не дубль разделов */}
       {/* Для фотографов — ценность подписки Active/Active+ (антиклассизм-инвариант) */}
       <section className="border-y border-line bg-surface">
         <div className="mx-auto grid w-full max-w-7xl items-center gap-12 px-4 py-16 lg:grid-cols-2">
