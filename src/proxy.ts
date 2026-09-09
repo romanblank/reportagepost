@@ -34,11 +34,13 @@ const CATALOG_PATH = /^\/ru\/([^/]+)\/([^/]+)(?:\/([^/]+))?\/?$/;
  * молча получать 404 (admin, auth, cabinet, community, forgot, inquiry, journal, legal, login, match, messages, notifications, onboarding, photo, photographer, pro, register, reset, search, story, unsubscribe, verify-email).
  */
 const APP_SECTIONS = new Set([
+  'about',
   'admin',
   'auth',
   'cabinet',
   'confirm',
   'community',
+  'favorites',
   'forgot',
   'forum',
   'inquiry',
@@ -47,6 +49,7 @@ const APP_SECTIONS = new Set([
   'login',
   'match',
   'messages',
+  'news',
   'notifications',
   'onboarding',
   'photo',

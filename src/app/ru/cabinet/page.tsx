@@ -8,6 +8,7 @@ import { getSession } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { inquiriesForPhotographer } from '@/lib/inquiries';
 import { FirstSteps } from '@/components/FirstSteps';
+import { WeatherWidget } from '@/components/WeatherWidget';
 import { cityNameRu } from '@/lib/geo-data';
 import { categoryNameRu } from '@/lib/category-data';
 import { formatRubMinor } from '@/lib/money';
@@ -56,7 +57,10 @@ export default async function CabinetPage({
     session.role === 'PHOTOGRAPHER'
       ? await db.photographerProfile.findUnique({
           where: { userId: session.userId },
-          include: { _count: { select: { photos: true, favoritedBy: true, reviews: true } } },
+          include: {
+            _count: { select: { photos: true, favoritedBy: true, reviews: true } },
+            city: { select: { slug: true, lat: true, lon: true } },
+          },
         })
       : null;
 
@@ -124,6 +128,11 @@ export default async function CabinetPage({
       <div className="max-w-3xl w-full">
       <CabinetNav approved={navApproved} hasProfile={Boolean(navProfile)} />
       <h1 className="t-h2">{me?.firstName ? ru.cabinet.greeting(me.firstName) : ru.cabinet.title}</h1>
+      {profile?.city && (
+        <div className="mt-1">
+          <WeatherWidget citySlug={profile.city.slug} lat={profile.city.lat} lon={profile.city.lon} />
+        </div>
+      )}
 
       {/* Подтверждение адреса (аудит P0): только когда почта настроена и адрес
           ещё не подтверждён — иначе просить нечего */}

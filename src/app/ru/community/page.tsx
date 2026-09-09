@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { communityStats, recentPhotographers, valuedPhotographers } from '@/lib/widgets';
+import { communityStats, valuedPhotographers, communityGeo, communityGear } from '@/lib/widgets';
 import { bestOfWeek } from '@/lib/feeds';
 import { cityNameRu } from '@/lib/geo-data';
 import { webVariantUrl, thumbVariantUrl, avatarUrl } from '@/lib/photos';
@@ -17,11 +17,12 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function CommunityPage() {
-  const [stats, recent, best, valued] = await Promise.all([
+  const [stats, best, valued, geo, gear] = await Promise.all([
     communityStats(),
-    recentPhotographers(),
     bestOfWeek(12),
     valuedPhotographers(),
+    communityGeo(),
+    communityGear(),
   ]);
 
   const tiles = [
@@ -71,24 +72,48 @@ export default async function CommunityPage() {
         </section>
       )}
 
-      {recent.length > 0 && (
+      {/* «Новые в сообществе» отсюда убраны (партнёр 2026-08-18): их место —
+          журнал, куда фотографы ходят чаще. Здесь — статистика для партнёров */}
+      {geo.length > 0 && (
         <section className="mt-8">
-          <h2 className="t-title">{ru.dashboard.recentTitle}</h2>
-          <ul className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {recent.map((p) => (
-              <li key={p.id} className="card p-3">
-                <Link href={`/ru/photographer/${p.username}`} className="block">
-                  {p.photos[0] && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={thumbVariantUrl(p.photos[0].storageKey)} alt="" loading="lazy"
-                      className="aspect-video w-full rounded-media object-cover" />
-                  )}
-                  <span className="mt-2 block font-medium">{p.user.firstName} {p.user.lastName}</span>
-                  <span className="t-fine muted">{cityNameRu(p.city.slug)}</span>
-                </Link>
+          <h2 className="t-h3">{ru.dashboard.geoTitle}</h2>
+          <p className="mt-1 t-small muted">{ru.dashboard.geoLead}</p>
+          <ul className="mt-3 grid gap-x-10 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+            {geo.map((g) => (
+              <li key={g.slug} className="flex items-baseline justify-between border-b border-line/60 pb-1.5">
+                <span className="t-small">{cityNameRu(g.slug)}</span>
+                <span className="tnum t-small font-semibold">{g.count}</span>
               </li>
             ))}
           </ul>
+        </section>
+      )}
+
+      {gear.brands.length > 0 && (
+        <section className="mt-8">
+          <h2 className="t-h3">{ru.dashboard.gearTitle}</h2>
+          <p className="mt-1 t-small muted">{ru.dashboard.gearLead}</p>
+          <ul className="mt-3 grid gap-x-10 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+            {gear.brands.map((b) => (
+              <li key={b.brand} className="flex items-baseline justify-between border-b border-line/60 pb-1.5">
+                <span className="t-small">{b.brand}</span>
+                <span className="tnum t-small font-semibold">{b.count}</span>
+              </li>
+            ))}
+          </ul>
+          {gear.topCameras.length > 0 && (
+            <>
+              <h3 className="mt-6 t-caption muted">{ru.dashboard.gearCamerasTitle}</h3>
+              <ul className="mt-2 grid gap-x-10 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+                {gear.topCameras.map((c) => (
+                  <li key={c.model} className="flex items-baseline justify-between border-b border-line/60 pb-1.5">
+                    <span className="t-small truncate">{c.model}</span>
+                    <span className="tnum t-small font-semibold">{c.count}</span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </section>
       )}
 

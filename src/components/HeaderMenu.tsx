@@ -1,0 +1,87 @@
+import Link from 'next/link';
+import { ru } from '@/i18n/ru';
+import { CATALOG_ROOT } from '@/lib/nav';
+
+/**
+ * Панель главного меню с выпадающими подразделами (структура партнёра
+ * 2026-08-18): «О сайте», «Фотографы», прямые разделы.
+ *
+ * Выпадение — на CSS (hover + focus-within), без JS: клавиатура открывает
+ * меню фокусом на пунктах, скринридеру каждый пункт — обычная ссылка.
+ * «Конкурс» из структуры намеренно НЕ здесь: раздел решено держать невидимым
+ * до его настоящей проработки.
+ */
+type MenuChild = { href: string; label: string };
+type MenuItem = { label: string; href?: string; children?: MenuChild[]; accent?: boolean };
+
+function menuItems(catalogHref: string): MenuItem[] {
+  return [
+    {
+      label: ru.nav.aboutMenu,
+      children: [
+        { href: '/ru/about', label: ru.nav.aboutGoal },
+        { href: '/ru/legal/offer', label: ru.nav.aboutRules },
+        { href: '/ru/legal/privacy', label: ru.nav.aboutPrivacy },
+        { href: '/ru/about/feedback', label: ru.nav.aboutFeedback },
+        { href: '/ru/news', label: ru.nav.aboutNews },
+      ],
+    },
+    {
+      label: ru.nav.photographersMenu,
+      children: [
+        { href: catalogHref, label: ru.nav.photographersCatalog },
+        { href: '/ru/match', label: ru.nav.match },
+        { href: '/ru/favorites', label: ru.nav.photographersFavorites },
+      ],
+    },
+    { label: ru.nav.feed, href: '/ru/photo' },
+    { label: ru.nav.journal, href: '/ru/journal' },
+    { label: ru.nav.forum, href: '/ru/forum' },
+    { label: ru.nav.community, href: '/ru/community' },
+    { label: ru.pro.navLabel, href: '/ru/pro', accent: true },
+  ];
+}
+
+export function HeaderMenu({ catalogHref }: { catalogHref: string }) {
+  const linkCls = 't-small text-muted transition-colors hover:text-ink';
+  return (
+    <div className="hidden items-center gap-4 sm:flex lg:gap-5">
+      {menuItems(catalogHref || CATALOG_ROOT).map((item) =>
+        item.children ? (
+          <div key={item.label} className="group relative">
+            {/* Кнопка-заголовок: раскрытие ховером и фокусом, сам заголовок
+                никуда не ведёт — у всех его детей адреса свои */}
+            <button type="button" className={`${linkCls} flex items-center gap-1`} aria-haspopup="true">
+              {item.label}
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+                <path d="m2 3.5 3 3 3-3" />
+              </svg>
+            </button>
+            <div className="invisible absolute left-0 top-full z-50 pt-2 opacity-0 transition-opacity group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
+              <ul className="min-w-52 rounded-md border border-line bg-surface p-1.5 shadow-lg">
+                {item.children.map((child) => (
+                  <li key={child.href}>
+                    <Link
+                      href={child.href}
+                      className="block rounded-sm px-3 py-2 t-small text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink"
+                    >
+                      {child.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        ) : (
+          <Link
+            key={item.href}
+            href={item.href!}
+            className={item.accent ? `${linkCls} text-recognition` : linkCls}
+          >
+            {item.label}
+          </Link>
+        ),
+      )}
+    </div>
+  );
+}

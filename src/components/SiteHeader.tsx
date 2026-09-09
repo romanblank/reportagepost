@@ -5,6 +5,7 @@ import { ru } from '@/i18n/ru';
 import { CATALOG_ROOT, cabinetHrefFor } from '@/lib/nav';
 import { LogoutButton } from './LogoutButton';
 import { BrandLockup } from './BrandLockup';
+import { HeaderMenu } from './HeaderMenu';
 
 // Session-aware шапка (аудит: продукт был недостижим без ручного ввода URL).
 // Серверный компонент — знает роль и город фотографа для «умных» ссылок.
@@ -26,16 +27,12 @@ export async function SiteHeader() {
         <Link href="/" aria-label={ru.nav.brand} className="flex items-center text-ink">
           <BrandLockup className="block h-6 sm:h-7" />
         </Link>
-        <div className="hidden items-center gap-4 sm:flex lg:gap-5">
-          <Link href={catalogHref} className={linkCls}>{ru.nav.catalog}</Link>
-          <Link href="/ru/match" className={linkCls}>{ru.nav.match}</Link>
-          <Link href="/ru/photo" className={linkCls}>{ru.nav.feed}</Link>
-          <Link href="/ru/journal" className={linkCls}>{ru.nav.journal}</Link>
-          <Link href="/ru/forum" className={linkCls}>{ru.nav.forum}</Link>
-          <Link href="/ru/community" className={linkCls}>{ru.nav.community}</Link>
-          <Link href="/ru/pro" className={`${linkCls} text-recognition`}>{ru.pro.navLabel}</Link>
-          {session && <Link href="/ru/messages" className={linkCls}>{ru.nav.messages}</Link>}
-        </div>
+        {/* Меню по структуре партнёра 2026-08-18: «О сайте» и «Фотографы» —
+            с выпадающими подразделами, остальное — прямые ссылки */}
+        <HeaderMenu catalogHref={catalogHref} />
+        {session && (
+          <Link href="/ru/messages" className={`hidden sm:inline ${linkCls}`}>{ru.nav.messages}</Link>
+        )}
         {session && (
           <Link href="/ru/notifications" aria-label={ru.notifications.title}
             className="relative ml-auto text-muted transition-colors hover:text-ink">

@@ -83,3 +83,62 @@ export async function recentPhotographers(limit = 6) {
   });
   return profiles;
 }
+
+/**
+ * География сообщества: одобренные авторы по городам (партнёр 2026-08-18,
+ * «Сообщество» как бизнес-раздел для партнёров и рекламодателей).
+ * Демо-профили исключены — цифры для внешних глаз обязаны быть честными.
+ */
+export async function communityGeo(): Promise<{ slug: string; count: number }[]> {
+  const rows = await db.photographerProfile.groupBy({
+    by: ['cityId'],
+    where: { status: 'APPROVED', isDemo: false },
+    _count: true,
+    orderBy: { _count: { cityId: 'desc' } },
+    take: 30,
+  });
+  if (rows.length === 0) return [];
+  const cities = await db.city.findMany({
+    where: { id: { in: rows.map((r) => r.cityId) } },
+    select: { id: true, slug: true },
+  });
+  const slugById = new Map(cities.map((c) => [c.id, c.slug]));
+  return rows
+    .map((r) => ({ slug: slugById.get(r.cityId) ?? '', count: r._count }))
+    .filter((r) => r.slug);
+}
+
+/**
+ * Техника сообщества: бренды камер из анкет + популярные модели из EXIF
+ * загруженных кадров. Второй источник честнее первого: анкету заполняют
+ * словами, EXIF пишет сама камера.
+ */
+export async function communityGear(): Promise<{
+  brands: { brand: string; count: number }[];
+  topCameras: { model: string; count: number }[];
+}> {
+  const profiles = await db.photographerProfile.findMany({
+    where: { status: 'APPROVED', isDemo: false, cameraBrands: { isEmpty: false } },
+    select: { cameraBrands: true },
+  });
+  const brandCount = new Map<string, number>();
+  for (const p of profiles) {
+    for (const b of p.cameraBrands) brandCount.set(b, (brandCount.get(b) ?? 0) + 1);
+  }
+  const brands = [...brandCount]
+    .map(([brand, count]) => ({ brand, count }))
+    .sort((a, b) => b.count - a.count);
+
+  const cams = await db.photo.groupBy({
+    by: ['cameraModel'],
+    where: { status: 'APPROVED', cameraModel: { not: null }, profile: { isDemo: false } },
+    _count: true,
+    orderBy: { _count: { cameraModel: 'desc' } },
+    take: 12,
+  });
+  const topCameras = cams
+    .filter((c) => c.cameraModel)
+    .map((c) => ({ model: c.cameraModel as string, count: c._count }));
+
+  return { brands, topCameras };
+}

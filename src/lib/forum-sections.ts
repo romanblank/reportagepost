@@ -16,6 +16,7 @@ export type ForumSection = {
 };
 
 export const FORUM_SECTIONS: ForumSection[] = [
+  { slug: 'editorial', order: 0 }, // от редакции: анонсы и пояснения платформы (партнёр 2026-08-18)
   { slug: 'craft', order: 1 }, // съёмка событий: свет, репортажное мышление, сложные условия
   { slug: 'gear', order: 2 }, // техника и всё, что с ней
   { slug: 'clients', order: 3 }, // работа с заказчиком: договорённости, ожидания, сложные ситуации

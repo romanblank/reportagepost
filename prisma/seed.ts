@@ -21,12 +21,15 @@ async function main() {
   for (const city of RU_CITIES) {
     await db.city.upsert({
       where: { countryId_slug: { countryId: country.id, slug: city.slug } },
-      update: { active: city.active ?? false },
+      // Координаты обновляем и существующим: сид — единственный их источник
+      update: { active: city.active ?? false, lat: city.lat ?? null, lon: city.lon ?? null },
       create: {
         countryId: country.id,
         slug: city.slug,
         nameKey: `geo.city.${city.slug}`,
         active: city.active ?? false,
+        lat: city.lat ?? null,
+        lon: city.lon ?? null,
       },
     });
   }
