@@ -314,6 +314,41 @@ INQ
 sudo chmod +x /usr/local/bin/rp-inquiries.sh
 echo '*/15 * * * * root /usr/local/bin/rp-inquiries.sh >/dev/null 2>&1' | sudo tee /etc/cron.d/rp-inquiries >/dev/null
 
+# ── Минутная uptime-проба с VM (2026-08-18) ──────────────────────────────────
+# GitHub троттлит scheduled-краны до ~раза в 4 часа — детекция падения была бы
+# четырёхчасовой. Основная проба теперь здесь: каждые 10 минут через ПУБЛИЧНЫЙ
+# домен (TLS+nginx+приложение, а не localhost), алерт в телеграм с дедупом,
+# heartbeat задачи uptime — в /health. GitHub-проба остаётся редким внешним
+# дублёром на случай смерти всей VM.
+sudo tee /usr/local/bin/rp-uptime.sh >/dev/null <<'UPT'
+#!/usr/bin/env bash
+set -uo pipefail
+cd /opt/reportagepost || exit 0
+notify() {
+  local tok chat
+  tok=$(grep -E '^TELEGRAM_BOT_TOKEN=' .env.prod 2>/dev/null | cut -d= -f2-)
+  chat=$(grep -E '^TELEGRAM_ALERT_CHAT_ID=' .env.prod 2>/dev/null | cut -d= -f2-)
+  [ -n "$tok" ] && [ -n "$chat" ] || return 0
+  curl -s -m 15 "https://api.telegram.org/bot${tok}/sendMessage"     --data-urlencode "chat_id=${chat}" --data-urlencode "text=$1" >/dev/null || true
+}
+STAMP=/var/tmp/rp-uptime-alerted
+if curl -sf -m 20 https://reportagepost.com/health >/dev/null; then
+  # Поднялись после падения — сказать об этом (молчаливое восстановление
+  # оставляет оператора в неведении, всё ли закончилось)
+  if [ -f "$STAMP" ]; then rm -f "$STAMP"; notify "✅ Reportage Post: сайт снова отвечает"; fi
+  SECRET=$(grep -E '^JOBS_SECRET=' .env.prod 2>/dev/null | cut -d= -f2-)
+  [ -n "${SECRET:-}" ] && curl -sf -m 20 -X POST "http://127.0.0.1:$(/usr/local/bin/rp-port.sh)/api/jobs/heartbeat"     -H "Authorization: Bearer $SECRET" -H 'Content-Type: application/json'     -d '{"name":"uptime","ok":true}' >/dev/null || true
+else
+  # Алерт не чаще раза в 30 минут — падение и так продолжает алертить GitHub-проба
+  if [ ! -f "$STAMP" ] || [ $(( $(date +%s) - $(stat -c %Y "$STAMP") )) -gt 1800 ]; then
+    touch "$STAMP"
+    notify "🔴 Reportage Post: https://reportagepost.com/health не отвечает (проба с VM)"
+  fi
+fi
+UPT
+sudo chmod +x /usr/local/bin/rp-uptime.sh
+echo '*/10 * * * * root /usr/local/bin/rp-uptime.sh >/dev/null 2>&1' | sudo tee /etc/cron.d/rp-uptime >/dev/null
+
 # ── Суточный отчёт латентности (аудит 2026-08-16) ────────────────────────────
 # Первый симптом роста — «сайт стал подтормаживать» — раньше не имел ни
 # подтверждения, ни адреса: наблюдаемость была бинарной (up/down). p95 по
