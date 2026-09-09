@@ -82,7 +82,7 @@ describe('matching.parseBriefHeuristic — разбор без ИИ', () => {
 // Guard разбора LLM (правило: вывод модели валидируется, не применяется напрямую).
 describe('matching.guardParsed — валидация вывода LLM', () => {
   it('маппит город/категорию/бюджет из корректного JSON', () => {
-    const p = guardParsed('{"city":"Санкт-Петербург","category":"концерты и фестивали","budgetRub":40000}');
+    const p = guardParsed('{"city":"Санкт-Петербург","category":"концертная съёмка","budgetRub":40000}');
     expect(p.citySlug).toBe('saint-petersburg');
     expect(p.categorySlug).toBe('concerts-festivals');
     expect(p.maxBudgetMinor).toBe(4_000_000);
@@ -111,7 +111,7 @@ describe('matching.buildReason — честное обоснование из ф
 
   it('отражает жанр/город/рекомендации/дату/бюджет', () => {
     const r = buildReason({ citySlug: 'moscow', categorySlug: 'concerts-festivals', date: new Date('2026-08-01'), maxBudgetMinor: 2_000_000 }, card);
-    expect(r.toLowerCase()).toContain('концерты');
+    expect(r.toLowerCase()).toContain('концертная');
     expect(r).toContain('Москв');
     expect(r).toContain('рекомендаци');
     expect(r).toContain('дату');

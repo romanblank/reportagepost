@@ -70,6 +70,13 @@ export default async function JournalPage() {
                   </li>
                 ))}
               </ul>
+              {/* Приглашение в редакцию (партнёр 2026-08-18): вовлечение
+                  самих фотографов — статьи от практиков, не только от нас */}
+              <p className="t-fine mt-3 muted">
+                {ru.journal.submitHint}{' '}
+                <a href={`mailto:${ru.journal.submitEmail}`} className="underline">{ru.journal.submitEmail}</a>{' '}
+                {ru.journal.submitAfter}
+              </p>
             </section>
           )}
 

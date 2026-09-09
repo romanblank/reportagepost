@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   PLAN_FEATURES, featureInTier,
   FREE_PORTFOLIO_LIMIT, PRIME_PORTFOLIO_LIMIT, ELITE_PORTFOLIO_LIMIT,
-  FREE_VIDEO_LIMIT, PRIME_VIDEO_LIMIT, PAID_VIDEO_SECONDS,
+  FREE_VIDEO_LIMIT, PRIME_VIDEO_LIMIT,
+  ELITE_VIDEO_LIMIT, PAID_VIDEO_SECONDS,
   INQUIRY_HEAD_START_HOURS, PDF_PHOTO_LIMIT, ARTICLE_QUOTA, THREAD_QUOTA,
 } from '@/lib/pricing';
 import { ru } from '@/i18n/ru';
@@ -29,6 +30,8 @@ function numbersIn(text: string): number[] {
 const WORDS: Record<number, RegExp> = {
   1: /(?<![а-яё])(один|одну|одного)(?![а-яё])/i,
   2: /(?<![а-яё])(два|две|двух)(?![а-яё])/i,
+  3: /(?<![а-яё])(три|трёх|трех)(?![а-яё])/i,
+  7: /(?<![а-яё])(семь|семи)(?![а-яё])/i,
   4: /(?<![а-яё])(четыре|четырёх|четырех)(?![а-яё])/i,
   6: /(?<![а-яё])(шесть|шести)(?![а-яё])/i,
   12: /(?<![а-яё])(двенадцать|двенадцати)(?![а-яё])/i,
@@ -68,9 +71,13 @@ describe('обещания тарифов совпадают с кодом', () 
   });
 
   it('видео: число роликов и длительность соответствуют константам', () => {
-    expect(mentions(ru.pro.features.videoBasic, FREE_VIDEO_LIMIT)).toBe(true);
-    expect(FREE_VIDEO_LIMIT).toBe(1);
-    expect(PRIME_VIDEO_LIMIT).toBe(4);
+    // Решение партнёра 2026-08-18: Free — без видео, Active 3, Active+ 7
+    expect(FREE_VIDEO_LIMIT).toBe(0);
+    expect('videoBasic' in ru.pro.features).toBe(false); // не обещаем то, чего нет
+    expect(mentions(ru.pro.features.videoMore, PRIME_VIDEO_LIMIT)).toBe(true);
+    expect(mentions(ru.pro.features.videoMax, ELITE_VIDEO_LIMIT)).toBe(true);
+    expect(PRIME_VIDEO_LIMIT).toBe(3);
+    expect(ELITE_VIDEO_LIMIT).toBe(7);
     expect(PAID_VIDEO_SECONDS).toBe(90);
   });
 

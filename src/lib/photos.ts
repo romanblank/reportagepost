@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import exifReader from 'exif-reader';
 import { DomainError } from '@/lib/errors';
 import sharp from 'sharp';
 import { storage } from '@/lib/storage';
@@ -14,6 +15,10 @@ export interface AnalyzedPhoto {
   height: number;
   phash: string; // perceptual hash для дедупа/анти-кражи
   blurData: string; // крошечный размытый base64 data-URI — плейсхолдер при загрузке
+  /** Камера/объектив из EXIF — читаются ДО вычистки метаданных (партнёр
+   *  2026-08-18): статистика техники заполняется сама. null = EXIF нет. */
+  cameraModel: string | null;
+  lensModel: string | null;
 }
 
 export interface ProcessedPhoto extends AnalyzedPhoto {
@@ -61,6 +66,26 @@ export async function analyzePhoto(input: Buffer): Promise<AnalyzedPhoto> {
       `Длинная сторона ${Math.max(width, height)}px < ${MIN_LONG_SIDE}px`,
     );
   }
+  // EXIF — из исходного буфера: rotate() ниже вычищает метаданные, и это
+  // единственный момент, когда техника кадра ещё известна. Ошибки парсинга
+  // глотаем: кривой EXIF из редактора не должен ронять загрузку
+  let cameraModel: string | null = null;
+  let lensModel: string | null = null;
+  if (meta.exif) {
+    try {
+      const tags = exifReader(meta.exif);
+      const make = tags.Image?.Make?.toString().trim() ?? '';
+      const model = tags.Image?.Model?.toString().trim() ?? '';
+      // Модель часто уже содержит марку («Canon EOS R5») — не дублируем
+      cameraModel = model ? (model.toLowerCase().startsWith(make.toLowerCase()) ? model : `${make} ${model}`.trim()) : null;
+      lensModel = tags.Photo?.LensModel?.toString().trim() || null;
+      if (cameraModel) cameraModel = cameraModel.slice(0, 120);
+      if (lensModel) lensModel = lensModel.slice(0, 120);
+    } catch {
+      // EXIF битый — просто без техники
+    }
+  }
+
   // Perceptual hash — с ориентированного кадра, чтобы повёрнутый ре-аплоад ловился.
   const oriented = await img(input).rotate().toBuffer();
   const phash = await computeDHash(oriented);
@@ -70,7 +95,7 @@ export async function analyzePhoto(input: Buffer): Promise<AnalyzedPhoto> {
   const tiny = await img(oriented).resize(24, 24, { fit: 'inside' }).blur(1.2).jpeg({ quality: 35 }).toBuffer();
   const blurData = `data:image/jpeg;base64,${tiny.toString('base64')}`;
 
-  return { width, height, phash, blurData };
+  return { width, height, phash, blurData, cameraModel, lensModel };
 }
 
 /**

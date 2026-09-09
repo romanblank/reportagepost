@@ -262,7 +262,9 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
           lastName: profile.user.lastName,
           username: profile.username,
           cityName: cityNameRu(profile.city.slug),
-          categories: profile.categories.map((c) => categoryNameRu(c.category.slug)),
+          categories: [...profile.categories]
+            .sort((a, b) => Number(b.favorite) - Number(a.favorite))
+            .map((c) => (c.favorite ? `✦ ${categoryNameRu(c.category.slug)}` : categoryNameRu(c.category.slug))),
           imageUrls: profile.photos.slice(0, 5).map((p) => absUrl(webVariantUrl(p.storageKey))),
           bio: profile.bio,
         })}
@@ -276,7 +278,9 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
         lastName={profile.user.lastName}
         role={profile.doesVideo ? ru.profile.roleBoth : ru.profile.rolePhotographer}
         cityName={cityNameRu(profile.city.slug)}
-        categories={profile.categories.map((c) => categoryNameRu(c.category.slug))}
+        categories={[...profile.categories]
+          .sort((a, b) => Number(b.favorite) - Number(a.favorite))
+          .map((c) => (c.favorite ? `✦ ${categoryNameRu(c.category.slug)}` : categoryNameRu(c.category.slug)))}
         verified={profile.verified}
         verifiedHint={ru.profile.verifiedHint}
         verifiedLabel={ru.profile.verifiedShort}

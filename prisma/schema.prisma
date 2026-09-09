@@ -318,6 +318,9 @@ model PhotographerProfile {
 }
 
 model ProfileCategory {
+  /// Любимый жанр (партнёр 2026-08-18): витринная пометка внутри рабочих
+  /// жанров; на поиск и жанровый рейтинг не влияет
+  favorite Boolean @default(false)
   profileId  String
   categoryId String
   profile    PhotographerProfile @relation(fields: [profileId], references: [id])
@@ -378,6 +381,11 @@ model Photo {
   width           Int
   height          Int
   phash           String? // perceptual hash (dHash) для дедупа/анти-кражи портфолио
+  /// Камера и объектив из EXIF (партнёр 2026-08-18): читается при загрузке ДО
+  /// вычистки метаданных — статистика техники для партнёров заполняется сама,
+  /// без «мотивации» ручного ввода. Пусто = кадр без EXIF (мессенджер съел)
+  cameraModel     String?
+  lensModel       String?
   blurhash        String? // плейсхолдер при загрузке
   sortOrder       Int              @default(0) // порядок в портфолио (перетаскивание в кабинете)
   status          ModerationStatus @default(PENDING)

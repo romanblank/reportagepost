@@ -217,7 +217,7 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
           <div className="mt-1 flex flex-wrap gap-2">
             {categories.map((c) => (
               <button type="button" key={c.slug}
-                onClick={() => setCats((prev) => prev.includes(c.slug) ? prev.filter((s) => s !== c.slug) : prev.length < 3 ? [...prev, c.slug] : prev)}
+                onClick={() => setCats((prev) => prev.includes(c.slug) ? prev.filter((s) => s !== c.slug) : [...prev, c.slug])}
                 className={`chip ${cats.includes(c.slug) ? 'chip-active' : ''}`}>{c.name}</button>
             ))}
           </div>

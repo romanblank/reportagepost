@@ -21,6 +21,7 @@
     "@prisma/client": "^7.8.0",
     "@types/pdfkit": "^0.17.6",
     "dotenv": "^17.4.2",
+    "exif-reader": "^2.0.3",
     "jose": "^6.2.3",
     "next": "16.2.10",
     "nodemailer": "^9.0.3",

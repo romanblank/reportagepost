@@ -111,6 +111,10 @@ export function POST(req: Request) {
         phash: analyzed.phash,
         blurhash: analyzed.blurData,
         hasWebp: true, // storePhotoVariants кладёт web.webp/thumb.webp рядом
+        // Техника из EXIF (партнёр 2026-08-18): статистика для партнёров
+        // заполняется сама, ручной ввод не нужен большинству
+        cameraModel: analyzed.cameraModel,
+        lensModel: analyzed.lensModel,
         // status: PENDING по умолчанию — публикация только после модерации;
         // aiVerdict допишет фоновая премодерация ниже
       },

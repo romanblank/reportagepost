@@ -91,10 +91,14 @@ export const FREE_STORIES_ALLOWED = false; // фотоистории — тол�
 // Настоящий перк Active+ — не шестой ролик (он никому не нужен), а шоурил,
 // играющий в обложке профиля вместо статичного кадра: это видно заказчику с
 // первого экрана.
-export const FREE_VIDEO_LIMIT = 1;
-export const PRIME_VIDEO_LIMIT = 4;
-export const ELITE_VIDEO_LIMIT = 6;
-export const FREE_VIDEO_SECONDS = 60;
+// Видео — перк подписки (решение партнёра 2026-08-18): Free без шоурила,
+// Active 3, Active+ 7, длительность одинаковая — 90 секунд. Ролики, принятые
+// на старых лимитах, негодными не становятся (maxSeconds фиксируется при
+// загрузке — инвариант video-tiers).
+export const FREE_VIDEO_LIMIT = 0;
+export const PRIME_VIDEO_LIMIT = 3;
+export const ELITE_VIDEO_LIMIT = 7;
+export const FREE_VIDEO_SECONDS = 90; // не используется при лимите 0; равен платному, чтобы не воскрес «урезанный» вариант
 export const PAID_VIDEO_SECONDS = 90;
 
 export function videoLimit(tier: PlanTier): number {
@@ -143,11 +147,9 @@ export const PLAN_FEATURES: PlanFeature[] = [
   { key: 'page', minTier: 'FREE' }, // публичная страница + профиль в каталоге
   { key: 'inquiries', minTier: 'FREE' }, // приём заявок от заказчиков — открыто всем
   { key: 'portfolioBasic', minTier: 'FREE' }, // портфолио до FREE_PORTFOLIO_LIMIT
-  { key: 'videoBasic', minTier: 'FREE' }, // один шоурил до FREE_VIDEO_SECONDS
   { key: 'portfolioUnlimited', minTier: 'PRIME' }, // портфолио до PRIME_PORTFOLIO_LIMIT + фотоистории
   { key: 'videoMore', minTier: 'PRIME' }, // до PRIME_VIDEO_LIMIT роликов, до PAID_VIDEO_SECONDS
   { key: 'richProfile', minTier: 'PRIME' }, // пакеты цен, FAQ, оборудование, команда
-  { key: 'recognition', minTier: 'PRIME' }, // бейдж + участие в «Признании»
   { key: 'analytics', minTier: 'PRIME' }, // статистика просмотров и сохранений
   { key: 'fastReview', minTier: 'PRIME' }, // приоритетное рассмотрение изменений
   { key: 'presentationPdf', minTier: 'PRIME' }, // презентация портфолио одним файлом
@@ -155,6 +157,7 @@ export const PLAN_FEATURES: PlanFeature[] = [
   { key: 'articles', minTier: 'PRIME' },
   { key: 'threads', minTier: 'PRIME' }, // документы для работы с компаниями
   { key: 'presentationPdfPlus', minTier: 'ELITE' },
+  { key: 'videoMax', minTier: 'ELITE' }, // до ELITE_VIDEO_LIMIT роликов
   { key: 'coverShowreel', minTier: 'ELITE' }, // шоурил играет в обложке профиля
   { key: 'recommended', minTier: 'ELITE' }, // ротация в «Рекомендуемых» + приоритет редподборок
   { key: 'analyticsPlus', minTier: 'ELITE' }, // кто смотрел/сохранял, тренды

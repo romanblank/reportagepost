@@ -12,7 +12,8 @@ import { parseShowreel } from '@/lib/showreel';
 export const ProfileEditSchema = z.object({
   username: z.string().trim().toLowerCase().regex(/^[a-z0-9][a-z0-9-]{2,29}$/).optional(),
   citySlug: z.string().trim().optional(),
-  categorySlugs: z.array(z.string().trim()).min(1).max(3).optional(),
+  categorySlugs: z.array(z.string().trim()).min(1).max(11).optional(),
+  favoriteSlugs: z.array(z.string().trim()).max(11).optional(),
   bio: z.string().trim().max(2000).optional(),
   // Только http/https — zod .url() пропускает javascript:/data: (stored XSS в href).
   siteUrl: z.string().trim().url().max(200).refine((u) => /^https?:\/\//i.test(u), 'только http(s)').optional().or(z.literal('')),
@@ -99,10 +100,12 @@ export async function applyProfileEdit(
     newCityId = city.id;
   }
   let newCategoryIds: string[] | undefined;
+  let newCategories: { id: string; favorite: boolean }[] | undefined;
   if (d.categorySlugs) {
     const cats = await db.category.findMany({ where: { slug: { in: d.categorySlugs }, active: true } });
     if (cats.length !== d.categorySlugs.length) throw new DomainError('category_not_found', 400);
     newCategoryIds = cats.map((c) => c.id);
+    newCategories = cats.map((c) => ({ id: c.id, favorite: Boolean(d.favoriteSlugs?.includes(c.slug)) }));
   }
 
   try {
@@ -168,7 +171,13 @@ export async function applyProfileEdit(
       });
       if (newCategoryIds) {
         await tx.profileCategory.deleteMany({ where: { profileId } });
-        await tx.profileCategory.createMany({ data: newCategoryIds.map((categoryId) => ({ profileId, categoryId })) });
+        await tx.profileCategory.createMany({
+          data: (newCategories ?? newCategoryIds.map((id) => ({ id, favorite: false }))).map((c) => ({
+            profileId,
+            categoryId: c.id,
+            favorite: c.favorite,
+          })),
+        });
       }
       if (d.packages) {
         await tx.pricePackage.deleteMany({ where: { profileId } });

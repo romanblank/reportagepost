@@ -144,3 +144,29 @@ describe('семафор обработки изображений', () => {
     await expect(withPhotoSlot(async () => 'again')).resolves.toBe('again');
   });
 });
+
+/**
+ * Техника из EXIF (партнёр 2026-08-18): читается при загрузке ДО вычистки
+ * метаданных. Ручного ввода «чем снято» большинству не понадобится — и
+ * статистика техники для партнёров честная, а не самодекларированная.
+ */
+describe('EXIF: камера и объектив читаются при анализе', () => {
+  it('кадр с EXIF отдаёт модель, кадр без EXIF — null', async () => {
+    const sharp = (await import('sharp')).default;
+    const base = await sharp({
+      create: { width: MIN_LONG_SIDE, height: 1600, channels: 3, background: { r: 20, g: 20, b: 20 } },
+    }).jpeg().toBuffer();
+    const withExif = await sharp(base)
+      // sharp пишет Exif-подкаталог под ключом IFD2 — LensModel живёт там
+      .withExif({ IFD0: { Make: 'Canon', Model: 'Canon EOS R5' }, IFD2: { LensModel: 'RF 24-70mm F2.8 L' } })
+      .jpeg().toBuffer();
+
+    const a = await analyzePhoto(withExif);
+    expect(a.cameraModel).toBe('Canon EOS R5'); // марка не дублируется
+    expect(a.lensModel).toBe('RF 24-70mm F2.8 L');
+
+    const b = await analyzePhoto(base);
+    expect(b.cameraModel).toBeNull();
+    expect(b.lensModel).toBeNull();
+  });
+});

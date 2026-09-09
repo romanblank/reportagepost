@@ -22,6 +22,7 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
   const [error, setError] = useState<string | null>(null);
   const [packages, setPackages] = useState([{ hours: 2, priceRub: 10000 }]);
   const [chosenCats, setChosenCats] = useState<string[]>([]);
+  const [favoriteCats, setFavoriteCats] = useState<string[]>([]);
   const [chosenLangs, setChosenLangs] = useState<string[]>(['ru']);
   // Техника слотами (правка партнёра 2026-08-18): свободный текст давал
   // «всё по-разному» — datalist подсказывает канон, ручной ввод остаётся
@@ -75,6 +76,7 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
         username,
         citySlug: f.get('citySlug'),
         categorySlugs: chosenCats,
+        favoriteSlugs: favoriteCats,
         bio: String(f.get('bio') ?? '').trim() || undefined,
         siteUrl: (() => { const v = String(f.get('siteUrl') ?? '').trim(); return v ? normalizeUrl(v) : undefined; })(),
         whatsapp: (() => { const v = String(f.get('whatsapp') ?? '').trim(); return v ? normalizePhone(v) : undefined; })(),
@@ -273,12 +275,33 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
           {categories.map((c) => (
             <label key={c.slug} className={`chip ${chosenCats.includes(c.slug) ? 'chip-active' : ''}`}>
               <input type="checkbox" className="sr-only" checked={chosenCats.includes(c.slug)}
-                onChange={() => setChosenCats((prev) =>
-                  prev.includes(c.slug) ? prev.filter((s) => s !== c.slug) : prev.length < 3 ? [...prev, c.slug] : prev)} />
+                onChange={() => setChosenCats((prev) => {
+                  const next = prev.includes(c.slug) ? prev.filter((s) => s !== c.slug) : [...prev, c.slug];
+                  // Любимые — всегда подмножество рабочих
+                  setFavoriteCats((fav) => fav.filter((s) => next.includes(s)));
+                  return next;
+                })} />
               {c.nameRu}
             </label>
           ))}
         </div>
+        {/* Любимые жанры — из выбранных рабочих (партнёр 2026-08-18):
+            витринная пометка, на поиск и рейтинг не влияет */}
+        {chosenCats.length > 1 && (
+          <div className="mt-4">
+            <span className="field-hint mt-0 mb-2 block">{ru.onboarding.favoritesHint}</span>
+            <div className="flex flex-wrap gap-2">
+              {categories.filter((c) => chosenCats.includes(c.slug)).map((c) => (
+                <label key={c.slug} className={`chip ${favoriteCats.includes(c.slug) ? 'chip-active' : ''}`}>
+                  <input type="checkbox" className="sr-only" checked={favoriteCats.includes(c.slug)}
+                    onChange={() => setFavoriteCats((prev) =>
+                      prev.includes(c.slug) ? prev.filter((s) => s !== c.slug) : [...prev, c.slug])} />
+                  {c.nameRu}
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
       </fieldset>
       <div>
         <label htmlFor="onb-bio" className="field-label">{ru.onboarding.bio}</label>

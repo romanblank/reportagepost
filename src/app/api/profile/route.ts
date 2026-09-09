@@ -17,7 +17,9 @@ const ProfileSchema = z.object({
     .toLowerCase()
     .regex(/^[a-z0-9][a-z0-9-]{2,29}$/, ru.validation.usernameFormat),
   citySlug: z.string().trim(),
-  categorySlugs: z.array(z.string().trim()).min(1).max(3),
+  // Лимит 1–3 снят (партнёр 2026-08-18): репортажник обычно универсален
+  categorySlugs: z.array(z.string().trim()).min(1).max(11),
+  favoriteSlugs: z.array(z.string().trim()).max(11).optional(),
   bio: z.string().trim().max(2000).optional(),
   // Только http/https — zod .url() пропускает javascript:/data: (stored XSS в
   // href на профиле). Серверный guard: клиентский normalizeUrl обходится.
@@ -108,7 +110,11 @@ export function POST(req: Request) {
         teamInfo: data.teamInfo,
         ...(data.languages && data.languages.length ? { languages: data.languages } : {}),
         categories: {
-          create: categories.map((c) => ({ categoryId: c.id })),
+          // Любимые — подмножество рабочих: чужие слаги молча игнорируются
+          create: categories.map((c) => ({
+            categoryId: c.id,
+            favorite: Boolean(data.favoriteSlugs?.includes(c.slug)),
+          })),
         },
         // minPriceMinor — денормализация для сортировки по цене (см. схему)
         minPriceMinor: data.packages.length ? Math.min(...data.packages.map((p) => p.priceMinor)) : null,

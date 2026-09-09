@@ -115,21 +115,21 @@ describe('видео: аргументы ffmpeg', () => {
   });
 });
 
-// Видео по уровням подписки (решение 2026-08-02): гейтим объём, не факт.
+// Видео по уровням подписки. Решение 2026-08-02 («доступно всем, гейтим
+// объём») ПЕРЕСМОТРЕНО партнёром 2026-08-18: видео — перк подписки,
+// Free — 0, Active — 3, Active+ — 7, длительность одинаковая.
 describe('видео: лимиты по уровню подписки', () => {
-  it('ролики доступны на всех уровнях — гейт по количеству, а не по факту', async () => {
+  it('видео — перк подписки: Free без роликов, уровни растут', async () => {
     const { videoLimit } = await import('@/lib/pricing');
-    // Профиль без видео — хуже выглядящая витрина, и наказан был бы заказчик
-    expect(videoLimit('FREE')).toBeGreaterThanOrEqual(1);
-    expect(videoLimit('PRIME')).toBeGreaterThan(videoLimit('FREE'));
-    expect(videoLimit('ELITE')).toBeGreaterThanOrEqual(videoLimit('PRIME'));
+    expect(videoLimit('FREE')).toBe(0);
+    expect(videoLimit('PRIME')).toBeGreaterThan(0);
+    expect(videoLimit('ELITE')).toBeGreaterThan(videoLimit('PRIME'));
   });
 
-  it('длительность на бесплатном уровне короче, на платных — одинаковая', async () => {
+  it('длительность на платных уровнях одинаковая и не выше потолка пайплайна', async () => {
     const { videoSecondsLimit, MAX_DURATION_SEC } = await import('@/lib/pricing').then(async (p) => ({
       ...p, MAX_DURATION_SEC: (await import('@/lib/video-encode')).MAX_DURATION_SEC,
     }));
-    expect(videoSecondsLimit('FREE')).toBeLessThan(videoSecondsLimit('PRIME'));
     expect(videoSecondsLimit('PRIME')).toBe(videoSecondsLimit('ELITE'));
     // Технический потолок пайплайна не ниже платного — иначе платный уровень
     // обещал бы то, что гард отбракует
