@@ -376,6 +376,114 @@ UPT
 sudo chmod +x /usr/local/bin/rp-uptime.sh
 echo '*/10 * * * * root /usr/local/bin/rp-uptime.sh >/dev/null 2>&1' | sudo tee /etc/cron.d/rp-uptime >/dev/null
 
+# ── Еженедельная репетиция восстановления (аудит 2026-09-10) ────────────────
+# Переехала с GitHub Actions на VM: шесть прогонов Actions-версии подряд
+# падали МОЛЧА — TG-секреты в репо не заведены, а исполнение через ssh-action
+# необъяснимо умирало на шаге, который на VM проходит (проверено вручную,
+# EXIT:0). Урок «алерт, зависящий от незаведённого секрета, = молчание»:
+# скрипт живёт там, где токены уже лежат (.env.prod), и отчитывается
+# heartbeat-ом в /health (restore_drill в JOB_THRESHOLDS).
+sudo tee /usr/local/bin/rp-restore-drill.sh >/dev/null <<'RDR'
+#!/usr/bin/env bash
+set -uo pipefail
+cd /opt/reportagepost || exit 0
+exec 9>/var/lock/rp-restore-drill.lock
+flock -n 9 || exit 0
+
+notify() {
+  local tok chat
+  tok=$(grep -E '^TELEGRAM_BOT_TOKEN=' .env.prod 2>/dev/null | cut -d= -f2-)
+  chat=$(grep -E '^TELEGRAM_ALERT_CHAT_ID=' .env.prod 2>/dev/null | cut -d= -f2-)
+  [ -n "$tok" ] && [ -n "$chat" ] || return 0
+  curl -s -m 15 "https://api.telegram.org/bot${tok}/sendMessage" \
+    --data-urlencode "chat_id=${chat}" --data-urlencode "text=$1" >/dev/null || true
+}
+
+# САБШЕЛЛ, а не функция в if-условии: у bash errexit ОТКЛЮЧАЕТСЯ внутри
+# функции, вызванной как условие, — упавший шаг тихо продолжал бы drill и
+# рапортовал успех. Сабшелл держит -e честным, его код читаем через $?.
+(
+  set -euo pipefail
+  export $(grep -E '^(DATABASE_URL|S3_ACCESS_KEY_ID|S3_SECRET_ACCESS_KEY|S3_ENDPOINT|S3_BUCKET)=' .env.prod | xargs -d '\n')
+
+  aws() {
+    docker run --rm -v /opt/reportagepost:/work \
+      -e AWS_ACCESS_KEY_ID="$S3_ACCESS_KEY_ID" -e AWS_SECRET_ACCESS_KEY="$S3_SECRET_ACCESS_KEY" -e AWS_DEFAULT_REGION=ru-central1 \
+      amazon/aws-cli --endpoint-url "$S3_ENDPOINT" "$@"
+  }
+
+  LATEST=$(aws s3 ls "s3://${S3_BUCKET}/db-backups/" | sort | tail -1 | awk '{print $4}')
+  [ -n "$LATEST" ] || { echo "в бакете нет ни одного дампа"; exit 1; }
+  echo "Проверяем восстановление из: $LATEST"
+
+  AGE_H=$(( ( $(date -u +%s) - $(date -u -d "$(echo "$LATEST" | sed -E 's/rp-db-([0-9]{8})-([0-9]{2})([0-9]{2})([0-9]{2})\.sql\.gz/\1 \2:\3:\4/')" +%s) ) / 3600 ))
+  echo "Возраст дампа: ${AGE_H} ч"
+  [ "$AGE_H" -le 48 ] || { echo "последний дамп старше 48ч — бэкапы не идут"; exit 1; }
+
+  aws s3 cp "s3://${S3_BUCKET}/db-backups/${LATEST}" "/work/${LATEST}"
+  trap 'rm -f "/opt/reportagepost/${LATEST}"; docker rm -f rp-restore-test >/dev/null 2>&1 || true' EXIT
+
+  docker rm -f rp-restore-test >/dev/null 2>&1 || true
+  docker run -d --name rp-restore-test -e POSTGRES_PASSWORD=drill -e POSTGRES_DB=drill postgres:17 >/dev/null
+  for i in $(seq 1 30); do
+    docker exec rp-restore-test pg_isready -U postgres -d drill >/dev/null 2>&1 && break
+    sleep 2
+  done
+  docker exec rp-restore-test pg_isready -U postgres -d drill >/dev/null || { echo "временный PG не поднялся"; exit 1; }
+
+  echo "Разворачиваем дамп…"
+  zcat "/opt/reportagepost/${LATEST}" | docker exec -i rp-restore-test psql -U postgres -d drill -v ON_ERROR_STOP=1 -q
+
+  q_restored() { docker exec rp-restore-test psql -U postgres -d drill -tAc "$1"; }
+  q_prod() {
+    docker run --rm postgres:17 psql "$(echo "$DATABASE_URL" | sed -E 's/sslmode=verify-full/sslmode=require/; s/&sslrootcert=[^&]*//; s/\?sslrootcert=[^&]*&/?/')" -tAc "$1"
+  }
+
+  FAIL=0
+  for T in User PhotographerProfile Photo Inquiry Review; do
+    R=$(q_restored "SELECT count(*) FROM public.\"$T\";" || echo "ERR")
+    P=$(q_prod "SELECT count(*) FROM public.\"$T\";" || echo "ERR")
+    echo "  $T: восстановлено=$R прод=$P"
+    case "$R" in ''|*[!0-9]*) echo "  таблица $T не восстановилась"; FAIL=1; continue;; esac
+    if [ "$T" = "User" ] && [ "$R" -eq 0 ]; then echo "  ни одного пользователя в восстановленной БД"; FAIL=1; fi
+  done
+  [ "$FAIL" -eq 0 ] || exit 1
+  echo "Восстановление из ${LATEST} проверено"
+
+  BACKUP_BUCKET=$(grep -E '^S3_BACKUP_BUCKET=' .env.prod | cut -d= -f2- || true)
+  if [ -n "${BACKUP_BUCKET:-}" ]; then
+    KEYS=$(q_restored "SELECT \"storageKey\" FROM public.\"Photo\" ORDER BY random() LIMIT 5;")
+    MFAIL=0
+    for K in $KEYS; do
+      SIZE=$(docker run --rm \
+        -e AWS_ACCESS_KEY_ID="$S3_ACCESS_KEY_ID" -e AWS_SECRET_ACCESS_KEY="$S3_SECRET_ACCESS_KEY" -e AWS_DEFAULT_REGION=ru-central1 \
+        amazon/aws-cli --endpoint-url "$S3_ENDPOINT" \
+        s3api head-object --bucket "$BACKUP_BUCKET" --key "media/$K" \
+        --query ContentLength --output text 2>/dev/null || echo "MISS")
+      if [ "$SIZE" = "MISS" ] || [ "${SIZE:-0}" = "0" ]; then
+        echo "  media/$K отсутствует в бэкап-бакете"; MFAIL=1
+      fi
+    done
+    [ "$MFAIL" -eq 0 ] || { echo "МЕДИА-БЭКАП НЕПОЛОН"; exit 1; }
+    echo "Медиа-бэкап: случайные объекты на месте"
+  else
+    echo "S3_BACKUP_BUCKET не задан — восстановимость медиа не проверена"
+  fi
+) >/tmp/rp-restore-drill.log 2>&1
+RC=$?
+
+if [ "$RC" -eq 0 ]; then
+  SECRET=$(grep -E '^JOBS_SECRET=' .env.prod 2>/dev/null | cut -d= -f2-)
+  [ -n "$SECRET" ] && curl -sf -m 20 -X POST "http://127.0.0.1:$(/usr/local/bin/rp-port.sh)/api/jobs/heartbeat" \
+    -H "Authorization: Bearer $SECRET" -H 'Content-Type: application/json' \
+    -d '{"name":"restore_drill","ok":true}' >/dev/null || true
+else
+  notify "🔴 Reportage Post: RESTORE DRILL ПРОВАЛЕН — бэкапы могут быть непригодны. Лог: /tmp/rp-restore-drill.log на VM. $(tail -3 /tmp/rp-restore-drill.log)"
+fi
+RDR
+sudo chmod +x /usr/local/bin/rp-restore-drill.sh
+echo '10 3 * * 1 root /usr/local/bin/rp-restore-drill.sh >/dev/null 2>&1' | sudo tee /etc/cron.d/rp-restore-drill >/dev/null
+
 # ── Суточный отчёт латентности (аудит 2026-08-16) ────────────────────────────
 # Первый симптом роста — «сайт стал подтормаживать» — раньше не имел ни
 # подтверждения, ни адреса: наблюдаемость была бинарной (up/down). p95 по
