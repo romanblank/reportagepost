@@ -125,17 +125,24 @@ export function POST(req: Request) {
     const activityRows = await step('gc-activity', async () => {
       const eventCutoff = new Date(Date.now() - 400 * 24 * 3_600_000);
       let removed = 0;
+      let exhausted = true;
       for (let pass = 0; pass < 50; pass++) {
         const batch = await db.activityEvent.findMany({
           where: { createdAt: { lt: eventCutoff } },
           select: { id: true },
           take: 5_000,
         });
-        if (batch.length === 0) break;
+        if (batch.length === 0) { exhausted = false; break; }
         const { count } = await db.activityEvent.deleteMany({ where: { id: { in: batch.map((r) => r.id) } } });
         removed += count;
-        if (batch.length < 5_000) break;
+        if (batch.length < 5_000) { exhausted = false; break; }
       }
+      // Потолок 250k/прогон исчерпан, а просроченные строки ОСТАЛИСЬ — чистка
+      // не поспевает за ростом, и без сигнала недобор копился бы молча
+      // (аудит 2026-09-10, арх. находка 2). Пишем в failures напрямую (не
+      // throw): удалённое честно попадает в счётчики, а задача в /health и
+      // сводке всё равно краснеет — заметят до того, как дамп распухнет.
+      if (exhausted) failures.push('gc-activity-backlog');
       return removed;
     });
 

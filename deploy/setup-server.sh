@@ -39,7 +39,10 @@ proxy_cache_path /var/cache/nginx/rp-media levels=1:2 keys_zone=rp_media:50m
 # Латентность в логе (аудит 2026-08-16, наблюдаемость трендов): $request_time
 # — единственный источник p95, не требующий ни кода в приложении, ни новых
 # сервисов. Суточный отчёт считает rp-latency.sh
-log_format rp_timing '$time_iso8601 $status $request_time $request_method $uri';
+# Шестое поле — статус кэша ($upstream_cache_status, «-» вне /files/): доля
+# MISS в суточном отчёте — сигнал «пора CDN» ДО горизонтального масштабирования
+# (аудит 2026-09-10, арх. находка 3)
+log_format rp_timing '$time_iso8601 $status $request_time $request_method $uri $upstream_cache_status';
 access_log /var/log/nginx/rp-timing.log rp_timing;
 LIM
 
@@ -390,16 +393,22 @@ REPORT=$(awk '{
     else if (p ~ /^\/api\//) grp = "api"
     else if (p ~ /^\/ru\//) { split(p, a, "/"); grp = (a[3] == "" ? "ru" : "ru-" a[3]) }
     else grp = "other"
-    print grp, $3, ($2 >= 500 ? 1 : 0)
+    # 6-е поле — статус кэша медиа; старые строки без него читаются как "-"
+    cache = ($6 == "" ? "-" : $6)
+    print grp, $3, ($2 >= 500 ? 1 : 0), cache
   }' "$LOG" | sort -k1,1 -k2,2n | awk '
   function flush() {
     if (cnt > 0) {
       idx = int(cnt * 0.95); if (idx < 1) idx = 1
-      printf "%s: n=%d p95=%ss 5xx=%d\n", cur, cnt, t[idx], errs
+      line = sprintf("%s: n=%d p95=%ss 5xx=%d", cur, cnt, t[idx], errs)
+      # Доля MISS у /files/: рост к ~20% = сигнал разгружать медиа на CDN
+      if (cur == "files" && hits + miss > 0)
+        line = line sprintf(" miss=%d%%", int(miss * 100 / (hits + miss)))
+      print line
     }
   }
-  $1 != cur { flush(); cur = $1; cnt = 0; errs = 0; delete t }
-  { t[++cnt] = $2; errs += $3 }
+  $1 != cur { flush(); cur = $1; cnt = 0; errs = 0; hits = 0; miss = 0; delete t }
+  { t[++cnt] = $2; errs += $3; if ($4 == "HIT") hits++; else if ($4 == "MISS") miss++ }
   END { flush() }')
 cd /opt/reportagepost
 # Тренд длительности фоновых задач (аудит 2026-09-10, П2): деградация джоба

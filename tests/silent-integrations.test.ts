@@ -44,6 +44,15 @@ describe('интеграции без ключей: предсказуемая �
     fetchSpy.mockRestore();
   });
 
+  it('weather: недоступный open-meteo → null, кабинет не падает', async () => {
+    // Погода — забота, а не обязательство: сеть до open-meteo может резаться
+    // где угодно, и это не повод ронять кабинет фотографа
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('сеть недоступна'));
+    const { cityWeather } = await import('@/lib/weather');
+    await expect(cityWeather('moscow', 55.75, 37.62)).resolves.toBeNull();
+    fetchSpy.mockRestore();
+  });
+
   it('error-report: без чата не бросает и не ходит в Telegram', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});

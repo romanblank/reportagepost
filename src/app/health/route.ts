@@ -81,13 +81,28 @@ export async function GET() {
 
   try {
     await db.$queryRaw`SELECT 1`;
+    // Насыщение соединений с БД (аудит 2026-09-10, арх. находка 4): пул
+    // max=20 на процесс, и его исчерпание снаружи выглядит как «сайт подвис»,
+    // а не как понятная ошибка. Смотрим ГЛАЗАМИ СЕРВЕРА (pg_stat_activity) —
+    // без новой зависимости и без лазанья во внутренности адаптера; рост
+    // total к лимиту кластера виден ДО того, как станет больно.
+    let dbConn: { total: number; active: number } | null = null;
+    try {
+      const [row] = await db.$queryRaw<{ total: bigint; active: bigint }[]>`
+        SELECT count(*) AS total,
+               count(*) FILTER (WHERE state = 'active') AS active
+        FROM pg_stat_activity WHERE datname = current_database()`;
+      dbConn = { total: Number(row.total), active: Number(row.active) };
+    } catch {
+      // Роль без прав на pg_stat_activity — не причина ронять health
+    }
     if (storageState !== 'ok') {
       return NextResponse.json(
-        { status: 'degraded', app: 'reportage-post', db: 'ok', storage: storageState, version, integrations, jobs },
+        { status: 'degraded', app: 'reportage-post', db: 'ok', dbConn, storage: storageState, version, integrations, jobs },
         { status: 503 },
       );
     }
-    return NextResponse.json({ status: 'ok', app: 'reportage-post', db: 'ok', storage: storageState, version, integrations, jobs });
+    return NextResponse.json({ status: 'ok', app: 'reportage-post', db: 'ok', dbConn, storage: storageState, version, integrations, jobs });
   } catch {
     return NextResponse.json(
       { status: 'degraded', app: 'reportage-post', db: 'unreachable', version, integrations },
