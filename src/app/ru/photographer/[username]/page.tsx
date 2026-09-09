@@ -326,6 +326,20 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
             fromPriceMinor={minPkg ? minPkg.priceMinor : null}
             facts={[
               { label: ru.profile.factCity, value: cityNameRu(profile.city.slug) },
+              // Командировки — факт для заказчика из другого города (правка
+              // партнёра 2026-08-18); NONE не показываем: отсутствие пометки
+              // и есть «снимаю в своём городе»
+              ...(profile.travelScope !== 'NONE'
+                ? [{
+                    label: ru.profile.factTravel,
+                    value:
+                      profile.travelScope === 'NEARBY' ? ru.travel.scopeNearby
+                      : profile.travelScope === 'COUNTRY' ? ru.travel.scopeCountry
+                      : profile.hasIntlPassport === false
+                        ? `${ru.travel.scopeAbroad} (${ru.travel.noPassport})`
+                        : ru.travel.scopeAbroad,
+                  }]
+                : []),
               ...(onlineText ? [{ label: ru.profile.factReply, value: onlineText }] : []),
               { label: ru.profile.factFormats, value: profile.doesVideo ? ru.profile.formatsBoth : ru.profile.formatsPhoto },
               ...(profile.verified ? [{ label: ru.profile.factIdentity, value: ru.profile.factIdentityOk }] : []),

@@ -28,6 +28,8 @@ export const ProfileEditSchema = z.object({
   experienceYears: z.number().int().min(0).max(70).nullable().optional(),
   equipment: z.string().trim().max(500).optional(),
   cameras: z.array(z.string().trim().min(1).max(80)).max(24).optional(),
+  travelScope: z.enum(['NONE', 'NEARBY', 'COUNTRY', 'ABROAD']).optional(),
+  hasIntlPassport: z.boolean().nullable().optional(),
   lenses: z.array(z.string().trim().min(1).max(80)).max(24).optional(),
   lighting: z.array(z.string().trim().min(1).max(80)).max(24).optional(),
   teamInfo: z.string().trim().max(300).optional(),
@@ -142,6 +144,14 @@ export async function applyProfileEdit(
             }
           : {}),
           ...(d.lenses !== undefined ? { lenses: d.lenses } : {}),
+          ...(d.travelScope !== undefined ? { travelScope: d.travelScope } : {}),
+          // Паспорт осмыслен только с зарубежными командировками; при уходе
+          // с ABROAD сбрасываем, чтобы не показывать устаревший факт
+          ...(d.travelScope !== undefined && d.travelScope !== 'ABROAD'
+            ? { hasIntlPassport: null }
+            : d.hasIntlPassport !== undefined
+              ? { hasIntlPassport: d.hasIntlPassport }
+              : {}),
           ...(d.lighting !== undefined ? { lighting: d.lighting } : {}),
           teamInfo: d.teamInfo?.trim() || null,
           ...(d.doesVideo !== undefined ? { doesVideo: d.doesVideo } : {}),

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { bestOfWeek, bestOfYear, editorsChoice, followingFeed, freshPhotos, recommendedFeed, type FeedPhoto } from '@/lib/feeds';
+import { bestOfWeek, bestOfYear, followingFeed, freshPhotos, recommendedFeed, type FeedPhoto } from '@/lib/feeds';
 import { getSession } from '@/lib/auth';
 import { webVariantUrl, avatarUrl } from '@/lib/photos';
 import { ru } from '@/i18n/ru';
@@ -21,7 +21,8 @@ const TABS = [
   { key: 'following', label: ru.photoFeed.tabFollowing },
   { key: 'week', label: ru.photoFeed.tabWeek },
   { key: 'year', label: ru.photoFeed.tabYear },
-  { key: 'editors', label: ru.photoFeed.tabEditors },
+  // «Выбор редакции» — в резерве (партнёр 2026-08-18); вернуть = раскомментировать
+  // { key: 'editors', label: ru.photoFeed.tabEditors },
   { key: 'fresh', label: ru.photoFeed.tabFresh },
 ] as const;
 type TabKey = (typeof TABS)[number]['key'];
@@ -47,7 +48,6 @@ export default async function PhotoFeedPage(props: {
     if (photos.length === 0) note = ru.photoFeed.followingEmpty;
   } else if (active === 'week') photos = await bestOfWeek();
   else if (active === 'year') photos = await bestOfYear();
-  else if (active === 'editors') photos = await editorsChoice();
   else photos = await freshPhotos();
 
   // Честный фолбэк малых данных для алгоритмических лент

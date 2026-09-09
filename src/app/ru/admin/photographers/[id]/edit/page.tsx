@@ -58,6 +58,8 @@ export default async function AdminEditProfilePage(props: { params: Promise<{ id
           experienceYears: profile.experienceYears ?? null,
           equipment: profile.equipment ?? '',
           cameras: profile.cameras,
+          travelScope: profile.travelScope,
+          hasIntlPassport: profile.hasIntlPassport,
           lenses: profile.lenses,
           lighting: profile.lighting,
           teamInfo: profile.teamInfo ?? '',

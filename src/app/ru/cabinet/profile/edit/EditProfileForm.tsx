@@ -18,6 +18,8 @@ interface Initial {
   equipment: string;
   cameras: string[];
   lenses: string[];
+  travelScope: 'NONE' | 'NEARBY' | 'COUNTRY' | 'ABROAD';
+  hasIntlPassport: boolean | null;
   lighting: string[];
   teamInfo: string;
   doesVideo: boolean;
@@ -61,6 +63,8 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
   const [telegram, setTelegram] = useState(initial.telegram);
   const [exp, setExp] = useState(initial.experienceYears?.toString() ?? '');
   const [cameras, setCameras] = useState(initial.cameras.join(', '));
+  const [travelScope, setTravelScope] = useState(initial.travelScope);
+  const [hasIntlPassport, setHasIntlPassport] = useState(Boolean(initial.hasIntlPassport));
   const [lenses, setLenses] = useState(initial.lenses.join(', '));
   const [lighting, setLighting] = useState(initial.lighting.join(', '));
   const [teamInfo, setTeamInfo] = useState(initial.teamInfo);
@@ -121,6 +125,8 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
         telegram: telegram.trim(),
         experienceYears: exp.trim() ? Number(exp) : null,
         cameras: csvToArr(cameras),
+        travelScope,
+        ...(travelScope === 'ABROAD' ? { hasIntlPassport } : {}),
         lenses: csvToArr(lenses),
         lighting: csvToArr(lighting),
         teamInfo: teamInfo.trim(),
@@ -237,6 +243,22 @@ export function EditProfileForm({ initial, avatar, cities, categories, endpoint 
               </label>
             ))}
           </div>
+        </div>
+        <div><label className="field-label">{ru.onboarding.travelLabel}</label>
+          <select value={travelScope} className="input"
+            onChange={(e) => setTravelScope(e.target.value as typeof travelScope)}>
+            <option value="NONE">{ru.travel.scopeNone}</option>
+            <option value="NEARBY">{ru.travel.scopeNearby}</option>
+            <option value="COUNTRY">{ru.travel.scopeCountry}</option>
+            <option value="ABROAD">{ru.travel.scopeAbroad}</option>
+          </select>
+          {travelScope === 'ABROAD' && (
+            <label className="mt-2 flex items-center gap-2 t-small">
+              <input type="checkbox" checked={hasIntlPassport}
+                onChange={(e) => setHasIntlPassport(e.target.checked)} />
+              {ru.onboarding.intlPassport}
+            </label>
+          )}
         </div>
         <div><label className="field-label">{ru.onboarding.cameras}</label>
           <input value={cameras} onChange={(e) => setCameras(e.target.value)} placeholder={ru.onboarding.gearPlaceholder} className="input" /></div>

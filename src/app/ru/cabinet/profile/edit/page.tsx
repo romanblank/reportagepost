@@ -73,6 +73,8 @@ export default async function EditProfilePage() {
           equipment: profile.equipment ?? '',
           cameras: profile.cameras,
           lenses: profile.lenses,
+          travelScope: profile.travelScope,
+          hasIntlPassport: profile.hasIntlPassport,
           lighting: profile.lighting,
           teamInfo: profile.teamInfo ?? '',
           doesVideo: profile.doesVideo,

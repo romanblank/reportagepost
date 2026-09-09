@@ -10,6 +10,10 @@ import { PortfolioImport } from '@/components/PortfolioImport';
 import { categoryNameRu } from '@/lib/category-data';
 import { PageHeader } from '@/components/PageHeader';
 import { CabinetNav } from '@/components/CabinetNav';
+import { VideoManager } from '@/components/VideoManager';
+import { storage } from '@/lib/storage';
+import { videoLimit, videoSecondsLimit } from '@/lib/pricing';
+import { tierOf } from '@/lib/subscription';
 
 export const metadata: Metadata = { title: ru.portfolio.title };
 export const dynamic = 'force-dynamic';
@@ -24,8 +28,10 @@ export default async function PortfolioPage() {
     select: {
       id: true, status: true, coverPhotoId: true,
       categories: { include: { category: { select: { slug: true } } } },
+      videos: { orderBy: { createdAt: 'asc' } },
     },
   });
+  const tier = await tierOf(session.userId);
 
   const photos = profile
     ? await db.photo.findMany({
@@ -84,6 +90,31 @@ export default async function PortfolioPage() {
               categories={profile.categories.map((c) => ({
                 slug: c.category.slug,
                 name: categoryNameRu(c.category.slug),
+              }))}
+            />
+          </div>
+        </section>
+      )}
+      {/* Видео — здесь же, где остальные медиа (правка партнёра 2026-08-18:
+          «загрузить видео не смог» — менеджер был закопан в самом низу
+          длинной формы анкеты; в разделе про медиа его и ищут) */}
+      {profile && (
+        <section className="mt-10 border-t border-line pt-8">
+          <h2 className="t-h3">{ru.onboarding.videoUploadTitle}</h2>
+          <div className="mt-3">
+            <VideoManager
+              limit={videoLimit(tier)}
+              tier={tier}
+              maxSeconds={videoSecondsLimit(tier)}
+              videos={profile.videos.map((v) => ({
+                id: v.id,
+                url: v.sdKey ? storage.publicUrl(v.sdKey) : null,
+                poster: v.posterKey ? storage.publicUrl(v.posterKey) : null,
+                title: v.title,
+                status: v.status,
+                processing: v.processing,
+                failureReason: v.failureReason,
+                durationSec: v.durationSec,
               }))}
             />
           </div>

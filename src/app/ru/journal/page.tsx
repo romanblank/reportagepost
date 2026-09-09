@@ -95,7 +95,10 @@ export default async function JournalPage() {
             </section>
           )}
 
-          {editorsRest.length > 0 && (
+          {/* «Выбор редакции» спрятан по решению партнёра (2026-08-18):
+              «дальше смотрим, надо ли нам это». Механика и данные живы —
+              распаковка = убрать false */}
+          {false && editorsRest.length > 0 && (
             <section className="mt-12">
               <h2 className="t-h3">{ru.journal.editorsTitle}</h2>
               <div className="mt-4"><FeedMasonry photos={editorsRest} /></div>

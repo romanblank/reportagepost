@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { resolveCity } from '@/lib/geo-resolve';
+import { brandsFromCameras } from '@/lib/gear-brands';
 import { ru } from '@/i18n/ru';
 import { z } from 'zod';
 import { db } from '@/lib/db';
@@ -26,6 +27,10 @@ const ProfileSchema = z.object({
   // Богатство анкеты (паритет MyWed)
   experienceYears: z.number().int().min(0).max(70).optional(),
   equipment: z.string().trim().max(500).optional(),
+  cameras: z.array(z.string().trim().min(1).max(80)).max(4).optional(),
+  lenses: z.array(z.string().trim().min(1).max(80)).max(6).optional(),
+  travelScope: z.enum(['NONE', 'NEARBY', 'COUNTRY', 'ABROAD']).optional(),
+  hasIntlPassport: z.boolean().optional(),
   teamInfo: z.string().trim().max(300).optional(),
   languages: z.array(z.string().trim().regex(/^[a-z]{2}$/)).max(8).optional(),
   packages: z
@@ -93,6 +98,13 @@ export function POST(req: Request) {
         telegram: data.telegram?.replace(/^@/, ''),
         experienceYears: data.experienceYears,
         equipment: data.equipment,
+        ...(data.cameras ? { cameras: data.cameras, cameraBrands: brandsFromCameras(data.cameras) } : {}),
+        ...(data.lenses ? { lenses: data.lenses } : {}),
+        ...(data.travelScope ? { travelScope: data.travelScope } : {}),
+        // Паспорт имеет смысл только при зарубежных командировках
+        ...(data.travelScope === 'ABROAD' && data.hasIntlPassport !== undefined
+          ? { hasIntlPassport: data.hasIntlPassport }
+          : {}),
         teamInfo: data.teamInfo,
         ...(data.languages && data.languages.length ? { languages: data.languages } : {}),
         categories: {

@@ -7,6 +7,7 @@ import { ru } from '@/i18n/ru';
 import { normalizePhone, normalizeUrl } from '@/lib/phone-format';
 import { ONBOARDING_PHOTOS_MAX, ONBOARDING_PHOTOS_MIN, MIN_LONG_SIDE } from '@/lib/photos-constants';
 import { PortfolioImport } from '@/components/PortfolioImport';
+import { CAMERA_MODELS, LENS_MODELS } from '@/lib/gear-models';
 
 interface Option {
   slug: string;
@@ -22,6 +23,13 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
   const [packages, setPackages] = useState([{ hours: 2, priceRub: 10000 }]);
   const [chosenCats, setChosenCats] = useState<string[]>([]);
   const [chosenLangs, setChosenLangs] = useState<string[]>(['ru']);
+  // Техника слотами (правка партнёра 2026-08-18): свободный текст давал
+  // «всё по-разному» — datalist подсказывает канон, ручной ввод остаётся
+  const [cameraMain, setCameraMain] = useState('');
+  const [cameraSecond, setCameraSecond] = useState('');
+  const [lensSlots, setLensSlots] = useState(['', '', '']);
+  const [travelScope, setTravelScope] = useState<'NONE' | 'NEARBY' | 'COUNTRY' | 'ABROAD'>('NONE');
+  const [hasIntlPassport, setHasIntlPassport] = useState(false);
   const [uploaded, setUploaded] = useState(0);
   const [username, setUsername] = useState(suggestedUsername);
   const [editingUsername, setEditingUsername] = useState(false);
@@ -72,7 +80,10 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
         whatsapp: (() => { const v = String(f.get('whatsapp') ?? '').trim(); return v ? normalizePhone(v) : undefined; })(),
         telegram: String(f.get('telegram') ?? '').trim() || undefined,
         experienceYears: Number(f.get('experienceYears')) || undefined,
-        equipment: String(f.get('equipment') ?? '').trim() || undefined,
+        cameras: [cameraMain, cameraSecond].map((c) => c.trim()).filter(Boolean),
+        lenses: lensSlots.map((l) => l.trim()).filter(Boolean),
+        travelScope,
+        ...(travelScope === 'ABROAD' ? { hasIntlPassport } : {}),
         teamInfo: String(f.get('teamInfo') ?? '').trim() || undefined,
         languages: chosenLangs,
         packages: packages.map((p) => ({ hours: p.hours, priceMinor: p.priceRub * 100, currency: 'RUB' })),
@@ -293,8 +304,42 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
               ))}
             </div>
           </div>
-          <div><label htmlFor="onb-equipment" className="field-label">{ru.onboarding.equipment}</label>
-            <input id="onb-equipment" name="equipment" maxLength={500} placeholder={ru.onboarding.equipmentPlaceholder} className="input" /></div>
+          <div><label htmlFor="onb-cam-main" className="field-label">{ru.onboarding.cameraMain}</label>
+            <input id="onb-cam-main" list="camera-models" value={cameraMain} maxLength={80}
+              onChange={(e) => setCameraMain(e.target.value)} placeholder={ru.onboarding.cameraPlaceholder} className="input" /></div>
+          <div><label htmlFor="onb-cam-second" className="field-label">{ru.onboarding.cameraSecond}</label>
+            <input id="onb-cam-second" list="camera-models" value={cameraSecond} maxLength={80}
+              onChange={(e) => setCameraSecond(e.target.value)} placeholder={ru.onboarding.cameraPlaceholder} className="input" /></div>
+          {lensSlots.map((v, i) => (
+            <div key={i}><label htmlFor={`onb-lens-${i}`} className="field-label">{ru.onboarding.lensN(i + 1)}</label>
+              <input id={`onb-lens-${i}`} list="lens-models" value={v} maxLength={80}
+                onChange={(e) => setLensSlots((prev) => prev.map((x, j) => (j === i ? e.target.value : x)))}
+                placeholder={ru.onboarding.lensPlaceholder} className="input" /></div>
+          ))}
+          {/* Канонические названия — подсказкой, ручной ввод не запрещён:
+              datalist принимает любой текст (правка партнёра 2026-08-18) */}
+          <datalist id="camera-models">
+            {CAMERA_MODELS.map((m) => <option key={m} value={m} />)}
+          </datalist>
+          <datalist id="lens-models">
+            {LENS_MODELS.map((m) => <option key={m} value={m} />)}
+          </datalist>
+          <div><label htmlFor="onb-travel" className="field-label">{ru.onboarding.travelLabel}</label>
+            <select id="onb-travel" value={travelScope} className="input"
+              onChange={(e) => setTravelScope(e.target.value as typeof travelScope)}>
+              <option value="NONE">{ru.travel.scopeNone}</option>
+              <option value="NEARBY">{ru.travel.scopeNearby}</option>
+              <option value="COUNTRY">{ru.travel.scopeCountry}</option>
+              <option value="ABROAD">{ru.travel.scopeAbroad}</option>
+            </select>
+            {travelScope === 'ABROAD' && (
+              <label className="mt-2 flex items-center gap-2 t-small">
+                <input type="checkbox" checked={hasIntlPassport}
+                  onChange={(e) => setHasIntlPassport(e.target.checked)} />
+                {ru.onboarding.intlPassport}
+              </label>
+            )}
+          </div>
           <div><label htmlFor="onb-team" className="field-label">{ru.onboarding.team}</label>
             <input id="onb-team" name="teamInfo" maxLength={300} placeholder={ru.onboarding.teamPlaceholder} className="input" /></div>
         </div>

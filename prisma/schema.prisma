@@ -215,6 +215,13 @@ enum ModerationStatus {
   REJECTED
 }
 
+enum TravelScope {
+  NONE // только свой город
+  NEARBY // близлежащие города (не самолёт)
+  COUNTRY // вся страна
+  ABROAD // включая зарубежные
+}
+
 model PhotographerProfile {
   id               String            @id @default(cuid())
   userId           String            @unique
@@ -238,6 +245,11 @@ model PhotographerProfile {
   avatarKey        String? // ключ аватара в хранилище (квадрат); нет — показываем инициалы
   coverPhotoId     String? // выбранная обложка каталога (иначе — лучший/первый кадр)
   experienceYears  Int? // стаж в годах (богатство анкеты, паритет MyWed)
+  // Готовность к командировкам (правка партнёра 2026-08-18): заказчик из
+  // другого города должен видеть, поедет ли автор. Зарубеж без загранпаспорта
+  // — обещание, которое сорвёт съёмку, поэтому паспорт спрашивается отдельно
+  travelScope      TravelScope       @default(NONE)
+  hasIntlPassport  Boolean? // спрашивается только при travelScope=ABROAD
   equipment        String? // legacy free-text; структурированные поля ниже (паритет MyWed + B2B-агрегация)
   cameras          String[]          @default([]) // камеры (структурировано для экспорта)
   // Нормализованные бренды камер — для фильтра каталога «Техника» (прототип v9).
