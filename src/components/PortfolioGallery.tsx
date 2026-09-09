@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { ru } from '@/i18n/ru';
 import { LightboxModal } from '@/components/Lightbox';
-import { LikeButton } from '@/components/EngagementButtons';
+import { LikeButton, SavePhotoButton } from '@/components/EngagementButtons';
 
 export interface PortfolioItem {
   id: string;
@@ -14,6 +14,7 @@ export interface PortfolioItem {
   editorsChoice: boolean;
   liked: boolean;
   likeCount: number;
+  saved: boolean;
 }
 
 // Сетка портфолио + лайтбокс. Client-компонент: получает только сериализуемые
@@ -57,7 +58,8 @@ export function PortfolioGallery({
             />
             {/* лайк — тонкой накладкой на фото (проступает на ховере), не «пилюлей под кадром» */}
             <figcaption className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-end bg-gradient-to-t from-black/45 to-transparent px-2 pb-2 pt-8 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-              <span className="pointer-events-auto">
+              <span className="pointer-events-auto flex items-center gap-3">
+                <SavePhotoButton photoId={photo.id} initialSaved={photo.saved} authed={authed} />
                 <LikeButton photoId={photo.id} initialLiked={photo.liked} initialCount={photo.likeCount} authed={authed} onDark />
               </span>
             </figcaption>

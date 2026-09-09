@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { bestOfWeek, bestOfYear, followingFeed, freshPhotos, recommendedFeed, type FeedPhoto } from '@/lib/feeds';
+import { bestOfWeek, bestOfYear, followingFeed, freshPhotos, recommendedFeed, type FeedPhoto, savedFeed } from '@/lib/feeds';
 import { getSession } from '@/lib/auth';
 import { webVariantUrl, avatarUrl } from '@/lib/photos';
 import { ru } from '@/i18n/ru';
@@ -23,6 +23,7 @@ const TABS = [
   { key: 'year', label: ru.photoFeed.tabYear },
   // «Выбор редакции» — в резерве (партнёр 2026-08-18); вернуть = раскомментировать
   // { key: 'editors', label: ru.photoFeed.tabEditors },
+  { key: 'saved', label: ru.photoFeed.tabSaved },
   { key: 'fresh', label: ru.photoFeed.tabFresh },
 ] as const;
 type TabKey = (typeof TABS)[number]['key'];
@@ -46,6 +47,11 @@ export default async function PhotoFeedPage(props: {
     if (!session) return unauthenticated();
     photos = await followingFeed(session.userId);
     if (photos.length === 0) note = ru.photoFeed.followingEmpty;
+  } else if (active === 'saved') {
+    // Личные закладки: без входа их не существует
+    if (!session) return unauthenticated();
+    photos = await savedFeed(session.userId);
+    if (photos.length === 0) note = ru.photoFeed.savedEmpty;
   } else if (active === 'week') photos = await bestOfWeek();
   else if (active === 'year') photos = await bestOfYear();
   else photos = await freshPhotos();

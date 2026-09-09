@@ -1092,6 +1092,8 @@ export const ru = {
     } as Record<string, string>,
   },
   engage: {
+    savePhoto: 'Сохранить кадр',
+    unsavePhoto: 'Убрать из сохранённых',
     follow: 'Подписаться',
     following: 'Вы подписаны',
     write: 'Написать',
@@ -1142,6 +1144,8 @@ export const ru = {
     tabWeek: 'Отмеченные за неделю',
     tabYear: 'Отмеченные за год',
     tabEditors: 'Выбор редакции',
+    tabSaved: 'Сохранённые',
+    savedEmpty: 'Пока пусто: значок закладки на кадре сохраняет его сюда — только для вас.',
     tabFresh: 'Свежие',
     tabForYou: 'Для вас',
     tabFollowing: 'Мои подписки',

@@ -201,6 +201,15 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
   const alreadyReviewed = Boolean(alreadyReviewedRow);
   const likeCount = new Map(likes.map((l) => [l.photoId, l._count]));
   const likedSet = new Set(myLikes.map((l) => l.photoId));
+  // Закладки зрителя (вкладка «Сохранённые» фотоленты): начальное состояние
+  // кнопки на каждом кадре
+  const mySaves = session
+    ? await db.savedPhoto.findMany({
+        where: { userId: session.userId, photo: { profileId: profile.id } },
+        select: { photoId: true },
+      })
+    : [];
+  const savedSet = new Set(mySaves.map((sv) => sv.photoId));
   const isSelf = session?.userId === profile.userId;
   const lastSeen = profile.user.lastSeenAt;
   const onlineText = relativeOnline(lastSeen);
@@ -614,6 +623,7 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
             editorsChoice: Boolean(p.editorsChoiceAt),
             liked: likedSet.has(p.id),
             likeCount: likeCount.get(p.id) ?? 0,
+            saved: savedSet.has(p.id),
           }))}
           authed={Boolean(session)}
           editorsChoiceLabel={ru.profile.editorsChoice}

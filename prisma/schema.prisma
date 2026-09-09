@@ -92,6 +92,7 @@ model User {
   forumPosts         ForumPost[]
   articles           Article[]
   violations         ContentViolation[]
+  savedPhotos        SavedPhoto[]
 
   // См. комментарий у PhotographerProfile: индексы поиска описаны в схеме,
   // чтобы migrate diff не пытался их снести.
@@ -398,6 +399,7 @@ model Photo {
   profile  PhotographerProfile @relation(fields: [profileId], references: [id])
   category Category            @relation(fields: [categoryId], references: [id])
   story    Story?              @relation(fields: [storyId], references: [id])
+  savedBy         SavedPhoto[]
   likes    Like[]
   comments Comment[]
 
@@ -569,6 +571,21 @@ model UsernameHistory {
   profile PhotographerProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@index([profileId])
+}
+
+// Сохранённые кадры (структура партнёра 2026-08-18, «Фотолента»):
+// личная закладка зрителя. На рейтинг НЕ влияет ничем — в отличие от лайка,
+// это память «вернуться посмотреть», а не сигнал качества.
+model SavedPhoto {
+  userId    String
+  photoId   String
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  photo Photo @relation(fields: [photoId], references: [id], onDelete: Cascade)
+
+  @@id([userId, photoId])
+  @@index([userId, createdAt])
 }
 
 model Like {

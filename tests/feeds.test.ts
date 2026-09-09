@@ -159,3 +159,54 @@ describe.skipIf(!hasDb)('feeds: подписки и рекомендации (Б
     await db.user.delete({ where: { id: u.id } });
   });
 });
+
+/**
+ * Сохранённые кадры (партнёр 2026-08-18): личная закладка, НЕ лайк.
+ * Стережём три вещи: переключатель работает, лента отдаёт только свои,
+ * закладка на непубличный кадр невозможна (утечка через ленту сохранённых).
+ */
+describe.skipIf(!hasDb)('сохранённые кадры (БД)', () => {
+  it('toggle сохраняет и снимает; лента личная; PENDING не сохранить', async () => {
+    const { db } = await import('@/lib/db');
+    const { toggleSavePhoto, savedFeed } = await import('@/lib/feeds');
+
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const city = await db.city.findFirstOrThrow({ where: { slug: 'moscow' } });
+    const cat = await db.category.findFirstOrThrow({ where: { slug: 'sports' } });
+    const author = await db.user.create({
+      data: { role: 'PHOTOGRAPHER', status: 'ACTIVE', firstName: 'Сейв', lastName: 'Автор', email: `save-a-${stamp}@test.local` },
+    });
+    const profile = await db.photographerProfile.create({
+      data: { userId: author.id, username: `save-${stamp}`, cityId: city.id, status: 'APPROVED' },
+    });
+    const photo = await db.photo.create({
+      data: { profileId: profile.id, categoryId: cat.id, storageKey: `photos/save-${stamp}/web.jpg`, width: 2400, height: 1600, status: 'APPROVED', publishedAt: new Date() },
+    });
+    const pending = await db.photo.create({
+      data: { profileId: profile.id, categoryId: cat.id, storageKey: `photos/savep-${stamp}/web.jpg`, width: 2400, height: 1600, status: 'PENDING' },
+    });
+    const viewer = await db.user.create({
+      data: { role: 'CLIENT', status: 'ACTIVE', firstName: 'Сейв', lastName: 'Зритель', email: `save-v-${stamp}@test.local` },
+    });
+    const other = await db.user.create({
+      data: { role: 'CLIENT', status: 'ACTIVE', firstName: 'Сейв', lastName: 'Чужой', email: `save-o-${stamp}@test.local` },
+    });
+
+    try {
+      expect((await toggleSavePhoto(viewer.id, photo.id)).saved).toBe(true);
+      // Лента личная: у чужого пусто
+      expect((await savedFeed(viewer.id)).some((p) => p.photoId === photo.id)).toBe(true);
+      expect((await savedFeed(other.id)).length).toBe(0);
+      // Повторный toggle снимает
+      expect((await toggleSavePhoto(viewer.id, photo.id)).saved).toBe(false);
+      expect((await savedFeed(viewer.id)).length).toBe(0);
+      // Непубличный кадр закладке недоступен
+      await expect(toggleSavePhoto(viewer.id, pending.id)).rejects.toMatchObject({ status: 404 });
+    } finally {
+      await db.savedPhoto.deleteMany({ where: { userId: { in: [viewer.id, other.id] } } });
+      await db.photo.deleteMany({ where: { profileId: profile.id } });
+      await db.photographerProfile.delete({ where: { id: profile.id } });
+      await db.user.deleteMany({ where: { id: { in: [author.id, viewer.id, other.id] } } });
+    }
+  });
+});

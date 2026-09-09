@@ -92,6 +92,25 @@ export function LikeButton({ photoId, initialLiked, initialCount, authed, onDark
   );
 }
 
+/**
+ * Закладка кадра (партнёр 2026-08-18, вкладка «Сохранённые»): личная память
+ * зрителя, на рейтинг не влияет — потому и иконка не сердце, а закладка.
+ */
+export function SavePhotoButton({ photoId, initialSaved, authed }: {
+  photoId: string;
+  initialSaved: boolean;
+  authed: boolean;
+}) {
+  const { on: saved, busy, toggle } = useToggle(`/api/photos/${photoId}/save`, initialSaved, authed);
+  return (
+    <button type="button" onClick={() => void toggle()} aria-pressed={saved} disabled={busy} aria-busy={busy}
+      aria-label={saved ? ru.engage.unsavePhoto : ru.engage.savePhoto}
+      className="inline-flex items-center gap-1.5 t-small font-medium text-white/90 transition hover:text-white disabled:opacity-60">
+      <Icon name={saved ? 'bookmark-filled' : 'bookmark'} size={16} />
+    </button>
+  );
+}
+
 export function FollowButton({ userId, initialFollowing, authed }: {
   userId: string;
   initialFollowing: boolean;

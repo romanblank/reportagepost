@@ -162,6 +162,40 @@ export async function followingFeed(userId: string, limit = 60): Promise<FeedPho
 }
 
 /**
+ * Сохранённые кадры пользователя (структура партнёра 2026-08-18): личные
+ * закладки, свежие сверху. На рейтинг не влияют — это память зрителя.
+ */
+export async function savedFeed(userId: string, limit = 60): Promise<FeedPhoto[]> {
+  const rows = await db.savedPhoto.findMany({
+    where: { userId, photo: { status: 'APPROVED', profile: { status: 'APPROVED' } } },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+    select: { photo: { include: FEED_INCLUDE } },
+  });
+  return rows.map((r) => toFeedPhoto(r.photo));
+}
+
+/** Личная закладка кадра. Идемпотентна: P2002 = уже сохранено. */
+export async function toggleSavePhoto(userId: string, photoId: string): Promise<{ saved: boolean }> {
+  const existing = await db.savedPhoto.findUnique({
+    where: { userId_photoId: { userId, photoId } },
+  });
+  if (existing) {
+    await db.savedPhoto.delete({ where: { userId_photoId: { userId, photoId } } });
+    return { saved: false };
+  }
+  // Кадр обязан существовать и быть публичным — закладка на скрытое
+  // превратилась бы в утечку через ленту сохранённых
+  const photo = await db.photo.findUnique({ where: { id: photoId }, select: { status: true } });
+  if (!photo || photo.status !== 'APPROVED') throw new DomainError('not_found', 404);
+  await db.savedPhoto.create({ data: { userId, photoId } }).catch((e: unknown) => {
+    if (e && typeof e === 'object' && 'code' in e && e.code === 'P2002') return;
+    throw e;
+  });
+  return { saved: true };
+}
+
+/**
  * Рекомендательная лента: персонально по категориям, которые пользователь
  * лайкал, ранжирование взвешенными лайками за 30 дней. Фолбэк при малых
  * данных — «лучшее недели», затем «свежее» (честно, без пустых страниц).

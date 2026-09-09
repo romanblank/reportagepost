@@ -7,6 +7,7 @@ import type { SVGProps } from 'react';
 export type IconName =
   | 'star' | 'star-half' | 'star-filled'
   | 'heart' | 'heart-filled'
+  | 'bookmark' | 'bookmark-filled'
   | 'check' | 'check-badge'
   | 'chevron-left' | 'chevron-right'
   | 'message' | 'bell' | 'camera' | 'user' | 'search' | 'calendar' | 'x' | 'plus'
@@ -18,6 +19,8 @@ const PATHS: Record<IconName, { d: string; fill?: boolean }> = {
   'star-half': { d: 'M12 3.5v14.27l-5.2 2.73.99-5.79-4.21-4.1 5.82-.85L12 3.5z', fill: true },
   heart: { d: 'M12 20s-7-4.35-9.33-8.03C1.3 9.5 2.28 6.5 5.1 6.02 7 5.7 8.9 6.6 12 9.5c3.1-2.9 5-3.8 6.9-3.48 2.82.48 3.8 3.48 2.43 5.95C19 15.65 12 20 12 20z' },
   'heart-filled': { d: 'M12 20s-7-4.35-9.33-8.03C1.3 9.5 2.28 6.5 5.1 6.02 7 5.7 8.9 6.6 12 9.5c3.1-2.9 5-3.8 6.9-3.48 2.82.48 3.8 3.48 2.43 5.95C19 15.65 12 20 12 20z', fill: true },
+  bookmark: { d: 'M6.5 3.5h11v17l-5.5-4-5.5 4v-17z' },
+  'bookmark-filled': { d: 'M6.5 3.5h11v17l-5.5-4-5.5 4v-17z', fill: true },
   check: { d: 'M4.5 12.5l5 5 10-11' },
   // Действия по входящей заявке — звонок и почта в один тап
   phone: { d: 'M6.5 3.5h3l1.5 4-2 1.5a11 11 0 005 5l1.5-2 4 1.5v3a1.5 1.5 0 01-1.7 1.5C10.9 17.6 6.4 13.1 5 6.2A1.5 1.5 0 016.5 3.5z' },
