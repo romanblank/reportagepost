@@ -210,3 +210,55 @@ describe.skipIf(!hasDb)('сохранённые кадры (БД)', () => {
     }
   });
 });
+
+/**
+ * «Отмеченные» (партнёр 2026-08-18): глобальная подборка по živому отклику
+ * за 30 дней. Стережём: демо исключены, отклик определяет состав, страница
+ * не выдаёт мест — данные без позиций (сортировка есть, номеров нет).
+ */
+describe.skipIf(!hasDb)('отмеченные авторы (БД)', () => {
+  it('живой автор с откликом попадает, демо — никогда', async () => {
+    const { db } = await import('@/lib/db');
+    const { markedPhotographers } = await import('@/lib/catalog');
+
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const city = await db.city.findFirstOrThrow({ where: { slug: 'omsk' } });
+    const cat = await db.category.findFirstOrThrow({ where: { slug: 'sports' } });
+
+    const mk = async (tag: string, demo: boolean) => {
+      const u = await db.user.create({
+        data: { role: 'PHOTOGRAPHER', status: 'ACTIVE', firstName: 'Отм', lastName: tag, email: `mark-${tag}-${stamp}@test.local` },
+      });
+      const p = await db.photographerProfile.create({
+        data: { userId: u.id, username: `mark-${tag}-${stamp}`, cityId: city.id, status: 'APPROVED', isDemo: demo },
+      });
+      const ph = await db.photo.create({
+        data: { profileId: p.id, categoryId: cat.id, storageKey: `photos/mark-${tag}-${stamp}/web.jpg`, width: 2400, height: 1600, status: 'APPROVED', publishedAt: new Date() },
+      });
+      return { u, p, ph };
+    };
+    const real = await mk('real', false);
+    const demo = await mk('demo', true);
+    const fan = await db.user.create({
+      data: { role: 'CLIENT', status: 'ACTIVE', firstName: 'Фанат', lastName: 'Отметок', email: `mark-f-${stamp}@test.local` },
+    });
+    await db.like.createMany({
+      data: [
+        { userId: fan.id, photoId: real.ph.id, weightMilli: 1000 },
+        { userId: fan.id, photoId: demo.ph.id, weightMilli: 1000 },
+      ],
+    });
+
+    try {
+      const cards = await markedPhotographers(500);
+      const names = cards.map((c) => c.username);
+      expect(names).toContain(real.p.username);
+      expect(names).not.toContain(demo.p.username);
+    } finally {
+      await db.like.deleteMany({ where: { userId: fan.id } });
+      await db.photo.deleteMany({ where: { profileId: { in: [real.p.id, demo.p.id] } } });
+      await db.photographerProfile.deleteMany({ where: { id: { in: [real.p.id, demo.p.id] } } });
+      await db.user.deleteMany({ where: { id: { in: [real.u.id, demo.u.id, fan.id] } } });
+    }
+  });
+});

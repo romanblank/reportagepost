@@ -101,6 +101,8 @@ export interface CatalogPage {
 
 export interface CatalogCard {
   username: string;
+  /** Город автора — глобальные подборки показывают его на карточке */
+  citySlug: string;
   firstName: string;
   lastName: string;
   verified: boolean;
@@ -177,6 +179,7 @@ const CATALOG_INCLUDE = {
   // ДЕШЁВЫЙ пакет, а не первый введённый (аудит 2026-08-16): «от 45 000»
   // у автора, чей второй пакет стоит 8 000, завышал вход в пять раз и
   // прогонял заказчика с бюджетом
+  city: { select: { slug: true } },
   packages: { select: { hours: true, priceMinor: true, currency: true }, orderBy: { priceMinor: 'asc' } },
   photos: {
     where: { status: 'APPROVED' as const },
@@ -245,6 +248,7 @@ async function toCards(shown: CatalogRow[]): Promise<CatalogCard[]> {
     username: p.username,
     verified: p.verified,
     isDemo: p.isDemo,
+    citySlug: p.city.slug,
     avatarKey: p.avatarKey,
     firstName: p.user.firstName,
     lastName: p.user.lastName,
@@ -379,6 +383,55 @@ export async function catalogForCity(filters: CatalogFilters): Promise<CatalogPa
 // «Открыты для новых заказов»: полка — перк ТОЛЬКО Active+ (ELITE). Буст-видимость
 // БЕЗ сдвига основного merit-списка (soft-hybrid). proRank>=ELITE_RANK — префильтр,
 // точный статус — по activeTier (денорм может отставать от экспирации).
+
+/**
+ * «Отмеченные» — глобальная страница авторов (структура партнёра 2026-08-18,
+ * меню «Фотографы»; слова «рейтинг» и «лучшие» запрещены инвариантом).
+ *
+ * Механика в рамках «доброжелательного рейтинга»: авторы, чьи работы
+ * ЗАКАЗЧИКИ отметили за последние 30 дней — сумма взвешенных лайков по
+ * кадрам профиля. Никаких мест и баллов на странице: это подборка, а не
+ * таблица чемпионата. Свежесть окна принципиальна: страница показывает, кто
+ * живой сейчас, а не кто накопил историю, — новичок с сильной неделей
+ * попадает сюда наравне со старожилом.
+ *
+ * Демо-профили исключены: страница для внешних глаз.
+ */
+export async function markedPhotographers(limit = 24): Promise<CatalogCard[]> {
+  const since = new Date(Date.now() - 30 * 86_400_000);
+  const liked = await db.like.groupBy({
+    by: ['photoId'],
+    where: { createdAt: { gte: since }, photoId: { not: null } },
+    _sum: { weightMilli: true },
+  });
+  if (liked.length === 0) return [];
+
+  const photoIds = liked.map((l) => l.photoId as string);
+  const photos = await db.photo.findMany({
+    where: { id: { in: photoIds }, status: 'APPROVED', profile: { status: 'APPROVED', isDemo: false } },
+    select: { id: true, profileId: true },
+  });
+  const weightByPhoto = new Map(liked.map((l) => [l.photoId as string, l._sum.weightMilli ?? 0]));
+  const byProfile = new Map<string, number>();
+  for (const p of photos) {
+    byProfile.set(p.profileId, (byProfile.get(p.profileId) ?? 0) + (weightByPhoto.get(p.id) ?? 0));
+  }
+  const topIds = [...byProfile.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([id]) => id);
+  if (topIds.length === 0) return [];
+
+  const rows = await db.photographerProfile.findMany({
+    where: { id: { in: topIds } },
+    select: CATALOG_INCLUDE,
+  });
+  // Порядок отклика сохраняем (findMany его теряет)
+  const orderIndex = new Map(topIds.map((id, i) => [id, i]));
+  rows.sort((a, b) => (orderIndex.get(a.id) ?? 0) - (orderIndex.get(b.id) ?? 0));
+  return toCards(rows);
+}
+
 export async function recommendedForCity(citySlug: string, limit = 6): Promise<CatalogCard[]> {
   const rows = await db.photographerProfile.findMany({
     where: { status: 'APPROVED', city: { slug: citySlug }, proRank: { gte: ELITE_RANK }, photos: { some: { status: 'APPROVED' } } },

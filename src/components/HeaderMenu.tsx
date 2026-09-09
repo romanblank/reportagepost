@@ -29,6 +29,7 @@ function menuItems(catalogHref: string): MenuItem[] {
     {
       label: ru.nav.photographersMenu,
       children: [
+        { href: '/ru/photographers', label: ru.nav.photographersMarked },
         { href: catalogHref, label: ru.nav.photographersCatalog },
         { href: '/ru/match', label: ru.nav.match },
         { href: '/ru/favorites', label: ru.nav.photographersFavorites },

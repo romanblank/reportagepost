@@ -4,6 +4,7 @@ import { webVariantUrl, thumbVariantUrl, webpVariantUrl } from '@/lib/photos';
 import { formatRubMinor } from '@/lib/money';
 import { CATEGORIES, categoryNameRu } from '@/lib/category-data';
 import { ru } from '@/i18n/ru';
+import { cityNameRu } from '@/lib/geo-data';
 import { Avatar } from '@/components/ui/Avatar';
 import { VerifiedBadge, TierBadge } from '@/components/ui/Badge';
 
@@ -26,7 +27,9 @@ export function CatalogCards({ cards, cityName }: { cards: CatalogCard[]; cityNa
     <ul className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
       {cards.map((card) => {
         const catNames = card.categories.map((slug) => categoryNameRu(slug));
-        const alt = ru.catalog.cardAlt(`${card.firstName} ${card.lastName}`, cityName);
+        // Глобальные подборки не передают город страницы — берём город автора
+        const place = cityName || cityNameRu(card.citySlug);
+        const alt = ru.catalog.cardAlt(`${card.firstName} ${card.lastName}`, place);
         return (
           <li key={card.username}>
             <Link href={`/ru/photographer/${card.username}`}
@@ -85,7 +88,7 @@ export function CatalogCards({ cards, cityName }: { cards: CatalogCard[]; cityNa
                   {card.tier !== 'FREE' && <TierBadge tier={card.tier} label={ru.pro.tierName[card.tier]} />}
                 </span>
                 <span className="mt-1 truncate t-small muted">
-                  {cityName}{catNames.length > 0 ? ` · ${catNames.join(', ')}` : ''}
+                  {place}{catNames.length > 0 ? ` · ${catNames.join(', ')}` : ''}
                 </span>
 
                 {/* Нижняя строка: цена и факт доверия — то, по чему сравнивают */}

@@ -45,6 +45,7 @@ export function sitemapEntries(
     // не было вовсе, хотя он задуман как самостоятельная точка входа
     { url: `${BASE_URL}/ru/journal`, lastModified: now, changeFrequency: 'weekly', priority: 0.6 },
     // Раздел «О сайте» (партнёр 2026-08-18)
+    { url: `${BASE_URL}/ru/photographers`, lastModified: now, changeFrequency: 'daily', priority: 0.7 },
     { url: `${BASE_URL}/ru/about`, lastModified: now, changeFrequency: 'monthly', priority: 0.4 },
     { url: `${BASE_URL}/ru/news`, lastModified: now, changeFrequency: 'weekly', priority: 0.4 },
     { url: `${BASE_URL}/ru/community`, lastModified: now, changeFrequency: 'weekly', priority: 0.5 },

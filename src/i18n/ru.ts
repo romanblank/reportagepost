@@ -183,6 +183,7 @@ export const ru = {
     aboutFeedback: 'Обратная связь',
     aboutNews: 'Новости сайта',
     photographersMenu: 'Фотографы',
+    photographersMarked: 'Отмеченные',
     photographersCatalog: 'Каталог',
     photographersFavorites: 'В избранном',
     skipToContent: 'К содержимому',
@@ -1647,6 +1648,12 @@ export const ru = {
     } as Record<string, string>,
     wind: (ms: number) => `ветер ${ms} м/с`,
     gearHint: 'берегите технику',
+  },
+  marked: {
+    title: 'Отмеченные',
+    lead: 'Авторы, чьи работы заказчики отметили за последний месяц. Это не таблица мест — подборка живого отклика: новичок с сильной неделей стоит здесь наравне со старожилом.',
+    empty: 'Пока пусто: отметки заказчиков за месяц соберутся — подборка появится.',
+    toCatalog: 'Открыть каталог',
   },
   favoritesPage: {
     title: 'В избранном',

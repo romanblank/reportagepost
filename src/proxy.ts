@@ -54,6 +54,7 @@ const APP_SECTIONS = new Set([
   'onboarding',
   'photo',
   'photographer',
+  'photographers',
   'pro',
   'register',
   'reset',
