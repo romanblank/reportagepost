@@ -337,8 +337,9 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
           { id: 'reviews', label: ru.profile.navReviews },
           ...(isSelf ? [] : [{ id: 'booking', label: ru.profile.navCalendar }]),
         ]}
+        // Читаемое резюме вместо криптичного «6 раз · 3 заказчика» (design-polish)
         summary={shoots.count > 0
-          ? `${ru.profile.shootsCount(shoots.count)} · ${ru.profile.shootsReturning(shoots.returning)}`
+          ? `${ru.profile.shootsSummary(shoots.count)}${shoots.returning > 0 ? ` · ${ru.profile.shootsSummaryReturning(shoots.returning)}` : ''}`
           : null}
       />
 
@@ -400,17 +401,22 @@ export default async function ProfilePage(props: { params: Promise<{ username: s
           <div className="mt-4"><VerifyButton profileId={profile.id} verified={profile.verified} /></div>
         )}
 
-        {/* Соц-статы + контакты */}
+        {/* Соц-статы + контакты. Нулевые счётчики скрыты (design-polish,
+            волна 1): «0 подписчиков 0 подписки» на витрине пустой платформы
+            работает против доверия — цифра появляется вместе с первой единицей */}
         <div className="mt-5 flex flex-wrap items-center gap-x-7 gap-y-3">
-          {/* Счётчики кликабельны — follow-списки (паритет MyWed) */}
-          <Link href={`/ru/photographer/${profile.username}/followers`}
-            className="flex items-baseline gap-1.5 transition hover:opacity-80">
-            <b className="tnum text-[15px] font-medium">{followers}</b><span className="t-caption muted">{ru.profile.statFollowers}</span>
-          </Link>
-          <Link href={`/ru/photographer/${profile.username}/following`}
-            className="flex items-baseline gap-1.5 transition hover:opacity-80">
-            <b className="tnum text-[15px] font-medium">{followingCount}</b><span className="t-caption muted">{ru.profile.statFollowing}</span>
-          </Link>
+          {followers > 0 && (
+            <Link href={`/ru/photographer/${profile.username}/followers`}
+              className="flex items-baseline gap-1.5 transition hover:opacity-80">
+              <b className="tnum text-[15px] font-medium">{followers}</b><span className="t-caption muted">{ru.profile.statFollowers}</span>
+            </Link>
+          )}
+          {followingCount > 0 && (
+            <Link href={`/ru/photographer/${profile.username}/following`}
+              className="flex items-baseline gap-1.5 transition hover:opacity-80">
+              <b className="tnum text-[15px] font-medium">{followingCount}</b><span className="t-caption muted">{ru.profile.statFollowing}</span>
+            </Link>
+          )}
           <div className="flex flex-wrap items-center gap-2 t-small sm:ml-auto">
             <ShareButton path={`/ru/photographer/${profile.username}`} title={`${profile.user.firstName} ${profile.user.lastName}`} />
 

@@ -74,12 +74,14 @@ export function LandingHero({ photographers, photos, backdropSrc, featured }: {
             <img src={featured.src} alt=""
               className="aspect-[4/5] w-full object-cover transition duration-700 group-hover:scale-[1.04]" />
             <span className="absolute inset-0" style={{ background: 'linear-gradient(0deg, rgba(9,11,15,.9) 0%, transparent 46%)' }} />
-            <span className="absolute left-3.5 top-3.5 rounded-md bg-accent px-3 py-1.5 t-caption text-accent-ink">
+            {/* Признание — золото recognition, не оранжевый действия: акцент
+                никогда не живёт на изображениях (design-polish, волна 1) */}
+            <span className="absolute left-3.5 top-3.5 rounded-md bg-recognition px-3 py-1.5 t-caption text-recognition-ink">
               {ru.landing.featuredBadge}
             </span>
             <span className="absolute inset-x-5 bottom-5">
               <span className="block t-small text-ink-2">
-                {ru.landing.featuredShotBy} <b className="text-accent">{featured.name}</b>
+                {ru.landing.featuredShotBy} <b className="text-ink">{featured.name}</b>
                 {featured.isDemo && (
                   <span className="ml-2 rounded-sm border border-line px-1.5 py-0.5 t-fine text-muted">
                     {ru.demo.badge}

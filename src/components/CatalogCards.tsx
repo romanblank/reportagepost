@@ -134,13 +134,25 @@ export function CategoryLinks({
 }) {
   const base = `/ru/${countrySlug}/${citySlug}`;
   if (vertical) {
-    const item = (href: string, label: string, active: boolean, count?: number) => (
-      <Link key={href} href={href}
-        className={`flex items-center justify-between gap-3 rounded-md px-3 py-2 t-small transition ${active ? 'bg-surface-2 font-medium text-accent' : 'muted hover:bg-surface-2 hover:text-ink'}`}>
-        <span className="truncate">{label}</span>
-        {count != null && count > 0 && <span className="shrink-0 tnum text-[12.5px] opacity-70">{count}</span>}
-      </Link>
-    );
+    // Жанр без авторов приглушён сильнее и ведёт себя честно: он остаётся
+    // ссылкой (выдача с честным пустым состоянием), но не выглядит равным
+    // наполненным пунктам (design-polish, волна 1)
+    const item = (href: string, label: string, active: boolean, count?: number) => {
+      const empty = counts != null && !active && (count ?? 0) === 0;
+      return (
+        <Link key={href} href={href}
+          className={`flex items-center justify-between gap-3 rounded-md px-3 py-2 t-small transition ${
+            active
+              ? 'bg-surface-2 font-medium text-accent'
+              : empty
+                ? 'text-muted-2 hover:bg-surface-2 hover:text-muted'
+                : 'muted hover:bg-surface-2 hover:text-ink'
+          }`}>
+          <span className="truncate">{label}</span>
+          {count != null && count > 0 && <span className="shrink-0 tnum text-[12.5px] opacity-70">{count}</span>}
+        </Link>
+      );
+    };
     const total = counts ? Object.values(counts).reduce((a, b) => a + b, 0) : undefined;
     return (
       <nav className="flex flex-col gap-0.5">

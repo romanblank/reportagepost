@@ -61,7 +61,10 @@ export async function SiteHeader() {
           ) : (
             <>
               <Link href="/ru/login" className={linkCls}>{ru.nav.login}</Link>
-              <Link href="/ru/register" className="btn btn-accent px-3.5 py-1.5">{ru.nav.register}</Link>
+              {/* Outline, не accent (design-polish, волна 1): главное действие
+                  задаёт СТРАНИЦА («Найти», «Оставить заявку»), шапка не должна
+                  перекрикивать его третьим оранжевым на каждом экране */}
+              <Link href="/ru/register" className="btn btn-outline px-3.5 py-1.5">{ru.nav.register}</Link>
             </>
           )}
         </div>

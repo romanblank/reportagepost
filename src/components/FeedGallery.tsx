@@ -5,9 +5,15 @@ import type { StoryCard } from '@/lib/discovery';
 
 // Переиспользуемые проекции ленты (сериализуемые данные — RSC-совместимо).
 
-/** Masonry-сетка (главная «свежее», ленты). */
-export function FeedMasonry({ photos }: { photos: FeedPhoto[] }) {
+/** Masonry-сетка (главная «свежее», ленты).
+ *
+ * `capped` — ровное завершение для витринных секций (design-polish, волна 1):
+ * CSS columns не балансирует высоты, и хвост сетки обрывался рваной
+ * пустотой. Кап срезает низ по общей линии и растворяет его фейдом в грунт —
+ * секция заканчивается намеренно, а «вся лента» живёт за ссылкой рядом. */
+export function FeedMasonry({ photos, capped = false }: { photos: FeedPhoto[]; capped?: boolean }) {
   return (
+    <div className={capped ? 'relative max-h-[60rem] overflow-hidden' : undefined}>
     <div className="columns-2 gap-3 sm:columns-3 lg:columns-4">
       {photos.map((p) => (
         <Link key={p.photoId} href={`/ru/photographer/${p.username}`}
@@ -26,6 +32,11 @@ export function FeedMasonry({ photos }: { photos: FeedPhoto[] }) {
           </div>
         </Link>
       ))}
+    </div>
+    {capped && (
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28"
+        style={{ background: 'linear-gradient(to top, var(--paper), transparent)' }} />
+    )}
     </div>
   );
 }

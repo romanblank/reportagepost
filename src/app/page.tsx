@@ -103,7 +103,7 @@ export default async function Home() {
             </div>
             <Link href="/ru/photo" className="t-small text-accent hover:underline">{ru.landing.feedMore}</Link>
           </div>
-          <div className="mt-5"><FeedMasonry photos={feedPhotos} /></div>
+          <div className="mt-5"><FeedMasonry capped photos={feedPhotos} /></div>
         </section>
       )}
 
