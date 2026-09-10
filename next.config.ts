@@ -23,12 +23,16 @@ const nextConfig: NextConfig = {
     // ответ (к S4). Даже в таком виде заголовок закрывает главное: чужие origin
     // для скриптов/форм/фреймов, кликджекинг и подмену base.
     // frame-src — только whitelist провайдеров шоурилов (src/lib/showreel.ts),
-    // img-src допускает data: ради LQIP-плейсхолдеров (Photo.blurhash).
+    // img-src допускает data: ради LQIP-плейсхолдеров (Photo.blurhash) и
+    // images.unsplash.com — временный hero-сет главной и сцены входа
+    // (src/lib/hero-images.ts): CSP молча блокировал обои, герой и левая
+    // панель auth стояли чёрной пустотой (design-polish 2026-09-10). Убрать
+    // вместе с переходом hero на кадры сообщества.
     const csp = [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob:",
+      "img-src 'self' data: blob: https://images.unsplash.com",
       "media-src 'self' blob:",
       "font-src 'self' data:",
       "connect-src 'self'",
