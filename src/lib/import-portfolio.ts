@@ -140,7 +140,11 @@ export function extractImageUrls(html: string, pageUrl: string): string[] {
     if (u && !found.includes(u)) found.push(u);
   };
 
-  for (const m of html.matchAll(/<meta[^>]+property=["']og:image[^>]*content=["']([^"']+)["']/gi)) {
+  // Граница свойства обязательна (live-баг 2026-09-10, brendoskop.ru):
+  // без неё og:image:width/height/type/alt тоже матчились, и «1200», «630»,
+  // «image/jpeg» и alt-текст абсолютизировались в псевдо-URL — SPA без
+  // единого <img> честно показывала «найдено 5 кадров» из мусора
+  for (const m of html.matchAll(/<meta[^>]+property=["']og:image(?::(?:secure_)?url)?["'][^>]*content=["']([^"']+)["']/gi)) {
     push(absolutize(m[1], base));
   }
   for (const m of html.matchAll(/<img[^>]*>/gi)) {

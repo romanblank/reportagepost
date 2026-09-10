@@ -25,6 +25,17 @@ export function PortfolioImport({
   const router = useRouter();
   const [url, setUrl] = useState('');
   const [found, setFound] = useState<string[] | null>(null);
+
+  // Выбытие кандидата с незагрузившимся превью (см. onError ниже)
+  function dropBroken(src: string) {
+    setFound((prev) => (prev ? prev.filter((u) => u !== src) : prev));
+    setPicked((prev) => {
+      if (!prev.has(src)) return prev;
+      const next = new Set(prev);
+      next.delete(src);
+      return next;
+    });
+  }
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [categorySlug, setCategorySlug] = useState(categories[0]?.slug ?? '');
   const [busy, setBusy] = useState(false);
@@ -129,9 +140,13 @@ export function PortfolioImport({
                     aria-pressed={isPicked}
                     className={`block w-full overflow-hidden rounded-media border-2 transition ${isPicked ? 'border-recognition' : 'border-line opacity-70 hover:opacity-100'}`}>
                     {/* Чужой домен — next/image здесь неприменим (нужен whitelist
-                        хостов, а адрес произвольный), поэтому обычный img */}
+                        хостов, а адрес произвольный), поэтому обычный img.
+                        onError: кандидат, не показавший превью (hotlink-блок,
+                        битый адрес), выбывает — пустые рамки в сетке хуже
+                        честного «не нашли» (live-баг 2026-09-10) */}
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={src} alt="" loading="lazy" className="aspect-[4/5] w-full bg-surface object-cover" />
+                    <img src={src} alt="" loading="lazy" onError={() => dropBroken(src)}
+                      className="aspect-[4/5] w-full bg-surface object-cover" />
                   </button>
                 </li>
               );

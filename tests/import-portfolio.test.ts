@@ -128,3 +128,25 @@ describe('импорт портфолио: редирект не выводит 
   // проверить: любое кольцо через localhost обрывается раньше — на гарде
   // приватного адреса. Проверять это моком fetch значило бы тестировать мок.
 });
+
+// Live-баг 2026-09-10 (brendoskop.ru): SPA без единого <img> отдавала «5
+// кадров» — regex og:image матчил и og:image:width/height/type/alt, а их
+// значения («1200», «image/jpeg», alt-текст) абсолютизировались в псевдо-URL
+describe('extractImageUrls: суффиксные og:image-свойства не считаются кадрами', () => {
+  it('берёт og:image и og:image:secure_url, отбрасывает width/height/type/alt', async () => {
+    const { extractImageUrls } = await import('@/lib/import-portfolio');
+    const html = `
+      <meta property="og:image" content="https://site.ru/og.jpg" />
+      <meta property="og:image:width" content="1200" />
+      <meta property="og:image:height" content="630" />
+      <meta property="og:image:type" content="image/jpeg" />
+      <meta property="og:image:alt" content="Название сайта — описание" />
+      <meta property="og:image:secure_url" content="https://site.ru/og-secure.jpg" />
+    `;
+    const urls = extractImageUrls(html, 'https://site.ru/');
+    expect(urls).toContain('https://site.ru/og.jpg');
+    expect(urls).toContain('https://site.ru/og-secure.jpg');
+    expect(urls).toHaveLength(2);
+  });
+});
+
