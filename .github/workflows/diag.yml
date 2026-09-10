@@ -33,5 +33,5 @@ jobs:
               -d '{"username":"diag'"$RANDOM"'","citySlug":"moscow","categorySlugs":["concerts-festivals"],"bio":"Тест анкеты фотографа для диагностики","packages":[{"hours":3,"priceMinor":1500000,"currency":"RUB"}]}')
             echo "profile response: $PROF"
             echo "--- РЕЖИМ ХРАНИЛИЩА (S3 vs диск):"
-            docker exec reportagepost sh -c 'if [ -n "$S3_BUCKET" ]; then echo "S3 включён, бакет=$S3_BUCKET"; else echo "ВНИМАНИЕ: S3 не сконфигурирован — фото на диске"; fi'
-            docker exec reportagepost sh -c 'ls /app/.uploads >/dev/null 2>&1 && echo "есть /app/.uploads (фото писались на диск!)" || echo "нет /app/.uploads (хорошо, всё в S3)"'
+            docker exec "reportagepost-$(cat /opt/reportagepost/.active-color 2>/dev/null || echo blue)" sh -c 'if [ -n "$S3_BUCKET" ]; then echo "S3 включён, бакет=$S3_BUCKET"; else echo "ВНИМАНИЕ: S3 не сконфигурирован — фото на диске"; fi'
+            docker exec "reportagepost-$(cat /opt/reportagepost/.active-color 2>/dev/null || echo blue)" sh -c 'ls /app/.uploads >/dev/null 2>&1 && echo "есть /app/.uploads (фото писались на диск!)" || echo "нет /app/.uploads (хорошо, всё в S3)"'

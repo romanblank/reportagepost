@@ -11,4 +11,4 @@ jobs:
           host: ${{ secrets.PROD_HOST }}
           username: rp
           key: ${{ secrets.PROD_SSH_KEY }}
-          script: docker exec reportagepost npx tsx scripts/cleanup-test-data.ts
+          script: docker exec "reportagepost-$(cat /opt/reportagepost/.active-color 2>/dev/null || echo blue)" npx tsx scripts/cleanup-test-data.ts

@@ -17,6 +17,13 @@ export const dynamic = 'force-dynamic';
 export default async function ReportsPage() {
   if (!(await requireAdmin())) redirect('/ru/login');
 
+  // Фидбэк из продукта — история к телеграм-дублю (перепроверка 2026-09-10:
+  // кнопка была, а смотреть записи было негде)
+  const feedbacks = await db.feedback.findMany({
+    orderBy: { createdAt: 'desc' },
+    take: 30,
+    include: { user: { select: { firstName: true, lastName: true } } },
+  });
   const reports = await db.report.findMany({
     where: { status: 'OPEN' },
     orderBy: { createdAt: 'desc' },
@@ -63,6 +70,26 @@ export default async function ReportsPage() {
           ))}
         </ul>
       )}
+
+      <section className="mt-10">
+        <h2 className="t-h3">{ru.adminFeedback.title}</h2>
+        <p className="mt-1 t-small muted">{ru.adminFeedback.lead}</p>
+        {feedbacks.length === 0 ? (
+          <p className="mt-4 t-small muted">{ru.adminFeedback.empty}</p>
+        ) : (
+          <ul className="mt-4 flex flex-col gap-2">
+            {feedbacks.map((fb) => (
+              <li key={fb.id} className="rounded-sm border border-line bg-surface p-3">
+                <p className="t-caption muted">
+                  {fb.user ? `${fb.user.firstName} ${fb.user.lastName}` : ru.adminFeedback.guest}
+                  {' · '}{formatDateRu(fb.createdAt)}{' · '}{ru.adminFeedback.page}: {fb.page}
+                </p>
+                <p className="mt-1 t-small whitespace-pre-wrap">{fb.text}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <Link href="/ru/admin/moderation" className="mt-8 inline-block t-small underline muted">
         ← {ru.admin.moderationTitle}

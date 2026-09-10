@@ -107,6 +107,9 @@ export async function createInquiry(
   const selection = await db.photographerProfile.findMany({
     where: {
       status: 'APPROVED',
+      // Демо-витрина заявки НЕ получает (перепроверка 2026-09-10): за
+      // futazh-анкетами нет людей, а «уведомлено N» с ними льстило заказчику
+      isDemo: false,
       cityId: city.id,
       ...(categoryId ? { categories: { some: { categoryId } } } : {}),
     },
@@ -122,6 +125,7 @@ export async function createInquiry(
   const recipients = await db.photographerProfile.findMany({
     where: {
       status: 'APPROVED',
+      isDemo: false,
       cityId: city.id,
       ...(categoryId ? { categories: { some: { categoryId } } } : {}),
       ...(headStart ? { proRank: { gte: firstWaveRank } } : {}),
@@ -188,6 +192,7 @@ export async function createInquiry(
         ...(input.eventDate ? { fromDate: { lte: input.eventDate } } : {}),
         profile: {
           status: 'APPROVED',
+          isDemo: false,
           ...(categoryId ? { categories: { some: { categoryId } } } : {}),
         },
       },
@@ -473,6 +478,7 @@ async function releaseInquiriesLocked(now: Date): Promise<number> {
     const candidates = await db.photographerProfile.findMany({
       where: {
         status: 'APPROVED',
+        isDemo: false,
         cityId: { in: cityIds },
         proRank: { gte: wave.minRank, lte: wave.maxRank },
       },

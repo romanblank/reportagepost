@@ -16,5 +16,5 @@ jobs:
           username: rp
           key: ${{ secrets.PROD_SSH_KEY }}
           script: >
-            docker exec reportagepost node -e "if(!process.env.TELEGRAM_BOT_TOKEN){console.error('no token');process.exit(1)}
+            docker exec "reportagepost-$(cat /opt/reportagepost/.active-color 2>/dev/null || echo blue)" node -e "if(!process.env.TELEGRAM_BOT_TOKEN){console.error('no token');process.exit(1)}
             fetch('https://api.telegram.org/bot'+process.env.TELEGRAM_BOT_TOKEN+'/setWebhook',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({url:'https://reportagepost.com/api/telegram',secret_token:process.env.TELEGRAM_WEBHOOK_SECRET,allowed_updates:['message']})}).then(r=>r.json()).then(j=>{console.log(JSON.stringify(j));if(!j.ok)process.exit(1)}).catch(e=>{console.error(e);process.exit(1)})"

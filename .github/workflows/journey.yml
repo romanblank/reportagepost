@@ -78,7 +78,7 @@ jobs:
           host: ${{ secrets.PROD_HOST }}
           username: rp
           key: ${{ secrets.PROD_SSH_KEY }}
-          script: docker exec reportagepost npx tsx scripts/promote-admin.ts "qa-admin@test.local"
+          script: docker exec "reportagepost-$(cat /opt/reportagepost/.active-color 2>/dev/null || echo blue)" npx tsx scripts/promote-admin.ts "qa-admin@test.local"
       - name: Approve + browse everything
         run: |
           cat > s2.mjs <<'EOF'

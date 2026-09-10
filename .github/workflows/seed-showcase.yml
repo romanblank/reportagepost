@@ -30,6 +30,6 @@ jobs:
           key: ${{ secrets.PROD_SSH_KEY }}
           command_timeout: 40m
           script: |
-            docker exec reportagepost sh -c "apk add --no-cache ffmpeg >/dev/null 2>&1 || echo 'ffmpeg поставить не удалось — будет без роликов'"
-            docker exec reportagepost npx tsx scripts/fetch-showcase.ts
-            docker exec reportagepost npx tsx scripts/seed-showcase.ts
+            docker exec "reportagepost-$(cat /opt/reportagepost/.active-color 2>/dev/null || echo blue)" sh -c "apk add --no-cache ffmpeg >/dev/null 2>&1 || echo 'ffmpeg поставить не удалось — будет без роликов'"
+            docker exec "reportagepost-$(cat /opt/reportagepost/.active-color 2>/dev/null || echo blue)" npx tsx scripts/fetch-showcase.ts
+            docker exec "reportagepost-$(cat /opt/reportagepost/.active-color 2>/dev/null || echo blue)" npx tsx scripts/seed-showcase.ts

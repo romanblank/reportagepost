@@ -12,4 +12,4 @@ jobs:
           host: ${{ secrets.PROD_HOST }}
           username: rp
           key: ${{ secrets.PROD_SSH_KEY }}
-          script: docker exec reportagepost npm run db:seed
+          script: docker exec "reportagepost-$(cat /opt/reportagepost/.active-color 2>/dev/null || echo blue)" npm run db:seed

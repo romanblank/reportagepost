@@ -489,6 +489,13 @@ export const ru = {
       too_long: 'Слишком длинный текст',
     } as Record<string, string>,
   },
+  adminFeedback: {
+    title: 'Обратная связь из продукта',
+    lead: 'Сообщения из кнопки «Сообщить о проблеме». Дублируются в Telegram — здесь история.',
+    empty: 'Сообщений пока нет.',
+    guest: 'Гость',
+    page: 'Страница',
+  },
   feedbackForm: {
     trigger: 'Сообщить о проблеме',
     label: 'Что случилось или что неудобно',
