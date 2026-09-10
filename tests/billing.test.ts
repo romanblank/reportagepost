@@ -62,6 +62,46 @@ describe.skipIf(!hasDb)('billing: зачисление подписки по п�
 // лояльным людям, на которых держится запуск. Этот тест — главный в денежном
 // контуре: регрессия здесь незаметна глазу (платёж проходит, подписка
 // зачисляется) и обнаружилась бы только жалобой основателя на сумму.
+// Ручные деньги (оценка 2026-09-10): пока касса не подключена, перевод/счёт
+// фиксируется ТЕМ ЖЕ контуром, что вебхук, — иначе «кому активировано vs кто
+// заплатил» жило бы в памяти оператора и не восстановилось бы при кассе.
+describe.skipIf(!hasDb)('billing: ручная фиксация оплаты (БД)', () => {
+  it('recordManualPayment создаёт CONFIRMED-платёж и зачисляет месяц; второй перевод — второй месяц', async () => {
+    const { db } = await import('@/lib/db');
+    const { recordManualPayment } = await import('@/lib/billing');
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const u = await db.user.create({
+      data: { role: 'PHOTOGRAPHER', status: 'ACTIVE', firstName: 'Р', lastName: 'У', email: `manual-${stamp}@test.local` },
+    });
+
+    try {
+      const { orderId } = await recordManualPayment(u.id, 'ELITE', 149_000);
+      const pay = await db.payment.findUniqueOrThrow({ where: { orderId } });
+      expect(pay.status).toBe('CONFIRMED');
+      expect(pay.amountMinor).toBe(149_000);
+      expect(pay.tier).toBe('ELITE');
+
+      const sub1 = await db.subscription.findUniqueOrThrow({ where: { userId: u.id } });
+      expect(sub1.tier).toBe('ELITE');
+      const end1 = sub1.currentPeriodEnd!.getTime();
+
+      // Второй перевод продлевает от конца периода, а не заменяет его
+      await recordManualPayment(u.id, 'ELITE', 149_000);
+      const sub2 = await db.subscription.findUniqueOrThrow({ where: { userId: u.id } });
+      expect(sub2.currentPeriodEnd!.getTime()).toBeGreaterThan(end1);
+
+      // Копейки и нули — отказ, запись не создаётся
+      await expect(recordManualPayment(u.id, 'PRIME', 0)).rejects.toMatchObject({ code: 'bad_amount' });
+      await expect(recordManualPayment(u.id, 'PRIME', 990.5)).rejects.toMatchObject({ code: 'bad_amount' });
+    } finally {
+      await db.payment.deleteMany({ where: { userId: u.id } });
+      await db.subscription.deleteMany({ where: { userId: u.id } });
+      await db.photographerProfile.deleteMany({ where: { userId: u.id } });
+      await db.user.delete({ where: { id: u.id } });
+    }
+  });
+});
+
 describe.skipIf(!hasDb)('billing: цена основателя переживает оплату (БД)', () => {
   it('prepareCheckout берёт locked-цену; CONFIRMED не стирает grandfathered и priceMinorLocked', async () => {
     const { db } = await import('@/lib/db');

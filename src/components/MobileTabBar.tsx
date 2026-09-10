@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ru } from '@/i18n/ru';
 import { CATALOG_ROOT, FEED_ROOT, isCatalogPath } from '@/lib/nav';
+import { FeedbackButton } from '@/components/FeedbackButton';
 
 // Нижняя таб-навигация (app-shell как в Instagram/Telegram) — только мобайл.
 // Иконки — inline SVG (без внешних зависимостей, работает в Mini App).
@@ -100,6 +101,10 @@ export function MobileTabBar({ authed, cabinetHref }: { authed: boolean; cabinet
                   </Link>
                 </li>
               ))}
+              <li className="col-span-2 border-t border-line pt-1">
+                {/* Фидбэк-петля беты — доступна и с телефона */}
+                <FeedbackButton variant="menu" />
+              </li>
             </ul>
           </div>
         </div>

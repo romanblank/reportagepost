@@ -54,6 +54,13 @@ if "TELEGRAM_ALERT_CHAT_ID" in entries:
 for k in ("SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASSWORD", "SMTP_FROM", "EMAIL_GATE", "SECRET_BOX_KEY"):
     if k in entries:
         lines.append(f"{k}={entries[k]}")
+# Т-Касса (приём оплаты). Пробрасываются, когда оператор заведёт терминал:
+# до этого правки скрипта не потребуется — платёжный путь включается ТОЛЬКО
+# конфигом (оценка 2026-09-10: в момент получения терминала не должно быть
+# «нужен деплой с правкой кода», секрет кладётся в Lockbox и включает кассу)
+for k in ("TINKOFF_TERMINAL_KEY", "TINKOFF_PASSWORD", "TINKOFF_API_URL"):
+    if k in entries:
+        lines.append(f"{k}={entries[k]}")
 # Yandex Vision (AI-премодерация) — авторизация через SA инстанса, нужен лишь folder id.
 if "YC_FOLDER_ID" in entries:
     lines.append(f"YC_FOLDER_ID={entries['YC_FOLDER_ID']}")

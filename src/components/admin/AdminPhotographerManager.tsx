@@ -22,6 +22,29 @@ export function AdminPhotographerManager({ profileId, initialStatus, categories,
   const [cat, setCat] = useState(categories[0]?.slug ?? '');
   const [tier, setTier] = useState<SubTier>(initialTier);
   const [busy, setBusy] = useState(false);
+  const [payTier, setPayTier] = useState<'PRIME' | 'ELITE'>('PRIME');
+  const [payAmount, setPayAmount] = useState('');
+  const [payNote, setPayNote] = useState('');
+
+  // Ручные деньги (пока касса не подключена): перевод/счёт фиксируется тем же
+  // платёжным контуром, что вебхук, — журнал не расходится с реальностью
+  async function recordPayment() {
+    const amountRub = Number(payAmount);
+    if (!Number.isInteger(amountRub) || amountRub <= 0 || payNote.trim().length < 3) {
+      return toast(ru.ui.toastError, 'danger');
+    }
+    setBusy(true);
+    const res = await apiFetch(`/api/admin/photographers/${profileId}/manual-payment`, {
+      method: 'POST',
+      body: { tier: payTier, amountRub, note: payNote.trim() },
+    });
+    setBusy(false);
+    if (!res?.ok) return toast(ru.ui.toastError, 'danger');
+    setTier(payTier);
+    setPayAmount('');
+    setPayNote('');
+    toast(ru.adminPhotographers.manualPayDone, 'success');
+  }
 
   async function grant(t: 'PRIME' | 'ELITE') {
     setBusy(true);
@@ -91,6 +114,26 @@ export function AdminPhotographerManager({ profileId, initialStatus, categories,
             {ru.adminPhotographers.grantElite}
           </button>
         )}
+      </div>
+
+      <div className="mt-4 card p-3">
+        <p className="t-caption muted">{ru.adminPhotographers.manualPayTitle}</p>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <select value={payTier} onChange={(e) => setPayTier(e.target.value as 'PRIME' | 'ELITE')}
+            className="input h-9 w-auto py-1 t-small">
+            <option value="PRIME">{ru.pro.tierName.PRIME}</option>
+            <option value="ELITE">{ru.pro.tierName.ELITE}</option>
+          </select>
+          <input value={payAmount} onChange={(e) => setPayAmount(e.target.value)}
+            inputMode="numeric" placeholder={ru.adminPhotographers.manualPayAmount}
+            className="input h-9 w-28 py-1 t-small" />
+          <input value={payNote} onChange={(e) => setPayNote(e.target.value)}
+            placeholder={ru.adminPhotographers.manualPayNote}
+            className="input h-9 min-w-56 flex-1 py-1 t-small" />
+          <button type="button" onClick={recordPayment} disabled={busy} className="btn btn-accent btn-sm">
+            {ru.adminPhotographers.manualPaySubmit}
+          </button>
+        </div>
       </div>
 
       <div className="mt-6">

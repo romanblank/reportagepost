@@ -174,3 +174,25 @@ describe('публичные страницы: только явный select п
     expect(out, `Реквизиты в выборке публичной страницы:\n${out}`).toBe('');
   });
 });
+
+/**
+ * PUBLIC_LAUNCH живёт ДВУМЯ независимыми копиями (src/lib/constants.ts —
+ * robots.ts + meta; next.config.ts — X-Robots-Tag): импортировать src-код в
+ * next.config рискованно, поэтому копии связаны этим стражем. Снятие noindex
+ * (S4) обязано переключить ОБЕ — иначе meta скажет «индексируй», а заголовок
+ * продолжит запрещать (или наоборот). Третье место — nginx в
+ * deploy/setup-server.sh — правится на VM отдельно, чек-лист S4.
+ */
+describe('PUBLIC_LAUNCH: две копии флага совпадают', () => {
+  it('constants.ts и next.config.ts объявляют одно значение', async () => {
+    const { readFileSync } = await import('node:fs');
+    const constants = readFileSync('src/lib/constants.ts', 'utf8');
+    const config = readFileSync('next.config.ts', 'utf8');
+    const grab = (src: string, where: string) => {
+      const m = src.match(/PUBLIC_LAUNCH\s*=\s*(true|false)/);
+      if (!m) throw new Error(`PUBLIC_LAUNCH не найден в ${where}`);
+      return m[1];
+    };
+    expect(grab(config, 'next.config.ts')).toBe(grab(constants, 'src/lib/constants.ts'));
+  });
+});

@@ -127,8 +127,11 @@ export function OnboardingForm({ cities, categories, suggestedUsername = '' }: {
         setUploaded(res.data.uploaded);
         setThumbs((prev) => [...prev, URL.createObjectURL(file)]); // локальное превью
       } else {
-        // Достигнутый лимит — не ошибка загрузки, а конец пачки
-        if (res.status === 409) { setLimitHit(true); break; }
+        // 409 несёт РАЗНЫЕ причины (найдено UX-прогоном 2026-09-10: дубликат
+        // в пачке обрывал загрузку остальных и показывал ложный «лимит
+        // тарифа»). Пачку заканчивает ТОЛЬКО настоящий лимит; дубликат и
+        // прочее — сообщение по файлу, остальная пачка продолжает грузиться
+        if (res.status === 409 && res.code === 'photo_limit') { setLimitHit(true); break; }
         setError(ru.onboarding.errPhoto(`${file.name}: ${res.error}`));
       }
       done += 1;

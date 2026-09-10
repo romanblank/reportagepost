@@ -22,13 +22,21 @@ import { Prisma } from '@prisma/client';
  */
 
 /** Признак служебных адресов: демо-витрина и тесты. */
-const FAKE_EMAIL_SUFFIXES = ['@test.local', '@demo.local'];
+const FAKE_EMAIL_SUFFIXES = ['@test.local', '@demo.local', '@futazh.local'];
 const DEMO_USERNAME_PREFIX = 'futazh-';
 
 /** Условие «настоящий пользователь» для запросов по User. */
 export const REAL_USER: Prisma.UserWhereInput = {
   role: { not: 'ADMIN' },
-  NOT: FAKE_EMAIL_SUFFIXES.map((s) => ({ email: { endsWith: s } })),
+  NOT: [
+    ...FAKE_EMAIL_SUFFIXES.map((s): Prisma.UserWhereInput => ({ email: { endsWith: s } })),
+    // Зеркало REAL_PROFILE на User-стороне (UX-прогон 2026-09-10 поймал:
+    // старые демо-аккаунты на неучтённом суффиксе @futazh.local прошли в
+    // «воронку настоящих»). Список суффиксов — эвристика; признак в ДАННЫХ
+    // (isDemo / префикс имени профиля) обязан работать и отсюда
+    { profile: { is: { isDemo: true } } },
+    { profile: { is: { username: { startsWith: DEMO_USERNAME_PREFIX } } } },
+  ],
 };
 
 /** Условие «настоящая анкета» для запросов по PhotographerProfile. */

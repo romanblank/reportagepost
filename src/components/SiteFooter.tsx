@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ru } from '@/i18n/ru';
 import { CookieSettingsLink } from '@/components/CookieSettingsLink';
+import { FeedbackButton } from '@/components/FeedbackButton';
 import { CATALOG_ROOT } from '@/lib/nav';
 
 /**
@@ -76,6 +77,8 @@ export function SiteFooter() {
           <span className="flex flex-wrap items-center gap-5">
             <Link href="/ru/register" className="transition-colors hover:text-ink">{ru.footer.becomeAuthor}</Link>
             <Link href="/ru/faq" className="transition-colors hover:text-ink">{ru.footer.writeUs}</Link>
+            {/* Фидбэк-петля беты: сообщить о проблеме, не выходя из продукта */}
+            <FeedbackButton />
             {/* Отзыв решения по cookie — не сложнее его дачи */}
             <CookieSettingsLink />
           </span>

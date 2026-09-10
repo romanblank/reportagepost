@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { DomainError } from '@/lib/errors';
 import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { priceForCity, cityTierOf, type PaidTier } from '@/lib/pricing';
@@ -40,6 +41,32 @@ export async function prepareCheckout(userId: string, tier: PaidTier, citySlug: 
     data: { userId, orderId, amountMinor, currency: DEFAULT_CURRENCY, tier, status: 'NEW' },
   });
   return { orderId, amountMinor };
+}
+
+/**
+ * Ручная фиксация оплаты (оценка 2026-09-10, «деньги сегодня»): пока касса не
+ * подключена, деньги приходят переводом/по счёту ВНЕ платформы. Раньше такие
+ * деньги жили только в памяти оператора — «кому что активировано vs кто
+ * заплатил» было ручной сверкой, и при подключении кассы историю было бы не
+ * восстановить. Теперь ручной платёж — та же запись Payment (сумма, уровень,
+ * дата) и ТО ЖЕ зачисление, что у вебхука: applyPaymentStatus переиспользует
+ * весь контур (идемпотентность, продление от конца периода, сохранение
+ * founding-условий). Основание платежа — в AdminAudit вызывающего роута.
+ */
+export async function recordManualPayment(
+  userId: string,
+  tier: PaidTier,
+  amountMinor: number,
+): Promise<{ orderId: string }> {
+  if (!Number.isInteger(amountMinor) || amountMinor <= 0) {
+    throw new DomainError('bad_amount', 400);
+  }
+  const orderId = `manual_${userId.slice(0, 8)}_${randomUUID().slice(0, 8)}`;
+  await db.payment.create({
+    data: { userId, orderId, amountMinor, currency: DEFAULT_CURRENCY, tier, status: 'NEW' },
+  });
+  await applyPaymentStatus(orderId, 'CONFIRMED', null);
+  return { orderId };
 }
 
 /** Идемпотентно применяет статус платежа из вебхука. На CONFIRMED — зачисляет/

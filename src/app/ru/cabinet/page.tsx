@@ -22,6 +22,7 @@ import { subscriptionStatus } from '@/lib/subscription';
 import { PLAN_FEATURES } from '@/lib/pricing';
 import { CabinetProBlock } from '@/components/CabinetProBlock';
 import { photographerStats } from '@/lib/analytics';
+import { valueSummary } from '@/lib/funnel';
 import { CabinetStats } from '@/components/CabinetStats';
 import { ResubmitButton } from '@/components/ResubmitButton';
 import { formatDateRu } from '@/lib/date-format';
@@ -113,6 +114,11 @@ export default async function CabinetPage({
   const stats = subStatus && subStatus.tier !== 'FREE' && profile
     ? await photographerStats(session.userId, profile.id)
     : null;
+  // «Что принесла платформа» — доказательство ценности числами (пункт
+  // S3-приоритета): видит КАЖДЫЙ одобренный автор, не перк подписки.
+  // При полном нуле блок не показываем — нули ничего не доказывают
+  const value = profile?.status === 'APPROVED' ? await valueSummary(session.userId, profile.id) : null;
+  const valueVisible = value && (value.inquiriesReceived + value.clientsMessaged + value.shoots) > 0;
 
   // Разделы, требующие одобренной анкеты, до одобрения не показываем:
   // ссылка, ведущая к «дождитесь проверки», — обещание, которое мы сами
@@ -210,6 +216,29 @@ export default async function CabinetPage({
             <div className="mt-4">
               <FirstSteps username={profile.username} />
             </div>
+          )}
+
+          {valueVisible && value && (
+            <section className="mt-4 card p-4">
+              <p className="t-caption muted">{ru.valueSummary.title}</p>
+              <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1">
+                {value.inquiriesReceived > 0 && (
+                  <span className="t-small"><b className="tnum">{value.inquiriesReceived}</b> {ru.valueSummary.inquiries(value.inquiriesReceived)}</span>
+                )}
+                {value.inquiriesTaken > 0 && (
+                  <span className="t-small"><b className="tnum">{value.inquiriesTaken}</b> {ru.valueSummary.taken(value.inquiriesTaken)}</span>
+                )}
+                {value.clientsMessaged > 0 && (
+                  <span className="t-small"><b className="tnum">{value.clientsMessaged}</b> {ru.valueSummary.clients(value.clientsMessaged)}</span>
+                )}
+                {value.shoots > 0 && (
+                  <span className="t-small"><b className="tnum">{value.shoots}</b> {ru.valueSummary.shoots(value.shoots)}</span>
+                )}
+                {value.returningClients > 0 && (
+                  <span className="t-small"><b className="tnum">{value.returningClients}</b> {ru.valueSummary.returning(value.returningClients)}</span>
+                )}
+              </div>
+            </section>
           )}
 
           {stats && subStatus && subStatus.tier !== 'FREE' && (

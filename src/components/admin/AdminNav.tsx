@@ -23,6 +23,7 @@ const SECTIONS: { href: string; key: keyof typeof ru.adminNav.sections }[] = [
   { href: '/ru/admin/queue', key: 'queue' },
   { href: '/ru/admin/inquiries', key: 'inquiries' },
   { href: '/ru/admin/billing', key: 'billing' },
+  { href: '/ru/admin/funnel', key: 'funnel' },
   { href: '/ru/admin/users', key: 'users' },
   { href: '/ru/admin/reports', key: 'reports' },
   { href: '/ru/admin/audit', key: 'audit' },
