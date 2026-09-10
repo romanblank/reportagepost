@@ -1,12 +1,12 @@
 import Link from 'next/link';
 import { ru } from '@/i18n/ru';
-import { HERO_SHOTS, heroImageUrl } from '@/lib/hero-images';
+import { AUTH_SHOT, heroImageUrl } from '@/lib/hero-images';
 import { BrandLockup } from './BrandLockup';
 
 // Полноэкранная брендовая сцена входа/регистрации: слева репортажный кадр в
 // кино-грейде с манифестом, справа — форма. Без маркетингового хрома (см. Chrome).
 export function AuthScene({ children }: { children: React.ReactNode }) {
-  const shot = HERO_SHOTS[0];
+  const shot = AUTH_SHOT;
   return (
     <div className="as-root">
       <aside className="as-visual" style={{ backgroundImage: `url(${heroImageUrl(shot)})` }} aria-hidden="true">

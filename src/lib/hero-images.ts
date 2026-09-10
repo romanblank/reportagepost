@@ -21,7 +21,9 @@ export const HERO_SHOTS: HeroShot[] = [
   { id: '1459749411175-04bf5292ceea', author: 'Nainoa Shizuru', kind: 'Концерт' },
   { id: '1473976345543-9ffc928e648d', author: 'Mitch Rosen', kind: 'Спорт' },
   { id: '1629032449275-706895bc04cd', author: 'Street', kind: 'Город' },
-  { id: '1488942446680-85dd7de440ef', author: 'Vlad Tchompalov', kind: 'Событие' },
+  // Кадр Vlad Tchompalov (1488942446680, митинг) убран из ротации 2026-09-10:
+  // при живом просмотре на плакатах читается нецензурная надпись — на герое
+  // платформы это недопустимо. Замену в сет v3 выбирает оператор.
   { id: '1560692830-a756fcdcacee', author: 'Red Bull Racing', kind: 'Спорт' },
   { id: '1501612780327-45045538702b', author: 'Y. Papanastasopoulos', kind: 'Концерт' },
   { id: '1685110191139-eb2caaac220d', author: 'Urban', kind: 'Город' },
@@ -31,3 +33,9 @@ export const HERO_SHOTS: HeroShot[] = [
 ];
 
 export const heroImageUrl = (shot: HeroShot) => U(shot.id);
+
+// Кадр сцены входа/регистрации: HERO_SHOTS[0] (ночной концерт) под грейдом
+// AuthScene давал чёрную пустоту вместо фотографии (design-polish, волна 3).
+// Выбран светлый кадр пресс-конференции — читается под скримом и попадает в
+// приоритетный сегмент спроса (деловые события).
+export const AUTH_SHOT: HeroShot = HERO_SHOTS.find((s) => s.kind === 'Пресса') ?? HERO_SHOTS[0];
