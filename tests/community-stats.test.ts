@@ -14,7 +14,8 @@ describe.skipIf(!hasDb)('витрина сообщества считает то
     // цифра обещала заказчику выбор, которого нет
     const citiesInCatalogue = await db.city.count({ where: { active: true } });
     const withAuthors = (
-      await db.photographerProfile.groupBy({ by: ['cityId'], where: { status: 'APPROVED' } })
+      // Зеркалит фильтр витрины: демо-профили в цифры не идут (Truth)
+      await db.photographerProfile.groupBy({ by: ['cityId'], where: { status: 'APPROVED', isDemo: false } })
     ).length;
 
     const stats = await communityStats();
