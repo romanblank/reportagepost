@@ -93,6 +93,25 @@ jobs:
           source: "deploy/*"
           target: /home/rp/deploy-staging
           strip_components: 1
+      # Обход деградации канала VM→GitHub (2026-09-10: ~145 КБ/с, три деплоя
+      # подряд легли на pull даже при 45m): runner сам тянет образ из GHCR
+      # (внутри GitHub — секунды) и заливает его на VM по ssh. После docker
+      # load шаг pull в скрипте ниже видит слои на месте и качает только
+      # манифест. При сбое шага деплой НЕ падает — остаётся прежний прямой
+      # pull, просто медленный.
+      - name: Preload image via runner
+        continue-on-error: true
+        env:
+          IMAGE: ${{ needs.build-push.outputs.image }}
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker pull "$IMAGE"
+          install -m 600 /dev/null /tmp/rp_key
+          printf '%s\n' "${{ secrets.PROD_SSH_KEY }}" > /tmp/rp_key
+          time docker save "$IMAGE" | gzip -1 | \
+            ssh -i /tmp/rp_key -o StrictHostKeyChecking=accept-new "rp@${{ secrets.PROD_HOST }}" \
+              'gunzip | sudo docker load'
+          rm -f /tmp/rp_key
       - name: Deploy
         uses: appleboy/ssh-action@v1.0.3
         env:
