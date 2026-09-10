@@ -84,8 +84,12 @@ export default async function PhotoFeedPage(props: {
           <p className="t-caption muted" style={{ fontFamily: 'var(--font-mono)' }}>{ru.photoFeed.kicker}</p>
           <h1 className="t-title mt-1">{ru.photoFeed.title}</h1>
         </div>
+        {/* Гостю личные табы (Для вас/Подписки/Сохранённые) не показываем:
+            тап уводил в логин без предупреждения (design-polish, волна 2, Nit).
+            Заодно — повторный запуск деплоя после транзиентного Run Command
+            Timeout на pull (перезапуск только кодовым коммитом). */}
         <nav className="no-scrollbar flex gap-2 overflow-x-auto sm:mt-4 sm:flex-wrap">
-          {TABS.map((t) => (
+          {TABS.filter((t) => session || !['forYou', 'following', 'saved'].includes(t.key)).map((t) => (
             <Link key={t.key} href={`/ru/photo?tab=${t.key}`}
               className={`chip shrink-0 ${active === t.key ? 'chip-active' : ''}`}>
               {t.label}
