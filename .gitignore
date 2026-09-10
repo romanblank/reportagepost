@@ -57,3 +57,6 @@ next-env.d.ts
 .claude/skills/
 skills-lock.json
 .uploads-test/
+
+# Локальные дизайн-прототипы и черновики (v9, palettes, showreel)
+scratchpad/

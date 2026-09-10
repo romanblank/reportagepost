@@ -48,7 +48,7 @@ const INK = '#ece7dd';
 const INK_2 = '#c3bfb5';
 const MUTED = '#9295a2';
 const PAPER = '#0f1218';
-const ACCENT = '#e08a5e';
+const ACCENT = '#6b97e8'; // электрик «Огней площадки» (2026-09-10)
 const LINE = '#272b34';
 
 // A4 альбомная: презентацию смотрят с экрана, и вертикальный лист заставлял бы

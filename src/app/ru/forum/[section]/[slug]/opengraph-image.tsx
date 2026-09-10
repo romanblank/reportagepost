@@ -39,7 +39,7 @@ export default async function Image({ params }: { params: Promise<{ section: str
           color: '#ece7dd',
         }}
       >
-        <div style={{ display: 'flex', fontSize: 22, letterSpacing: 6, color: '#e08a5e', fontFamily: 'Inter' }}>
+        <div style={{ display: 'flex', fontSize: 22, letterSpacing: 6, color: '#6b97e8', fontFamily: 'Inter' }}>
           {(ru.forum.sections[section] ?? ru.forum.title).toUpperCase()}
         </div>
         <div style={{ display: 'flex', fontSize: 64, lineHeight: 1.1, fontFamily: 'Cormorant' }}>

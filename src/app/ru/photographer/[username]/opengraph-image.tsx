@@ -56,7 +56,7 @@ export default async function Image({ params }: { params: Promise<{ username: st
           color: '#ece7dd',
         }}
       >
-        <div style={{ display: 'flex', fontSize: 22, letterSpacing: 6, color: '#e08a5e' }}>
+        <div style={{ display: 'flex', fontSize: 22, letterSpacing: 6, color: '#6b97e8' }}>
           {ru.meta.ogKicker.toUpperCase()}
         </div>
         <div style={{ display: 'flex', fontSize: 76, fontFamily: 'Cormorant' }}>{name}</div>
