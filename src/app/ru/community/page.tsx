@@ -44,14 +44,19 @@ export default async function CommunityPage() {
       <div className="max-w-6xl w-full">
       <h1 className="t-h1">{ru.dashboard.title}</h1>
 
-      <div className="mt-6 flex flex-wrap gap-x-12 gap-y-4 border-y border-line py-6">
-        {tiles.map((t) => (
-          <div key={t.label}>
-            <div className="tnum t-metric" style={{ fontFamily: 'var(--font-display)' }}>{t.value}</div>
-            <div className="t-caption mt-2 muted">{t.label}</div>
-          </div>
-        ))}
-      </div>
+      {/* Без плиток блок не рендерится вовсе (design-polish, волна 2, High):
+          после исключения демо из статистики нули оставляли пустую полосу
+          между двух hairline-линий — читалось как сбой загрузки */}
+      {tiles.length > 0 && (
+        <div className="mt-6 flex flex-wrap gap-x-12 gap-y-4 border-y border-line py-6">
+          {tiles.map((t) => (
+            <div key={t.label}>
+              <div className="tnum t-metric" style={{ fontFamily: 'var(--font-display)' }}>{t.value}</div>
+              <div className="t-caption mt-2 muted">{t.label}</div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {valued.length > 0 && (
         <section className="mt-8">

@@ -20,7 +20,9 @@ const findCountry = cache(async (slug: string) => {
 export async function generateMetadata(props: { params: Promise<{ country: string }> }): Promise<Metadata> {
   const { country } = await props.params;
   const c = await findCountry(country);
-  if (!c) return { title: ru.profile.notFound };
+  // Нейтральный title: сегмент ловит ЛЮБОЙ /ru/xxx, «Фотограф не найден»
+  // на произвольном мусорном адресе вводил в заблуждение (design-polish, в2)
+  if (!c) return { title: ru.notFound.title };
   return {
     title: ru.country.title,
     description: ru.country.metaDescription,

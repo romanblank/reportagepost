@@ -58,7 +58,7 @@ export default async function ArticlePage({ params }: Params) {
 
       <Link href="/ru/journal" className="t-small underline muted">← {ru.nav.journal}</Link>
       <h1 className="t-h1 mt-3 text-balance">{article.title}</h1>
-      <p className="t-caption mt-3 muted">
+      <p className="t-fine mt-3 muted">
         {article.authorUsername ? (
           <Link href={`/ru/photographer/${article.authorUsername}`} className="underline">{article.authorName}</Link>
         ) : (

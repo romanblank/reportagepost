@@ -75,7 +75,11 @@ export default async function RootLayout({
       className={`${inter.variable} ${cormorant.variable} ${geistMono.variable} h-full antialiased`}
     >
       {/* pb-16 на мобиле — под нижнюю таб-навигацию */}
-      <body className="min-h-full flex flex-col pb-16 sm:pb-0">
+      {/* min-w-0: main — flex-item, и без него широкий контент (таблица
+          сравнения тарифов) РАСТЯГИВАЛ колонку вместо скролла в своём
+          overflow-x-auto — вся страница уезжала вбок на телефоне
+          (design-polish, волна 2, Blocker) */}
+      <body className="min-h-full flex min-w-0 flex-col overflow-x-clip pb-16 sm:pb-0">
         {/* Разметка уровня домена: без неё поисковик показывает голый адрес
             вместо имени площадки и не знает, что у нас есть поиск */}
         <JsonLd data={websiteLd(BASE_URL)} />

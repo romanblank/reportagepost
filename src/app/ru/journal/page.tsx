@@ -62,8 +62,10 @@ export default async function JournalPage() {
                       className="block h-full rounded-media border border-line bg-surface-2 p-4 transition-colors hover:border-accent"
                     >
                       <span className="t-small block text-balance">{a.title}</span>
-                      <span className="t-caption mt-1 block muted">{a.lead}</span>
-                      <span className="t-caption mt-2 block muted">
+                      {/* t-fine, не t-caption: лид и байлайн — текст, а не
+                          ярлык; фразы капсом нечитаемы (железное правило 3) */}
+                      <span className="t-fine mt-1 block muted">{a.lead}</span>
+                      <span className="t-fine mt-2 block muted">
                         {a.authorName} · {formatDateRu(a.publishedAt)}
                       </span>
                     </Link>

@@ -234,6 +234,15 @@ body {
   .input-error { border-color: var(--danger); }
   .input-error:focus { border-color: var(--danger); box-shadow: 0 0 0 3px var(--danger-soft); }
 
+  /* Мобильные контролы (design-polish, волна 2, сквозное):
+     1) шрифт полей <16px заставляет iOS Safari ЗУМИТЬ страницу при фокусе —
+        на узких экранах поля и кнопки получают полный кегль;
+     2) touch-цель ≤40px мала для пальца — кнопки добирают до 44px. */
+  @media (max-width: 639px) {
+    .input, .field-input, select.input, textarea.input { font-size: 1rem; }
+    .btn { min-height: 2.75rem; }
+  }
+
   .card {
     @apply rounded-md;
     background: var(--surface);

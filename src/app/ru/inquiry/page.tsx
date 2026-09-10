@@ -46,7 +46,11 @@ export default async function InquiryPage(props: { searchParams: Promise<{ photo
   }
 
   return (
-    <main className="mx-auto w-full max-w-xl flex-1 px-4 py-6 sm:py-10">
+    <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:py-10">
+      {/* Одна сетка (железное правило 4): контейнер общий, ширина
+          содержимого — внутренним блоком БЕЗ mx-auto; центрированная форма
+          выбивала левый край из линии лого и подвала */}
+      <div className="max-w-xl w-full">
       <h1 className="t-h1">{ru.inquiry.title}</h1>
       <p className="mt-1 t-small muted">{ru.inquiry.lead}</p>
       <div className="mt-6">
@@ -56,6 +60,7 @@ export default async function InquiryPage(props: { searchParams: Promise<{ photo
           prefill={prefill}
           contact={contact}
         />
+      </div>
       </div>
     </main>
   );

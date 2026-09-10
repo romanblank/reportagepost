@@ -90,7 +90,7 @@ export function PostTools({
           rows={4}
           className="input"
         />
-        {error ? <p className="t-caption text-danger">{error}</p> : null}
+        {error ? <p className="t-fine text-danger">{error}</p> : null}
         <div className="flex gap-2">
           <button type="button" onClick={save} disabled={busy} className="btn btn-primary btn-sm">
             {ru.forum.saveEdit}
@@ -108,7 +108,7 @@ export function PostTools({
       {canReply ? (
         <button
           type="button"
-          className="t-caption underline muted"
+          className="t-fine underline muted"
           onClick={() =>
             window.dispatchEvent(
               new CustomEvent('forum:quote', { detail: { author: authorName, text: body } }),
@@ -119,12 +119,12 @@ export function PostTools({
         </button>
       ) : null}
       {canEdit ? (
-        <button type="button" onClick={() => setEditing(true)} className="t-caption underline muted">
+        <button type="button" onClick={() => setEditing(true)} className="t-fine underline muted">
           {ru.forum.edit}
         </button>
       ) : null}
       {!mine ? (
-        <ReportButton targetType="FORUM_POST" targetId={postId} authed={authed} className="t-caption muted" />
+        <ReportButton targetType="FORUM_POST" targetId={postId} authed={authed} className="t-fine muted" />
       ) : null}
     </div>
   );
