@@ -38,7 +38,44 @@ export const cachedHomeData = unstable_cache(
       // тот же merit-порядок, что и в каталоге, без отдельной логики.
       catalogForCity({ citySlug: 'moscow' }).then((p) => p.cards.slice(0, 3)),
     ]);
-    return { week, fresh, stories, cats, stats, newAuthors, photographers, photos, cityAuthors };
+
+    // «Шоурил недели» — живой видео-герой главной (направление «Огни площадки»,
+    // 2026-09-10): полноэкранный рил вместо статичного кадра-фона. Приоритет —
+    // ролик автора «Кадра недели» (признание тянет за собой видимость рила),
+    // иначе свежайший готовый рил. Только READY с web-вариантами: исходники
+    // наружу не выходят. Демо-рилы допускаются ДО живого наполнения — кредит
+    // в герое несёт ту же плашку «Пример», что и весь демо-контент.
+    const reelWhere = {
+      processing: 'READY' as const,
+      status: 'APPROVED' as const,
+      OR: [{ hdKey: { not: null } }, { sdKey: { not: null } }],
+      profile: { status: 'APPROVED' as const },
+    };
+    const reelSelect = {
+      hdKey: true, sdKey: true, posterKey: true,
+      profile: {
+        select: {
+          username: true, isDemo: true,
+          user: { select: { firstName: true, lastName: true } },
+        },
+      },
+    } as const;
+    const topAuthor = week[0]?.username ?? fresh[0]?.username;
+    const heroReel =
+      (topAuthor
+        ? await db.profileVideo.findFirst({
+            where: { ...reelWhere, profile: { ...reelWhere.profile, username: topAuthor } },
+            orderBy: { createdAt: 'desc' },
+            select: reelSelect,
+          })
+        : null) ??
+      (await db.profileVideo.findFirst({
+        where: reelWhere,
+        orderBy: { createdAt: 'desc' },
+        select: reelSelect,
+      }));
+
+    return { week, fresh, stories, cats, stats, newAuthors, photographers, photos, cityAuthors, heroReel };
   },
   ['home-showcase'],
   { revalidate: TTL_SECONDS, tags: ['home'] },

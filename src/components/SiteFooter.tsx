@@ -27,6 +27,10 @@ export function SiteFooter() {
         { href: '/ru/match', label: ru.footer.linkMatch },
         { href: '/ru/photo', label: ru.footer.linkFeed },
         { href: '/ru/photo?tab=week', label: ru.footer.linkWeek },
+        // Журнал/форум/сообщество спущены из шапки (2026-09-10) — подвал
+        // теперь их единственный десктопный вход
+        { href: '/ru/journal', label: ru.nav.journal },
+        { href: '/ru/forum', label: ru.nav.forum },
         { href: '/ru/community', label: ru.footer.linkCommunity },
       ],
     },
@@ -42,6 +46,9 @@ export function SiteFooter() {
     {
       title: ru.footer.colCompany,
       links: [
+        { href: '/ru/about', label: ru.nav.aboutGoal },
+        { href: '/ru/news', label: ru.nav.aboutNews },
+        { href: '/ru/about/feedback', label: ru.nav.aboutFeedback },
         { href: '/ru/legal/offer', label: ru.footer.offer },
         { href: '/ru/legal/privacy', label: ru.footer.privacy },
       ],

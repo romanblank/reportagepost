@@ -3,6 +3,7 @@ import { CatalogCards } from "@/components/CatalogCards";
 import { ru } from "@/i18n/ru";
 import { cityNameRu } from "@/lib/geo-data";
 import { webVariantUrl } from "@/lib/photos";
+import { storage } from "@/lib/storage";
 import { cachedHomeData } from "@/lib/home-data";
 import { LandingHero } from "@/components/LandingHero";
 import { FeedMasonry } from "@/components/FeedGallery";
@@ -19,7 +20,7 @@ export default async function Home() {
   // Витрина кешируется на 2 минуты (аудит P1): раньше каждый заход заново
   // агрегировал лайки за неделю и все ленты. Персонализации на главной нет,
   // поэтому кеш общий и безопасный.
-  const { week, fresh, photographers, photos, cityAuthors } = await cachedHomeData();
+  const { week, fresh, photographers, photos, cityAuthors, heroReel } = await cachedHomeData();
 
   // Прототип показывает одну ленту отклика; берём лучшее за неделю, а на малых
   // данных честно подставляем свежее — пустая секция хуже, чем свежая.
@@ -41,11 +42,24 @@ export default async function Home() {
       }
     : null;
 
+  // «Шоурил недели»: публичные URL вариантов строим на сервере — клиентскому
+  // плееру уходят только готовые ссылки раздатчика
+  const reel = heroReel
+    ? {
+        hdSrc: heroReel.hdKey ? storage.publicUrl(heroReel.hdKey) : null,
+        sdSrc: heroReel.sdKey ? storage.publicUrl(heroReel.sdKey) : null,
+        poster: heroReel.posterKey ? storage.publicUrl(heroReel.posterKey) : null,
+        name: `${heroReel.profile.user.firstName} ${heroReel.profile.user.lastName}`.trim(),
+        href: `/ru/photographer/${heroReel.profile.username}`,
+        isDemo: heroReel.profile.isDemo,
+      }
+    : null;
+
   return (
     <main className="flex-1">
       <LandingHero photographers={photographers} photos={photos}
         backdropSrc={heroFeatured ? webVariantUrl(heroFeatured.storageKey) : null}
-        featured={featured} />
+        featured={featured} reel={reel} />
 
       {/* Авторы города (прототип v9): главная показывала кадры, но не людей —
           при том что выбирают именно автора. Карточка та же, что в каталоге. */}

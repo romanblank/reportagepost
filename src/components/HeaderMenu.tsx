@@ -21,17 +21,11 @@ type MenuChild = { href: string; label: string };
 type MenuItem = { label: string; href?: string; children?: MenuChild[]; accent?: boolean };
 
 function menuItems(catalogHref: string): MenuItem[] {
+  // Шапка несёт только путь к деньгам и контенту-ядру (решение оператора
+  // 2026-09-10): найти фотографа / смотреть работы / подписка. Журнал, форум,
+  // сообщество и «о сайте» — контентные разделы, их место в подвале (и в
+  // мобильной шторке «Ещё»): семь равновесных пунктов делали шапку нечитаемой.
   return [
-    {
-      label: ru.nav.aboutMenu,
-      children: [
-        { href: '/ru/about', label: ru.nav.aboutGoal },
-        { href: '/ru/legal/offer', label: ru.nav.aboutRules },
-        { href: '/ru/legal/privacy', label: ru.nav.aboutPrivacy },
-        { href: '/ru/about/feedback', label: ru.nav.aboutFeedback },
-        { href: '/ru/news', label: ru.nav.aboutNews },
-      ],
-    },
     {
       label: ru.nav.photographersMenu,
       // Каталог первым: до живых отметок «Отмеченные» — почти пустая страница,
@@ -44,9 +38,6 @@ function menuItems(catalogHref: string): MenuItem[] {
       ],
     },
     { label: ru.nav.feed, href: '/ru/photo' },
-    { label: ru.nav.journal, href: '/ru/journal' },
-    { label: ru.nav.forum, href: '/ru/forum' },
-    { label: ru.nav.community, href: '/ru/community' },
     { label: ru.pro.navLabel, href: '/ru/pro', accent: true },
   ];
 }

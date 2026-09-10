@@ -18,10 +18,10 @@ const BODY = path.join(FONT_DIR, 'Inter-Regular.ttf');
 const BODY_BOLD = path.join(FONT_DIR, 'Inter-SemiBold.ttf');
 
 // Токены грунта — как в globals.css/portfolio-pdf
-const BG = '#101114';
+const BG = '#0e0f11'; // грунт «Огней площадки» (2026-09-10)
 const INK = '#f2f0eb';
 const MUTED = '#9a9aa2';
-const ACCENT = '#E8B04B';
+const ACCENT = '#6b97e8'; // электрик — фирменный акцент действия
 
 const W = 595.28; // A4 портрет, pt
 const H = 841.89;

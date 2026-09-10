@@ -1,22 +1,29 @@
 import Link from 'next/link';
 import { ru } from '@/i18n/ru';
 import { HeroSearch } from '@/components/HeroSearch';
+import { HeroReel } from '@/components/HeroReel';
 
-// Кинематографичный герой v9 (2026-07-30): текст+поиск слева, featured-карточка
-// «Кадр недели» справа (алгоритмически — по отклику). Поиск — первым (директива №1).
-// Фон — приглушённый кадр под скримом; на мобиле карточка скрывается.
-export function LandingHero({ photographers, photos, backdropSrc, featured }: {
+// Герой «Огни площадки» (2026-09-10): при живом «Шоуриле недели» фоном всего
+// первого экрана играет видео (лучшее «на весь экран красивое фото или шоурил»
+// — прямой запрос оператора), кредит автора — внизу слева; правая карточка
+// «Кадр недели» в этом режиме уступает рилу. Без рила — прежний макет v9:
+// приглушённый кадр-фон + карточка. Поиск — первым в обоих режимах.
+export function LandingHero({ photographers, photos, backdropSrc, featured, reel }: {
   photographers: number;
   photos: number;
   backdropSrc: string | null;
   featured: { src: string; name: string; href: string; isDemo: boolean } | null;
+  reel: { hdSrc: string | null; sdSrc: string | null; poster: string | null;
+    name: string; href: string; isDemo: boolean } | null;
 }) {
   return (
     <section className="relative isolate flex items-center overflow-hidden bg-paper"
       // svh вместо vh: в мобильном Safari vh не учитывает адресную строку —
       // первый экран вылезал под неё и дёргался при скролле
       style={{ minHeight: 'clamp(560px, 88svh, 900px)' }}>
-      {backdropSrc ? (
+      {reel ? (
+        <HeroReel hdSrc={reel.hdSrc} sdSrc={reel.sdSrc} poster={reel.poster} />
+      ) : backdropSrc ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={backdropSrc} alt="" aria-hidden
           // Самый крупный элемент первого экрана — грузим его первым, иначе
@@ -66,8 +73,9 @@ export function LandingHero({ photographers, photos, backdropSrc, featured }: {
           )}
         </div>
 
-        {/* Правая колонка — featured «Кадр недели» */}
-        {featured && (
+        {/* Правая колонка — featured «Кадр недели»; при живом риле фон и есть
+            витрина, вторая рамка рядом с видео дробила бы внимание */}
+        {featured && !reel && (
           <Link href={featured.href}
             className="group relative hidden overflow-hidden rounded-media border border-line shadow-xl lg:block">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -95,6 +103,23 @@ export function LandingHero({ photographers, photos, backdropSrc, featured }: {
           </Link>
         )}
       </div>
+
+      {/* Кредит рила — как титр: признание автора живёт на его видео */}
+      {reel && (
+        <Link href={reel.href}
+          className="group absolute bottom-6 left-4 z-10 flex items-center gap-3 sm:left-8">
+          <span className="h-0.5 w-6 bg-accent" aria-hidden />
+          <span className="t-small text-ink-2">
+            <span className="t-caption mr-2 text-recognition">{ru.landing.reelOfWeek}</span>
+            <b className="text-ink transition group-hover:text-recognition-hi">{reel.name}</b>
+            {reel.isDemo && (
+              <span className="ml-2 rounded-sm border border-line px-1.5 py-0.5 t-fine text-muted">
+                {ru.demo.badge}
+              </span>
+            )}
+          </span>
+        </Link>
+      )}
     </section>
   );
 }

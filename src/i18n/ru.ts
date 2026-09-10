@@ -253,6 +253,8 @@ export const ru = {
     // Featured-карточка в герое (алгоритмическая — по отклику, не выбор редакции)
     featuredBadge: 'Кадр недели',
     featuredShotBy: 'Снял',
+    reelOfWeek: 'Шоурил недели',
+    reelBy: 'Снимает',
     featuredViewShot: 'Смотреть работу',
     // Новые авторы (автоматически по дате прихода — без курирования)
     newAuthorsTitle: (city: string) => `Новые авторы — ${city}`,
