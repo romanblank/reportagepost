@@ -68,8 +68,10 @@ export default async function ForumPage({ searchParams }: Params) {
                   <span className="t-small block">{ru.forum.sections[s.slug]}</span>
                   <span className="t-fine muted">{ru.forum.sectionLead[s.slug]}</span>
                 </span>
+                {/* «0 тем» у пустого раздела читалось как пустышка без
+                    объяснения (design-polish, волна 2) */}
                 <span className="t-caption shrink-0 muted">
-                  {stat ? ru.forum.threadCount(stat.threads) : ru.forum.threadCount(0)}
+                  {stat && stat.threads > 0 ? ru.forum.threadCount(stat.threads) : ru.forum.noThreadsYet}
                   {stat?.lastPostAt ? ` · ${formatDateRu(stat.lastPostAt)}` : ''}
                 </span>
               </Link>

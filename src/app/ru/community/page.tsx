@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { communityStats, valuedPhotographers, communityGeo, communityGear } from '@/lib/widgets';
 import { bestOfWeek } from '@/lib/feeds';
 import { cityNameRu } from '@/lib/geo-data';
-import { webVariantUrl, avatarUrl } from '@/lib/photos';
+import { webVariantUrl, thumbVariantUrl, avatarUrl } from '@/lib/photos';
 import { ru } from '@/i18n/ru';
 import { BASE_URL } from '@/lib/sitemap';
 
@@ -64,19 +64,32 @@ export default async function CommunityPage() {
           <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {valued.map((p) => (
               <li key={p.username}>
-                <Link href={`/ru/photographer/${p.username}`} className="flex items-center gap-3 card p-3">
-                  {p.avatarKey ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={avatarUrl(p.avatarKey)} alt="" width={44} height={44} className="h-11 w-11 shrink-0 rounded-full object-cover" />
-                  ) : (
-                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-surface-2 t-small font-semibold">
-                      {p.firstName.slice(0, 1)}{p.lastName.slice(0, 1)}
+                {/* Карточка с кадрами: на фотоплатформе секция авторов без
+                    единой фотографии не продаёт (design-polish, волна 2) */}
+                <Link href={`/ru/photographer/${p.username}`} className="card block p-3">
+                  <span className="flex items-center gap-3">
+                    {p.avatarKey ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={avatarUrl(p.avatarKey)} alt="" width={44} height={44} className="h-11 w-11 shrink-0 rounded-full object-cover" />
+                    ) : (
+                      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-surface-2 t-small font-semibold">
+                        {p.firstName.slice(0, 1)}{p.lastName.slice(0, 1)}
+                      </span>
+                    )}
+                    <span className="min-w-0">
+                      <span className="block truncate font-medium">{p.firstName} {p.lastName}</span>
+                      <span className="t-small muted">{ru.dashboard.recommendCount(p.recommendCount)}</span>
+                    </span>
+                  </span>
+                  {p.photoKeys.length > 0 && (
+                    <span className="mt-3 grid grid-cols-3 gap-1.5">
+                      {p.photoKeys.map((key) => (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img key={key} src={thumbVariantUrl(key)} alt="" loading="lazy"
+                          className="aspect-square w-full rounded-sm object-cover" />
+                      ))}
                     </span>
                   )}
-                  <span className="min-w-0">
-                    <span className="block truncate font-medium">{p.firstName} {p.lastName}</span>
-                    <span className="t-small muted">{ru.dashboard.recommendCount(p.recommendCount)}</span>
-                  </span>
                 </Link>
               </li>
             ))}

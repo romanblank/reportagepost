@@ -28,39 +28,52 @@ const TABS = [
 ] as const;
 type TabKey = (typeof TABS)[number]['key'];
 
+// Шаг ленты: столько кадров на «страницу»; ?n= умножает (кнопка «Показать ещё»)
+const PAGE_SIZE = 60;
+const MAX_PAGES = 10;
+
 export default async function PhotoFeedPage(props: {
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; n?: string }>;
 }) {
-  const { tab } = await props.searchParams;
+  const { tab, n } = await props.searchParams;
   const session = await getSession();
   const active: TabKey = TABS.some((t) => t.key === tab) ? (tab as TabKey) : session ? 'forYou' : 'week';
+
+  // «Показать ещё» без JS: ссылка с ?n= увеличивает лимит; запрашиваем на один
+  // кадр больше, чтобы честно знать, есть ли продолжение (design-polish, волна 3)
+  const pages = Math.min(Math.max(parseInt(n ?? '1', 10) || 1, 1), MAX_PAGES);
+  const limit = PAGE_SIZE * pages;
+  const probe = limit + 1;
 
   let photos: FeedPhoto[];
   let note: string | null = null;
 
   if (active === 'forYou') {
     if (!session) return unauthenticated();
-    const rec = await recommendedFeed(session.userId);
+    const rec = await recommendedFeed(session.userId, probe);
     photos = rec.photos;
     if (!rec.personalized && photos.length > 0) note = ru.photoFeed.forYouFallback;
   } else if (active === 'following') {
     if (!session) return unauthenticated();
-    photos = await followingFeed(session.userId);
+    photos = await followingFeed(session.userId, probe);
     if (photos.length === 0) note = ru.photoFeed.followingEmpty;
   } else if (active === 'saved') {
     // Личные закладки: без входа их не существует
     if (!session) return unauthenticated();
-    photos = await savedFeed(session.userId);
+    photos = await savedFeed(session.userId, probe);
     if (photos.length === 0) note = ru.photoFeed.savedEmpty;
-  } else if (active === 'week') photos = await bestOfWeek();
-  else if (active === 'year') photos = await bestOfYear();
-  else photos = await freshPhotos();
+  } else if (active === 'week') photos = await bestOfWeek(probe);
+  else if (active === 'year') photos = await bestOfYear(probe);
+  else photos = await freshPhotos(probe);
 
   // Честный фолбэк малых данных для алгоритмических лент
   if (photos.length === 0 && (active === 'week' || active === 'year')) {
-    photos = await freshPhotos();
+    photos = await freshPhotos(probe);
     if (photos.length > 0) note = ru.photoFeed.freshFallback;
   }
+
+  const hasMore = photos.length > limit && pages < MAX_PAGES;
+  if (photos.length > limit) photos = photos.slice(0, limit);
 
   return (
     <main className="mx-auto w-full max-w-7xl flex-1 sm:px-4 sm:py-8">
@@ -71,7 +84,7 @@ export default async function PhotoFeedPage(props: {
           <p className="t-caption muted" style={{ fontFamily: 'var(--font-mono)' }}>{ru.photoFeed.kicker}</p>
           <h1 className="t-title mt-1">{ru.photoFeed.title}</h1>
         </div>
-        <nav className="flex gap-2 overflow-x-auto sm:mt-4 sm:flex-wrap">
+        <nav className="no-scrollbar flex gap-2 overflow-x-auto sm:mt-4 sm:flex-wrap">
           {TABS.map((t) => (
             <Link key={t.key} href={`/ru/photo?tab=${t.key}`}
               className={`chip shrink-0 ${active === t.key ? 'chip-active' : ''}`}>
@@ -132,6 +145,13 @@ export default async function PhotoFeedPage(props: {
               </Link>
             ))}
           </div>
+          {hasMore && (
+            <div className="mt-6 px-4 pb-4 sm:px-0 sm:pb-0">
+              <Link href={`/ru/photo?tab=${active}&n=${pages + 1}`} className="btn btn-outline px-6">
+                {ru.photoFeed.showMore}
+              </Link>
+            </div>
+          )}
         </>
       )}
       </div>

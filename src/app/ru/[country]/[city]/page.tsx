@@ -318,7 +318,9 @@ export default async function CatalogPage(props: {
           {/* Сортировка — ссылками (работает без JS и остаётся в адресе, значит
               выдачу можно переслать). Подписка ни в одном порядке не участвует:
               это способ заказчика посмотреть иначе, а не купить место. */}
-          <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 t-small">
+          {/* На мобиле ряд не переносится рваными строками, а скроллится
+              (обрез как аффорданс, полоса скрыта) — design-polish, волна 3 */}
+          <div className="no-scrollbar -mx-4 mb-4 flex items-center gap-x-4 gap-y-2 overflow-x-auto whitespace-nowrap px-4 t-small sm:mx-0 sm:flex-wrap sm:overflow-visible sm:whitespace-normal sm:px-0">
             <span className="t-caption muted" style={{ fontFamily: 'var(--font-mono)' }}>{ru.catalog.sortLabel}</span>
             {([
               ['merit', ru.catalog.sortMerit],

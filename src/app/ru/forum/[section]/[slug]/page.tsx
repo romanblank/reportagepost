@@ -115,8 +115,10 @@ export default async function ThreadPage({ params, searchParams }: Params) {
       ) : session ? (
         <ForumComposer threadId={thread.id} />
       ) : (
-        <p className="mt-6 t-small muted">
-          <Link href="/ru/login" className="underline">{ru.forum.loginToReply}</Link>
+        // Единственное действие страницы для гостя — кнопкой, а не голой
+        // ссылкой в тексте (design-polish, волна 3)
+        <p className="mt-6">
+          <Link href="/ru/login" className="btn btn-outline px-5">{ru.forum.loginToReply}</Link>
         </p>
       )}
       </div>

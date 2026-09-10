@@ -30,11 +30,15 @@ export function AuthScene({ children }: { children: React.ReactNode }) {
       <style>{`
         .as-root { min-height: 100svh; display: grid; grid-template-columns: 1fr; background: var(--paper); }
         @media (min-width: 900px) { .as-root { grid-template-columns: 1.05fr 1fr; } }
+        /* brightness(.5) + плотный скрим давили кадр в чёрную пустоту —
+           на фотоплатформе левая половина входа выглядела пустым холстом
+           (design-polish, волна 2). Кадр должен ЧИТАТЬСЯ, скрим — только
+           под текстом снизу и логотипом сверху. */
         .as-visual { display: none; position: relative; background-size: cover; background-position: center;
-          filter: grayscale(.42) contrast(1.05) brightness(.5) sepia(.06); }
+          filter: grayscale(.42) contrast(1.05) brightness(.72) sepia(.06); }
         @media (min-width: 900px) { .as-visual { display: block; } }
         .as-scrim { position: absolute; inset: 0; background:
-          linear-gradient(to top, rgba(10,10,11,.85), rgba(10,10,11,.15) 55%, rgba(10,10,11,.5)); }
+          linear-gradient(to top, rgba(10,10,11,.78), rgba(10,10,11,.05) 55%, rgba(10,10,11,.35)); }
         .as-brand { position: relative; z-index: 2; display: inline-flex; align-items: center;
           text-decoration: none; }
         .as-logo { display: block; height: 34px; }

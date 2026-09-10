@@ -148,7 +148,9 @@ export function CategoryLinks({
                 ? 'text-muted-2 hover:bg-surface-2 hover:text-muted'
                 : 'muted hover:bg-surface-2 hover:text-ink'
           }`}>
-          <span className="truncate">{label}</span>
+          {/* Без truncate: «Корпоративный репор…» — обрезка имени жанра хуже
+              второй строки (design-polish, волна 1) */}
+          <span className="min-w-0 leading-snug">{label}</span>
           {count != null && count > 0 && <span className="shrink-0 tnum text-[12.5px] opacity-70">{count}</span>}
         </Link>
       );
@@ -162,7 +164,7 @@ export function CategoryLinks({
     );
   }
   return (
-    <nav className="mt-5 -mx-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0">
+    <nav className="no-scrollbar mt-5 -mx-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0">
       <Link href={base} className={`chip shrink-0 ${!activeCategory ? 'chip-active' : ''}`}>
         {ru.catalog.allCategories}
       </Link>

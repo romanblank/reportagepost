@@ -105,7 +105,9 @@ export default async function MatchPage(props: {
               placeholder={ru.ui.budgetPlaceholder} className="input mt-1 w-full" />
           </label>
         </div>
-        <div className="mt-4 flex items-center gap-3">
+        {/* На 390 подпись справа от кнопки уходила под таб-бар — на мобиле
+            она встаёт ПОД кнопку (design-polish, волна 2) */}
+        <div className="mt-4 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3">
           <button type="submit" className="btn btn-accent px-7 py-2.5">{ru.match.submit}</button>
           <span className="t-fine muted">{ru.match.aiHint}</span>
         </div>

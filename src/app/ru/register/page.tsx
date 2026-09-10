@@ -107,7 +107,10 @@ function RegisterForm() {
             </span>
           </label>
           {error && <p role="alert" className="t-small text-danger">{error}</p>}
-          <button type="submit" disabled={pending || !consent} className="btn btn-accent btn-lg mt-1">
+          {/* Кнопка активна и без галки: задизейбленная выглядела «сломанной»
+              без объяснения причины (design-polish, волна 2). Сабмит без
+              согласия показывает внятную ошибку — ветка в onSubmit */}
+          <button type="submit" disabled={pending} className="btn btn-accent btn-lg mt-1">
             {ru.auth.submitRegister}
           </button>
           <p className="mt-1 t-small muted">

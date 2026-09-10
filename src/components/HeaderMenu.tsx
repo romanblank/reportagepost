@@ -34,9 +34,11 @@ function menuItems(catalogHref: string): MenuItem[] {
     },
     {
       label: ru.nav.photographersMenu,
+      // Каталог первым: до живых отметок «Отмеченные» — почти пустая страница,
+      // а первый пункт меню и есть «раздел по умолчанию» (design-polish, волна 3)
       children: [
-        { href: '/ru/photographers', label: ru.nav.photographersMarked },
         { href: catalogHref, label: ru.nav.photographersCatalog },
+        { href: '/ru/photographers', label: ru.nav.photographersMarked },
         { href: '/ru/match', label: ru.nav.match },
         { href: '/ru/favorites', label: ru.nav.photographersFavorites },
       ],

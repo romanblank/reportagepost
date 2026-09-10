@@ -243,6 +243,11 @@ body {
     .btn { min-height: 2.75rem; }
   }
 
+  /* Горизонтальные ряды чипов: обрез последнего чипа — сам по себе аффорданс
+     скролла, а системная полоса прокрутки под рядом — шум (волна 3) */
+  .no-scrollbar { scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+
   .card {
     @apply rounded-md;
     background: var(--surface);

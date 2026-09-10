@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { db } from '@/lib/db';
+import { CATALOG_ROOT } from '@/lib/nav';
 import { ru } from '@/i18n/ru';
 import { getSession } from '@/lib/auth';
 import { RU_CITIES } from '@/lib/geo-data';
@@ -51,7 +53,12 @@ export default async function InquiryPage(props: { searchParams: Promise<{ photo
           содержимого — внутренним блоком БЕЗ mx-auto; центрированная форма
           выбивала левый край из линии лого и подвала */}
       <div className="max-w-xl w-full">
-      <h1 className="t-h1">{ru.inquiry.title}</h1>
+      {/* Путь назад: гость попадает сюда с кнопок каталога, а обратной дороги,
+          кроме кнопки браузера, не было (design-polish, волна 2, Ф4) */}
+      <nav aria-label="breadcrumb" className="t-caption muted">
+        <Link href={CATALOG_ROOT} className="underline hover:text-ink">{ru.nav.photographersCatalog}</Link>
+      </nav>
+      <h1 className="t-h1 mt-2">{ru.inquiry.title}</h1>
       <p className="mt-1 t-small muted">{ru.inquiry.lead}</p>
       <div className="mt-6">
         <InquiryForm

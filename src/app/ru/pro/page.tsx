@@ -69,11 +69,16 @@ export default async function ProPage() {
           <h2 className="t-h3">{ru.pro.planFree}</h2>
           <p className="mt-2 t-metric" style={{ fontFamily: 'var(--font-display)' }}>{ru.pro.free}</p>
           <p className="mt-1 t-small muted">&nbsp;</p>
-          <ul className="mt-5 flex flex-col gap-2.5 t-small">
+          <ul className="mt-5 flex flex-1 flex-col gap-2.5 t-small">
             {PLAN_FEATURES.filter((f) => f.minTier === 'FREE').map((f) => (
               <li key={f.key} className="flex gap-2.5"><Check on /> <span>{label(ru.pro.features, f.key)}</span></li>
             ))}
           </ul>
+          {/* Дно карточки было пустым — единственная карточка без действия
+              ломала ритм ряда (design-polish, волна 3) */}
+          {!session && (
+            <Link href="/ru/register" className="btn btn-ghost mt-5 w-full py-2.5">{ru.pro.ctaFreeBase}</Link>
+          )}
         </div>
 
         {/* Prime — акцентная */}
@@ -90,6 +95,10 @@ export default async function ProPage() {
           </div>
           <p className="mt-1 t-small muted">{formatRubMinor(primePrice.annualMinor)} {ru.pro.perYear} · {priceNote}</p>
           <Link href={cta.href} className="btn btn-accent mt-5 w-full py-2.5">{cta.label}</Link>
+          {/* «Начать бесплатно» на карточке 990 ₽ без пояснения читалось как
+              противоречие — причина («год бесплатно первым») была похоронена
+              в самом низу страницы (design-polish, волна 2) */}
+          {!session && <p className="mt-2 t-fine text-muted">{ru.pro.ctaFreeNote}</p>}
         </div>
 
         {/* Elite */}

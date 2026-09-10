@@ -32,6 +32,8 @@ export interface ValuedItem {
   lastName: string;
   avatarKey: string | null;
   recommendCount: number; // рекомендации = отзывы rating≥4 & verified
+  /** До 3 свежих кадров: карточка без фотографий автора не продаёт (волна 3) */
+  photoKeys: string[];
 }
 
 /**
@@ -50,7 +52,13 @@ export async function valuedPhotographers(limit = 6): Promise<ValuedItem[]> {
   if (agg.length === 0) return [];
   const profiles = await db.photographerProfile.findMany({
     where: { id: { in: agg.map((a) => a.profileId) }, status: 'APPROVED' },
-    select: { id: true, username: true, avatarKey: true, user: { select: { firstName: true, lastName: true } } },
+    select: {
+      id: true,
+      username: true,
+      avatarKey: true,
+      user: { select: { firstName: true, lastName: true } },
+      photos: { where: { status: 'APPROVED' }, orderBy: { publishedAt: 'desc' }, take: 3, select: { storageKey: true } },
+    },
   });
   const byId = new Map(profiles.map((p) => [p.id, p]));
   return agg
@@ -63,6 +71,7 @@ export async function valuedPhotographers(limit = 6): Promise<ValuedItem[]> {
         lastName: p.user.lastName,
         avatarKey: p.avatarKey,
         recommendCount: a._count,
+        photoKeys: p.photos.map((ph) => ph.storageKey),
       };
     })
     .filter((x): x is ValuedItem => x !== null);
