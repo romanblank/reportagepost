@@ -13,8 +13,12 @@
 name: Backup DB
 
 on:
-  schedule:
-    - cron: "0 1 * * *" # каждый день 01:00 UTC
+  # schedule на паузе проекта (2026-09-22): PostgreSQL-кластер удалён (дамп
+  # снят вручную в db-backups/rp-db-pause-*, снимок диска VM —
+  # rp-vm-disk-pause-*) — ежедневный pg_dump бил бы в несуществующую БД.
+  # Включить обратно при возобновлении вместе с восстановлением кластера.
+  # schedule:
+  #   - cron: "0 1 * * *" # каждый день 01:00 UTC
   workflow_dispatch: {}
 
 concurrency:
